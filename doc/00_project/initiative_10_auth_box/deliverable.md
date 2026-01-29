@@ -35,7 +35,7 @@ LastUpdated: 2026-01-29
 - [x] 防回归 Q&A - QA-20260129-002/003 已添加
 
 ### 需求确认文档
-- [ ] REQUIREMENT_CONFIRMATION_ZH_FR.md - 待更新
+- [x] REQUIREMENT_CONFIRMATION_ZH_FR.md - 已创建（中法对照）
 
 ### 验证
 - [x] Round 1 (ai check) - 文档更新完成
@@ -44,8 +44,8 @@ LastUpdated: 2026-01-29
   - 证据：notes.md（2026-01-29 UX Map Journey 0 测试）
 
 ### 三端一致性
-- [ ] 本地项目 - N/A（尚未初始化 git）
-- [ ] GitHub - N/A（尚未推送）
+- [x] 本地项目 - 已初始化 git（commit: 7f218d2）
+- [ ] GitHub - 待推送
 - [ ] 生产环境 - N/A（开发阶段）
 
 ## 交付物清单
@@ -59,6 +59,7 @@ LastUpdated: 2026-01-29
 | 需求台账更新 | doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md | 完成 | REQ-007/008 |
 | 证据记录 | doc/00_project/initiative_10_auth_box/notes.md | 完成 | 调研分析 + 阻塞记录 |
 | UX Map 测试 | notes.md | PASS | Journey 0 通过 |
+| Git 初始化 | .git/ | 完成 | commit 7f218d2, 63 files |
 
 ## 来源追溯
 
