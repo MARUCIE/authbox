@@ -8,6 +8,7 @@ import (
 
 	"auth-box-api/internal/config"
 	"auth-box-api/internal/handlers"
+	"auth-box-api/internal/repository"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -26,7 +27,26 @@ func New(cfg config.Config) *Server {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
 
+	// Health check (outside /api/v1)
 	r.Get("/health", handlers.NewHealthHandler(cfg).ServeHTTP)
+
+	// Initialize repositories
+	platformRepo := repository.NewPlatformRepository()
+
+	// Initialize handlers
+	platformHandler := handlers.NewPlatformHandler(platformRepo)
+
+	// API v1 routes
+	r.Route("/api/v1", func(r chi.Router) {
+		// Platforms CRUD
+		r.Route("/platforms", func(r chi.Router) {
+			r.Get("/", platformHandler.List)
+			r.Post("/", platformHandler.Create)
+			r.Get("/{id}", platformHandler.Get)
+			r.Patch("/{id}", platformHandler.Update)
+			r.Delete("/{id}", platformHandler.Delete)
+		})
+	})
 
 	return &Server{
 		cfg:    cfg,
