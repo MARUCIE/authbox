@@ -32,9 +32,11 @@ func New(cfg config.Config) *Server {
 
 	// Initialize repositories
 	platformRepo := repository.NewPlatformRepository()
+	accountRepo := repository.NewAccountRepository(platformRepo)
 
 	// Initialize handlers
 	platformHandler := handlers.NewPlatformHandler(platformRepo)
+	accountHandler := handlers.NewAccountHandler(accountRepo)
 
 	// API v1 routes
 	r.Route("/api/v1", func(r chi.Router) {
@@ -45,6 +47,15 @@ func New(cfg config.Config) *Server {
 			r.Get("/{id}", platformHandler.Get)
 			r.Patch("/{id}", platformHandler.Update)
 			r.Delete("/{id}", platformHandler.Delete)
+		})
+
+		// Accounts CRUD
+		r.Route("/accounts", func(r chi.Router) {
+			r.Get("/", accountHandler.List)
+			r.Post("/", accountHandler.Create)
+			r.Get("/{id}", accountHandler.Get)
+			r.Patch("/{id}", accountHandler.Update)
+			r.Delete("/{id}", accountHandler.Delete)
 		})
 	})
 
