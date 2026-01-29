@@ -153,3 +153,28 @@ AuditEvent {
 ### Journey 0 结论
 - 状态：PASS
 - 所有步骤通过，本地最小链路验证成功
+
+## 2026-01-29（Git 初始化）
+
+- 初始化 git 仓库：`git init && git branch -m main`
+- 创建 .gitignore（忽略 *.local.md、secrets、build artifacts）
+- 初始提交：7f218d2（63 files, 6997 insertions）
+- 更新提交：06a7a53（deliverable 更新）
+
+## 2026-01-29（Platform CRUD 实现）
+
+### 新增文件
+- `services/api/internal/models/platform.go` - Platform 实体定义与验证
+- `services/api/internal/repository/platform.go` - 内存存储（MVP）
+- `services/api/internal/handlers/platform.go` - HTTP 处理器
+- 更新 `server.go` - 路由注册 `/api/v1/platforms`
+
+### API 测试结果
+- `GET /api/v1/platforms` - OK（返回空数组 / 分页列表）
+- `POST /api/v1/platforms` - OK（201 Created + JSON body）
+- `GET /api/v1/platforms/{id}` - OK（200 / 404）
+- `PATCH /api/v1/platforms/{id}` - OK（200 + updated_at 更新）
+- `DELETE /api/v1/platforms/{id}` - OK（204 No Content）
+
+### 提交
+- commit 311034c: feat(api): implement Platform CRUD endpoints
