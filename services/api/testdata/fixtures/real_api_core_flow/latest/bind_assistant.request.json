@@ -1,0 +1,16 @@
+{
+  "step_id": "bind_assistant",
+  "method": "POST",
+  "path": "/api/v1/assistants/d8cf1e6e-f635-4410-a3fe-3c0ff6c7148f/bind",
+  "url": "http://localhost:4010/api/v1/assistants/d8cf1e6e-f635-4410-a3fe-3c0ff6c7148f/bind",
+  "token": "security_ops",
+  "body": {
+    "credential_id": "fdac9eba-7a68-4d05-b7f2-af6d095081d0",
+    "scope": {
+      "resources": [
+        "models"
+      ],
+      "rate_limit": "1000/day"
+    }
+  }
+}

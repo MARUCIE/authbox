@@ -14,12 +14,13 @@ import (
 
 // AccountHandler handles account-related HTTP requests
 type AccountHandler struct {
-	repo *repository.AccountRepository
+	repo      *repository.AccountRepository
+	auditRepo *repository.AuditRepository
 }
 
 // NewAccountHandler creates a new account handler
-func NewAccountHandler(repo *repository.AccountRepository) *AccountHandler {
-	return &AccountHandler{repo: repo}
+func NewAccountHandler(repo *repository.AccountRepository, auditRepo *repository.AuditRepository) *AccountHandler {
+	return &AccountHandler{repo: repo, auditRepo: auditRepo}
 }
 
 // List handles GET /api/v1/accounts
@@ -49,6 +50,11 @@ func (h *AccountHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // Create handles POST /api/v1/accounts
 func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
+	principal, ok := principalFromRequest(w, r)
+	if !ok {
+		return
+	}
+
 	var req models.CreateAccountRequest
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid request body")
@@ -74,6 +80,22 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to create account")
 		return
+	}
+
+	if h.auditRepo != nil {
+		h.auditRepo.Record(repository.RecordAuditEventInput{
+			ActorID:  principal.ActorID,
+			Source:   principal.Source,
+			Action:   "ACCOUNT_PROVISIONED",
+			Resource: account.ID.String(),
+			Decision: models.AuditDecisionAllow,
+			Result:   "success",
+			Input:    req,
+			Output: map[string]any{
+				"account_id": account.ID.String(),
+				"status":     account.Status,
+			},
+		})
 	}
 
 	writeJSON(w, http.StatusCreated, account)
@@ -103,6 +125,11 @@ func (h *AccountHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PATCH /api/v1/accounts/{id}
 func (h *AccountHandler) Update(w http.ResponseWriter, r *http.Request) {
+	principal, ok := principalFromRequest(w, r)
+	if !ok {
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -124,6 +151,25 @@ func (h *AccountHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to update account")
 		return
+	}
+
+	if h.auditRepo != nil && req.Status != nil {
+		h.auditRepo.Record(repository.RecordAuditEventInput{
+			ActorID:  principal.ActorID,
+			Source:   principal.Source,
+			Action:   "ACCOUNT_STATUS_CHANGED",
+			Resource: account.ID.String(),
+			Decision: models.AuditDecisionAllow,
+			Result:   "success",
+			Input: map[string]any{
+				"account_id": id.String(),
+				"status":     req.Status,
+			},
+			Output: map[string]any{
+				"account_id": account.ID.String(),
+				"status":     account.Status,
+			},
+		})
 	}
 
 	writeJSON(w, http.StatusOK, account)

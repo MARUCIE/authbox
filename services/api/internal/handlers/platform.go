@@ -13,12 +13,13 @@ import (
 
 // PlatformHandler handles platform-related HTTP requests
 type PlatformHandler struct {
-	repo *repository.PlatformRepository
+	repo      *repository.PlatformRepository
+	auditRepo *repository.AuditRepository
 }
 
 // NewPlatformHandler creates a new platform handler
-func NewPlatformHandler(repo *repository.PlatformRepository) *PlatformHandler {
-	return &PlatformHandler{repo: repo}
+func NewPlatformHandler(repo *repository.PlatformRepository, auditRepo *repository.AuditRepository) *PlatformHandler {
+	return &PlatformHandler{repo: repo, auditRepo: auditRepo}
 }
 
 // List handles GET /api/v1/platforms
@@ -37,6 +38,11 @@ func (h *PlatformHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // Create handles POST /api/v1/platforms
 func (h *PlatformHandler) Create(w http.ResponseWriter, r *http.Request) {
+	principal, ok := principalFromRequest(w, r)
+	if !ok {
+		return
+	}
+
 	var req models.CreatePlatformRequest
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid request body")
@@ -57,6 +63,22 @@ func (h *PlatformHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to create platform")
 		return
+	}
+
+	if h.auditRepo != nil {
+		h.auditRepo.Record(repository.RecordAuditEventInput{
+			ActorID:  principal.ActorID,
+			Source:   principal.Source,
+			Action:   "PLATFORM_CREATED",
+			Resource: platform.ID.String(),
+			Decision: models.AuditDecisionAllow,
+			Result:   "success",
+			Input:    req,
+			Output: map[string]any{
+				"platform_id": platform.ID.String(),
+				"status":      platform.Status,
+			},
+		})
 	}
 
 	writeJSON(w, http.StatusCreated, platform)
@@ -86,6 +108,11 @@ func (h *PlatformHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PATCH /api/v1/platforms/{id}
 func (h *PlatformHandler) Update(w http.ResponseWriter, r *http.Request) {
+	principal, ok := principalFromRequest(w, r)
+	if !ok {
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -109,11 +136,35 @@ func (h *PlatformHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.auditRepo != nil {
+		h.auditRepo.Record(repository.RecordAuditEventInput{
+			ActorID:  principal.ActorID,
+			Source:   principal.Source,
+			Action:   "PLATFORM_UPDATED",
+			Resource: platform.ID.String(),
+			Decision: models.AuditDecisionAllow,
+			Result:   "success",
+			Input: map[string]any{
+				"platform_id": id.String(),
+				"request":     req,
+			},
+			Output: map[string]any{
+				"platform_id": platform.ID.String(),
+				"status":      platform.Status,
+			},
+		})
+	}
+
 	writeJSON(w, http.StatusOK, platform)
 }
 
 // Delete handles DELETE /api/v1/platforms/{id}
 func (h *PlatformHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	principal, ok := principalFromRequest(w, r)
+	if !ok {
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -129,6 +180,24 @@ func (h *PlatformHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		}
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to delete platform")
 		return
+	}
+
+	if h.auditRepo != nil {
+		h.auditRepo.Record(repository.RecordAuditEventInput{
+			ActorID:  principal.ActorID,
+			Source:   principal.Source,
+			Action:   "PLATFORM_DELETED",
+			Resource: id.String(),
+			Decision: models.AuditDecisionAllow,
+			Result:   "success",
+			Input: map[string]any{
+				"platform_id": id.String(),
+			},
+			Output: map[string]any{
+				"platform_id": id.String(),
+				"status":      "deleted",
+			},
+		})
 	}
 
 	w.WriteHeader(http.StatusNoContent)

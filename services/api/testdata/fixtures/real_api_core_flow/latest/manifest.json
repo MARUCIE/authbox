@@ -1,0 +1,88 @@
+{
+  "fixture_id": "real_api_core_flow",
+  "version": "2026-02-11",
+  "base_url": "http://localhost:4010",
+  "acceptance_rule": "final acceptance must pass real API; mock responses are forbidden",
+  "tokens": {
+    "admin": "local-admin-token",
+    "security_ops": "local-security-token",
+    "auditor": "local-auditor-token"
+  },
+  "steps": [
+    {
+      "id": "health",
+      "method": "GET",
+      "path": "/health",
+      "expect_status": 200
+    },
+    {
+      "id": "platforms_unauthorized",
+      "method": "GET",
+      "path": "/api/v1/platforms",
+      "expect_status": 401
+    },
+    {
+      "id": "create_platform",
+      "method": "POST",
+      "path": "/api/v1/platforms",
+      "token": "admin",
+      "expect_status": 201
+    },
+    {
+      "id": "create_account",
+      "method": "POST",
+      "path": "/api/v1/accounts",
+      "token": "admin",
+      "expect_status": 201
+    },
+    {
+      "id": "create_credential",
+      "method": "POST",
+      "path": "/api/v1/credentials",
+      "token": "security_ops",
+      "expect_status": 201
+    },
+    {
+      "id": "create_assistant",
+      "method": "POST",
+      "path": "/api/v1/assistants",
+      "token": "security_ops",
+      "expect_status": 201
+    },
+    {
+      "id": "bind_assistant",
+      "method": "POST",
+      "path": "/api/v1/assistants/{assistant_id}/bind",
+      "token": "security_ops",
+      "expect_status": 200
+    },
+    {
+      "id": "rotate_forbidden",
+      "method": "POST",
+      "path": "/api/v1/credentials/{credential_id}/rotate",
+      "token": "auditor",
+      "expect_status": 403
+    },
+    {
+      "id": "rotate_allowed",
+      "method": "POST",
+      "path": "/api/v1/credentials/{credential_id}/rotate",
+      "token": "security_ops",
+      "expect_status": 200
+    },
+    {
+      "id": "create_audit_export",
+      "method": "POST",
+      "path": "/api/v1/audit/exports",
+      "token": "auditor",
+      "expect_status": 202
+    },
+    {
+      "id": "list_audit",
+      "method": "GET",
+      "path": "/api/v1/audit",
+      "token": "auditor",
+      "expect_status": 200
+    }
+  ]
+}

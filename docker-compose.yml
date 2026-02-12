@@ -27,6 +27,7 @@ services:
       AUTH_BOX_REDIS_URL: "redis://redis:6379/0"
       AUTH_BOX_ENV: "local"
       AUTH_BOX_VERSION: "0.1.0"
+      AUTH_BOX_AUTH_TOKENS: "local-admin-token:actor-platform-admin:platform_admin|security_ops|compliance_auditor|policy_admin,local-security-token:actor-security-ops:security_ops,local-auditor-token:actor-compliance-auditor:compliance_auditor"
     ports:
       - "4010:8080"
     depends_on:
@@ -39,6 +40,8 @@ services:
     container_name: 10-auth-box-console
     environment:
       NEXT_PUBLIC_API_BASE_URL: "http://localhost:4010"
+      AUTH_BOX_CONSOLE_API_TOKEN: "local-admin-token"
+      AUTH_BOX_CONSOLE_AUTH_SOURCE: "console"
     ports:
       - "3010:3000"
     depends_on:

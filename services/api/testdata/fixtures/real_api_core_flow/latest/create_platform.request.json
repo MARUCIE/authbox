@@ -1,0 +1,15 @@
+{
+  "step_id": "create_platform",
+  "method": "POST",
+  "path": "/api/v1/platforms",
+  "url": "http://localhost:4010/api/v1/platforms",
+  "token": "admin",
+  "body": {
+    "name": "OpenAI",
+    "type": "openai",
+    "config": {
+      "base_url": "https://api.openai.com",
+      "auth_type": "api_key"
+    }
+  }
+}

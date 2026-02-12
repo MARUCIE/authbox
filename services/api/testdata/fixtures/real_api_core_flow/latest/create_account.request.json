@@ -1,0 +1,11 @@
+{
+  "step_id": "create_account",
+  "method": "POST",
+  "path": "/api/v1/accounts",
+  "url": "http://localhost:4010/api/v1/accounts",
+  "token": "admin",
+  "body": {
+    "platform_id": "9f1dde1b-9364-4501-926f-2234f3120810",
+    "display_name": "security-bot"
+  }
+}
