@@ -44,8 +44,8 @@ LastUpdated: 2026-02-12
   - 证据：notes.md（2026-01-29 UX Map Journey 0 测试）
 
 ### 三端一致性
-- [x] 本地项目 - 已初始化 git（commit: 7f218d2）
-- [ ] GitHub - 待推送
+- [x] 本地项目 - 已初始化 git（commit: 7f218d2）；latest: 8395cde
+- [x] GitHub - 已推送（origin/main: 8395cde）
 - [ ] 生产环境 - N/A（开发阶段）
 
 ## 交付物清单

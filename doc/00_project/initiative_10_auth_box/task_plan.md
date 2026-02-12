@@ -547,3 +547,10 @@ LastUpdated: 2026-02-12
   - overall_pass: true（见 outputs/full-loop-check/20260212T112402Z/reports/full_loop_closure/reports/full_loop_summary.json）
   - toolchain gate（ai check）: /Users/mauricewen/AI-tools/outputs/check/20260212-112438-fef171a1
 - 下一步：将本次增量（API/Console/Docs/SOP evidence）统一 git add/commit，并 push 到 origin/main 完成三端一致性闭环。
+
+## 决策记录（2026-02-12T11:32:35Z）
+- Git 交付闭环：已完成 commit + push（origin/main@8395cde）。
+  - commits:
+    - 2c41c04 feat(api): add auth middleware, audit hash-chain, and real API fixtures
+    - 4e15ffd feat(console): add public pages, telemetry funnel, and onboarding flow
+    - 8395cde docs: sync PDCA, SOP evidence, and queue execution rule
