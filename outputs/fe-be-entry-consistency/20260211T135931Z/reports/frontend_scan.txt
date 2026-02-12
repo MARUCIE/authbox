@@ -1,0 +1,31 @@
+## Frontend route files
+apps/console/app/accounts/[id]/page.tsx
+apps/console/app/accounts/new/page.tsx
+apps/console/app/accounts/page.tsx
+apps/console/app/assistants/[id]/page.tsx
+apps/console/app/assistants/new/page.tsx
+apps/console/app/assistants/page.tsx
+apps/console/app/audit/exports/page.tsx
+apps/console/app/audit/page.tsx
+apps/console/app/credentials/[id]/page.tsx
+apps/console/app/credentials/[id]/rotate/page.tsx
+apps/console/app/credentials/page.tsx
+apps/console/app/globals.css
+apps/console/app/layout.tsx
+apps/console/app/page.tsx
+apps/console/app/platforms/[id]/page.tsx
+apps/console/app/platforms/new/page.tsx
+apps/console/app/platforms/page.tsx
+apps/console/app/settings/page.tsx
+
+## Navigation config
+export const navRoutes = [
+  { label: "Platforms", href: "/platforms" },
+  { label: "Accounts", href: "/accounts" },
+  { label: "Credentials", href: "/credentials" },
+  { label: "Assistants", href: "/assistants" },
+  { label: "Audit", href: "/audit" },
+  { label: "Settings", href: "/settings" }
+];
+
+## Frontend API calls

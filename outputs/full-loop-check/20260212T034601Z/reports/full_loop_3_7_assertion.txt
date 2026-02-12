@@ -1,0 +1,6 @@
+entrypoint.pass=PASS
+entrypoint.route_missing.zero=PASS
+entrypoint.cli_missing.zero=PASS
+entrypoint.config_missing.zero=PASS
+system.pass=PASS
+summary.overall_pass=PASS

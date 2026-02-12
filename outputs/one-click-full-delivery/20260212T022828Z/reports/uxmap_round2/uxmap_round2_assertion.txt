@@ -1,0 +1,1 @@
+home.has_html:PASS,product.has_html:PASS,compare.has_html:PASS,platforms_new.has_form:PASS,metrics.has_page:PASS,funnel.has_alerts:PASS,funnel.query.tenant.beta:PASS

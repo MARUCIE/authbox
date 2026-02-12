@@ -1,0 +1,2 @@
+step1.task_plan_read=PASS
+step1.notes_read=PASS

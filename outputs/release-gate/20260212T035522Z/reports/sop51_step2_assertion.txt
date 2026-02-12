@@ -1,0 +1,4 @@
+product.acceptance=PASS
+engineering.acceptance=PASS
+qa.acceptance=PASS
+gate.decision=PASS

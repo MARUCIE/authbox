@@ -1,0 +1,1 @@
+{"id":"ca7c02f1-c529-46ae-80b6-88eebead3154","name":"OpenAI","type":"openai","status":"active","config":{"base_url":"https://api.openai.com","auth_type":"api_key"},"created_at":"2026-02-11T15:26:47.480110262Z","updated_at":"2026-02-11T15:26:47.480110262Z"}

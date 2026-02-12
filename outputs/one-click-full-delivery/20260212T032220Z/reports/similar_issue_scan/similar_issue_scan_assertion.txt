@@ -1,0 +1,3 @@
+uxmap.pass=PASS
+frontend_reference.pass=PASS
+similar_scan.pass=PASS

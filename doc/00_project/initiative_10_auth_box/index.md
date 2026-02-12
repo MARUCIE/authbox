@@ -3,7 +3,7 @@ Title: initiative_10_auth_box 索引
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-01-29
+LastUpdated: 2026-02-11
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -16,6 +16,9 @@ Related:
 - 系统架构：`/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md`
 - 用户体验地图：`/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md`
 - 平台优化计划：`/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md`
+- 网站地图与关键词策略：`/doc/00_project/initiative_10_auth_box/SITEMAP_KEYWORD_STRATEGY.md`
+- 架构 ADR：`/doc/00_project/initiative_10_auth_box/ARCHITECTURE_ADR.md`
+- 架构风险清单：`/doc/00_project/initiative_10_auth_box/ARCHITECTURE_RISK_REGISTER.md`
 
 ## 执行文档
 - 任务计划：`/doc/00_project/initiative_10_auth_box/task_plan.md`
@@ -34,4 +37,7 @@ Related:
 - auth-box-console：`/doc/20_components/auth-box-console/index.md`
 
 ## 变更记录
+- 2026-02-11: 新增多角色脑暴产物（竞品/UX/SEO）并落地 sitemap 策略文档。（原因：multi-role-brainstorm SOP）
+- 2026-02-11: API 契约与鉴权同步（role 白名单、source 透传、契约测试补齐）。（原因：api-contract-auth-sync SOP）
+- 2026-02-11: 新增架构圆桌 ADR 与风险清单。（原因：architecture council SOP）
 - 2026-01-29: 初始化。（原因：新项目启动）

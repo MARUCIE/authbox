@@ -1,0 +1,8 @@
+{
+  "step_id": "platforms_unauthorized",
+  "method": "GET",
+  "path": "/api/v1/platforms",
+  "url": "http://localhost:4010/api/v1/platforms",
+  "token": "",
+  "body": null
+}

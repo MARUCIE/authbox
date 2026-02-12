@@ -1,0 +1,184 @@
+## code topology
+services/api/internal/config/config.go
+services/api/internal/handlers/account.go
+services/api/internal/handlers/assistant.go
+services/api/internal/handlers/audit.go
+services/api/internal/handlers/credential.go
+services/api/internal/handlers/health.go
+services/api/internal/handlers/platform.go
+services/api/internal/handlers/response.go
+services/api/internal/models/account.go
+services/api/internal/models/assistant.go
+services/api/internal/models/audit.go
+services/api/internal/models/credential.go
+services/api/internal/models/platform.go
+services/api/internal/repository/account.go
+services/api/internal/repository/assistant.go
+services/api/internal/repository/audit.go
+services/api/internal/repository/credential.go
+services/api/internal/repository/platform.go
+services/api/internal/server/server.go
+
+## entrypoints
+services/api/cmd/api/main.go:17:func main() {
+services/api/internal/server/server.go:48:	r.Route("/api/v1", func(r chi.Router) {
+services/api/internal/server/server.go:50:		r.Route("/platforms", func(r chi.Router) {
+services/api/internal/server/server.go:59:		r.Route("/accounts", func(r chi.Router) {
+services/api/internal/server/server.go:68:		r.Route("/credentials", func(r chi.Router) {
+services/api/internal/server/server.go:76:		r.Route("/assistants", func(r chi.Router) {
+services/api/internal/server/server.go:84:		r.Route("/audit", func(r chi.Router) {
+
+## security-relevant config
+docker-compose.yml:25:      AUTH_BOX_HTTP_ADDR: ":8080"
+docker-compose.yml:26:      AUTH_BOX_DB_DSN: "postgres://auth_box:auth_box_dev@postgres:5432/auth_box?sslmode=disable"
+docker-compose.yml:27:      AUTH_BOX_REDIS_URL: "redis://redis:6379/0"
+docker-compose.yml:28:      AUTH_BOX_ENV: "local"
+docker-compose.yml:29:      AUTH_BOX_VERSION: "0.1.0"
+services/api/internal/handlers/credential.go:15:// CredentialHandler handles credential-related HTTP requests.
+services/api/internal/handlers/credential.go:18:	auditRepo *repository.AuditRepository
+services/api/internal/handlers/credential.go:21:// NewCredentialHandler creates a new credential handler.
+services/api/internal/handlers/credential.go:22:func NewCredentialHandler(repo *repository.CredentialRepository, auditRepo *repository.AuditRepository) *CredentialHandler {
+services/api/internal/handlers/credential.go:23:	return &CredentialHandler{repo: repo, auditRepo: auditRepo}
+services/api/internal/handlers/credential.go:26:// List handles GET /api/v1/credentials.
+services/api/internal/handlers/credential.go:28:	credentials, _, err := h.repo.List(100, 0)
+services/api/internal/handlers/credential.go:30:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list credentials")
+services/api/internal/handlers/credential.go:35:		Items:         credentials,
+services/api/internal/handlers/credential.go:40:// Create handles POST /api/v1/credentials.
+services/api/internal/handlers/credential.go:58:	credential, err := h.repo.Create(req)
+services/api/internal/handlers/credential.go:64:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to create credential")
+services/api/internal/handlers/credential.go:68:	h.auditRepo.Record("CREDENTIAL_CREATED", credential.ID.String(), "success")
+services/api/internal/handlers/credential.go:69:	writeJSON(w, http.StatusCreated, credential)
+services/api/internal/handlers/credential.go:72:// Rotate handles POST /api/v1/credentials/{id}/rotate.
+services/api/internal/handlers/credential.go:77:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid credential id")
+services/api/internal/handlers/credential.go:81:	credential, err := h.repo.Rotate(id)
+services/api/internal/handlers/credential.go:84:			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "credential not found")
+services/api/internal/handlers/credential.go:87:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to rotate credential")
+services/api/internal/handlers/credential.go:91:	h.auditRepo.Record("CREDENTIAL_ROTATED", credential.ID.String(), "success")
+services/api/internal/handlers/credential.go:92:	writeJSON(w, http.StatusOK, credential)
+services/api/internal/handlers/credential.go:95:// Delete handles DELETE /api/v1/credentials/{id}.
+services/api/internal/handlers/credential.go:100:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid credential id")
+services/api/internal/handlers/credential.go:107:			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "credential not found")
+services/api/internal/handlers/credential.go:110:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to delete credential")
+services/api/internal/handlers/credential.go:114:	h.auditRepo.Record("CREDENTIAL_REVOKED", id.String(), "success")
+services/api/internal/handlers/assistant.go:18:	auditRepo *repository.AuditRepository
+services/api/internal/handlers/assistant.go:22:func NewAssistantHandler(repo *repository.AssistantRepository, auditRepo *repository.AuditRepository) *AssistantHandler {
+services/api/internal/handlers/assistant.go:23:	return &AssistantHandler{repo: repo, auditRepo: auditRepo}
+services/api/internal/handlers/assistant.go:64:	h.auditRepo.Record("ASSISTANT_CREATED", assistant.ID.String(), "success")
+services/api/internal/handlers/assistant.go:121:		if strings.Contains(err.Error(), "credential not found") {
+services/api/internal/handlers/assistant.go:122:			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "credential_id does not exist")
+services/api/internal/handlers/assistant.go:129:	h.auditRepo.Record("ASSISTANT_BOUND", assistant.ID.String(), "success")
+services/api/internal/handlers/response.go:7:	"github.com/go-chi/chi/v5/middleware"
+services/api/internal/handlers/response.go:14:	RequestID string `json:"request_id,omitempty"`
+services/api/internal/handlers/response.go:20:	NextPageToken string `json:"next_page_token,omitempty"`
+services/api/internal/handlers/response.go:30:	requestID := middleware.GetReqID(r.Context())
+services/api/internal/handlers/audit.go:14:// AuditHandler handles audit-related HTTP requests.
+services/api/internal/handlers/audit.go:19:// NewAuditHandler creates a new audit handler.
+services/api/internal/handlers/audit.go:24:// List handles GET /api/v1/audit.
+services/api/internal/handlers/audit.go:28:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list audit events")
+services/api/internal/handlers/audit.go:38:// CreateExport handles POST /api/v1/audit/exports.
+services/api/internal/handlers/audit.go:58:		writeError(w, r, http.StatusInternalServerError, "AUDIT_EXPORT_FAILED", "failed to create audit export")
+services/api/internal/handlers/audit.go:65:// GetExport handles GET /api/v1/audit/exports/{id}.
+services/api/internal/handlers/audit.go:70:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid audit export id")
+services/api/internal/handlers/audit.go:77:			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "audit export not found")
+services/api/internal/handlers/audit.go:80:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to get audit export")
+services/api/internal/models/credential.go:9:// CredentialType represents supported credential types.
+services/api/internal/models/credential.go:14:	CredentialTypeOAuthToken CredentialType = "oauth_token"
+services/api/internal/models/credential.go:17:// CredentialStatus represents the status of a credential.
+services/api/internal/models/credential.go:25:// Credential represents an issued credential for an account.
+services/api/internal/models/credential.go:37:// CreateCredentialRequest is the request body for creating a credential.
+services/api/internal/models/credential.go:44:// Validate validates the create credential request.
+services/api/internal/models/assistant.go:21:	CredentialID *uuid.UUID      `json:"credential_id,omitempty"`
+services/api/internal/models/assistant.go:42:// BindAssistantRequest is the request body for binding assistant to credential.
+services/api/internal/models/assistant.go:44:	CredentialID uuid.UUID      `json:"credential_id"`
+services/api/internal/models/assistant.go:51:		return ErrValidation{Field: "credential_id", Message: "credential_id is required"}
+services/api/internal/models/audit.go:9:// AuditEvent represents an auditable platform event.
+services/api/internal/models/audit.go:25:// AuditExport represents an audit export job.
+services/api/internal/models/audit.go:36:// CreateAuditExportRequest is the request body for creating an audit export.
+services/api/internal/models/audit.go:43:// Validate validates the create audit export request.
+services/api/internal/server/server.go:14:	"github.com/go-chi/chi/v5/middleware"
+services/api/internal/server/server.go:25:	r.Use(middleware.RequestID)
+services/api/internal/server/server.go:26:	r.Use(middleware.RealIP)
+services/api/internal/server/server.go:27:	r.Use(middleware.Recoverer)
+services/api/internal/server/server.go:28:	r.Use(middleware.Timeout(30 * time.Second))
+services/api/internal/server/server.go:36:	credentialRepo := repository.NewCredentialRepository(accountRepo)
+services/api/internal/server/server.go:37:	assistantRepo := repository.NewAssistantRepository(credentialRepo)
+services/api/internal/server/server.go:38:	auditRepo := repository.NewAuditRepository()
+services/api/internal/server/server.go:43:	credentialHandler := handlers.NewCredentialHandler(credentialRepo, auditRepo)
+services/api/internal/server/server.go:44:	assistantHandler := handlers.NewAssistantHandler(assistantRepo, auditRepo)
+services/api/internal/server/server.go:45:	auditHandler := handlers.NewAuditHandler(auditRepo)
+services/api/internal/server/server.go:68:		r.Route("/credentials", func(r chi.Router) {
+services/api/internal/server/server.go:69:			r.Get("/", credentialHandler.List)
+services/api/internal/server/server.go:70:			r.Post("/", credentialHandler.Create)
+services/api/internal/server/server.go:71:			r.Post("/{id}/rotate", credentialHandler.Rotate)
+services/api/internal/server/server.go:72:			r.Delete("/{id}", credentialHandler.Delete)
+services/api/internal/server/server.go:84:		r.Route("/audit", func(r chi.Router) {
+services/api/internal/server/server.go:85:			r.Get("/", auditHandler.List)
+services/api/internal/server/server.go:86:			r.Post("/exports", auditHandler.CreateExport)
+services/api/internal/server/server.go:87:			r.Get("/exports/{id}", auditHandler.GetExport)
+services/api/internal/config/config.go:15:		HTTPAddr: getEnv("AUTH_BOX_HTTP_ADDR", ":8080"),
+services/api/internal/config/config.go:16:		DBDSN:    getEnv("AUTH_BOX_DB_DSN", ""),
+services/api/internal/config/config.go:17:		RedisURL: getEnv("AUTH_BOX_REDIS_URL", ""),
+services/api/internal/config/config.go:18:		Env:      getEnv("AUTH_BOX_ENV", "local"),
+services/api/internal/config/config.go:19:		Version:  getEnv("AUTH_BOX_VERSION", "0.1.0"),
+services/api/internal/repository/assistant.go:17:	credentialRepo *CredentialRepository
+services/api/internal/repository/assistant.go:21:func NewAssistantRepository(credentialRepo *CredentialRepository) *AssistantRepository {
+services/api/internal/repository/assistant.go:24:		credentialRepo: credentialRepo,
+services/api/internal/repository/assistant.go:82:// Bind binds an assistant to a credential.
+services/api/internal/repository/assistant.go:84:	_, err := r.credentialRepo.GetByID(req.CredentialID)
+services/api/internal/repository/assistant.go:86:		return nil, fmt.Errorf("credential not found: %w", err)
+services/api/internal/repository/audit.go:12:// AuditRepository handles audit events and export jobs.
+services/api/internal/repository/audit.go:19:// NewAuditRepository creates a new in-memory audit repository.
+services/api/internal/repository/audit.go:27:// Record records an audit event.
+services/api/internal/repository/audit.go:41:// List returns all audit events with optional pagination.
+services/api/internal/repository/audit.go:61:// CreateExport creates a new audit export request.
+services/api/internal/repository/audit.go:89:// GetExport retrieves an audit export by ID.
+services/api/internal/repository/credential.go:13:// CredentialRepository handles credential persistence.
+services/api/internal/repository/credential.go:16:	credentials map[uuid.UUID]*models.Credential
+services/api/internal/repository/credential.go:20:// NewCredentialRepository creates a new in-memory credential repository.
+services/api/internal/repository/credential.go:23:		credentials: make(map[uuid.UUID]*models.Credential),
+services/api/internal/repository/credential.go:28:// Create creates a new credential.
+services/api/internal/repository/credential.go:39:	credential := &models.Credential{
+services/api/internal/repository/credential.go:49:	r.credentials[credential.ID] = credential
+services/api/internal/repository/credential.go:50:	return credential, nil
+services/api/internal/repository/credential.go:53:// GetByID retrieves a credential by ID.
+services/api/internal/repository/credential.go:58:	credential, exists := r.credentials[id]
+services/api/internal/repository/credential.go:62:	return credential, nil
+services/api/internal/repository/credential.go:65:// List returns all credentials with optional pagination.
+services/api/internal/repository/credential.go:70:	all := make([]*models.Credential, 0, len(r.credentials))
+services/api/internal/repository/credential.go:71:	for _, c := range r.credentials {
+services/api/internal/repository/credential.go:88:// Rotate rotates an existing credential.
+services/api/internal/repository/credential.go:93:	credential, exists := r.credentials[id]
+services/api/internal/repository/credential.go:99:	credential.RotatedAt = &now
+services/api/internal/repository/credential.go:100:	credential.UpdatedAt = now
+services/api/internal/repository/credential.go:101:	return credential, nil
+services/api/internal/repository/credential.go:104:// Delete revokes and removes a credential.
+services/api/internal/repository/credential.go:109:	if _, exists := r.credentials[id]; !exists {
+services/api/internal/repository/credential.go:113:	delete(r.credentials, id)
+
+## observability signals
+doc/00_project/initiative_10_auth_box/task_plan.md:65:  - ai check 通过（见 outputs/fe-be-entry-consistency/20260211T135931Z/logs/ai_check.log）
+doc/00_project/initiative_10_auth_box/task_plan.md:66:  - build-stage 运行时验证通过（见 outputs/fe-be-entry-consistency/20260211T135931Z/logs/runtime_contract_check.log）
+doc/00_project/initiative_10_auth_box/task_plan.md:67:  - docker compose 全量 rebuild 受 Docker Hub TLS 超时影响（见 outputs/fe-be-entry-consistency/20260211T135931Z/logs/docker_up_build.log）
+doc/00_project/initiative_10_auth_box/task_plan.md:96:- Agent Teams 蓝图执行记录：`outputs/architecture-council-adr/20260211T145910Z/logs/agent_teams_blueprint.log`。
+doc/00_project/initiative_10_auth_box/notes.md:198:  - ai check: outputs/fe-be-entry-consistency/20260211T135931Z/logs/ai_check.log
+doc/00_project/initiative_10_auth_box/notes.md:199:  - docker compose 启停与异常: outputs/fe-be-entry-consistency/20260211T135931Z/logs/docker_up_build.log, outputs/fe-be-entry-consistency/20260211T135931Z/logs/docker_up_build_retry.log, outputs/fe-be-entry-consistency/20260211T135931Z/logs/docker_recover_and_up.log, outputs/fe-be-entry-consistency/20260211T135931Z/logs/docker_down.log
+doc/00_project/initiative_10_auth_box/notes.md:200:  - 运行时 API 契约验证: outputs/fe-be-entry-consistency/20260211T135931Z/logs/runtime_contract_check.log
+doc/00_project/initiative_10_auth_box/notes.md:202:- 验证补充（2026-02-11T14:08:03Z）：go test（容器）通过，日志见 outputs/fe-be-entry-consistency/20260211T135931Z/logs/go_test.log。
+doc/00_project/initiative_10_auth_box/notes.md:203:- 验证补充（2026-02-11T14:08:03Z）：docker compose rebuild 受 Docker Hub TLS 超时影响，已重试并记录于 outputs/fe-be-entry-consistency/20260211T135931Z/logs/docker_up_build_retry.log。
+doc/00_project/initiative_10_auth_box/notes.md:217:- 验证补充（2026-02-11T14:20:05Z）：ai check 通过，日志见 outputs/persona-real-flow/20260211T141210Z/logs/ai_check_after_persona.log。
+doc/00_project/initiative_10_auth_box/notes.md:229:  - go test: `outputs/persona-real-flow/20260211T141210Z/logs/go_test_mvp1_postfix.log`
+doc/00_project/initiative_10_auth_box/notes.md:230:  - ai check: `outputs/persona-real-flow/20260211T141210Z/logs/ai_check_mvp1_final.log`
+doc/00_project/initiative_10_auth_box/notes.md:238:- Agent Teams 蓝图：`outputs/architecture-council-adr/20260211T145910Z/logs/agent_teams_blueprint.log`
+doc/00_project/initiative_10_auth_box/PRD.md:123:- 可观测性：OpenTelemetry 统一追踪；日志结构化输出。
+doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md:26:- OpenTelemetry：统一追踪链路，避免盲区。
+doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md:72:    GRANT ||--o{ CONSENT_RECORD : "logs"
+doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md:166:- 可观测性：OpenTelemetry
+services/api/internal/handlers/response.go:14:	RequestID string `json:"request_id,omitempty"`
+services/api/internal/handlers/response.go:34:		RequestID: requestID,
+services/api/internal/server/server.go:5:	"log/slog"
+services/api/internal/server/server.go:25:	r.Use(middleware.RequestID)
+services/api/internal/server/server.go:106:		slog.Info("api server started", "addr", s.cfg.HTTPAddr)
+services/api/cmd/api/main.go:6:	"log/slog"
+services/api/cmd/api/main.go:18:	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+services/api/cmd/api/main.go:19:	slog.SetDefault(logger)
+services/api/cmd/api/main.go:27:		slog.Error("server stopped with error", "error", err)

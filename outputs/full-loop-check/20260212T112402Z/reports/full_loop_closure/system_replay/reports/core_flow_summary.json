@@ -1,0 +1,18 @@
+{
+  "mode": "replay",
+  "api_base": "http://localhost:4010",
+  "generated_at": "2026-02-12T11:24:17Z",
+  "ids": {
+    "platform_id": "d36e03b7-6b45-40dd-8d23-f6159881e219",
+    "account_id": "6ca94010-1bb7-4302-90b7-85ffabb71d3d",
+    "credential_id": "76d917dd-3cc6-4f7e-9546-6a6dde6632e0",
+    "assistant_id": "7d09d901-da79-4b8d-ac11-17a6e00838fa",
+    "export_id": "cd28014e-f80c-4b22-9272-757aab27322f"
+  },
+  "checks": {
+    "event_count": 9,
+    "deny_event_count": 2,
+    "required_fields_ok": true,
+    "chain_link_ok": true
+  }
+}

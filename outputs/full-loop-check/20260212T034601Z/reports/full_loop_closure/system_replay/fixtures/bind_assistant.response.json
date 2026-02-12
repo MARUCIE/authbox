@@ -1,0 +1,1 @@
+{"id":"e53e1a93-cf43-40bb-8a06-6ed6b3735242","name":"ops-assistant","description":"security operations","credential_id":"b6ee9b5c-c0e7-4ab5-aa4f-1ac1bd421980","scope":{"rate_limit":"1000/day","resources":["models"]},"status":"active","created_at":"2026-02-12T03:46:41.331183254Z","updated_at":"2026-02-12T03:46:41.352014796Z"}

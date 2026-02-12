@@ -1,0 +1,9 @@
+apps/console/lib/public-telemetry-events.ts
+apps/console/lib/public-telemetry-store.ts
+apps/console/lib/public-telemetry-client.ts
+apps/console/components/public-event-tracker.tsx
+apps/console/app/api/telemetry/public-events/route.ts
+apps/console/app/api/telemetry/public-funnel/route.ts
+apps/console/app/page.tsx
+apps/console/components/marketing-page.tsx
+apps/console/app/platforms/new/page.tsx

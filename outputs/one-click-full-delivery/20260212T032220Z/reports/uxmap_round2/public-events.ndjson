@@ -1,0 +1,3 @@
+{"id":"9e7fa29b-f616-4d13-a9a9-81b7e793b615","event":"ONBOARDING_ENTRY_VIEW","route":"/platforms/new","source":"ux_round2","persona":"P1_PLATFORM_ADMIN","tenant_id":"beta","ts":"2026-02-12T03:23:32.402Z"}
+{"id":"3453e4cb-99c9-4a3b-b824-30ce863069c5","event":"PUBLIC_CTA_CLICK","route":"/product","source":"ux_round2","persona":"P0_DISCOVERY_USER","tenant_id":"beta","ts":"2026-02-12T03:23:32.439Z"}
+{"id":"bafa6631-8caf-41a2-811f-4026b9844bc2","event":"ONBOARDING_ENTRY_VIEW","route":"/platforms/new","source":"ux_round2","persona":"P1_PLATFORM_ADMIN","tenant_id":"beta","ts":"2026-02-12T03:23:32.449Z"}

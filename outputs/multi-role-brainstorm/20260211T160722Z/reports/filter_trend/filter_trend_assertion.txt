@@ -1,0 +1,1 @@
+beta.window30.page_views=1:PASS,beta.window30.cta_clicks=1:PASS,beta.window30.onboarding=1:PASS,beta.window30.platform_success=1:PASS,beta.trend.present:PASS,alpha.window30.empty:PASS,alpha.window180.page_views=1:PASS,alpha.window180.cta_clicks=1:PASS,alpha.window180.onboarding=1:PASS,query.echo.source.beta:PASS

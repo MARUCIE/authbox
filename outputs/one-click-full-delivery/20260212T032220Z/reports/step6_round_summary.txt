@@ -1,0 +1,3 @@
+round1.ai_check.log=outputs/one-click-full-delivery/20260212T032220Z/logs/ai_check_round1.log
+round2.uxmap.assertion=outputs/one-click-full-delivery/20260212T032220Z/reports/uxmap_round2/uxmap_round2_assertion.txt
+round2.result=PASS

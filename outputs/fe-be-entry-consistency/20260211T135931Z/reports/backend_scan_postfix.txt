@@ -1,0 +1,143 @@
+## backend routes (post-fix)
+package server
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"auth-box-api/internal/config"
+	"auth-box-api/internal/handlers"
+	"auth-box-api/internal/repository"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+)
+
+type Server struct {
+	cfg    config.Config
+	router *chi.Mux
+	srv    *http.Server
+}
+
+func New(cfg config.Config) *Server {
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(30 * time.Second))
+
+	// Health check (outside /api/v1)
+	r.Get("/health", handlers.NewHealthHandler(cfg).ServeHTTP)
+
+	// Initialize repositories
+	platformRepo := repository.NewPlatformRepository()
+	accountRepo := repository.NewAccountRepository(platformRepo)
+
+	// Initialize handlers
+	platformHandler := handlers.NewPlatformHandler(platformRepo)
+	accountHandler := handlers.NewAccountHandler(accountRepo)
+	notImplementedHandler := handlers.NewNotImplementedHandler()
+
+	// API v1 routes
+	r.Route("/api/v1", func(r chi.Router) {
+		// Platforms CRUD
+		r.Route("/platforms", func(r chi.Router) {
+			r.Get("/", platformHandler.List)
+			r.Post("/", platformHandler.Create)
+			r.Get("/{id}", platformHandler.Get)
+			r.Patch("/{id}", platformHandler.Update)
+			r.Delete("/{id}", platformHandler.Delete)
+		})
+
+		// Accounts CRUD
+		r.Route("/accounts", func(r chi.Router) {
+			r.Get("/", accountHandler.List)
+			r.Post("/", accountHandler.Create)
+			r.Get("/{id}", accountHandler.Get)
+			r.Patch("/{id}", accountHandler.Update)
+			r.Delete("/{id}", accountHandler.Delete)
+		})
+
+		// Credentials (planned)
+		r.Route("/credentials", func(r chi.Router) {
+			r.Get("/", notImplementedHandler.Endpoint("credentials", "list"))
+			r.Post("/", notImplementedHandler.Endpoint("credentials", "create"))
+			r.Post("/{id}/rotate", notImplementedHandler.Endpoint("credentials", "rotate"))
+			r.Delete("/{id}", notImplementedHandler.Endpoint("credentials", "delete"))
+		})
+
+		// Assistants (planned)
+		r.Route("/assistants", func(r chi.Router) {
+			r.Get("/", notImplementedHandler.Endpoint("assistants", "list"))
+			r.Post("/", notImplementedHandler.Endpoint("assistants", "create"))
+			r.Get("/{id}", notImplementedHandler.Endpoint("assistants", "get"))
+			r.Post("/{id}/bind", notImplementedHandler.Endpoint("assistants", "bind"))
+		})
+
+		// Audit (planned)
+		r.Route("/audit", func(r chi.Router) {
+			r.Get("/", notImplementedHandler.Endpoint("audit", "list"))
+			r.Post("/exports", notImplementedHandler.Endpoint("audit", "create export"))
+			r.Get("/exports/{id}", notImplementedHandler.Endpoint("audit", "get export"))
+		})
+	})
+
+	return &Server{
+		cfg:    cfg,
+		router: r,
+	}
+}
+
+func (s *Server) Run(ctx context.Context) error {
+	s.srv = &http.Server{
+		Addr:              s.cfg.HTTPAddr,
+		Handler:           s.router,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		slog.Info("api server started", "addr", s.cfg.HTTPAddr)
+		errCh <- s.srv.ListenAndServe()
+	}()
+
+	select {
+	case <-ctx.Done():
+		return s.srv.Shutdown(context.Background())
+	case err := <-errCh:
+		return err
+	}
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.srv == nil {
+		return nil
+	}
+	return s.srv.Shutdown(ctx)
+}
+
+## not implemented handler
+package handlers
+
+import "net/http"
+
+// NotImplementedHandler returns standardized 501 responses for planned endpoints.
+type NotImplementedHandler struct{}
+
+func NewNotImplementedHandler() *NotImplementedHandler {
+	return &NotImplementedHandler{}
+}
+
+func (h *NotImplementedHandler) Endpoint(resource, action string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeError(
+			w,
+			r,
+			http.StatusNotImplemented,
+			"NOT_IMPLEMENTED",
+			resource+" "+action+" is not implemented in MVP skeleton",
+		)
+	}
+}

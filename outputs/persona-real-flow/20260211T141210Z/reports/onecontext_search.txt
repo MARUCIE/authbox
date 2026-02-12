@@ -1,0 +1,11 @@
+### onecontext broad search: auth-box entrypoint
+
+Regex Search: 'auth-box|entrypoint|api contract|routes'
+
+Found 0 matches in 0 events, 0 turns, 0 sessions.
+
+### onecontext deep search: content
+
+Regex Search: 'api/v1|health|4010|8081|README'
+
+Found 0 matches in 0 events, 0 turns, 0 sessions, 0 content items.

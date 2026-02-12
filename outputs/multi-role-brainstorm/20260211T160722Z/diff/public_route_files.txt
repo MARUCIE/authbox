@@ -1,0 +1,14 @@
+apps/console/lib/marketing.ts
+apps/console/components/marketing-page.tsx
+apps/console/app/product/page.tsx
+apps/console/app/features/[slug]/page.tsx
+apps/console/app/use-cases/[slug]/page.tsx
+apps/console/app/compare/[slug]/page.tsx
+apps/console/app/pricing/page.tsx
+apps/console/app/security/page.tsx
+apps/console/app/docs/page.tsx
+apps/console/app/blog/page.tsx
+apps/console/app/changelog/page.tsx
+apps/console/app/contact/page.tsx
+apps/console/app/sitemap.ts
+apps/console/app/robots.ts

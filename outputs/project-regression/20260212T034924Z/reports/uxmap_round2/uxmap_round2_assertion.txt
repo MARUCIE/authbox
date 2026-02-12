@@ -1,0 +1,9 @@
+home.pass=PASS
+product.pass=PASS
+compare.pass=PASS
+platforms_new.pass=PASS
+metrics.pass=PASS
+event_public_cta_click.pass=PASS
+event_onboarding_entry.pass=PASS
+funnel_beta.pass=PASS
+overall.pass=PASS

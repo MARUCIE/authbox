@@ -1,0 +1,6 @@
+## port consistency grep
+doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md:178:- Console：`http://localhost:3010`
+doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md:179:- API Health：`http://localhost:4010/health`
+README.md:12:- 控制台：`http://localhost:3010`（或运行 `docker compose port console 3000` 获取映射端口）
+README.md:13:- API 健康检查：`http://localhost:4010/health`
+doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md:39:| Z3 | 访问 `http://localhost:4010/health` | 返回健康检查结果 | API 响应 |

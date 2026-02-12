@@ -1,0 +1,312 @@
+## API contract docs
+---
+Title: Component API - auth-box-api
+Scope: component
+Owner: ai-agent
+Status: active
+LastUpdated: 2026-01-29
+Related:
+  - /doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md
+  - /doc/20_components/auth-box-api/design.md
+---
+
+# auth-box-api API 契约（MVP）
+
+## 基本约定
+- Base: `/api/v1`
+- Content-Type: `application/json`
+- 时间：RFC3339
+- ID：UUID
+- 认证：`Authorization: Bearer <token>`
+- 不提供向后兼容层，升级即替换旧格式。
+
+## 错误格式
+
+```
+{
+  "code": "RESOURCE_NOT_FOUND",
+  "message": "resource not found",
+  "request_id": "req_123"
+}
+```
+
+## 错误码列表（MVP）
+
+| Code | HTTP | 场景 |
+|---|---|---|
+| VALIDATION_FAILED | 400 | 请求参数校验失败 |
+| RESOURCE_NOT_FOUND | 404 | 资源不存在 |
+| CONFLICT | 409 | 重复创建或状态冲突 |
+| UNAUTHORIZED | 401 | 未认证或令牌失效 |
+| FORBIDDEN | 403 | 权限不足 |
+| RATE_LIMITED | 429 | 访问频率限制 |
+| DEPENDENCY_FAILED | 502 | 外部平台调用失败 |
+| INTERNAL_ERROR | 500 | 未知内部错误 |
+| AUDIT_EXPORT_FAILED | 500 | 审计导出失败 |
+
+## 通用分页
+
+```
+{
+  "items": [],
+  "next_page_token": ""
+}
+```
+
+## 平台连接
+- GET `/platforms`
+- POST `/platforms`
+- GET `/platforms/{id}`
+- PATCH `/platforms/{id}`
+- DELETE `/platforms/{id}`
+
+示例：创建平台连接
+```
+POST /api/v1/platforms
+{
+  "name": "OpenAI",
+  "type": "openai",
+  "config": {
+    "base_url": "https://api.openai.com",
+    "auth_type": "api_key"
+  }
+}
+```
+
+响应：
+```
+{
+  "id": "7d0b7c8f-3c3c-4b7d-9f4f-2f6f2f4c2a01",
+  "name": "OpenAI",
+  "type": "openai",
+  "status": "active",
+  "created_at": "2026-01-29T00:00:00Z"
+}
+```
+
+## 账号
+- POST `/accounts`
+- GET `/accounts`
+- GET `/accounts/{id}`
+
+示例：创建账号
+```
+POST /api/v1/accounts
+{
+  "platform_id": "7d0b7c8f-3c3c-4b7d-9f4f-2f6f2f4c2a01",
+  "display_name": "finance-bot"
+}
+```
+
+响应：
+```
+{
+  "id": "f4c2f48f-2b6c-4a6a-92b3-8f28b47d2a12",
+  "platform_id": "7d0b7c8f-3c3c-4b7d-9f4f-2f6f2f4c2a01",
+  "external_account_id": "ext_789",
+  "status": "active",
+  "created_at": "2026-01-29T00:00:00Z"
+}
+```
+
+## 授权凭据
+- POST `/credentials`
+- POST `/credentials/{id}/rotate`
+- DELETE `/credentials/{id}`
+- GET `/credentials`
+
+示例：创建凭据
+```
+POST /api/v1/credentials
+{
+  "account_id": "f4c2f48f-2b6c-4a6a-92b3-8f28b47d2a12",
+  "type": "api_key",
+  "expires_at": "2026-12-31T00:00:00Z"
+}
+```
+
+响应：
+```
+{
+  "id": "b6f7c2a8-5a7b-4f29-9d12-6dff02c3d4a9",
+  "account_id": "f4c2f48f-2b6c-4a6a-92b3-8f28b47d2a12",
+  "status": "active",
+  "created_at": "2026-01-29T00:00:00Z"
+}
+```
+
+## AI 助手
+- POST `/assistants`
+- POST `/assistants/{id}/bind`
+- GET `/assistants`
+- GET `/assistants/{id}`
+
+示例：绑定助手
+```
+POST /api/v1/assistants/2a3b6f0d-1a1b-4d7b-9e3a-2b9b6c1d7e11/bind
+{
+  "credential_id": "b6f7c2a8-5a7b-4f29-9d12-6dff02c3d4a9",
+  "scope": {
+    "resources": ["models", "files"],
+    "rate_limit": "1000/day"
+  }
+}
+```
+
+响应：
+```
+{
+  "id": "0a9b2f1e-9f2c-4c3e-8a9d-4f2c3b1e9d0a",
+  "assistant_id": "2a3b6f0d-1a1b-4d7b-9e3a-2b9b6c1d7e11",
+  "credential_id": "b6f7c2a8-5a7b-4f29-9d12-6dff02c3d4a9",
+  "status": "active"
+}
+```
+
+## 审计日志
+- GET `/audit`
+- POST `/audit/exports`
+- GET `/audit/exports/{id}`
+
+### 审计事件类型（MVP）
+- PLATFORM_CREATED
+- PLATFORM_UPDATED
+- PLATFORM_DELETED
+- ACCOUNT_PROVISIONED
+- ACCOUNT_STATUS_CHANGED
+- CREDENTIAL_CREATED
+- CREDENTIAL_ROTATED
+- CREDENTIAL_REVOKED
+- ASSISTANT_CREATED
+- ASSISTANT_BOUND
+- ASSISTANT_UNBOUND
+- AUDIT_EXPORT_REQUESTED
+- AUDIT_EXPORT_COMPLETED
+
+示例：导出审计日志
+```
+POST /api/v1/audit/exports
+{
+  "from": "2026-01-01T00:00:00Z",
+  "to": "2026-01-31T23:59:59Z",
+  "format": "csv"
+}
+```
+
+响应：
+```
+{
+  "id": "3f8a2f3d-2b4e-4f8c-9f1b-1c2a3d4e5f6a",
+  "status": "queued",
+  "download_url": ""
+}
+```
+
+## 监控与健康检查
+- GET `/health`
+
+响应：
+```
+{
+  "status": "ok",
+  "version": "0.1.0"
+}
+```
+
+## Response helpers
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/go-chi/chi/v5/middleware"
+)
+
+// APIError represents an API error response
+type APIError struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	RequestID string `json:"request_id,omitempty"`
+}
+
+// PaginatedResponse represents a paginated list response
+type PaginatedResponse struct {
+	Items         any    `json:"items"`
+	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
+func writeJSON(w http.ResponseWriter, status int, payload any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func writeError(w http.ResponseWriter, r *http.Request, status int, code, message string) {
+	requestID := middleware.GetReqID(r.Context())
+	writeJSON(w, status, APIError{
+		Code:      code,
+		Message:   message,
+		RequestID: requestID,
+	})
+}
+
+func decodeJSON(r *http.Request, v any) error {
+	return json.NewDecoder(r.Body).Decode(v)
+}
+
+## Error helpers and handler usage
+services/api/internal/models/account.go:24:	Status            AccountStatus `json:"status"`
+services/api/internal/models/account.go:37:func (r *CreateAccountRequest) Validate() error {
+services/api/internal/handlers/account.go:4:	"errors"
+services/api/internal/handlers/account.go:32:			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid platform_id")
+services/api/internal/handlers/account.go:40:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list accounts")
+services/api/internal/handlers/account.go:54:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid request body")
+services/api/internal/handlers/account.go:60:		if errors.As(err, &validationErr) {
+services/api/internal/handlers/account.go:61:			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", validationErr.Message)
+services/api/internal/handlers/account.go:64:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error())
+services/api/internal/handlers/account.go:70:		// Check if it's a platform not found error
+services/api/internal/handlers/account.go:72:			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "platform_id does not exist")
+services/api/internal/handlers/account.go:75:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to create account")
+services/api/internal/handlers/account.go:87:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid account id")
+services/api/internal/handlers/account.go:93:		if errors.Is(err, repository.ErrNotFound) {
+services/api/internal/handlers/account.go:94:			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "account not found")
+services/api/internal/handlers/account.go:97:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to get account")
+services/api/internal/handlers/account.go:109:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid account id")
+services/api/internal/handlers/account.go:115:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid request body")
+services/api/internal/handlers/account.go:121:		if errors.Is(err, repository.ErrNotFound) {
+services/api/internal/handlers/account.go:122:			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "account not found")
+services/api/internal/handlers/account.go:125:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to update account")
+services/api/internal/handlers/account.go:137:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid account id")
+services/api/internal/handlers/account.go:143:		if errors.Is(err, repository.ErrNotFound) {
+services/api/internal/handlers/account.go:144:			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "account not found")
+services/api/internal/handlers/account.go:147:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to delete account")
+services/api/internal/handlers/platform.go:4:	"errors"
+services/api/internal/handlers/platform.go:28:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list platforms")
+services/api/internal/handlers/platform.go:42:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid request body")
+services/api/internal/handlers/platform.go:48:		if errors.As(err, &validationErr) {
+services/api/internal/handlers/platform.go:49:			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", validationErr.Message)
+services/api/internal/handlers/platform.go:52:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error())
+services/api/internal/handlers/platform.go:58:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to create platform")
+services/api/internal/handlers/platform.go:70:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid platform id")
+services/api/internal/handlers/platform.go:76:		if errors.Is(err, repository.ErrNotFound) {
+services/api/internal/handlers/platform.go:77:			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "platform not found")
+services/api/internal/handlers/platform.go:80:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to get platform")
+services/api/internal/handlers/platform.go:92:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid platform id")
+services/api/internal/handlers/platform.go:98:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid request body")
+services/api/internal/handlers/platform.go:104:		if errors.Is(err, repository.ErrNotFound) {
+services/api/internal/handlers/platform.go:105:			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "platform not found")
+services/api/internal/handlers/platform.go:108:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to update platform")
+services/api/internal/handlers/platform.go:120:		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "invalid platform id")
+services/api/internal/handlers/platform.go:126:		if errors.Is(err, repository.ErrNotFound) {
+services/api/internal/handlers/platform.go:127:			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "platform not found")
+services/api/internal/handlers/platform.go:130:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to delete platform")
+services/api/internal/models/platform.go:15:	PlatformStatusError    PlatformStatus = "error"
+services/api/internal/models/platform.go:29:	Status    PlatformStatus `json:"status"`
+services/api/internal/models/platform.go:43:func (r *CreatePlatformRequest) Validate() error {
+services/api/internal/models/platform.go:60:// ErrValidation represents a validation error
+services/api/internal/handlers/health.go:20:		"status":  "ok",
+services/api/internal/handlers/response.go:10:// APIError represents an API error response
+services/api/internal/handlers/response.go:12:	Code      string `json:"code"`
+services/api/internal/handlers/response.go:29:func writeError(w http.ResponseWriter, r *http.Request, status int, code, message string) {
+services/api/internal/handlers/response.go:38:func decodeJSON(r *http.Request, v any) error {

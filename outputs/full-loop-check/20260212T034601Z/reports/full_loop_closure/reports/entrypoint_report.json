@@ -1,0 +1,24 @@
+{
+  "nav_routes": [
+    "/product",
+    "/docs",
+    "/pricing",
+    "/security",
+    "/platforms",
+    "/accounts",
+    "/credentials",
+    "/assistants",
+    "/audit",
+    "/metrics/funnel",
+    "/settings"
+  ],
+  "quick_action_routes": [
+    "/platforms/new",
+    "/accounts/new",
+    "/credentials"
+  ],
+  "route_missing": 0,
+  "cli_missing": 0,
+  "config_missing": 0,
+  "pass": true
+}

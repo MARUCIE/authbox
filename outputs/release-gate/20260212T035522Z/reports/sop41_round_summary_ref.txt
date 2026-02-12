@@ -1,0 +1,6 @@
+round1.ai_check.log=outputs/project-regression/20260212T034924Z/logs/ai_check_round1.log
+round1.result=PASS
+round2.assertion=outputs/project-regression/20260212T034924Z/reports/uxmap_round2/uxmap_round2_assertion.txt
+round2.result=PASS
+full_loop.summary=outputs/project-regression/20260212T034924Z/reports/full_loop_closure/reports/full_loop_summary.json
+overall.result=PASS

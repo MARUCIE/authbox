@@ -1,0 +1,271 @@
+=== git diff (working changes) ===
+diff --git a/README.md b/README.md
+index 48fe717..9d09cbf 100644
+--- a/README.md
++++ b/README.md
+@@ -9,8 +9,8 @@ Auth Box 是接口授权管理平台的骨架工程，聚焦多平台账号创
+ docker compose up -d
+ ```
+ 
+-- 控制台：运行 `docker compose port console 3000` 获取宿主端口后访问
+-- API 健康检查：`http://localhost:8081/health`
++- 控制台：`http://localhost:3010`（或运行 `docker compose port console 3000` 获取映射端口）
++- API 健康检查：`http://localhost:4010/health`
+ - PostgreSQL：仅容器内访问（如需宿主访问请在 compose 中显式映射端口）
+ - Redis：仅容器内访问（如需宿主访问请在 compose 中显式映射端口）
+ 
+diff --git a/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md b/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md
+index c4a4b12..8f13f60 100644
+--- a/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md
++++ b/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md
+@@ -3,7 +3,7 @@ Title: SYSTEM_ARCHITECTURE - initiative_10_auth_box
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-01-29
++LastUpdated: 2026-02-11
+ Related:
+   - /doc/index.md
+   - /doc/00_project/index.md
+@@ -14,7 +14,7 @@ Related:
+ 
+ <!-- AI-TOOLS:PROJECT_DIR:BEGIN -->
+ - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
+-- **VERIFIED_AT_UTC**: `2026-01-29T02:48:34Z`
++- **VERIFIED_AT_UTC**: `2026-02-11T14:00:00Z`
+ - **RULE**: Always run tasks against the project root. If the CLI detects a mismatch, it will update this block.
+ <!-- AI-TOOLS:PROJECT_DIR:END -->
+ 
+@@ -174,6 +174,11 @@ flowchart LR
+ - 本地：Docker Compose 最小链路
+ - 生产：容器化部署，分层隔离 API/Worker/Console
+ 
++## 本地入口（当前 compose）
++- Console：`http://localhost:3010`
++- API Health：`http://localhost:4010/health`
++- API Base：`http://localhost:4010/api/v1`
++
+ ## 入口与路由
+ - Web 控制台入口：`/`
+ - 平台连接：`/platforms`, `/platforms/new`, `/platforms/:id`
+@@ -183,10 +188,11 @@ flowchart LR
+ - 审计日志：`/audit`, `/audit/exports`
+ - 设置：`/settings`
+ 
+-## API 面（初版）
++## API 面（当前骨架）
+ - Base：`/api/v1`
+-- 平台连接：`/api/v1/platforms`
+-- 账号：`/api/v1/accounts`
+-- 授权凭据：`/api/v1/credentials`
+-- AI 助手：`/api/v1/assistants`
+-- 审计：`/api/v1/audit`
++- Health：`/health`（200）
++- 平台连接：`/api/v1/platforms`（已实现）
++- 账号：`/api/v1/accounts`（已实现）
++- 授权凭据：`/api/v1/credentials`（路由已注册，当前返回 `501 NOT_IMPLEMENTED`）
++- AI 助手：`/api/v1/assistants`（路由已注册，当前返回 `501 NOT_IMPLEMENTED`）
++- 审计：`/api/v1/audit`（路由已注册，当前返回 `501 NOT_IMPLEMENTED`）
+diff --git a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+index 6d93dfe..9c90b1b 100644
+--- a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
++++ b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+@@ -3,7 +3,7 @@ Title: USER_EXPERIENCE_MAP - initiative_10_auth_box
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-01-29
++LastUpdated: 2026-02-11
+ Related:
+   - /doc/index.md
+   - /doc/00_project/index.md
+@@ -36,7 +36,7 @@ Related:
+ |---|---|---|---|
+ | Z1 | `docker compose up -d` | 启动 API/Console/PostgreSQL/Redis | 终端输出 |
+ | Z2 | 运行 `docker compose port console 3000`，打开输出的 URL | 展示控制台骨架首页 | 页面截图 |
+-| Z3 | 访问 `http://localhost:8080/health` | 返回健康检查结果 | API 响应 |
++| Z3 | 访问 `http://localhost:4010/health` | 返回健康检查结果 | API 响应 |
+ 
+ ### Journey A: 平台初始化
+ | Step | 用户动作 | 系统响应 | 证据/产物 |
+diff --git a/doc/20_components/auth-box-api/api.md b/doc/20_components/auth-box-api/api.md
+index a3185b5..c2ac287 100644
+--- a/doc/20_components/auth-box-api/api.md
++++ b/doc/20_components/auth-box-api/api.md
+@@ -3,7 +3,7 @@ Title: Component API - auth-box-api
+ Scope: component
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-01-29
++LastUpdated: 2026-02-11
+ Related:
+   - /doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md
+   - /doc/20_components/auth-box-api/design.md
+@@ -41,6 +41,7 @@ Related:
+ | RATE_LIMITED | 429 | 访问频率限制 |
+ | DEPENDENCY_FAILED | 502 | 外部平台调用失败 |
+ | INTERNAL_ERROR | 500 | 未知内部错误 |
++| NOT_IMPLEMENTED | 501 | 预留端点（骨架阶段）未实现 |
+ | AUDIT_EXPORT_FAILED | 500 | 审计导出失败 |
+ 
+ ## 通用分页
+@@ -87,6 +88,8 @@ POST /api/v1/platforms
+ - POST `/accounts`
+ - GET `/accounts`
+ - GET `/accounts/{id}`
++- PATCH `/accounts/{id}`
++- DELETE `/accounts/{id}`
+ 
+ 示例：创建账号
+ ```
+@@ -109,60 +112,49 @@ POST /api/v1/accounts
+ ```
+ 
+ ## 授权凭据
++- 状态：骨架阶段已注册路由，当前统一返回 `501 NOT_IMPLEMENTED`
+ - POST `/credentials`
+ - POST `/credentials/{id}/rotate`
+ - DELETE `/credentials/{id}`
+ - GET `/credentials`
+ 
+-示例：创建凭据
++示例（当前骨架返回）：
+ ```
+ POST /api/v1/credentials
+-{
+-  "account_id": "f4c2f48f-2b6c-4a6a-92b3-8f28b47d2a12",
+-  "type": "api_key",
+-  "expires_at": "2026-12-31T00:00:00Z"
+-}
+ ```
+ 
+ 响应：
+ ```
+ {
+-  "id": "b6f7c2a8-5a7b-4f29-9d12-6dff02c3d4a9",
+-  "account_id": "f4c2f48f-2b6c-4a6a-92b3-8f28b47d2a12",
+-  "status": "active",
+-  "created_at": "2026-01-29T00:00:00Z"
++  "code": "NOT_IMPLEMENTED",
++  "message": "credentials create is not implemented in MVP skeleton",
++  "request_id": "..."
+ }
+ ```
+ 
+ ## AI 助手
++- 状态：骨架阶段已注册路由，当前统一返回 `501 NOT_IMPLEMENTED`
+ - POST `/assistants`
+ - POST `/assistants/{id}/bind`
+ - GET `/assistants`
+ - GET `/assistants/{id}`
+ 
+-示例：绑定助手
++示例（当前骨架返回）：
+ ```
+ POST /api/v1/assistants/2a3b6f0d-1a1b-4d7b-9e3a-2b9b6c1d7e11/bind
+-{
+-  "credential_id": "b6f7c2a8-5a7b-4f29-9d12-6dff02c3d4a9",
+-  "scope": {
+-    "resources": ["models", "files"],
+-    "rate_limit": "1000/day"
+-  }
+-}
+ ```
+ 
+ 响应：
+ ```
+ {
+-  "id": "0a9b2f1e-9f2c-4c3e-8a9d-4f2c3b1e9d0a",
+-  "assistant_id": "2a3b6f0d-1a1b-4d7b-9e3a-2b9b6c1d7e11",
+-  "credential_id": "b6f7c2a8-5a7b-4f29-9d12-6dff02c3d4a9",
+-  "status": "active"
++  "code": "NOT_IMPLEMENTED",
++  "message": "assistants bind is not implemented in MVP skeleton",
++  "request_id": "..."
+ }
+ ```
+ 
+ ## 审计日志
++- 状态：骨架阶段已注册路由，当前统一返回 `501 NOT_IMPLEMENTED`
+ - GET `/audit`
+ - POST `/audit/exports`
+ - GET `/audit/exports/{id}`
+@@ -182,22 +174,17 @@ POST /api/v1/assistants/2a3b6f0d-1a1b-4d7b-9e3a-2b9b6c1d7e11/bind
+ - AUDIT_EXPORT_REQUESTED
+ - AUDIT_EXPORT_COMPLETED
+ 
+-示例：导出审计日志
++示例（当前骨架返回）：
+ ```
+ POST /api/v1/audit/exports
+-{
+-  "from": "2026-01-01T00:00:00Z",
+-  "to": "2026-01-31T23:59:59Z",
+-  "format": "csv"
+-}
+ ```
+ 
+ 响应：
+ ```
+ {
+-  "id": "3f8a2f3d-2b4e-4f8c-9f1b-1c2a3d4e5f6a",
+-  "status": "queued",
+-  "download_url": ""
++  "code": "NOT_IMPLEMENTED",
++  "message": "audit create export is not implemented in MVP skeleton",
++  "request_id": "..."
+ }
+ ```
+ 
+@@ -208,6 +195,8 @@ POST /api/v1/audit/exports
+ ```
+ {
+   "status": "ok",
+-  "version": "0.1.0"
++  "version": "0.1.0",
++  "env": "local",
++  "time": "2026-02-11T14:00:00Z"
+ }
+ ```
+diff --git a/services/api/internal/server/server.go b/services/api/internal/server/server.go
+index aad935e..8a893d4 100644
+--- a/services/api/internal/server/server.go
++++ b/services/api/internal/server/server.go
+@@ -37,6 +37,7 @@ func New(cfg config.Config) *Server {
+ 	// Initialize handlers
+ 	platformHandler := handlers.NewPlatformHandler(platformRepo)
+ 	accountHandler := handlers.NewAccountHandler(accountRepo)
++	notImplementedHandler := handlers.NewNotImplementedHandler()
+ 
+ 	// API v1 routes
+ 	r.Route("/api/v1", func(r chi.Router) {
+@@ -57,6 +58,29 @@ func New(cfg config.Config) *Server {
+ 			r.Patch("/{id}", accountHandler.Update)
+ 			r.Delete("/{id}", accountHandler.Delete)
+ 		})
++
++		// Credentials (planned)
++		r.Route("/credentials", func(r chi.Router) {
++			r.Get("/", notImplementedHandler.Endpoint("credentials", "list"))
++			r.Post("/", notImplementedHandler.Endpoint("credentials", "create"))
++			r.Post("/{id}/rotate", notImplementedHandler.Endpoint("credentials", "rotate"))
++			r.Delete("/{id}", notImplementedHandler.Endpoint("credentials", "delete"))
++		})
++
++		// Assistants (planned)
++		r.Route("/assistants", func(r chi.Router) {
++			r.Get("/", notImplementedHandler.Endpoint("assistants", "list"))
++			r.Post("/", notImplementedHandler.Endpoint("assistants", "create"))
++			r.Get("/{id}", notImplementedHandler.Endpoint("assistants", "get"))
++			r.Post("/{id}/bind", notImplementedHandler.Endpoint("assistants", "bind"))
++		})
++
++		// Audit (planned)
++		r.Route("/audit", func(r chi.Router) {
++			r.Get("/", notImplementedHandler.Endpoint("audit", "list"))
++			r.Post("/exports", notImplementedHandler.Endpoint("audit", "create export"))
++			r.Get("/exports/{id}", notImplementedHandler.Endpoint("audit", "get export"))
++		})
+ 	})
+ 
+ 	return &Server{

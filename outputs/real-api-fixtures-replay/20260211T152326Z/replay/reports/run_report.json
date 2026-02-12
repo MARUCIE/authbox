@@ -1,0 +1,24 @@
+{
+  "mode": "replay",
+  "evidence_dir": "outputs/real-api-fixtures-replay/20260211T152326Z/replay",
+  "manifest": "./services/api/testdata/fixtures/real_api_core_flow/manifest.json",
+  "acceptance_rule": "final acceptance must pass real API; mock responses are forbidden",
+  "summary": {
+    "mode": "replay",
+    "api_base": "http://localhost:4010",
+    "generated_at": "2026-02-11T15:26:47Z",
+    "ids": {
+      "platform_id": "ca7c02f1-c529-46ae-80b6-88eebead3154",
+      "account_id": "2383b116-6bee-42e6-9c37-87104d79645b",
+      "credential_id": "f7ddaeea-8af3-4deb-9633-b735980bbf1b",
+      "assistant_id": "9145f177-5b19-405d-a26e-6136639235d2",
+      "export_id": "bc2bc8c9-c24f-45b5-bdf9-8499bcd14b72"
+    },
+    "checks": {
+      "event_count": 6,
+      "deny_event_count": 1,
+      "required_fields_ok": true,
+      "chain_link_ok": true
+    }
+  }
+}

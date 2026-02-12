@@ -1,0 +1,8 @@
+{
+  "step_id": "health",
+  "method": "GET",
+  "path": "/health",
+  "url": "http://localhost:4010/health",
+  "token": "",
+  "body": null
+}

@@ -1,0 +1,6 @@
+step8.deliverable_update=PASS
+step8.rolling_ledger_update=PASS
+step8.three_end_consistency.local=PASS
+step8.three_end_consistency.github=NA
+step8.three_end_consistency.vps=NA
+step8.final_report=outputs/one-click-full-delivery/20260212T032220Z/reports/one_click_full_delivery_report.md

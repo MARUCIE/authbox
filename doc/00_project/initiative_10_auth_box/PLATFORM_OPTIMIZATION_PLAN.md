@@ -3,7 +3,7 @@ Title: PLATFORM_OPTIMIZATION_PLAN - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-01-29
+LastUpdated: 2026-02-12
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -35,10 +35,35 @@ Related:
 4. 成本控制：外部平台调用与存储成本优化。
 5. 体验：配置与接入流程降低认知负担。
 
+## 执行进展（2026-02-11）
+
+| 项目 | 结果 | 证据 |
+|---|---|---|
+| 统一 AuthN/AuthZ 入口 | 已落地：`/api/v1/*` 强制 Bearer + RBAC | `outputs/security-entry-audit-chain/20260211T150834Z/logs/runtime_security_flow_retry2.log` |
+| 高风险动作门禁 | 已落地：rotate/revoke、assistant bind、audit export 角色校验 | `outputs/security-entry-audit-chain/20260211T150834Z/reports/rotate_forbidden.json` |
+| 审计 hash-chain | 已落地：`actor_id/source/decision/event_hash/prev_event_hash` | `outputs/security-entry-audit-chain/20260211T150834Z/reports/audit_events.json` |
+| API 契约与鉴权同步 | 已落地：role 白名单 fail-fast + source 透传 + 平台/账号审计事件补齐 | `outputs/api-contract-auth-sync/20260211T154715Z/reports/api_contract_auth_sync_report.md` |
+| 多角色脑暴（PM/设计/SEO） | 已落地：竞品分析 + UX 增量旅程 + sitemap/关键词策略 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/brainstorm_summary.md` |
+| Public SEO 路由与入口 | 已落地：`/product`、`/features/*`、`/use-cases/*`、`/compare/*`、`/docs`、`/pricing`、`/security`、`/blog`、`/changelog`、`/contact` + `sitemap/robots` | `outputs/multi-role-brainstorm/20260211T160722Z/logs/console_build_public_routes.log` |
+| 双漏斗埋点与聚合 | 已落地（最小版）：public-events 采集 + public-funnel 聚合 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/public_funnel_after.json` |
+| 双漏斗持久化与看板 | 已落地（最小版）：`AUTH_BOX_CONSOLE_TELEMETRY_FILE` + `/metrics/funnel` | `outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/persistence_assertion.txt` |
+| 双漏斗过滤与趋势 | 已落地（最小版）：按 `window/source/persona/route` 过滤 + bucket 趋势 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/filter_trend_assertion.txt` |
+| 双漏斗分租户与阈值告警 | 已落地（最小版）：`tenant_id` 过滤/聚合 + `alerts` 阈值告警 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/tenant_alert_assertion.txt` |
+| 真实 API fixtures | 已落地：capture + replay + regression 证据链 | `outputs/real-api-fixtures-replay/20260211T152326Z/` |
+| 功能闭环守门 | 已落地：entry/system/contract/verification 一键检查 | `scripts/full_loop_closure_check.sh` |
+
 ## 成功指标
 - 授权创建成功率 >= 99%
 - 审计日志可追溯率 = 100%
 - 关键流程平均响应 < 500ms（初期）
+- SEO 入口到 Console CTA CTR >= 3%（初期）
+- Organic 流量中高意图关键词占比逐月提升
+
+## 增长与 SEO 优化（新增）
+1. URL 分层治理：`features/use-cases/compare/docs` 四层信息架构。
+2. 关键词簇治理：授权治理、安全运维、合规审计、AI 权限治理、竞品替代。
+3. 转化链路治理：Landing -> `/platforms/new` -> Journey A/B。
+4. 内容节奏治理：每月案例/合规更新/changelog，统一回写 sitemap。
 
 ## 连接器开发规范（来自调研 ai_master_control_prd.html）
 
@@ -74,3 +99,40 @@ AuditEvent {
 - 用哈希链把事件串起来，避免"日志被改了你还不知道"
 - 每个事件包含 prev_event_hash，形成不可篡改链
 - 支持导出与验证
+
+## 一键全量交付验收计划（2026-02-12，已完成）
+- SOP 证据目录：`outputs/one-click-full-delivery/20260212T022828Z`
+- 本轮优化与守门动作：
+  1. 执行 Round 1 `ai check` 作为自动化门禁
+  2. 执行 Round 2 UX Map 人工模拟并留证据
+  3. 前端专项检查：network/console/performance/visual baseline
+  4. 后端专项检查：API 契约/错误码/入口一致性
+  5. Task Closeout：deliverable + rolling ledger + 三端一致性声明
+- 检查结果：
+  - Round 1 PASS：`outputs/one-click-full-delivery/20260212T022828Z/logs/ai_check_round1.log`
+  - Frontend 专项 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_audit/frontend_audit_assertion.txt`
+  - Backend 专项 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/backend_contract_entry_assertion.txt`
+
+## SOP 4.1 回归记录（2026-02-12）
+- Run：`outputs/project-regression/20260212T030804Z`
+- 回归守门执行：
+  - Step 3 UX Map 回归：PASS（`outputs/project-regression/20260212T030804Z/reports/uxmap_round2/uxmap_round2_assertion.txt`）
+  - Step 4 同类问题扫描：PASS（fallback）（`outputs/project-regression/20260212T030804Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`）
+  - Step 6 `ai check` Round 1：PASS（`outputs/project-regression/20260212T030804Z/logs/ai_check_round1.log`）
+- 优化结论：本轮未新增性能/可靠性缺陷，维持现有阈值与门禁策略。
+
+## 一键全量交付复核记录（2026-02-12，Run 20260212T032220Z）
+- 目的：在当前代码基线上复跑 long-task 验收门禁，确认无新增回归。
+- 已完成：Step 4（UX Map Round 2）PASS。
+- 证据：`outputs/one-click-full-delivery/20260212T032220Z/reports/uxmap_round2/uxmap_round2_assertion.txt`、`outputs/one-click-full-delivery/20260212T032220Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`。
+- 守门结果：Round 1 `ai check` PASS；frontend audit PASS；backend full-loop PASS。
+- 优化结论：保持既有性能/可靠性阈值，不调整优化优先级。
+
+## SOP 4.1 回归守门记录（2026-02-12，Run 20260212T034924Z）
+- 回归目标：执行项目级全链路回归并复核 UX Map + E2E 门禁。
+- 回归结果：
+  - Round 2 UX Map PASS：`outputs/project-regression/20260212T034924Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+  - 同类问题扫描 PASS：`outputs/project-regression/20260212T034924Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`
+  - full-loop summary PASS：`outputs/project-regression/20260212T034924Z/reports/full_loop_closure/reports/full_loop_summary.json`
+- 修复沉淀：telemetry 请求字段统一为 `event`（与 API 契约一致），避免回归期 `INVALID_EVENT`。
+- 优化结论：维持现有性能/可靠性阈值，当前不调整优先级。

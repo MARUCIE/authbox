@@ -3,7 +3,7 @@ Title: Component Design - auth-box-api
 Scope: component
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-01-29
+LastUpdated: 2026-02-11
 Related:
   - /doc/00_project/initiative_10_auth_box/PRD.md
   - /doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md
@@ -138,6 +138,7 @@ binding_status: active | disabled
 | ASSISTANT_UNBOUND | assistant_binding | 解绑助手 |
 | AUDIT_EXPORT_REQUESTED | audit_export | 发起审计导出 |
 | AUDIT_EXPORT_COMPLETED | audit_export | 审计导出完成 |
+| AUTHN_TOKEN_VALIDATE | auth | Bearer token 校验拒绝（401） |
 
 ## 迁移策略（MVP-0）
 - 采用 SQL 迁移文件做版本化管理，保证单一事实源。

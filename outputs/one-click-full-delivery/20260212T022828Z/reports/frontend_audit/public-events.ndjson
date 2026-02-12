@@ -1,0 +1,12 @@
+{"id":"209b7320-ad16-4e58-b6a4-7fede37c0562","event":"PUBLIC_PAGE_VIEW","route":"/","source":"public_home","persona":"P0_DISCOVERY_USER","tenant_id":"public","ts":"2026-02-12T02:37:42.060Z"}
+{"id":"394c9d5c-8d8e-47d2-89a5-4dc8f6e59f89","event":"PUBLIC_PAGE_VIEW","route":"/product","source":"public_marketing","persona":"P0_DISCOVERY_USER","tenant_id":"public","ts":"2026-02-12T02:37:44.747Z"}
+{"id":"cfc66995-3e0e-4152-96a6-0d7ee4f2c044","event":"PUBLIC_PAGE_VIEW","route":"/compare/hashicorp-vault-alternative","source":"public_marketing","persona":"P0_DISCOVERY_USER","tenant_id":"public","ts":"2026-02-12T02:37:45.420Z"}
+{"id":"a60f7146-9853-4d8b-af07-5f7c5ebb5553","event":"ONBOARDING_ENTRY_VIEW","route":"/platforms/new","source":"frontend_audit","persona":"P1_PLATFORM_ADMIN","tenant_id":"beta","ts":"2026-02-12T02:37:46.076Z"}
+{"id":"45bb9090-4c79-4f0a-a78f-a41365f5a9e9","event":"PUBLIC_PAGE_VIEW","route":"/","source":"public_home","persona":"P0_DISCOVERY_USER","tenant_id":"public","ts":"2026-02-12T02:38:55.248Z"}
+{"id":"a81d4f6b-263b-4c53-9781-e655ae79fe9a","event":"PUBLIC_PAGE_VIEW","route":"/product","source":"public_marketing","persona":"P0_DISCOVERY_USER","tenant_id":"public","ts":"2026-02-12T02:38:57.743Z"}
+{"id":"f1c66e2d-61cc-40fc-9c46-ae70fa411d2c","event":"PUBLIC_PAGE_VIEW","route":"/compare/hashicorp-vault-alternative","source":"public_marketing","persona":"P0_DISCOVERY_USER","tenant_id":"public","ts":"2026-02-12T02:38:58.419Z"}
+{"id":"fb10eeb4-d0c2-4745-8b36-9a56567cc9b3","event":"ONBOARDING_ENTRY_VIEW","route":"/platforms/new","source":"frontend_audit","persona":"P1_PLATFORM_ADMIN","tenant_id":"beta","ts":"2026-02-12T02:38:59.073Z"}
+{"id":"01ce6914-54ed-4b3e-8f1f-7c267ae8f867","event":"PUBLIC_PAGE_VIEW","route":"/","source":"public_home","persona":"P0_DISCOVERY_USER","tenant_id":"public","ts":"2026-02-12T02:40:02.697Z"}
+{"id":"35df397b-37b7-42d7-9274-0fd3d6fca7c2","event":"PUBLIC_PAGE_VIEW","route":"/product","source":"public_marketing","persona":"P0_DISCOVERY_USER","tenant_id":"public","ts":"2026-02-12T02:40:05.080Z"}
+{"id":"60ede357-f40c-4850-984e-4412b0e8bc33","event":"PUBLIC_PAGE_VIEW","route":"/compare/hashicorp-vault-alternative","source":"public_marketing","persona":"P0_DISCOVERY_USER","tenant_id":"public","ts":"2026-02-12T02:40:05.760Z"}
+{"id":"4b9ba9f7-d8b8-4ffd-a0b1-626bbaba3383","event":"ONBOARDING_ENTRY_VIEW","route":"/platforms/new","source":"frontend_audit","persona":"P1_PLATFORM_ADMIN","tenant_id":"beta","ts":"2026-02-12T02:40:06.412Z"}

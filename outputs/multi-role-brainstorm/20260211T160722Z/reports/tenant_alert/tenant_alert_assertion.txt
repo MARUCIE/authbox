@@ -1,0 +1,1 @@
+beta.event_count.15:PASS,beta.page_views.10:PASS,beta.cta_clicks.0:PASS,beta.alert.seo_ctr:PASS,beta.alert.product_completion:PASS,alpha.event_count.17:PASS,alpha.page_views.10:PASS,alpha.cta_clicks.1:PASS,alpha.alert.none:PASS,all.top_tenant.alpha.17:PASS,all.top_tenant.beta.15:PASS,all.response.has_alerts:PASS

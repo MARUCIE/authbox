@@ -1,0 +1,41 @@
+{
+  "capture_report": "outputs/one-click-full-delivery/20260212T032220Z/reports/full_loop/system_capture/reports/run_report.json",
+  "replay_report": "outputs/one-click-full-delivery/20260212T032220Z/reports/full_loop/system_replay/reports/run_report.json",
+  "capture": {
+    "mode": "capture",
+    "api_base": "http://localhost:4010",
+    "generated_at": "2026-02-12T03:31:43Z",
+    "ids": {
+      "platform_id": "edf1caed-7d24-42f9-9c39-feb5637f976d",
+      "account_id": "db4e3576-9ac9-43ad-8827-8d3e96e414b7",
+      "credential_id": "d958ca02-a139-4cbf-9664-51f799d88f2e",
+      "assistant_id": "1535ae13-ef3c-4d2a-8a09-aa6d34ceb9c2",
+      "export_id": "5f562709-3f5f-4b0b-aca3-4c0a3a745d8d"
+    },
+    "checks": {
+      "event_count": 9,
+      "deny_event_count": 2,
+      "required_fields_ok": true,
+      "chain_link_ok": true
+    }
+  },
+  "replay": {
+    "mode": "replay",
+    "api_base": "http://localhost:4010",
+    "generated_at": "2026-02-12T03:31:54Z",
+    "ids": {
+      "platform_id": "64705d23-b485-42ed-b7a6-f5bf47968248",
+      "account_id": "4a30eb4e-9bdb-4347-833c-b993956535d8",
+      "credential_id": "803d45b1-ab86-401b-b82b-62b498945ab8",
+      "assistant_id": "0096bf82-4074-4083-ba97-8e6809276b64",
+      "export_id": "5fad1b38-f4ca-474b-bdeb-7dc3c0ade815"
+    },
+    "checks": {
+      "event_count": 9,
+      "deny_event_count": 2,
+      "required_fields_ok": true,
+      "chain_link_ok": true
+    }
+  },
+  "pass": true
+}

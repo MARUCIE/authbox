@@ -1,0 +1,657 @@
+diff --git a/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md b/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
+index b19c421..4ccbc57 100644
+--- a/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
++++ b/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
+@@ -3,7 +3,7 @@ Title: PLATFORM_OPTIMIZATION_PLAN - initiative_10_auth_box
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-01-29
++LastUpdated: 2026-02-12
+ Related:
+   - /doc/index.md
+   - /doc/00_project/index.md
+@@ -35,10 +35,35 @@ Related:
+ 4. 成本控制：外部平台调用与存储成本优化。
+ 5. 体验：配置与接入流程降低认知负担。
+ 
++## 执行进展（2026-02-11）
++
++| 项目 | 结果 | 证据 |
++|---|---|---|
++| 统一 AuthN/AuthZ 入口 | 已落地：`/api/v1/*` 强制 Bearer + RBAC | `outputs/security-entry-audit-chain/20260211T150834Z/logs/runtime_security_flow_retry2.log` |
++| 高风险动作门禁 | 已落地：rotate/revoke、assistant bind、audit export 角色校验 | `outputs/security-entry-audit-chain/20260211T150834Z/reports/rotate_forbidden.json` |
++| 审计 hash-chain | 已落地：`actor_id/source/decision/event_hash/prev_event_hash` | `outputs/security-entry-audit-chain/20260211T150834Z/reports/audit_events.json` |
++| API 契约与鉴权同步 | 已落地：role 白名单 fail-fast + source 透传 + 平台/账号审计事件补齐 | `outputs/api-contract-auth-sync/20260211T154715Z/reports/api_contract_auth_sync_report.md` |
++| 多角色脑暴（PM/设计/SEO） | 已落地：竞品分析 + UX 增量旅程 + sitemap/关键词策略 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/brainstorm_summary.md` |
++| Public SEO 路由与入口 | 已落地：`/product`、`/features/*`、`/use-cases/*`、`/compare/*`、`/docs`、`/pricing`、`/security`、`/blog`、`/changelog`、`/contact` + `sitemap/robots` | `outputs/multi-role-brainstorm/20260211T160722Z/logs/console_build_public_routes.log` |
++| 双漏斗埋点与聚合 | 已落地（最小版）：public-events 采集 + public-funnel 聚合 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/public_funnel_after.json` |
++| 双漏斗持久化与看板 | 已落地（最小版）：`AUTH_BOX_CONSOLE_TELEMETRY_FILE` + `/metrics/funnel` | `outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/persistence_assertion.txt` |
++| 双漏斗过滤与趋势 | 已落地（最小版）：按 `window/source/persona/route` 过滤 + bucket 趋势 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/filter_trend_assertion.txt` |
++| 双漏斗分租户与阈值告警 | 已落地（最小版）：`tenant_id` 过滤/聚合 + `alerts` 阈值告警 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/tenant_alert_assertion.txt` |
++| 真实 API fixtures | 已落地：capture + replay + regression 证据链 | `outputs/real-api-fixtures-replay/20260211T152326Z/` |
++| 功能闭环守门 | 已落地：entry/system/contract/verification 一键检查 | `scripts/full_loop_closure_check.sh` |
++
+ ## 成功指标
+ - 授权创建成功率 >= 99%
+ - 审计日志可追溯率 = 100%
+ - 关键流程平均响应 < 500ms（初期）
++- SEO 入口到 Console CTA CTR >= 3%（初期）
++- Organic 流量中高意图关键词占比逐月提升
++
++## 增长与 SEO 优化（新增）
++1. URL 分层治理：`features/use-cases/compare/docs` 四层信息架构。
++2. 关键词簇治理：授权治理、安全运维、合规审计、AI 权限治理、竞品替代。
++3. 转化链路治理：Landing -> `/platforms/new` -> Journey A/B。
++4. 内容节奏治理：每月案例/合规更新/changelog，统一回写 sitemap。
+ 
+ ## 连接器开发规范（来自调研 ai_master_control_prd.html）
+ 
+@@ -74,3 +99,30 @@ AuditEvent {
+ - 用哈希链把事件串起来，避免"日志被改了你还不知道"
+ - 每个事件包含 prev_event_hash，形成不可篡改链
+ - 支持导出与验证
++
++## 一键全量交付验收计划（2026-02-12，已完成）
++- SOP 证据目录：`outputs/one-click-full-delivery/20260212T022828Z`
++- 本轮优化与守门动作：
++  1. 执行 Round 1 `ai check` 作为自动化门禁
++  2. 执行 Round 2 UX Map 人工模拟并留证据
++  3. 前端专项检查：network/console/performance/visual baseline
++  4. 后端专项检查：API 契约/错误码/入口一致性
++  5. Task Closeout：deliverable + rolling ledger + 三端一致性声明
++- 检查结果：
++  - Round 1 PASS：`outputs/one-click-full-delivery/20260212T022828Z/logs/ai_check_round1.log`
++  - Frontend 专项 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_audit/frontend_audit_assertion.txt`
++  - Backend 专项 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/backend_contract_entry_assertion.txt`
++
++## SOP 4.1 回归记录（2026-02-12）
++- Run：`outputs/project-regression/20260212T030804Z`
++- 回归守门执行：
++  - Step 3 UX Map 回归：PASS（`outputs/project-regression/20260212T030804Z/reports/uxmap_round2/uxmap_round2_assertion.txt`）
++  - Step 4 同类问题扫描：PASS（fallback）（`outputs/project-regression/20260212T030804Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`）
++  - Step 6 `ai check` Round 1：PASS（`outputs/project-regression/20260212T030804Z/logs/ai_check_round1.log`）
++- 优化结论：本轮未新增性能/可靠性缺陷，维持现有阈值与门禁策略。
++
++## 一键全量交付复核记录（2026-02-12，Run 20260212T032220Z）
++- 目的：在当前代码基线上复跑 long-task 验收门禁，确认无新增回归。
++- 已完成：Step 4（UX Map Round 2）PASS。
++- 证据：`outputs/one-click-full-delivery/20260212T032220Z/reports/uxmap_round2/uxmap_round2_assertion.txt`、`outputs/one-click-full-delivery/20260212T032220Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`。
++- 优化结论：保持既有性能/可靠性阈值，不调整优化优先级。
+diff --git a/doc/00_project/initiative_10_auth_box/PRD.md b/doc/00_project/initiative_10_auth_box/PRD.md
+index ddbd717..a20add1 100644
+--- a/doc/00_project/initiative_10_auth_box/PRD.md
++++ b/doc/00_project/initiative_10_auth_box/PRD.md
+@@ -3,7 +3,7 @@ Title: PRD - initiative_10_auth_box
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-01-29
++LastUpdated: 2026-02-12
+ Related:
+   - /doc/index.md
+   - /doc/00_project/index.md
+@@ -34,6 +34,26 @@ Related:
+ - 业务接入工程师：创建账号、申请/绑定授权、调用接入。
+ - 合规审计人员：查看权限、密钥与访问记录。
+ 
++## Persona 验收对象（2026-02-11）
++| Persona | 用户类型 | 目标旅程 |
++|---|---|---|
++| P0_DISCOVERY_USER | 搜索进入的潜在客户 | Journey P0 + Journey P1 |
++| P1_PLATFORM_ADMIN | 平台管理员 | Journey A + Journey B |
++| P2_SECURITY_OPS | 业务接入工程师（安全运维） | Journey C + Journey D |
++| P3_COMPLIANCE_AUDITOR | 合规审计人员 | Journey E |
++| P4_POLICY_ADMIN | 平台管理员（策略配置） | Journey F |
++
++## 竞品分析与定位（多角色脑暴，2026-02-11）
++
++| 竞品类别 | 代表产品（类别） | 对方优势 | Auth Box 差异化定位 |
++|---|---|---|---|
++| Secrets 管理 | Vault / Doppler / Infisical | 密钥管理成熟，生态广 | 增加“账号-授权-AI 助手-审计”业务闭环 |
++| API 网关治理 | Kong / Apigee | 策略与流量治理强 | 聚焦授权生命周期与合规审计链 |
++| AI 访问层 | LLM Gateway 类 | 模型调用可观测与路由能力强 | 增加企业级授权主数据与权限边界治理 |
++| IAM/SSO | Okta/Auth0 类 | 身份与组织权限模型成熟 | 不做通用 IAM，专注 API 授权治理细分场景 |
++
++- 产品定位结论：Auth Box 定位为 **API 授权治理中台（AI 场景优先）**，而非通用 IAM/网关替代。
++
+ ## 核心概念模型（来自调研 ai_master_control_prd.html）
+ 
+ MVP 采用 7 个核心对象：
+@@ -82,11 +102,54 @@ MVP 采用 7 个核心对象：
+ - Docker Compose 最小链路（API + Console + PostgreSQL + Redis）。
+ - 配置与运行手册占位，确保可启动与可演进。
+ 
++## 本次交付范围（MVP-1 增量）
++- 授权凭据 API：`/api/v1/credentials`（create/list/rotate/delete）
++- AI 助手 API：`/api/v1/assistants`（create/list/get/bind）
++- 审计 API：`/api/v1/audit`（list/export/create export/get export）
++- 统一 AuthN/AuthZ 入口：`/api/v1/*` 强制 Bearer Token，按角色执行 RBAC 门禁
++- 鉴权配置入口强校验：`AUTH_BOX_AUTH_TOKENS` 启用 role 白名单并在启动阶段 fail-fast
++- 调用方来源对齐：Console 默认发送 `X-Auth-Source` 并透传到 `audit.source`
++- 审计链路增强：事件补齐 `actor_id/source/decision`，并记录 `event_hash/prev_event_hash`
++- 平台/账号审计事件补齐：`PLATFORM_CREATED/UPDATED/DELETED`、`ACCOUNT_PROVISIONED`、`ACCOUNT_STATUS_CHANGED`
++- Persona 真实流程脚本升级：增加真实前置条件（platform/account/credential/export id）
++- strict 口径下多 persona 客户旅程通过率提升到 100%
++
++## 本次交付范围（MVP-2 增量：增长入口）
++- 已落地：Public sitemap 与 SEO URL 规范（Landing / Features / Use Cases / Compare / Docs / Blog / Changelog / Contact）。
++- 已落地：Compare 页面模板（3 个）：Vault/Doppler/Kong 替代对比。
++- 已落地：`/sitemap.xml` 与 `/robots.txt` 元数据端点。
++- 已落地（最小版）：SEO 转化漏斗埋点（`PUBLIC_PAGE_VIEW` / `PUBLIC_CTA_CLICK` / `ONBOARDING_ENTRY_VIEW`）。
++- 已落地（最小版）：双漏斗指标接口（`GET /api/telemetry/public-funnel`）。
++- 已落地（最小版）：漏斗看板页面（`/metrics/funnel`）。
++- 已落地（最小版）：文件持久化（`AUTH_BOX_CONSOLE_TELEMETRY_FILE`，重启后指标保持）。
++- 已落地（最小版）：过滤与趋势（`window_minutes/source/persona/route/bucket_minutes`）。
++- 已落地（最小版）：租户维度聚合与过滤（`tenant_id` + `top_tenants`）。
++- 已落地（最小版）：阈值告警（`alerts` + `AUTH_BOX_FUNNEL_MIN_*`）。
++- 待补齐：历史趋势图与告警订阅通道（邮件/Webhook）。
++
++## 真实流程测试结论（2026-02-11）
++| 模式 | 预期口径 | 总步骤 | 成功 | 失败 | 成功率 |
++|---|---|---:|---:|---:|---:|
++| strict-baseline | 升级前（Journey C/D/E 未实现） | 18 | 11 | 7 | 61.11% |
++| strict-postfix | 升级后（Journey C/D/E 已实现） | 20 | 20 | 0 | 100.00% |
++| mvp0-postfix | 与 strict 同口径复测 | 20 | 20 | 0 | 100.00% |
++
++- strict-baseline 失败根因：Journey C/D/E 当时仍为占位端点，返回 `NOT_IMPLEMENTED`。
++- 修复策略：实现 C/D/E 对应 API，并将 persona 脚本改为真实前置条件链路。
++
++## 真实 API 验收约束（2026-02-11）
++- 最终验收必须通过真实 API（非生产环境）端到端流程。
++- 不得以 mock/fake response 替代最终验收。
++- 必须沉淀可复现 fixtures，并可执行 replay/regression 回放。
++- 基线清单：`services/api/testdata/fixtures/real_api_core_flow/manifest.json`
++- 闭环守门脚本：`scripts/full_loop_closure_check.sh`（entry/system/contract/verification）
++
+ ## 非功能需求
+-- 安全：最小权限、密钥加密存储、审计不可篡改。
++- 安全：最小权限、密钥加密存储、统一 AuthN/AuthZ、审计不可篡改（hash chain）。
+ - 合规：操作留痕、敏感数据脱敏、可导出审计报告。
+ - 可靠性：关键流程可回滚，失败具可解释错误码。
+-- 可维护性：单一事实源文档与可追踪需求变更。
++- 可维护性：单一事实源文档、可追踪需求变更、真实 API fixtures 可回放。
++- 增长：支持 sitemap/robots 与关键词落地页，确保可抓取与转化可观测。
+ 
+ ## 技术栈与部署
+ - 后端：Go（REST + OpenAPI 3.1），路由与中间件轻量化。
+@@ -108,3 +171,33 @@ MVP 采用 7 个核心对象：
+ - M1: 项目文档与架构基线完成。
+ - M2: MVP 核心流程可用（账号创建 + 授权管理 + AI 接入）。
+ - M3: 审计与 SOP 交付闭环完成。
++
++## 一键全量交付验收（2026-02-12，已完成）
++- SOP：one-click-full-delivery
++- Run：`outputs/one-click-full-delivery/20260212T022828Z`
++- 验收范围：
++  - Round 1：`ai check`
++  - Round 2：按 UX Map 进行人工模拟测试
++  - 前端专项：network/console/performance/visual baseline
++  - 后端专项：API 契约/错误码/入口一致性
++- 验收结果：
++  - Round 1 PASS：`outputs/one-click-full-delivery/20260212T022828Z/logs/ai_check_round1.log`
++  - Round 2 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
++  - 前端专项 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_audit/frontend_audit_assertion.txt`
++  - 后端专项 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/backend_contract_entry_assertion.txt`
++- 约束：最终验收不得以 mock 替代真实 API 结果。
++
++## SOP 4.1 回归记录（2026-02-12）
++- Run：`outputs/project-regression/20260212T030804Z`
++- 目标：项目级全链路回归（UX Map + E2E）验证现网开发基线可用性。
++- 结果：
++  - 入口闭环 PASS：`outputs/project-regression/20260212T030804Z/reports/full_loop_3_7_assertion.txt`
++  - UX Map Round 2 PASS：`outputs/project-regression/20260212T030804Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
++  - `ai check` PASS：`outputs/project-regression/20260212T030804Z/logs/ai_check_round1.log`（见 Step 6）
++- 结论：本轮为回归验收，不新增产品需求边界。
++
++## 一键全量交付复核（2026-02-12，Run 20260212T032220Z）
++- 触发：用户再次执行 SOP 1.1（长任务）进行同口径复核。
++- 范围：不新增需求边界，沿用既有验收标准（Round 1 ai check + Round 2 UX Map + 前后端专项 + Task Closeout）。
++- 当前证据（Step 4）：`outputs/one-click-full-delivery/20260212T032220Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（PASS）。
++- 结论：本轮为验收复跑，产品范围与非目标保持不变。
+diff --git a/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md b/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
+index 5716813..03807b3 100644
+--- a/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
++++ b/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
+@@ -3,7 +3,7 @@ Title: ROLLING_REQUIREMENTS_AND_PROMPTS - initiative_10_auth_box
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-01-29
++LastUpdated: 2026-02-12
+ ---
+ 
+ # 滚动需求与提示词
+@@ -20,6 +20,19 @@ LastUpdated: 2026-01-29
+ | REQ-20260129-006 | 2026-01-29 | 定义迁移策略与数据保留策略（审计/导出/凭据） | 进行中 | 合规与成本 |
+ | REQ-20260129-007 | 2026-01-29 | 融入调研文档核心概念模型（7 个对象、4 级接管、5 条 AI 原则） | 已完成 | 来自 ai_master_control_prd.html |
+ | REQ-20260129-008 | 2026-01-29 | 补充安全基线与连接器开发规范 | 已完成 | 来自调研文档 |
++| REQ-20260211-009 | 2026-02-11 | 落地统一 AuthN/AuthZ 入口与高风险动作 RBAC 门禁 | 已完成 | ARC-SEC-01 落地（MVP-1） |
++| REQ-20260211-010 | 2026-02-11 | 审计事件补齐 actor/source/decision + hash-chain | 已完成 | ARC-SEC-02 落地（MVP-1） |
++| REQ-20260211-011 | 2026-02-11 | 真实 API fixtures 采样与 replay/regression 回放机制 | 已完成 | real-api-fixtures-replay SOP |
++| REQ-20260211-012 | 2026-02-11 | 功能闭环完整实现检查（entry/system/contract/verification） | 已完成 | full-loop-closure-check SOP |
++| REQ-20260211-013 | 2026-02-11 | API 契约与鉴权同步：role 白名单、source 透传、权限矩阵契约测试 | 已完成 | api-contract-auth-sync SOP |
++| REQ-20260211-014 | 2026-02-11 | 多角色头脑风暴：竞品分析+UX Map+sitemap/关键词策略并形成决策收敛 | 已完成 | multi-role-brainstorm SOP |
++| REQ-20260211-015 | 2026-02-11 | Public SEO 路由与入口落地：实现 marketing 页面、sitemap/robots，并与 PDCA 文档同步 | 已完成 | multi-role-brainstorm 继续执行 |
++| REQ-20260211-016 | 2026-02-11 | Public CTA 与双漏斗最小埋点：事件采集 + funnel 聚合接口 + onboarding 转化记录 | 已完成 | multi-role-brainstorm 继续执行（telemetry） |
++| REQ-20260211-017 | 2026-02-11 | 双漏斗持久化与可视化：重启后不丢计数 + `/metrics/funnel` 看板 | 已完成 | multi-role-brainstorm 继续执行（persistence+dashboard） |
++| REQ-20260211-018 | 2026-02-11 | 双漏斗过滤与趋势：支持窗口/来源/角色/路由过滤与 bucket 趋势 | 已完成 | multi-role-brainstorm 继续执行（filter+trend） |
++| REQ-20260211-019 | 2026-02-11 | 双漏斗分租户与阈值告警：支持 `tenant_id` 聚合过滤并输出 alerts | 已完成 | multi-role-brainstorm 继续执行（tenant+alerts） |
++| REQ-20260212-020 | 2026-02-12 | 一键全量交付（长任务）：执行 plan-first/ralph-loop/round1-round2/task-closeout 全链路验收 | 已完成 | one-click-full-delivery SOP |
++| REQ-20260212-021 | 2026-02-12 | 一键全量交付复跑：在最新代码基线复核 Round1/Round2 与前后端专项门禁 | 进行中 | one-click-full-delivery Run `20260212T032220Z` |
+ 
+ ## 提示词台账
+ 
+@@ -27,6 +40,13 @@ LastUpdated: 2026-01-29
+ |---|---|---|---|---|
+ | PROMPT-20260129-001 | 2026-01-29 | 新项目：接口授权管理平台，要求 planning-with-files + ralph loop + ai check + UX Map | 任务启动 | 来自用户指令 |
+ | PROMPT-20260129-002 | 2026-01-29 | 根据调研文档优化设计：SOP 一键全量交付（长任务），要求 planning-with-files + ralph loop + ai check + UX Map + Task Closeout | 任务优化 | 来自用户指令 |
++| PROMPT-20260211-003 | 2026-02-11 | SOP：多角色头脑风暴（PM/设计/SEO），要求 planning-with-files + 冲突收敛 + 文档回写 | 任务优化 | 来自用户指令 |
++| PROMPT-20260211-004 | 2026-02-11 | 继续：将多角色脑暴产物落地为 Public 页面与 sitemap/robots，并完成证据化收尾 | 任务实现 | 来自用户“继续”指令 |
++| PROMPT-20260211-005 | 2026-02-11 | 继续：落地 telemetry 持久化与漏斗看板，并提供重启前后一致性证据 | 任务实现 | 来自用户“继续”指令 |
++| PROMPT-20260211-006 | 2026-02-11 | 继续：落地漏斗过滤与趋势，并提供参数化查询与断言证据 | 任务实现 | 来自用户“继续”指令 |
++| PROMPT-20260211-007 | 2026-02-11 | 继续：落地租户维度与阈值告警，补齐 API/看板/断言证据与文档回写 | 任务实现 | 来自用户“继续”指令 |
++| PROMPT-20260212-008 | 2026-02-12 | SOP：一键全量交付（长任务），要求 planning-with-files + ralph loop + ai check + UX Map + Task Closeout | 任务验收 | 来自用户指令 |
++| PROMPT-20260212-009 | 2026-02-12 | SOP：一键全量交付（长任务）再次执行，要求 planning-with-files + ralph-loop + ai check + UX Map + Task Closeout | 任务验收 | 来自用户“继续/一键全量交付”指令 |
+ 
+ ## 防回归 Q&A
+ 
+@@ -35,3 +55,16 @@ LastUpdated: 2026-01-29
+ | QA-20260129-001 | 2026-01-29 | 如何确保长任务不丢失目标与证据？ | 任务跨度大导致上下文漂移 | 使用 planning-with-files 三文件外置记忆 | 关键决策前重读 task_plan 并记录证据 | task_plan.md / notes.md |
+ | QA-20260129-002 | 2026-01-29 | 如何融入外部调研文档的设计优化？ | 调研文档格式/结构与项目文档不一致 | 提取核心概念模型、原则、规范，按 PDCA 口径更新四文档 | 保持 PDCA 四文档口径一致；记录来源 | PRD.md / SYSTEM_ARCHITECTURE.md |
+ | QA-20260129-003 | 2026-01-29 | AI 助手如何受控执行？ | AI 可能越权执行高风险动作 | 引入策略引擎（OPA）+ 接管程度刻度 + 工具白名单 | 工具调用必经策略裁决；高风险需确认 | PLATFORM_OPTIMIZATION_PLAN.md |
++| QA-20260211-004 | 2026-02-11 | 如何防止高风险 API（rotate/revoke/bind/export）被错误角色调用？ | 路由层缺少统一 RBAC 门禁 | 在 `/api/v1/*` 入口统一 AuthN，并对高风险动作强制 `requireAnyRole` | 把角色门禁固化在路由注册层；拒绝事件写审计链 | `services/api/internal/server/server.go` / `services/api/internal/server/auth_middleware.go` |
++| QA-20260211-005 | 2026-02-11 | 如何让审计日志具备不可抵赖链路？ | 事件缺少 actor/source/链路哈希 | 引入 append-only hash-chain（`event_hash` + `prev_event_hash`） | 每条事件记录 inputs/outputs hash，发布前跑链路校验 | `services/api/internal/repository/audit.go` / `outputs/security-entry-audit-chain/20260211T150834Z/reports/audit_events.json` |
++| QA-20260211-006 | 2026-02-11 | 如何保证回归验证不是 mock 而是可复现真实 API？ | 测试样例与真实请求响应脱节，回归可信度不足 | 用真实 API 执行 core flow，沉淀 request/response/status fixtures，并强制 replay 通过 | 验收守门加入 “real API only”；fixture manifest 作为单一清单 | `services/api/testdata/fixtures/real_api_core_flow/manifest.json` / `services/api/scripts/real_api_core_flow.sh` |
++| QA-20260211-007 | 2026-02-11 | 如何确保入口/系统/契约/验证四个闭环不会漂移？ | 只测局部导致跨层链路断裂未被及时发现 | 新增一键脚本串联 entry/system/contract/verification 并统一留证据 | 每次功能迭代后执行 `make full-loop-check`，失败即阻断验收 | `scripts/full_loop_closure_check.sh` |
++| QA-20260211-008 | 2026-02-11 | 如何避免“文档有角色、运行时未强校验”导致鉴权漂移？ | token 配置缺少 role 白名单，错误 role 只能运行时暴露 | 在 `parseAuthTokens` 增加 role 白名单 fail-fast，并补契约测试覆盖未知/空 role | 调用方统一发送 `X-Auth-Source`，契约测试覆盖权限矩阵 + source 透传 | `services/api/internal/server/auth_middleware.go` / `services/api/internal/server/contract_loop_test.go` |
++| QA-20260211-009 | 2026-02-11 | 如何避免“产品文档与增长文档分裂”导致体验链路断裂？ | PRD/UX 关注已登录流程，缺少 SEO 前置旅程 | 在 UX Map 增加 P0/P1，并建立 sitemap+关键词单一规范文档 | 变更时同步回写 PRD/UX/架构/优化计划四文档 | `doc/00_project/initiative_10_auth_box/SITEMAP_KEYWORD_STRATEGY.md` |
++| QA-20260211-010 | 2026-02-11 | 如何避免“Public 路由已实现但架构/体验文档仍写规划中”的状态漂移？ | 实现节奏晚于文档回写，导致状态字段未二次同步 | 将 P0/P1 与 Public 路由状态改为已实现，并在架构文档绑定构建证据路径 | 每次页面路由变更后执行 `npm --prefix apps/console run build` + `ai check`，并回写 task_plan/notes/deliverable | `outputs/multi-role-brainstorm/20260211T160722Z/logs/console_build_public_routes.log` / `outputs/multi-role-brainstorm/20260211T160722Z/logs/ai_check_after_public_routes.log` |
++| QA-20260211-011 | 2026-02-11 | 如何快速验证“SEO 入口 -> CTA -> onboarding”双漏斗在本地可观测？ | 仅有页面路由，缺少可查询事件聚合 | 新增 `POST /api/telemetry/public-events` 与 `GET /api/telemetry/public-funnel`，并在 `/platforms/new` 记录 `ONBOARDING_ENTRY_VIEW` | 每次发布前执行本地 smoke：POST 事件 + GET funnel + 访问 `/platforms/new?source=...` | `outputs/multi-role-brainstorm/20260211T160722Z/reports/public_funnel_after.json` |
++| QA-20260211-012 | 2026-02-11 | 如何证明 telemetry 在服务重启后仍保持漏斗计数一致？ | 仅内存计数会在重启后清零 | 引入 `AUTH_BOX_CONSOLE_TELEMETRY_FILE` 持久化并在启动时回放加载 | 发布前执行“写事件->取指标->重启->再取指标”一致性断言 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/persistence_assertion.txt` |
++| QA-20260211-013 | 2026-02-11 | 如何验证过滤查询不会把历史/异源事件混入当前漏斗？ | 仅总量聚合无法隔离窗口与来源 | 在 `public-funnel` 增加 `window/source/persona/route` 过滤和趋势桶，并通过对照数据集验证 | 发布前执行双数据集断言：`source=beta&window=30` 命中、`source=alpha&window=30` 清空 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/filter_trend_assertion.txt` |
++| QA-20260211-014 | 2026-02-11 | 如何避免漏斗指标在多租户场景下“全局混算且缺少异常提醒”？ | 聚合口径缺少租户维度，且没有阈值告警反馈 | 新增 `tenant_id` 过滤/聚合（`top_tenants`）并输出 `alerts`（样本不足、CTR/完成率阈值） | 发布前执行租户对照断言：beta 触发双告警、alpha 不触发告警，且全局 top_tenants 计数准确 | `outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/tenant_alert_assertion.txt` |
++| QA-20260212-015 | 2026-02-12 | 如何避免前端自动化审计把 Next.js 预取中止请求误判为 network fail？ | Playwright 会捕获 `_rsc` 预取在导航切换时产生的 `net::ERR_ABORTED` | 审计脚本将 `_rsc` + `ERR_ABORTED` 归类为可忽略请求，并单独记录 `failed_requests_ignored` | network fail 仅统计非 `_rsc` 请求；同时保留 ignored 列表供审计追踪 | `outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_audit/frontend_audit_report.json` |
++| QA-20260212-016 | 2026-02-12 | 如何在不新增功能的情况下确认“当前开发基线”仍满足一键交付门禁？ | 连续多轮改动后，旧验收证据可能失效或不可代表当前基线 | 复跑 SOP 1.1 并重新留存 Round1/Round2 + 前后端专项证据 | 每次“继续/复跑”都生成独立 run 目录并回写 PDCA + deliverable | `outputs/one-click-full-delivery/20260212T032220Z` |
+diff --git a/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md b/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md
+index c4a4b12..c8e6f4a 100644
+--- a/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md
++++ b/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md
+@@ -3,18 +3,21 @@ Title: SYSTEM_ARCHITECTURE - initiative_10_auth_box
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-01-29
++LastUpdated: 2026-02-12
+ Related:
+   - /doc/index.md
+   - /doc/00_project/index.md
+   - /doc/00_project/initiative_10_auth_box/index.md
+   - /doc/00_project/initiative_10_auth_box/PRD.md
+   - /doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
++  - /doc/00_project/initiative_10_auth_box/SITEMAP_KEYWORD_STRATEGY.md
++  - /doc/00_project/initiative_10_auth_box/ARCHITECTURE_ADR.md
++  - /doc/00_project/initiative_10_auth_box/ARCHITECTURE_RISK_REGISTER.md
+ ---
+ 
+ <!-- AI-TOOLS:PROJECT_DIR:BEGIN -->
+ - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
+-- **VERIFIED_AT_UTC**: `2026-01-29T02:48:34Z`
++- **VERIFIED_AT_UTC**: `2026-02-11T14:47:54Z`
+ - **RULE**: Always run tasks against the project root. If the CLI detects a mismatch, it will update this block.
+ <!-- AI-TOOLS:PROJECT_DIR:END -->
+ 
+@@ -27,7 +30,9 @@ Related:
+ 
+ ```mermaid
+ graph TD
+-  U[Admin/Engineer] --> UI[Web Console]
++  V[Visitor/Search User] --> WEB[Public Web Layer]
++  WEB --> UI[Web Console]
++  U[Admin/Engineer] --> UI
+   UI --> API[Auth Box API]
+ 
+   API --> ACC[Account Provisioning]
+@@ -55,6 +60,7 @@ docker-compose.yml  # local runtime
+ ```
+ 
+ ## 关键模块
++- Public Web Layer: 承载 SEO 入口、产品说明、对比页与文档导流。
+ - Web Console: 管理平台连接、账号与权限。
+ - Auth Box API: 核心业务 API，统一对外接口。
+ - Account Provisioning: 多平台账号自动创建与登记。
+@@ -166,27 +172,135 @@ flowchart LR
+ - 可观测性：OpenTelemetry
+ 
+ ## 数据与安全
++- 统一 AuthN/AuthZ：`/api/v1/*` 入口 middleware 强制 Bearer Token + RBAC。
++- Token Registry：`AUTH_BOX_AUTH_TOKENS`（`token:actor_id:role1|role2`）。
++- Token role 白名单：仅允许 `platform_admin/security_ops/compliance_auditor/policy_admin`；未知 role 启动期 fail-fast。
++- 调用来源透传：支持 `X-Auth-Source`，并写入审计字段 `audit.source`。
++- 高风险动作门禁：
++  - `CREDENTIAL_ROTATE` / `CREDENTIAL_REVOKE` -> `security_ops`
++  - `ASSISTANT_BIND` -> `security_ops`
++  - `AUDIT_EXPORT_CREATE` -> `compliance_auditor`
+ - 凭据与敏感字段：信封加密存储（主密钥来自 KMS）
+-- 审计日志：append-only + 导出归档
++- 审计日志：append-only + hash-chain（`event_hash` / `prev_event_hash`）+ 导出归档
+ - 密钥轮换：按策略自动轮换与吊销
+ 
+ ## 部署与运行
+ - 本地：Docker Compose 最小链路
+ - 生产：容器化部署，分层隔离 API/Worker/Console
+ 
++## 本地入口（当前 compose）
++- Console：`http://localhost:3010`
++- API Health：`http://localhost:4010/health`
++- API Base：`http://localhost:4010/api/v1`
++
+ ## 入口与路由
++- Public 入口（已实现，2026-02-11）：
++  - `/`, `/product`, `/features/*`, `/use-cases/*`, `/compare/*`, `/docs`, `/blog`, `/changelog`, `/pricing`, `/security`, `/contact`
++  - `/sitemap.xml`, `/robots.txt`
++  - 实现文件：`apps/console/lib/marketing.ts`、`apps/console/components/marketing-page.tsx`、`apps/console/app/{product,features,use-cases,compare,pricing,security,docs,blog,changelog,contact}/`
++  - 构建验证：`outputs/multi-role-brainstorm/20260211T160722Z/logs/console_build_public_routes.log`
+ - Web 控制台入口：`/`
+ - 平台连接：`/platforms`, `/platforms/new`, `/platforms/:id`
+ - 账号：`/accounts`, `/accounts/new`, `/accounts/:id`
+ - 授权凭据：`/credentials`, `/credentials/:id`, `/credentials/:id/rotate`
+ - AI 助手：`/assistants`, `/assistants/new`, `/assistants/:id`
+ - 审计日志：`/audit`, `/audit/exports`
++- 漏斗看板：`/metrics/funnel`
+ - 设置：`/settings`
+ 
+-## API 面（初版）
++## Sitemap 与关键词路由策略（已实现）
++- 规范文档：`doc/00_project/initiative_10_auth_box/SITEMAP_KEYWORD_STRATEGY.md`
++- URL 分层：
++  - 核心能力：`/features/platform-account-provisioning`, `/features/credential-lifecycle`, `/features/ai-assistant-governance`, `/features/audit-hash-chain`
++  - 场景落地：`/use-cases/security-ops`, `/use-cases/compliance-audit`, `/use-cases/platform-admin`
++  - 对比页：`/compare/hashicorp-vault-alternative`, `/compare/doppler-alternative`, `/compare/kong-konnect-alternative`
++- 元数据端点：`/sitemap.xml`（`apps/console/app/sitemap.ts`）、`/robots.txt`（`apps/console/app/robots.ts`）
++
++## API 面（当前能力）
+ - Base：`/api/v1`
+-- 平台连接：`/api/v1/platforms`
+-- 账号：`/api/v1/accounts`
+-- 授权凭据：`/api/v1/credentials`
+-- AI 助手：`/api/v1/assistants`
+-- 审计：`/api/v1/audit`
++- Health：`/health`（200）
++- 平台连接：`/api/v1/platforms`（已实现）
++- 账号：`/api/v1/accounts`（已实现）
++- 授权凭据：`/api/v1/credentials`（已实现：create/list/rotate/delete）
++- AI 助手：`/api/v1/assistants`（已实现：create/list/get/bind）
++- 审计：`/api/v1/audit`（已实现：list/export/create export/get export）
++- Console telemetry：
++  - `POST /api/telemetry/public-events`（Public 事件采集）
++  - `GET /api/telemetry/public-funnel`（SEO 漏斗 + 产品漏斗聚合视图）
++    - 支持查询参数：`window_minutes` / `bucket_minutes` / `recent_limit` / `source` / `persona` / `route` / `tenant_id`
++    - 返回增强：`top_tenants` / `alerts`
++    - 阈值配置：`AUTH_BOX_FUNNEL_MIN_CTA_CTR_PERCENT` / `AUTH_BOX_FUNNEL_MIN_COMPLETION_PERCENT` / `AUTH_BOX_FUNNEL_MIN_SEO_VIEWS_FOR_EVALUATION` / `AUTH_BOX_FUNNEL_MIN_ONBOARDING_FOR_EVALUATION`
++  - 持久化文件：`AUTH_BOX_CONSOLE_TELEMETRY_FILE`（默认 `outputs/telemetry/public-events.ndjson`）
++  - 重启持久化证据：`outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/funnel_before_restart.json`、`outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/funnel_after_restart.json`
++  - 过滤与趋势证据：`outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/funnel_beta_30m.json`、`outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/filter_trend_assertion.txt`
++  - 分租户告警证据：`outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/funnel_beta_180m.json`、`outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/tenant_alert_assertion.txt`
++
++## 架构圆桌结论（Council，2026-02-11）
++- Run：`outputs/architecture-council-adr/20260211T145910Z`
++- 角色：Architect / Security Lead / SRE Lead
++- 输出：
++  - ADR：`doc/00_project/initiative_10_auth_box/ARCHITECTURE_ADR.md`
++  - 风险清单：`doc/00_project/initiative_10_auth_box/ARCHITECTURE_RISK_REGISTER.md`
++
++### ADR 决议（Accepted）
++- ADR-001：MVP 阶段维持分层模块化单体，按 Platform/Account/Credential/Assistant/Audit 固化边界。
++- ADR-002：将安全基线前移到入口 middleware，统一认证鉴权与策略校验。
++- ADR-003：以 SLO 驱动可靠性与可观测性建设，分 MVP-1/MVP-2 逐步达成。
++
++### 风险优先项（Top）
++| ID | 风险 | 当前状态 |
++|---|---|---|
++| ARC-SEC-01 | API 入口缺少统一 AuthN/AuthZ 守门 | Closed |
++| ARC-SEC-02 | 审计链路不可抵赖性不足 | Closed |
++| ARC-SRE-01 | 缺少 readiness 与依赖健康探测 | Open |
++| ARC-SRE-02 | 缺少 SLO/告警阈值治理 | Open |
++| ARC-ARCH-02 | 文档与实现可能再次漂移 | Open |
++
++完整风险与处置计划见：`doc/00_project/initiative_10_auth_box/ARCHITECTURE_RISK_REGISTER.md`。
++
++### SLO 与可观测性基线
++- MVP-1：Availability >= 99.5%，API p95 < 300ms，5xx < 1%。
++- MVP-2：Availability >= 99.9%，API p95 < 250ms，5xx < 0.5%。
++- 核心监控维度：request_count、request_latency、error_rate、saturation、queue_depth。
++- 告警阈值：
++  - p95 > 300ms 持续 10 分钟
++  - 5xx > 1% 持续 5 分钟
++  - audit export failure > 2% 持续 10 分钟
++
++## 一键全量交付验收架构检查（2026-02-12，已完成）
++- SOP 证据目录：`outputs/one-click-full-delivery/20260212T022828Z`
++- 本轮检查入口：
++  - Frontend：`/`, `/product`, `/compare/*`, `/platforms/new`, `/metrics/funnel`
++  - Backend：`/api/v1/*`, `/api/telemetry/public-events`, `/api/telemetry/public-funnel`
++- 检查维度：
++  - 入口一致性（路由/API/配置）
++  - API 契约与错误码一致性
++  - 可观测指标链路与告警口径一致性
++- 检查结果：
++  - `outputs/one-click-full-delivery/20260212T022828Z/reports/full_loop/reports/full_loop_summary.json` = `overall_pass=true`
++  - `outputs/one-click-full-delivery/20260212T022828Z/reports/backend_contract_entry_assertion.txt` = PASS
++
++## 回归夹具（Fixtures）与回放
++- 真实 API fixture 清单：`services/api/testdata/fixtures/real_api_core_flow/manifest.json`
++- 回归脚本：
++  - 采样：`services/api/scripts/real_api_core_flow.sh --mode capture --project-dir .`
++  - 回放：`services/api/scripts/replay_real_api_fixtures.sh --project-dir .`
++- 闭环总检：`scripts/full_loop_closure_check.sh`
++- 验收要求：最终验收使用真实 API，禁止 mock。
++
++## SOP 4.1 回归记录（2026-02-12）
++- Run：`outputs/project-regression/20260212T030804Z`
++- 架构闭环验证：
++  - 入口闭环（UI 路由/CLI/配置）PASS：
++    - `outputs/project-regression/20260212T030804Z/reports/full_loop_closure/reports/entrypoint_report.json`
++  - 系统闭环（frontend -> backend -> persistence -> echo）PASS：
++    - `outputs/project-regression/20260212T030804Z/reports/full_loop_closure/reports/system_loop_report.json`
++  - 契约闭环（错误码/权限模型/契约测试）PASS：
++    - `outputs/project-regression/20260212T030804Z/reports/full_loop_closure/logs/full_loop_steps.log`
++- 结论：本轮未发生系统边界或分层调整。
++
++## 一键全量交付复核（2026-02-12，Run 20260212T032220Z）
++- 复核入口：`/`、`/product`、`/compare/*`、`/platforms/new`、`/metrics/funnel` 与 `/api/v1/*`。
++- 复核目标：验证入口一致性、契约一致性、系统闭环（frontend -> backend -> persistence -> echo）与可观测证据链。
++- 当前状态：Step 4（UX Map Round 2）已通过，证据见 `outputs/one-click-full-delivery/20260212T032220Z/reports/uxmap_round2/uxmap_round2_assertion.txt`。
++- 架构结论：本轮未引入新的系统边界或分层变化。
+diff --git a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+index 6d93dfe..1977924 100644
+--- a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
++++ b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+@@ -3,7 +3,7 @@ Title: USER_EXPERIENCE_MAP - initiative_10_auth_box
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-01-29
++LastUpdated: 2026-02-12
+ Related:
+   - /doc/index.md
+   - /doc/00_project/index.md
+@@ -14,7 +14,7 @@ Related:
+ 
+ <!-- AI-TOOLS:PROJECT_DIR:BEGIN -->
+ - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
+-- **VERIFIED_AT_UTC**: `2026-01-29T02:48:34Z`
++- **VERIFIED_AT_UTC**: `2026-02-11T14:47:54Z`
+ - **RULE**: Always run tasks against the project root. If the CLI detects a mismatch, it will update this block.
+ <!-- AI-TOOLS:PROJECT_DIR:END -->
+ 
+@@ -23,50 +23,81 @@ Related:
+ ## DoD（完成标志）
+ - Round 1: `ai check` OK
+ - Round 2: 按本 UX Map 完成模拟人工测试并留证据
++- Round 3: 真实 API fixtures 回放通过（no mock）
+ 
+ ## 渠道与入口
++- Public 官网入口（SEO）：`/`, `/product`, `/features/*`, `/use-cases/*`, `/compare/*`, `/docs`
+ - Web 控制台（Next.js）：`/`
+-- API 客户端：`/api/v1/*`
++- 漏斗看板（Console）：`/metrics/funnel`
++- API 客户端：`/api/v1/*`（必须携带 `Authorization: Bearer <token>`，建议携带 `X-Auth-Source`）
+ - AI 助手网关：由 API 接入并记录审计
+ 
++## Persona 对齐矩阵（Council）
++| Persona | 角色说明 | 对齐旅程 | 核心入口 |
++|---|---|---|---|
++| P0_DISCOVERY_USER | 搜索进入的潜在客户（增长漏斗） | Journey P0 + Journey P1 | `/`, `/features/*`, `/compare/*` |
++| P1_PLATFORM_ADMIN | 平台管理员（连接平台 + 创建账号） | Journey A + Journey B | `/platforms/new`, `/accounts/new` |
++| P2_SECURITY_OPS | 安全运维（凭据与助手绑定） | Journey C + Journey D | `/credentials`, `/assistants` |
++| P3_COMPLIANCE_AUDITOR | 合规审计（审计查询与导出） | Journey E | `/audit` |
++| P4_POLICY_ADMIN | 策略管理员（接管程度配置） | Journey F | `/settings` |
++| P5_GROWTH_ANALYST | 增长分析（漏斗观测） | Journey G | `/metrics/funnel` |
++
+ ## 关键旅程
+ 
++### Journey P0: SEO 入口到试用转化（已实现，Public V1）
++| Step | 用户动作 | 系统响应 | 证据/产物 |
++|---|---|---|---|
++| P0-1 | 搜索进入 Landing/Feature 页面 | 展示价值主张与行业痛点映射 | 静态页面路由构建记录 |
++| P0-2 | 点击 CTA（开始接入） | 跳转到 Console `platforms/new`，并写 `PUBLIC_CTA_CLICK` | `/api/telemetry/public-events` |
++| P0-3 | 完成平台创建 | 进入 Journey A，显示成功反馈 | API + 前端回显 |
++
++### Journey P1: 对比页决策（已实现，Public V1）
++| Step | 用户动作 | 系统响应 | 证据/产物 |
++|---|---|---|---|
++| P1-1 | 访问 compare 页面 | 展示能力矩阵、边界与迁移路径 | SSG 路由构建记录 |
++| P1-2 | 点击文档/案例链接 | 跳转 docs/use-case 深入页，并写 `PUBLIC_COMPARE_CLICK` | `/api/telemetry/public-events` |
++| P1-3 | 点击试用 | 进入 Console onboarding | `/platforms/new` 跳转 |
++
++- Public V1 证据：
++  - `outputs/multi-role-brainstorm/20260211T160722Z/logs/console_build_public_routes.log`
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/public_funnel_after.json`
++
+ ### Journey 0: 本地最小链路启动
+ | Step | 用户动作 | 系统响应 | 证据/产物 |
+ |---|---|---|---|
+ | Z1 | `docker compose up -d` | 启动 API/Console/PostgreSQL/Redis | 终端输出 |
+ | Z2 | 运行 `docker compose port console 3000`，打开输出的 URL | 展示控制台骨架首页 | 页面截图 |
+-| Z3 | 访问 `http://localhost:8080/health` | 返回健康检查结果 | API 响应 |
++| Z3 | 访问 `http://localhost:4010/health` | 返回健康检查结果 | API 响应 |
+ 
+ ### Journey A: 平台初始化
+ | Step | 用户动作 | 系统响应 | 证据/产物 |
+ |---|---|---|---|
+ | A1 | 进入平台配置页（`/platforms/new`） | 校验平台参数与权限 | 页面截图/日志 |
+-| A2 | 保存配置（`/platforms/:id`） | 返回连接状态与可用能力 | API/日志记录 |
++| A2 | 保存配置（`/platforms/:id`） | 返回连接状态与可用能力，并写 `PLATFORM_CREATED` 审计事件（含 source） | API/日志记录 |
+ 
+ ### Journey B: 账号自动创建
+ | Step | 用户动作 | 系统响应 | 证据/产物 |
+ |---|---|---|---|
+-| B1 | 创建账号（`/accounts/new`） | 调用平台 API 创建账号 | 账号记录/审计日志 |
++| B1 | 创建账号（`/accounts/new`） | 调用平台 API 创建账号，并写 `ACCOUNT_PROVISIONED` 审计事件（含 source） | 账号记录/审计日志 |
+ | B2 | 查看账号详情（`/accounts/:id`） | 展示账号状态与授权绑定 | 页面截图/记录 |
+ 
+ ### Journey C: 授权管理
+ | Step | 用户动作 | 系统响应 | 证据/产物 |
+ |---|---|---|---|
+-| C1 | 创建授权（`/credentials`） | 生成 API Key/OAuth Token | 凭据记录 |
+-| C2 | 轮换/吊销授权（`/credentials/:id/rotate`） | 更新凭据状态 | 审计日志 |
++| C1 | 创建授权（`/credentials`） | 生成 API Key/OAuth Token（`platform_admin` / `security_ops`） | 凭据记录 |
++| C2 | 轮换/吊销授权（`/credentials/:id/rotate`） | 更新凭据状态（`security_ops`） | 审计日志 |
+ 
+ ### Journey D: AI 助手接入
+ | Step | 用户动作 | 系统响应 | 证据/产物 |
+ |---|---|---|---|
+ | D1 | 绑定 AI 助手（`/assistants/new`） | 验证权限范围 | 绑定记录 |
+-| D2 | 发起调用（API） | 通过网关访问外部平台 | 调用日志 |
++| D2 | 发起调用（API） | 通过网关访问外部平台（`ASSISTANT_BIND` 需 `security_ops`） | 调用日志 |
+ 
+ ### Journey E: 审计与合规
+ | Step | 用户动作 | 系统响应 | 证据/产物 |
+ |---|---|---|---|
+-| E1 | 查询操作日志（`/audit`） | 返回可审计记录（Event Sourcing with hash chain） | 日志导出 |
+-| E2 | 导出报告（`/audit/exports`） | 生成审计报告 | 导出文件 |
++| E1 | 查询操作日志（`/audit`） | 返回可审计记录（Event Sourcing with hash chain；`platform_admin` / `compliance_auditor`） | 日志导出 |
++| E2 | 导出报告（`/audit/exports`） | 生成审计报告（`compliance_auditor`） | 导出文件 |
+ 
+ ### Journey F: 接管程度配置（来自调研 ai_master_control_prd.html）
+ | Step | 用户动作 | 系统响应 | 证据/产物 |
+@@ -75,6 +106,43 @@ Related:
+ | F2 | 选择接管程度（手动/辅助/自动/托管） | 保存配置 | 审计日志 |
+ | F3 | 配置高风险动作确认策略 | 更新 Policy | 策略记录 |
+ 
++### Journey G: 漏斗观测（已实现，Public V1+）
++| Step | 用户动作 | 系统响应 | 证据/产物 |
++|---|---|---|---|
++| G1 | 访问 `/metrics/funnel` | 返回 SEO/产品双漏斗聚合 | 页面渲染结果 |
++| G2 | 查询 `/api/telemetry/public-funnel` | 返回 counters/top routes/top sources/recent events/trend | JSON 响应 |
++| G2-1 | 追加过滤参数（window/source/persona/route/tenant） | 返回过滤后的漏斗聚合与趋势 | 过滤查询结果 |
++| G2-2 | 查看告警面板 | 返回样本不足/转化率低于阈值的告警项 | 告警 JSON 与页面渲染 |
++| G3 | 重启服务后复查 | 指标值保持不丢失（基于持久化文件） | before/after restart 对比 |
++
++- Journey G 证据：
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/funnel_before_restart.json`
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/funnel_after_restart.json`
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/persistence_assertion.txt`
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/funnel_beta_30m.json`
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/funnel_alpha_30m.json`
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/filter_trend_assertion.txt`
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/funnel_beta_180m.json`
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/funnel_alpha_180m.json`
++  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/tenant_alert_assertion.txt`
++
++## 真实流程测试基线（2026-02-11）
++| 模式 | 口径 | 总步骤 | 成功 | 失败 | 成功率 |
++|---|---|---:|---:|---:|---:|
++| strict-baseline | 升级前（Journey C/D/E 未实现） | 18 | 11 | 7 | 61.11% |
++| strict-postfix | 升级后（Journey C/D/E 已实现） | 20 | 20 | 0 | 100.00% |
++| mvp0-postfix | 与 strict 同口径复测 | 20 | 20 | 0 | 100.00% |
++
++- strict-baseline 失败集中在 Journey C/D/E 的 `501 NOT_IMPLEMENTED`（升级前）。
++- 证据目录：`outputs/persona-real-flow/20260211T141210Z/`。
++
++## 真实 API 回放基线（2026-02-11）
++- Fixture 清单：`services/api/testdata/fixtures/real_api_core_flow/manifest.json`
++- 采样命令：`services/api/scripts/real_api_core_flow.sh --mode capture --project-dir .`
++- 回放命令：`services/api/scripts/replay_real_api_fixtures.sh --project-dir .`
++- 闭环检查命令：`make full-loop-check`
++- 约束：最终验收必须通过真实 API，不得以 mock 替代。
++
+ ## 接管程度说明
+ 
+ | 模式 | 用户体验 | 适用场景 |
+@@ -83,3 +151,34 @@ Related:
+ | 辅助（MVP 默认） | AI 生成方案，用户一次确认后批量执行 | 标准接入 |
+ | 自动 | 低风险自动执行，高风险弹窗确认 | 稳定期用户 |
+ | 托管 | 完全托管，需更强验证 | 遗产/监护 |
++
++## 一键全量交付验收计划（2026-02-12，已完成）
++- SOP 证据目录：`outputs/one-click-full-delivery/20260212T022828Z`
++- Round 2 人工模拟覆盖：
++  - P0/P1：Public 入口 -> CTA -> onboarding
++  - A/B/C/D/E：平台/账号/凭据/助手/审计主流程
++  - G：漏斗查询（含 tenant 过滤与 alerts）
++- 记录要求：
++  - 每个 Journey 至少 1 条成功证据
++  - 失败路径需记录错误码与定位信息
++- 执行结果：
++  - UX Map Round 2 断言 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
++  - 真实 API Journey 证据：`outputs/one-click-full-delivery/20260212T022828Z/reports/full_loop/system_capture/reports/run_report.json`
++
++## SOP 4.1 回归记录（2026-02-12）
++- Run：`outputs/project-regression/20260212T030804Z`
++- Round 2（UX Map）回归路径：
++  - `journey_p0_home.html`
++  - `journey_p0_product.html`
++  - `journey_p1_compare.html`
++  - `journey_a_platform_new.html`
++  - `journey_g_metrics.html`
++  - `journey_g_funnel_beta.json`
++- 断言：`outputs/project-regression/20260212T030804Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
++- 结果：`home/product/compare/platforms_new/metrics/funnel` 全 PASS。
++
++## 一键全量交付 Round 2 复测记录（2026-02-12，Run 20260212T032220Z）
++- 复测路径：`/`、`/product`、`/compare/hashicorp-vault-alternative`、`/platforms/new?source=ux_round2&tenant_id=beta`、`/metrics/funnel?window_minutes=180&tenant_id=beta`。
++- 关键事件：`PUBLIC_CTA_CLICK`、`ONBOARDING_ENTRY_VIEW`。
++- 结果：`outputs/one-click-full-delivery/20260212T032220Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（PASS）。
++- 备注：本轮为既有旅程复核，不新增 UX 旅程定义。

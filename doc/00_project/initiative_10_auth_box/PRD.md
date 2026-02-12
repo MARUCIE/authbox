@@ -3,7 +3,7 @@ Title: PRD - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-01-29
+LastUpdated: 2026-02-12
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -33,6 +33,26 @@ Related:
 - 平台管理员：配置平台连接与全局策略。
 - 业务接入工程师：创建账号、申请/绑定授权、调用接入。
 - 合规审计人员：查看权限、密钥与访问记录。
+
+## Persona 验收对象（2026-02-11）
+| Persona | 用户类型 | 目标旅程 |
+|---|---|---|
+| P0_DISCOVERY_USER | 搜索进入的潜在客户 | Journey P0 + Journey P1 |
+| P1_PLATFORM_ADMIN | 平台管理员 | Journey A + Journey B |
+| P2_SECURITY_OPS | 业务接入工程师（安全运维） | Journey C + Journey D |
+| P3_COMPLIANCE_AUDITOR | 合规审计人员 | Journey E |
+| P4_POLICY_ADMIN | 平台管理员（策略配置） | Journey F |
+
+## 竞品分析与定位（多角色脑暴，2026-02-11）
+
+| 竞品类别 | 代表产品（类别） | 对方优势 | Auth Box 差异化定位 |
+|---|---|---|---|
+| Secrets 管理 | Vault / Doppler / Infisical | 密钥管理成熟，生态广 | 增加“账号-授权-AI 助手-审计”业务闭环 |
+| API 网关治理 | Kong / Apigee | 策略与流量治理强 | 聚焦授权生命周期与合规审计链 |
+| AI 访问层 | LLM Gateway 类 | 模型调用可观测与路由能力强 | 增加企业级授权主数据与权限边界治理 |
+| IAM/SSO | Okta/Auth0 类 | 身份与组织权限模型成熟 | 不做通用 IAM，专注 API 授权治理细分场景 |
+
+- 产品定位结论：Auth Box 定位为 **API 授权治理中台（AI 场景优先）**，而非通用 IAM/网关替代。
 
 ## 核心概念模型（来自调研 ai_master_control_prd.html）
 
@@ -82,11 +102,54 @@ MVP 采用 7 个核心对象：
 - Docker Compose 最小链路（API + Console + PostgreSQL + Redis）。
 - 配置与运行手册占位，确保可启动与可演进。
 
+## 本次交付范围（MVP-1 增量）
+- 授权凭据 API：`/api/v1/credentials`（create/list/rotate/delete）
+- AI 助手 API：`/api/v1/assistants`（create/list/get/bind）
+- 审计 API：`/api/v1/audit`（list/export/create export/get export）
+- 统一 AuthN/AuthZ 入口：`/api/v1/*` 强制 Bearer Token，按角色执行 RBAC 门禁
+- 鉴权配置入口强校验：`AUTH_BOX_AUTH_TOKENS` 启用 role 白名单并在启动阶段 fail-fast
+- 调用方来源对齐：Console 默认发送 `X-Auth-Source` 并透传到 `audit.source`
+- 审计链路增强：事件补齐 `actor_id/source/decision`，并记录 `event_hash/prev_event_hash`
+- 平台/账号审计事件补齐：`PLATFORM_CREATED/UPDATED/DELETED`、`ACCOUNT_PROVISIONED`、`ACCOUNT_STATUS_CHANGED`
+- Persona 真实流程脚本升级：增加真实前置条件（platform/account/credential/export id）
+- strict 口径下多 persona 客户旅程通过率提升到 100%
+
+## 本次交付范围（MVP-2 增量：增长入口）
+- 已落地：Public sitemap 与 SEO URL 规范（Landing / Features / Use Cases / Compare / Docs / Blog / Changelog / Contact）。
+- 已落地：Compare 页面模板（3 个）：Vault/Doppler/Kong 替代对比。
+- 已落地：`/sitemap.xml` 与 `/robots.txt` 元数据端点。
+- 已落地（最小版）：SEO 转化漏斗埋点（`PUBLIC_PAGE_VIEW` / `PUBLIC_CTA_CLICK` / `ONBOARDING_ENTRY_VIEW`）。
+- 已落地（最小版）：双漏斗指标接口（`GET /api/telemetry/public-funnel`）。
+- 已落地（最小版）：漏斗看板页面（`/metrics/funnel`）。
+- 已落地（最小版）：文件持久化（`AUTH_BOX_CONSOLE_TELEMETRY_FILE`，重启后指标保持）。
+- 已落地（最小版）：过滤与趋势（`window_minutes/source/persona/route/bucket_minutes`）。
+- 已落地（最小版）：租户维度聚合与过滤（`tenant_id` + `top_tenants`）。
+- 已落地（最小版）：阈值告警（`alerts` + `AUTH_BOX_FUNNEL_MIN_*`）。
+- 待补齐：历史趋势图与告警订阅通道（邮件/Webhook）。
+
+## 真实流程测试结论（2026-02-11）
+| 模式 | 预期口径 | 总步骤 | 成功 | 失败 | 成功率 |
+|---|---|---:|---:|---:|---:|
+| strict-baseline | 升级前（Journey C/D/E 未实现） | 18 | 11 | 7 | 61.11% |
+| strict-postfix | 升级后（Journey C/D/E 已实现） | 20 | 20 | 0 | 100.00% |
+| mvp0-postfix | 与 strict 同口径复测 | 20 | 20 | 0 | 100.00% |
+
+- strict-baseline 失败根因：Journey C/D/E 当时仍为占位端点，返回 `NOT_IMPLEMENTED`。
+- 修复策略：实现 C/D/E 对应 API，并将 persona 脚本改为真实前置条件链路。
+
+## 真实 API 验收约束（2026-02-11）
+- 最终验收必须通过真实 API（非生产环境）端到端流程。
+- 不得以 mock/fake response 替代最终验收。
+- 必须沉淀可复现 fixtures，并可执行 replay/regression 回放。
+- 基线清单：`services/api/testdata/fixtures/real_api_core_flow/manifest.json`
+- 闭环守门脚本：`scripts/full_loop_closure_check.sh`（entry/system/contract/verification）
+
 ## 非功能需求
-- 安全：最小权限、密钥加密存储、审计不可篡改。
+- 安全：最小权限、密钥加密存储、统一 AuthN/AuthZ、审计不可篡改（hash chain）。
 - 合规：操作留痕、敏感数据脱敏、可导出审计报告。
 - 可靠性：关键流程可回滚，失败具可解释错误码。
-- 可维护性：单一事实源文档与可追踪需求变更。
+- 可维护性：单一事实源文档、可追踪需求变更、真实 API fixtures 可回放。
+- 增长：支持 sitemap/robots 与关键词落地页，确保可抓取与转化可观测。
 
 ## 技术栈与部署
 - 后端：Go（REST + OpenAPI 3.1），路由与中间件轻量化。
@@ -108,3 +171,43 @@ MVP 采用 7 个核心对象：
 - M1: 项目文档与架构基线完成。
 - M2: MVP 核心流程可用（账号创建 + 授权管理 + AI 接入）。
 - M3: 审计与 SOP 交付闭环完成。
+
+## 一键全量交付验收（2026-02-12，已完成）
+- SOP：one-click-full-delivery
+- Run：`outputs/one-click-full-delivery/20260212T022828Z`
+- 验收范围：
+  - Round 1：`ai check`
+  - Round 2：按 UX Map 进行人工模拟测试
+  - 前端专项：network/console/performance/visual baseline
+  - 后端专项：API 契约/错误码/入口一致性
+- 验收结果：
+  - Round 1 PASS：`outputs/one-click-full-delivery/20260212T022828Z/logs/ai_check_round1.log`
+  - Round 2 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+  - 前端专项 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_audit/frontend_audit_assertion.txt`
+  - 后端专项 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/backend_contract_entry_assertion.txt`
+- 约束：最终验收不得以 mock 替代真实 API 结果。
+
+## SOP 4.1 回归记录（2026-02-12）
+- Run：`outputs/project-regression/20260212T030804Z`
+- 目标：项目级全链路回归（UX Map + E2E）验证现网开发基线可用性。
+- 结果：
+  - 入口闭环 PASS：`outputs/project-regression/20260212T030804Z/reports/full_loop_3_7_assertion.txt`
+  - UX Map Round 2 PASS：`outputs/project-regression/20260212T030804Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+  - `ai check` PASS：`outputs/project-regression/20260212T030804Z/logs/ai_check_round1.log`（见 Step 6）
+- 结论：本轮为回归验收，不新增产品需求边界。
+
+## 一键全量交付复核（2026-02-12，Run 20260212T032220Z）
+- 触发：用户再次执行 SOP 1.1（长任务）进行同口径复核。
+- 范围：不新增需求边界，沿用既有验收标准（Round 1 ai check + Round 2 UX Map + 前后端专项 + Task Closeout）。
+- 当前证据（Step 4）：`outputs/one-click-full-delivery/20260212T032220Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（PASS）。
+- 验收结果（Step 6/7）：`ai check` PASS、frontend audit PASS、backend full-loop PASS（见 `outputs/one-click-full-delivery/20260212T032220Z/reports/one_click_full_delivery_report.md`）。
+- 结论：本轮为验收复跑，产品范围与非目标保持不变。
+
+## SOP 4.1 回归记录（2026-02-12，Run 20260212T034924Z）
+- Run：`outputs/project-regression/20260212T034924Z`
+- 目标：项目级全链路回归（UX Map + E2E）验证当前基线可用性。
+- 执行结果：
+  - Step 3 UX Map 回归 PASS：`outputs/project-regression/20260212T034924Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+  - Step 4 同类问题扫描 PASS：`outputs/project-regression/20260212T034924Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`
+  - 问题修复：telemetry payload 字段从 `event_type` 修正为 `event`（避免 `INVALID_EVENT`）。
+- 结论：本轮为回归验收，不新增需求边界。

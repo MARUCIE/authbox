@@ -1,0 +1,95 @@
+== 2026-02-12T02:28:38Z tool inventory ==
+AI Tools - Unified CLI Entry Point
+
+USAGE:
+  ai [COMMAND] [OPTIONS]
+
+COMMANDS:
+  (none)              Start interactive menu
+  sop                 SOP execution engine (59 SOPs)
+    list              List all SOPs (--phase PLAN/BUILD/TEST/...)
+    run <id>          Start SOP run (e.g., ai sop run 1.1)
+    status [run_id]   Show run status or list all runs
+    step <run> <n>    Update step (done/failed/skipped)
+    complete <run>    Complete a run
+    discover "text"   Find best SOP for a task
+    map               Show SOP <-> Skill mapping
+
+  find-skill, fs      Skill discovery & installation (agentskills.io)
+    search "query"    Search GitHub for skill repos
+    list [repo]       List installed or repo skills
+    install <repo>    Install skills from a repo
+    discover "task"   Find matching skills for a task
+
+  workflow, wf        LangGraph workflow commands
+    run <prompt>      Execute a workflow
+    visualize         Show workflow graph
+    interactive       Start REPL mode
+
+  wf15                15-step multi-project pipeline
+    run               Execute pipeline
+    init              Initialize local config
+
+  skills              Skill management
+    list              List available skills
+    run <skill>       Run a skill
+
+  agents              Agent management
+    list              List available agents
+    --json            Output as JSON
+
+  api                 AI model API commands
+    call <model>      Direct model call
+    route <scene>     Scene-based routing
+    models            List available models
+
+  tier                Tier management
+    list              List all tiers
+    info <tier>       Show tier details
+    validate          Validate tier registry
+
+  hooks               Hook management
+    status            Show configured hooks
+
+  check               Run validation checks
+  doctor              System environment check
+  info                Show all tool information
+  help                Show this help
+
+EXAMPLES:
+  ai                              # Start interactive menu
+  ai sop list                     # List all 56 SOPs
+  ai sop discover "refactor auth" # Find best SOP for task
+  ai sop run 4.2                  # Start AI Code Review SOP
+  ai sop status                   # List all SOP runs
+  ai workflow run "generate code" # Run a workflow
+  ai skills list                  # List available skills
+  ai hooks status                 # Show hook configuration
+  ai check                        # Run all checks
+
+ENVIRONMENT:
+  AI_TOOLS_DIR    Path to AI-tools directory (default: /Users/mauricewen/AI-tools)
+
+For more information: https://github.com/your-org/ai-tools
+
+--- ai skills list ---
+/opt/homebrew/opt/python@3.14/bin/python3.14: Error while finding module specification for 'tier2_langgraph_bridge.cli' (ModuleNotFoundError: No module named 'tier2_langgraph_bridge')
+
+--- ai find-skill discover ---
+=== Skill Discovery for: planning-with-files ralph loop ai check UX Map Task Closeout ===
+
+--- Installed Skills (matching) ---
+  [installed] writing-plans (relevance: 5)
+  [built-in ] planning-with-files (relevance: 5)
+  [built-in ] agent-teams-swarm (relevance: 5)
+  [built-in ] engineering-protocol (relevance: 5)
+  [installed] dispatching-parallel-agents (relevance: 4)
+  [installed] webapp-testing (relevance: 4)
+  [built-in ] workflow-router (relevance: 4)
+  [built-in ] reflection (relevance: 4)
+
+--- SOP Engine Recommendations ---
+  Matched: ,frontend-design,planning-with-files,product-design,ralph-loop
+
+--- Try GitHub ---
+  ai find-skill search "planning-with-files ralph loop ai check UX Map Task Closeout"

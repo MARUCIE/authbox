@@ -1,0 +1,4 @@
+mode=strict
+started_at=2026-02-11T14:48:13Z
+api_base=http://localhost:14010
+console_base=http://localhost:3010

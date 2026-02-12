@@ -1,0 +1,3 @@
+{"id":"5cec4cc6-f072-4086-afb3-105352185cbd","event":"PUBLIC_PAGE_VIEW","route":"/pricing","source":"persist-smoke","persona":"P0_DISCOVERY_USER","ts":"2026-02-12T01:45:37.531Z"}
+{"id":"68add638-7d48-4999-b9c7-5944d2dc63ca","event":"PUBLIC_CTA_CLICK","route":"/pricing","source":"persist-smoke","persona":"P0_DISCOVERY_USER","ts":"2026-02-12T01:45:37.548Z","metadata":{"target":"/platforms/new?source=persist-smoke"}}
+{"id":"43bd46f3-1ab6-41cc-89de-edcbcbc01338","event":"ONBOARDING_ENTRY_VIEW","route":"/platforms/new","source":"persist-smoke","persona":"P1_PLATFORM_ADMIN","ts":"2026-02-12T01:45:37.569Z"}

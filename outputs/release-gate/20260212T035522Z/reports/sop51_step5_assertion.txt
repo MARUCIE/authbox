@@ -1,0 +1,4 @@
+round1.result=PASS
+round2.result=PASS
+ralph_loop.triggered=NO
+step5.result=PASS

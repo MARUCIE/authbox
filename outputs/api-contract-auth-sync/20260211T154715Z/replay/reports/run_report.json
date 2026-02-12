@@ -1,0 +1,24 @@
+{
+  "mode": "replay",
+  "evidence_dir": "outputs/api-contract-auth-sync/20260211T154715Z/replay",
+  "manifest": "./services/api/testdata/fixtures/real_api_core_flow/manifest.json",
+  "acceptance_rule": "final acceptance must pass real API; mock responses are forbidden",
+  "summary": {
+    "mode": "replay",
+    "api_base": "http://localhost:4010",
+    "generated_at": "2026-02-11T15:57:24Z",
+    "ids": {
+      "platform_id": "37200a2f-7866-497c-88af-241f6f9c225c",
+      "account_id": "7741f866-9372-4600-a0e8-0570c4da31e1",
+      "credential_id": "6272dae2-b17e-44f4-95ef-bb42be81e857",
+      "assistant_id": "65af1718-ffb3-4cfb-8dd9-9f75888c2f9f",
+      "export_id": "6a8b9d55-392f-4b76-bda0-79231ac127c8"
+    },
+    "checks": {
+      "event_count": 9,
+      "deny_event_count": 2,
+      "required_fields_ok": true,
+      "chain_link_ok": true
+    }
+  }
+}

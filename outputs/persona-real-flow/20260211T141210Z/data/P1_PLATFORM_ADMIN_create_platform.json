@@ -1,0 +1,1 @@
+{"name":"OpenAI","type":"openai","config":{"base_url":"https://api.openai.com","auth_type":"api_key"}}

@@ -1,0 +1,9 @@
+### ai skills list
+/opt/homebrew/opt/python@3.14/bin/python3.14: Error while finding module specification for 'tier2_langgraph_bridge.cli' (ModuleNotFoundError: No module named 'tier2_langgraph_bridge')
+
+### onecontext
+[0;36mNOTE: 运行技能: onecontext[0m
+[0;34mNOTE: 提示: broad --query 'api contract|auth|schema|rbac|contr...[0m
+
+[0;31mERROR: 执行失败[0m
+错误: Skill 'onecontext' not registered

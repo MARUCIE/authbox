@@ -1,0 +1,9 @@
+sop_id=one-click-full-delivery
+run_id=20260212T022828Z
+started_at_utc=2026-02-12T02:28:28Z
+project_dir=/Users/mauricewen/Projects/10-auth-box
+git_head=d6f317dc79aa47f2f47c67321ed05653e9f13ca6
+sop_engine_run_id=1-1-e777b5e7
+plan_first_report=outputs/one-click-full-delivery/20260212T022828Z/reports/plan_first_summary.md
+completed_at_utc=2026-02-12T02:44:50Z
+status=completed

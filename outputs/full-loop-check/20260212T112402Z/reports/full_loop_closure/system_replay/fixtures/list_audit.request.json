@@ -1,0 +1,8 @@
+{
+  "step_id": "list_audit",
+  "method": "GET",
+  "path": "/api/v1/audit",
+  "url": "http://localhost:4010/api/v1/audit",
+  "token": "auditor",
+  "body": null
+}

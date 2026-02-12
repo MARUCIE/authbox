@@ -1,0 +1,8 @@
+{
+  "step_id": "rotate_forbidden",
+  "method": "POST",
+  "path": "/api/v1/credentials/3401a370-cd45-4b8d-bb88-8e2956016838/rotate",
+  "url": "http://localhost:4010/api/v1/credentials/3401a370-cd45-4b8d-bb88-8e2956016838/rotate",
+  "token": "auditor",
+  "body": null
+}

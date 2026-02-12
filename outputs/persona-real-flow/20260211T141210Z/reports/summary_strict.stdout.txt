@@ -1,0 +1,13 @@
+# Persona Flow Summary (strict)
+
+| Persona | Total | Pass | Fail | Success Rate |
+|---|---:|---:|---:|---:|
+| P1_PLATFORM_ADMIN | 7 | 7 | 0 | 100.00% |
+| P2_SECURITY_OPS | 6 | 2 | 4 | 33.33% |
+| P3_COMPLIANCE_AUDITOR | 4 | 1 | 3 | 25.00% |
+| P4_POLICY_ADMIN | 1 | 1 | 0 | 100.00% |
+
+- Total Steps: 18
+- Passed: 11
+- Failed: 7
+- Success Rate: 61.11%

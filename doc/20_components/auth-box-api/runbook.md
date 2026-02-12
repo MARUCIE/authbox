@@ -3,7 +3,7 @@ Title: Component Runbook - auth-box-api
 Scope: component
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-01-29
+LastUpdated: 2026-02-11
 Related:
   - /doc/20_components/auth-box-api/api.md
 ---
@@ -17,7 +17,15 @@ docker compose up -d
 
 ## 健康检查
 ```
-curl -s http://localhost:8080/health
+curl -s http://localhost:4010/health
+```
+
+## 鉴权与来源示例
+```
+curl -s \
+  -H "Authorization: Bearer local-admin-token" \
+  -H "X-Auth-Source: console" \
+  http://localhost:4010/api/v1/platforms
 ```
 
 ## 凭据轮换操作

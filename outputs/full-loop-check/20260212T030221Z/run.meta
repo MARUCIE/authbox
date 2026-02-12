@@ -1,0 +1,8 @@
+sop_id=full-loop-check
+run_id=20260212T030221Z
+started_at_utc=2026-02-12T03:02:21Z
+project_dir=/Users/mauricewen/Projects/10-auth-box
+sop_engine_run_id=3-7-334e43a7
+full_loop_summary=outputs/full-loop-check/20260212T030221Z/reports/full_loop_closure/reports/full_loop_summary.json
+completed_at_utc=2026-02-12T03:04:13Z
+status=completed

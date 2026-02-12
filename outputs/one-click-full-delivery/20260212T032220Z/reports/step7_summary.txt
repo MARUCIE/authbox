@@ -1,0 +1,5 @@
+step7.frontend.assertion=outputs/one-click-full-delivery/20260212T032220Z/reports/frontend_audit/frontend_audit_assertion.txt
+step7.frontend.result=network.pass=PASS,console.pass=PASS,performance.pass=PASS,visual.pass=PASS
+step7.backend.assertion=outputs/one-click-full-delivery/20260212T032220Z/reports/backend_contract_entry_assertion.txt
+step7.backend.result=entry.pass:PASS,entry.route_missing.zero:PASS,entry.cli_missing.zero:PASS,entry.config_missing.zero:PASS,system.pass:PASS,summary.overall_pass:PASS,summary.entrypoint_pass:PASS,summary.system_pass:PASS
+step7.full_loop.summary=outputs/one-click-full-delivery/20260212T032220Z/reports/full_loop/reports/full_loop_summary.json

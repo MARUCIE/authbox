@@ -1,0 +1,11 @@
+{
+  "step_id": "create_assistant",
+  "method": "POST",
+  "path": "/api/v1/assistants",
+  "url": "http://localhost:4010/api/v1/assistants",
+  "token": "security_ops",
+  "body": {
+    "name": "ops-assistant",
+    "description": "security operations"
+  }
+}

@@ -241,6 +241,7 @@ git log -1 --oneline
 - 仅在安全/HITL/缺失关键资源时才需要询问，否则自行决策并记录  
 - 自动化动作必须可追踪，记录在 task_plan.md/notes.md
 - 禁止输出“如果无异议/请确认/是否继续”等确认话术；状态复述仅用于记录
+- 当用户明确要求“队列执行/继续/go”时，进入连续命令队列模式：单次可串联多个命令，按 pipeline 顺序持续执行，不主动停顿与确认；每批执行结果必须落盘到 task_plan.md/notes.md
 
 ### 变更原则（No backward compatibility）
 

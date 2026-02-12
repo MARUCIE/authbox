@@ -1,0 +1,5 @@
+entrypoint.pass=PASS
+system.pass=PASS
+contract.pass=PASS
+verification.pass=PASS
+overall.pass=PASS

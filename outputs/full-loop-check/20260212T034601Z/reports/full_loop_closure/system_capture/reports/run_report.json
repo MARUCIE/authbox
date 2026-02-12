@@ -1,0 +1,24 @@
+{
+  "mode": "capture",
+  "evidence_dir": "outputs/full-loop-check/20260212T034601Z/reports/full_loop_closure/system_capture",
+  "manifest": "/Users/mauricewen/Projects/10-auth-box/services/api/testdata/fixtures/real_api_core_flow/manifest.json",
+  "acceptance_rule": "final acceptance must pass real API; mock responses are forbidden",
+  "summary": {
+    "mode": "capture",
+    "api_base": "http://localhost:4010",
+    "generated_at": "2026-02-12T03:46:34Z",
+    "ids": {
+      "platform_id": "2fa32649-eea7-483e-92d0-10e982a16e7a",
+      "account_id": "f7cbd1af-8125-407a-8a5d-1dda775d1d56",
+      "credential_id": "23a6aca7-8a85-4165-89c9-9a8d67f8b784",
+      "assistant_id": "39f06ef8-b85a-463f-9ee9-c68de289e779",
+      "export_id": "c49b23b9-d4dd-4c2e-8e42-23a93f36c4dc"
+    },
+    "checks": {
+      "event_count": 9,
+      "deny_event_count": 2,
+      "required_fields_ok": true,
+      "chain_link_ok": true
+    }
+  }
+}

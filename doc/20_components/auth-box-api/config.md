@@ -3,7 +3,7 @@ Title: Component Config - auth-box-api
 Scope: component
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-01-29
+LastUpdated: 2026-02-11
 Related:
   - /doc/20_components/auth-box-api/design.md
 ---
@@ -15,6 +15,10 @@ Related:
 ```
 AUTH_BOX_DB_DSN=postgres://user:pass@localhost:5432/auth_box
 AUTH_BOX_REDIS_URL=redis://localhost:6379/0
+AUTH_BOX_HTTP_ADDR=:8080
+AUTH_BOX_ENV=local
+AUTH_BOX_VERSION=0.1.0
+AUTH_BOX_AUTH_TOKENS=token:actor_id:platform_admin|security_ops
 AUTH_BOX_KMS_KEY_ID=kms-key-id-placeholder
 AUTH_BOX_OBJECT_STORE_URL=s3://audit-bucket
 AUTH_BOX_OBJECT_STORE_REGION=us-east-1
@@ -24,3 +28,4 @@ AUTH_BOX_OTEL_ENDPOINT=http://localhost:4317
 ## 说明
 - 敏感信息仅使用占位符，禁止明文写入文档与代码。
 - API Key 与密文优先存储数据库，不从环境变量读取业务凭据。
+- 鉴权配置强校验：`AUTH_BOX_AUTH_TOKENS` 只允许 `platform_admin/security_ops/compliance_auditor/policy_admin`，未知 role 会导致服务启动失败。

@@ -1,0 +1,145 @@
+## Backend route registration
+package server
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"auth-box-api/internal/config"
+	"auth-box-api/internal/handlers"
+	"auth-box-api/internal/repository"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+)
+
+type Server struct {
+	cfg    config.Config
+	router *chi.Mux
+	srv    *http.Server
+}
+
+func New(cfg config.Config) *Server {
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(30 * time.Second))
+
+	// Health check (outside /api/v1)
+	r.Get("/health", handlers.NewHealthHandler(cfg).ServeHTTP)
+
+	// Initialize repositories
+	platformRepo := repository.NewPlatformRepository()
+	accountRepo := repository.NewAccountRepository(platformRepo)
+
+	// Initialize handlers
+	platformHandler := handlers.NewPlatformHandler(platformRepo)
+	accountHandler := handlers.NewAccountHandler(accountRepo)
+
+	// API v1 routes
+	r.Route("/api/v1", func(r chi.Router) {
+		// Platforms CRUD
+		r.Route("/platforms", func(r chi.Router) {
+			r.Get("/", platformHandler.List)
+			r.Post("/", platformHandler.Create)
+			r.Get("/{id}", platformHandler.Get)
+			r.Patch("/{id}", platformHandler.Update)
+			r.Delete("/{id}", platformHandler.Delete)
+		})
+
+		// Accounts CRUD
+		r.Route("/accounts", func(r chi.Router) {
+			r.Get("/", accountHandler.List)
+			r.Post("/", accountHandler.Create)
+			r.Get("/{id}", accountHandler.Get)
+			r.Patch("/{id}", accountHandler.Update)
+			r.Delete("/{id}", accountHandler.Delete)
+		})
+	})
+
+	return &Server{
+		cfg:    cfg,
+		router: r,
+	}
+}
+
+func (s *Server) Run(ctx context.Context) error {
+	s.srv = &http.Server{
+		Addr:              s.cfg.HTTPAddr,
+		Handler:           s.router,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		slog.Info("api server started", "addr", s.cfg.HTTPAddr)
+		errCh <- s.srv.ListenAndServe()
+	}()
+
+	select {
+	case <-ctx.Done():
+		return s.srv.Shutdown(context.Background())
+	case err := <-errCh:
+		return err
+	}
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.srv == nil {
+		return nil
+	}
+	return s.srv.Shutdown(ctx)
+}
+
+## Handlers list
+services/api/internal/handlers/account.go
+services/api/internal/handlers/health.go
+services/api/internal/handlers/platform.go
+services/api/internal/handlers/response.go
+
+## API path mentions
+services/api/internal/handlers/account.go:25:// List handles GET /api/v1/accounts
+services/api/internal/handlers/account.go:38:	accounts, _, err := h.repo.List(platformID, 100, 0)
+services/api/internal/handlers/account.go:40:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list accounts")
+services/api/internal/handlers/account.go:45:		Items:         accounts,
+services/api/internal/handlers/account.go:50:// Create handles POST /api/v1/accounts
+services/api/internal/handlers/account.go:82:// Get handles GET /api/v1/accounts/{id}
+services/api/internal/handlers/account.go:104:// Update handles PATCH /api/v1/accounts/{id}
+services/api/internal/handlers/account.go:132:// Delete handles DELETE /api/v1/accounts/{id}
+services/api/internal/handlers/platform.go:24:// List handles GET /api/v1/platforms
+services/api/internal/handlers/platform.go:26:	platforms, _, err := h.repo.List(100, 0)
+services/api/internal/handlers/platform.go:28:		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list platforms")
+services/api/internal/handlers/platform.go:33:		Items:         platforms,
+services/api/internal/handlers/platform.go:38:// Create handles POST /api/v1/platforms
+services/api/internal/handlers/platform.go:65:// Get handles GET /api/v1/platforms/{id}
+services/api/internal/handlers/platform.go:87:// Update handles PATCH /api/v1/platforms/{id}
+services/api/internal/handlers/platform.go:115:// Delete handles DELETE /api/v1/platforms/{id}
+services/api/internal/server/server.go:30:	// Health check (outside /api/v1)
+services/api/internal/server/server.go:31:	r.Get("/health", handlers.NewHealthHandler(cfg).ServeHTTP)
+services/api/internal/server/server.go:42:	r.Route("/api/v1", func(r chi.Router) {
+services/api/internal/server/server.go:44:		r.Route("/platforms", func(r chi.Router) {
+services/api/internal/server/server.go:53:		r.Route("/accounts", func(r chi.Router) {
+services/api/internal/repository/platform.go:21:	platforms map[uuid.UUID]*models.Platform
+services/api/internal/repository/platform.go:27:		platforms: make(map[uuid.UUID]*models.Platform),
+services/api/internal/repository/platform.go:47:	r.platforms[platform.ID] = platform
+services/api/internal/repository/platform.go:56:	platform, exists := r.platforms[id]
+services/api/internal/repository/platform.go:63:// List returns all platforms with optional pagination
+services/api/internal/repository/platform.go:69:	all := make([]*models.Platform, 0, len(r.platforms))
+services/api/internal/repository/platform.go:70:	for _, p := range r.platforms {
+services/api/internal/repository/platform.go:94:	platform, exists := r.platforms[id]
+services/api/internal/repository/platform.go:118:	if _, exists := r.platforms[id]; !exists {
+services/api/internal/repository/platform.go:122:	delete(r.platforms, id)
+services/api/internal/repository/account.go:16:	accounts     map[uuid.UUID]*models.Account
+services/api/internal/repository/account.go:23:		accounts:     make(map[uuid.UUID]*models.Account),
+services/api/internal/repository/account.go:51:	r.accounts[account.ID] = account
+services/api/internal/repository/account.go:60:	account, exists := r.accounts[id]
+services/api/internal/repository/account.go:67:// List returns all accounts with optional filtering by platform
+services/api/internal/repository/account.go:74:	for _, a := range r.accounts {
+services/api/internal/repository/account.go:101:	account, exists := r.accounts[id]
+services/api/internal/repository/account.go:122:	if _, exists := r.accounts[id]; !exists {
+services/api/internal/repository/account.go:126:	delete(r.accounts, id)
+services/api/internal/repository/account.go:130:// ListByPlatform returns all accounts for a specific platform
+services/api/internal/repository/account.go:136:	for _, a := range r.accounts {

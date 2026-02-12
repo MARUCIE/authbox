@@ -1,0 +1,231 @@
+## Compose + README + Makefile + package scripts
+services:
+  postgres:
+    image: postgres:16
+    container_name: 10-auth-box-postgres
+    environment:
+      POSTGRES_DB: auth_box
+      POSTGRES_USER: auth_box
+      POSTGRES_PASSWORD: auth_box_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5410:5432"
+
+  redis:
+    image: redis:7
+    container_name: 10-auth-box-redis
+    ports:
+      - "6310:6379"
+
+  api:
+    build:
+      context: ./services/api
+    container_name: 10-auth-box-api
+    environment:
+      AUTH_BOX_HTTP_ADDR: ":8080"
+      AUTH_BOX_DB_DSN: "postgres://auth_box:auth_box_dev@postgres:5432/auth_box?sslmode=disable"
+      AUTH_BOX_REDIS_URL: "redis://redis:6379/0"
+      AUTH_BOX_ENV: "local"
+      AUTH_BOX_VERSION: "0.1.0"
+    ports:
+      - "4010:8080"
+    depends_on:
+      - postgres
+      - redis
+
+  console:
+    build:
+      context: ./apps/console
+    container_name: 10-auth-box-console
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:4010"
+    ports:
+      - "3010:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+
+# Auth Box
+
+## 概述
+Auth Box 是接口授权管理平台的骨架工程，聚焦多平台账号创建、授权治理与 AI 助手接入。
+
+## 本地启动（最小链路）
+
+```
+docker compose up -d
+```
+
+- 控制台：运行 `docker compose port console 3000` 获取宿主端口后访问
+- API 健康检查：`http://localhost:8081/health`
+- PostgreSQL：仅容器内访问（如需宿主访问请在 compose 中显式映射端口）
+- Redis：仅容器内访问（如需宿主访问请在 compose 中显式映射端口）
+
+## 开发说明
+
+```
+cd services/api
+# Go 环境未安装时请先安装 Go 1.22+
+
+go run ./cmd/api
+```
+
+```
+cd apps/console
+npm install
+npm run dev
+```
+
+## 目录结构
+
+```
+apps/console        # Next.js console
+services/api        # Go API service
+cat doc/index.md    # documentation index
+```
+
+# Project Makefile Template
+# Usage: Copy to project root and customize
+
+PROJECT_NAME := $(shell basename $(CURDIR))
+COMPOSE_FILE := docker-compose.yml
+
+.PHONY: help up down restart logs status clean build shell
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
+up: ## Start all services
+	@echo "Starting $(PROJECT_NAME)..."
+	@docker compose -f $(COMPOSE_FILE) up -d
+	@echo "Done. Run 'make status' to check."
+
+down: ## Stop all services
+	@echo "Stopping $(PROJECT_NAME)..."
+	@docker compose -f $(COMPOSE_FILE) down
+	@echo "Done."
+
+restart: down up ## Restart all services
+
+logs: ## View logs (follow mode)
+	@docker compose -f $(COMPOSE_FILE) logs -f --tail=100
+
+logs-api: ## View API logs only
+	@docker compose -f $(COMPOSE_FILE) logs -f --tail=100 api
+
+logs-web: ## View Web logs only
+	@docker compose -f $(COMPOSE_FILE) logs -f --tail=100 web
+
+status: ## Show service status
+	@echo "=== $(PROJECT_NAME) Status ==="
+	@docker compose -f $(COMPOSE_FILE) ps
+
+health: ## Check service health
+	@echo "=== $(PROJECT_NAME) Health Check ==="
+	@docker compose -f $(COMPOSE_FILE) ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+
+clean: ## Remove containers, volumes, and images
+	@echo "Cleaning $(PROJECT_NAME)..."
+	@docker compose -f $(COMPOSE_FILE) down -v --rmi local
+	@echo "Done."
+
+build: ## Rebuild images
+	@echo "Building $(PROJECT_NAME)..."
+	@docker compose -f $(COMPOSE_FILE) build --no-cache
+	@echo "Done."
+
+shell-api: ## Open shell in API container
+	@docker compose -f $(COMPOSE_FILE) exec api sh
+
+shell-web: ## Open shell in Web container
+	@docker compose -f $(COMPOSE_FILE) exec web sh
+
+shell-db: ## Open psql in DB container
+	@docker compose -f $(COMPOSE_FILE) exec db psql -U postgres
+
+# Development shortcuts
+dev: up logs ## Start and follow logs
+watch: ## Watch for changes (requires entr)
+	@find . -name "*.ts" -o -name "*.tsx" | entr -r make restart
+
+{
+  "name": "auth-box-console",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  }
+}
+
+package main
+
+import (
+	"context"
+	"errors"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"auth-box-api/internal/config"
+	"auth-box-api/internal/server"
+)
+
+func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slog.SetDefault(logger)
+
+	cfg := config.Load()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	srv := server.New(cfg)
+	if err := srv.Run(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Error("server stopped with error", "error", err)
+		os.Exit(1)
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = srv.Shutdown(shutdownCtx)
+}
+
+package config
+
+import "os"
+
+type Config struct {
+	HTTPAddr string
+	DBDSN    string
+	RedisURL string
+	Env      string
+	Version  string
+}
+
+func Load() Config {
+	return Config{
+		HTTPAddr: getEnv("AUTH_BOX_HTTP_ADDR", ":8080"),
+		DBDSN:    getEnv("AUTH_BOX_DB_DSN", ""),
+		RedisURL: getEnv("AUTH_BOX_REDIS_URL", ""),
+		Env:      getEnv("AUTH_BOX_ENV", "local"),
+		Version:  getEnv("AUTH_BOX_VERSION", "0.1.0"),
+	}
+}
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}

@@ -1,0 +1,116 @@
+### ai --help
+AI Tools - Unified CLI Entry Point
+
+USAGE:
+  ai [COMMAND] [OPTIONS]
+
+COMMANDS:
+  (none)              Start interactive menu
+  sop                 SOP execution engine (59 SOPs)
+    list              List all SOPs (--phase PLAN/BUILD/TEST/...)
+    run <id>          Start SOP run (e.g., ai sop run 1.1)
+    status [run_id]   Show run status or list all runs
+    step <run> <n>    Update step (done/failed/skipped)
+    complete <run>    Complete a run
+    discover "text"   Find best SOP for a task
+    map               Show SOP <-> Skill mapping
+
+  find-skill, fs      Skill discovery & installation (agentskills.io)
+    search "query"    Search GitHub for skill repos
+    list [repo]       List installed or repo skills
+    install <repo>    Install skills from a repo
+    discover "task"   Find matching skills for a task
+
+  workflow, wf        LangGraph workflow commands
+    run <prompt>      Execute a workflow
+    visualize         Show workflow graph
+    interactive       Start REPL mode
+
+  wf15                15-step multi-project pipeline
+    run               Execute pipeline
+    init              Initialize local config
+
+  skills              Skill management
+    list              List available skills
+    run <skill>       Run a skill
+
+  agents              Agent management
+    list              List available agents
+    --json            Output as JSON
+
+  api                 AI model API commands
+
+### ai skills list
+/opt/homebrew/opt/python@3.14/bin/python3.14: Error while finding module specification for 'tier2_langgraph_bridge.cli' (ModuleNotFoundError: No module named 'tier2_langgraph_bridge')
+
+### planning-with-files
+[0;36mNOTE: 运行技能: planning-with-files[0m
+[0;34mNOTE: 提示: brainstorm multi-role PRD UX sitemap...[0m
+
+[0;32mOK: 执行成功[0m
+
+输出:
+{
+  "ok": true,
+  "title": "brainstorm multi-role PRD UX sitemap",
+  "target_dir": "/Users/mauricewen/Projects/10-auth-box",
+  "created": [],
+  "existed": [
+    "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/PDCA_ITERATION_CHECKLIST.md",
+    "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/task_plan.md",
+    "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/notes.md",
+    "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/deliverable.md"
+  ],
+  "next": [
+    "决策前先读: /Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/task_plan.md",
+    "研究发现写入: /Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/notes.md（建议追加时间戳与来源）",
+    "交付写入: /Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/deliverable.md（写之前先读 task_plan.md + notes.md）",
+    "迭代清单: /Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/PDCA_ITERATION_CHECKLIST.md"
+  ]
+}
+
+生成的文件:
+  /Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/PDCA_ITERATION_CHECKLIST.md
+  /Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/task_plan.md
+  /Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/notes.md
+  /Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/deliverable.md
+
+执行时间: 0.002s
+
+### onecontext
+[0;36mNOTE: 运行技能: onecontext[0m
+[0;34mNOTE: 提示: broad --query 'PRD UX Map sitemap keyword strategy...[0m
+
+[0;31mERROR: 执行失败[0m
+错误: Skill 'onecontext' not registered
+
+### agent-teams blueprint
+
+NOTE: 建议执行: [Skills Ecosystem]  intent=skill  confidence=100%
+   action: run
+   auto_setup: OFF
+   skill: agent-teams-swarm
+   reason: id, swarm, council
+   hint: 可用 --yes 或 AI_TOOLS_AUTO_APPROVE=1 跳过确认
+
+NOTE: 执行中: agent-teams-swarm blueprint council-architecture...
+
+OK: 成功 [Skills Ecosystem] (skill)
+NOTE: 耗时: 0.01s
+
+NOTE: 结果:
+{
+  "success": false,
+  "output": null,
+  "artifacts": [],
+  "metadata": {},
+  "error": "Unknown action 'agent-teams-swarm'. Use 'blueprint', 'map', 'prompt', 'status', or 'patterns'.",
+  "execution_time": 4.1961669921875e-05,
+  "timestamp": "2026-02-12T00:07:23.225588"
+}
+
+### onecontext (tenant-alert continue)
+Skill 'onecontext' not registered (see `logs/onecontext_tenant_alert_attempt.log`).
+
+### ai skills list (tenant-alert continue)
+`tier2_langgraph_bridge` missing (see `logs/skills_list_tenant_alert.log`).

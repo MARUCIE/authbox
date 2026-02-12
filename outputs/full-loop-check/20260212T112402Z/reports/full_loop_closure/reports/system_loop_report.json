@@ -1,0 +1,41 @@
+{
+  "capture_report": "outputs/full-loop-check/20260212T112402Z/reports/full_loop_closure/system_capture/reports/run_report.json",
+  "replay_report": "outputs/full-loop-check/20260212T112402Z/reports/full_loop_closure/system_replay/reports/run_report.json",
+  "capture": {
+    "mode": "capture",
+    "api_base": "http://localhost:4010",
+    "generated_at": "2026-02-12T11:24:10Z",
+    "ids": {
+      "platform_id": "9f1dde1b-9364-4501-926f-2234f3120810",
+      "account_id": "457d096e-c6cc-4dbd-9aca-5ed50e98877e",
+      "credential_id": "fdac9eba-7a68-4d05-b7f2-af6d095081d0",
+      "assistant_id": "d8cf1e6e-f635-4410-a3fe-3c0ff6c7148f",
+      "export_id": "d673ee8e-b76f-4897-8987-9e75f4e72f73"
+    },
+    "checks": {
+      "event_count": 9,
+      "deny_event_count": 2,
+      "required_fields_ok": true,
+      "chain_link_ok": true
+    }
+  },
+  "replay": {
+    "mode": "replay",
+    "api_base": "http://localhost:4010",
+    "generated_at": "2026-02-12T11:24:17Z",
+    "ids": {
+      "platform_id": "d36e03b7-6b45-40dd-8d23-f6159881e219",
+      "account_id": "6ca94010-1bb7-4302-90b7-85ffabb71d3d",
+      "credential_id": "76d917dd-3cc6-4f7e-9546-6a6dde6632e0",
+      "assistant_id": "7d09d901-da79-4b8d-ac11-17a6e00838fa",
+      "export_id": "cd28014e-f80c-4b22-9272-757aab27322f"
+    },
+    "checks": {
+      "event_count": 9,
+      "deny_event_count": 2,
+      "required_fields_ok": true,
+      "chain_link_ok": true
+    }
+  },
+  "pass": true
+}

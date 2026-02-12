@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-02-11T15:42:02Z",
+  "evidence_dir": "outputs/full-loop-closure-check/20260211T153457Z/full_loop_execution",
+  "acceptance_rule": "final acceptance must pass real API; mock responses are forbidden",
+  "entrypoint_report": "outputs/full-loop-closure-check/20260211T153457Z/full_loop_execution/reports/entrypoint_report.json",
+  "system_report": "outputs/full-loop-closure-check/20260211T153457Z/full_loop_execution/reports/system_loop_report.json",
+  "entrypoint_pass": true,
+  "system_pass": true,
+  "contract_pass": true,
+  "verification_pass": true,
+  "overall_pass": true
+}

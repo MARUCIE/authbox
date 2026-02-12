@@ -1,0 +1,1064 @@
+{
+  "generated_at": "2026-02-12T02:48:48.744Z",
+  "base_url": "http://127.0.0.1:3415",
+  "scope": "SOP 3.1 frontend full checks",
+  "checks": {
+    "network": {
+      "pass": true,
+      "failed_requests": [],
+      "failed_requests_ignored": [
+        {
+          "viewport": "desktop",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=home_quick_actions&tenant_id=public&_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=public_marketing&tenant_id=public&_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=public_marketing&tenant_id=public&_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=g1eyb",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=1xgl4",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=home_quick_actions&tenant_id=public&_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=public_marketing&tenant_id=public&_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=public_marketing&tenant_id=public&_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=g1eyb",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=g1eyb",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=g1eyb",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "http_errors": []
+    },
+    "console": {
+      "pass": true,
+      "errors": [],
+      "page_errors": []
+    },
+    "performance": {
+      "pass": true,
+      "warnings": [],
+      "samples": [
+        {
+          "viewport": "desktop",
+          "route": "/",
+          "elapsed_ms": 3666,
+          "dom_content_loaded_ms": 1454.5,
+          "load_event_ms": 3157.8,
+          "response_end_ms": 7.2,
+          "duration_ms": 3157.8,
+          "transfer_size": 4185
+        },
+        {
+          "viewport": "desktop",
+          "route": "/product",
+          "elapsed_ms": 544,
+          "dom_content_loaded_ms": 5.8,
+          "load_event_ms": 17.3,
+          "response_end_ms": 2.1,
+          "duration_ms": 17.3,
+          "transfer_size": 2991
+        },
+        {
+          "viewport": "desktop",
+          "route": "/compare/hashicorp-vault-alternative",
+          "elapsed_ms": 558,
+          "dom_content_loaded_ms": 14.6,
+          "load_event_ms": 32.5,
+          "response_end_ms": 4.1,
+          "duration_ms": 32.5,
+          "transfer_size": 3067
+        },
+        {
+          "viewport": "desktop",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "elapsed_ms": 572,
+          "dom_content_loaded_ms": 31.8,
+          "load_event_ms": 48.3,
+          "response_end_ms": 21.1,
+          "duration_ms": 48.3,
+          "transfer_size": 4164
+        },
+        {
+          "viewport": "desktop",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "elapsed_ms": 562,
+          "dom_content_loaded_ms": 14.1,
+          "load_event_ms": 36.8,
+          "response_end_ms": 10.8,
+          "duration_ms": 36.8,
+          "transfer_size": 5028
+        },
+        {
+          "viewport": "tablet",
+          "route": "/",
+          "elapsed_ms": 3518,
+          "dom_content_loaded_ms": 1367.9,
+          "load_event_ms": 3012.7,
+          "response_end_ms": 2.5,
+          "duration_ms": 3012.7,
+          "transfer_size": 4185
+        },
+        {
+          "viewport": "tablet",
+          "route": "/product",
+          "elapsed_ms": 543,
+          "dom_content_loaded_ms": 5.5,
+          "load_event_ms": 16.8,
+          "response_end_ms": 1.7,
+          "duration_ms": 16.8,
+          "transfer_size": 2991
+        },
+        {
+          "viewport": "tablet",
+          "route": "/compare/hashicorp-vault-alternative",
+          "elapsed_ms": 543,
+          "dom_content_loaded_ms": 6.1,
+          "load_event_ms": 17,
+          "response_end_ms": 1.6,
+          "duration_ms": 17,
+          "transfer_size": 3067
+        },
+        {
+          "viewport": "tablet",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "elapsed_ms": 564,
+          "dom_content_loaded_ms": 13.5,
+          "load_event_ms": 27.8,
+          "response_end_ms": 9.9,
+          "duration_ms": 27.8,
+          "transfer_size": 4166
+        },
+        {
+          "viewport": "tablet",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "elapsed_ms": 566,
+          "dom_content_loaded_ms": 13.3,
+          "load_event_ms": 37.4,
+          "response_end_ms": 10,
+          "duration_ms": 37.4,
+          "transfer_size": 5091
+        },
+        {
+          "viewport": "mobile",
+          "route": "/",
+          "elapsed_ms": 3625,
+          "dom_content_loaded_ms": 1475.9,
+          "load_event_ms": 3120.8,
+          "response_end_ms": 2.2,
+          "duration_ms": 3120.8,
+          "transfer_size": 4185
+        },
+        {
+          "viewport": "mobile",
+          "route": "/product",
+          "elapsed_ms": 541,
+          "dom_content_loaded_ms": 5.6,
+          "load_event_ms": 17.2,
+          "response_end_ms": 1.6,
+          "duration_ms": 17.2,
+          "transfer_size": 2991
+        },
+        {
+          "viewport": "mobile",
+          "route": "/compare/hashicorp-vault-alternative",
+          "elapsed_ms": 543,
+          "dom_content_loaded_ms": 6.2,
+          "load_event_ms": 17.4,
+          "response_end_ms": 2,
+          "duration_ms": 17.4,
+          "transfer_size": 3067
+        },
+        {
+          "viewport": "mobile",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "elapsed_ms": 551,
+          "dom_content_loaded_ms": 14.7,
+          "load_event_ms": 37.1,
+          "response_end_ms": 11.2,
+          "duration_ms": 37.1,
+          "transfer_size": 4162
+        },
+        {
+          "viewport": "mobile",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "elapsed_ms": 556,
+          "dom_content_loaded_ms": 12.9,
+          "load_event_ms": 36.3,
+          "response_end_ms": 9.5,
+          "duration_ms": 36.3,
+          "transfer_size": 5142
+        }
+      ]
+    },
+    "responsive": {
+      "pass": false,
+      "overflows": [
+        {
+          "viewport": "mobile",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "inner_width": 390,
+          "scroll_width": 402
+        },
+        {
+          "viewport": "mobile",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "inner_width": 390,
+          "scroll_width": 609
+        }
+      ],
+      "samples": [
+        {
+          "viewport": "desktop",
+          "route": "/",
+          "inner_width": 1440,
+          "scroll_width": 1440,
+          "has_overflow": false
+        },
+        {
+          "viewport": "desktop",
+          "route": "/product",
+          "inner_width": 1440,
+          "scroll_width": 1440,
+          "has_overflow": false
+        },
+        {
+          "viewport": "desktop",
+          "route": "/compare/hashicorp-vault-alternative",
+          "inner_width": 1440,
+          "scroll_width": 1440,
+          "has_overflow": false
+        },
+        {
+          "viewport": "desktop",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "inner_width": 1440,
+          "scroll_width": 1440,
+          "has_overflow": false
+        },
+        {
+          "viewport": "desktop",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "inner_width": 1440,
+          "scroll_width": 1440,
+          "has_overflow": false
+        },
+        {
+          "viewport": "tablet",
+          "route": "/",
+          "inner_width": 768,
+          "scroll_width": 768,
+          "has_overflow": false
+        },
+        {
+          "viewport": "tablet",
+          "route": "/product",
+          "inner_width": 768,
+          "scroll_width": 768,
+          "has_overflow": false
+        },
+        {
+          "viewport": "tablet",
+          "route": "/compare/hashicorp-vault-alternative",
+          "inner_width": 768,
+          "scroll_width": 768,
+          "has_overflow": false
+        },
+        {
+          "viewport": "tablet",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "inner_width": 768,
+          "scroll_width": 768,
+          "has_overflow": false
+        },
+        {
+          "viewport": "tablet",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "inner_width": 768,
+          "scroll_width": 768,
+          "has_overflow": false
+        },
+        {
+          "viewport": "mobile",
+          "route": "/",
+          "inner_width": 390,
+          "scroll_width": 390,
+          "has_overflow": false
+        },
+        {
+          "viewport": "mobile",
+          "route": "/product",
+          "inner_width": 390,
+          "scroll_width": 390,
+          "has_overflow": false
+        },
+        {
+          "viewport": "mobile",
+          "route": "/compare/hashicorp-vault-alternative",
+          "inner_width": 390,
+          "scroll_width": 390,
+          "has_overflow": false
+        },
+        {
+          "viewport": "mobile",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "inner_width": 390,
+          "scroll_width": 402,
+          "has_overflow": true
+        },
+        {
+          "viewport": "mobile",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "inner_width": 390,
+          "scroll_width": 609,
+          "has_overflow": true
+        }
+      ]
+    },
+    "visual_regression": {
+      "pass": true,
+      "baseline_created": [
+        {
+          "viewport": "desktop",
+          "route": "/"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/product"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/compare/hashicorp-vault-alternative"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/platforms/new?source=sop31&tenant_id=beta"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/product"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/compare/hashicorp-vault-alternative"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/platforms/new?source=sop31&tenant_id=beta"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/product"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/compare/hashicorp-vault-alternative"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/platforms/new?source=sop31&tenant_id=beta"
+        }
+      ],
+      "changed": [],
+      "unchanged": [],
+      "excluded_dynamic": [
+        {
+          "viewport": "desktop",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta"
+        }
+      ]
+    }
+  },
+  "pages": [
+    {
+      "viewport": "desktop",
+      "route": "/",
+      "url": "http://127.0.0.1:3415/",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "desktop",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=home_quick_actions&tenant_id=public&_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 3666,
+        "dom_content_loaded_ms": 1454.5,
+        "load_event_ms": 3157.8,
+        "response_end_ms": 7.2,
+        "duration_ms": 3157.8,
+        "transfer_size": 4185
+      },
+      "responsive": {
+        "inner_width": 1440,
+        "scroll_width": 1440,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/desktop_home.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/product",
+      "url": "http://127.0.0.1:3415/product",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "desktop",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=public_marketing&tenant_id=public&_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 544,
+        "dom_content_loaded_ms": 5.8,
+        "load_event_ms": 17.3,
+        "response_end_ms": 2.1,
+        "duration_ms": 17.3,
+        "transfer_size": 2991
+      },
+      "responsive": {
+        "inner_width": 1440,
+        "scroll_width": 1440,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/desktop_product.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/compare/hashicorp-vault-alternative",
+      "url": "http://127.0.0.1:3415/compare/hashicorp-vault-alternative",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "desktop",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "desktop",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=public_marketing&tenant_id=public&_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 558,
+        "dom_content_loaded_ms": 14.6,
+        "load_event_ms": 32.5,
+        "response_end_ms": 4.1,
+        "duration_ms": 32.5,
+        "transfer_size": 3067
+      },
+      "responsive": {
+        "inner_width": 1440,
+        "scroll_width": 1440,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/desktop_compare_hashicorp_vault_alternative.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/platforms/new?source=sop31&tenant_id=beta",
+      "url": "http://127.0.0.1:3415/platforms/new?source=sop31&tenant_id=beta",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "desktop",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=g1eyb",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 572,
+        "dom_content_loaded_ms": 31.8,
+        "load_event_ms": 48.3,
+        "response_end_ms": 21.1,
+        "duration_ms": 48.3,
+        "transfer_size": 4164
+      },
+      "responsive": {
+        "inner_width": 1440,
+        "scroll_width": 1440,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/desktop_platforms_new_source_sop31_tenant_id_beta.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "url": "http://127.0.0.1:3415/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "desktop",
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=1xgl4",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 562,
+        "dom_content_loaded_ms": 14.1,
+        "load_event_ms": 36.8,
+        "response_end_ms": 10.8,
+        "duration_ms": 36.8,
+        "transfer_size": 5028
+      },
+      "responsive": {
+        "inner_width": 1440,
+        "scroll_width": 1440,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/desktop_metrics_funnel_window_minutes_180_tenant_id_beta.png"
+    },
+    {
+      "viewport": "tablet",
+      "route": "/",
+      "url": "http://127.0.0.1:3415/",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "tablet",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=home_quick_actions&tenant_id=public&_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 3518,
+        "dom_content_loaded_ms": 1367.9,
+        "load_event_ms": 3012.7,
+        "response_end_ms": 2.5,
+        "duration_ms": 3012.7,
+        "transfer_size": 4185
+      },
+      "responsive": {
+        "inner_width": 768,
+        "scroll_width": 768,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/tablet_home.png"
+    },
+    {
+      "viewport": "tablet",
+      "route": "/product",
+      "url": "http://127.0.0.1:3415/product",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "tablet",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=public_marketing&tenant_id=public&_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 543,
+        "dom_content_loaded_ms": 5.5,
+        "load_event_ms": 16.8,
+        "response_end_ms": 1.7,
+        "duration_ms": 16.8,
+        "transfer_size": 2991
+      },
+      "responsive": {
+        "inner_width": 768,
+        "scroll_width": 768,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/tablet_product.png"
+    },
+    {
+      "viewport": "tablet",
+      "route": "/compare/hashicorp-vault-alternative",
+      "url": "http://127.0.0.1:3415/compare/hashicorp-vault-alternative",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "tablet",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms/new?source=public_marketing&tenant_id=public&_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 543,
+        "dom_content_loaded_ms": 6.1,
+        "load_event_ms": 17,
+        "response_end_ms": 1.6,
+        "duration_ms": 17,
+        "transfer_size": 3067
+      },
+      "responsive": {
+        "inner_width": 768,
+        "scroll_width": 768,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/tablet_compare_hashicorp_vault_alternative.png"
+    },
+    {
+      "viewport": "tablet",
+      "route": "/platforms/new?source=sop31&tenant_id=beta",
+      "url": "http://127.0.0.1:3415/platforms/new?source=sop31&tenant_id=beta",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "tablet",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=g1eyb",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "tablet",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=g1eyb",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 564,
+        "dom_content_loaded_ms": 13.5,
+        "load_event_ms": 27.8,
+        "response_end_ms": 9.9,
+        "duration_ms": 27.8,
+        "transfer_size": 4166
+      },
+      "responsive": {
+        "inner_width": 768,
+        "scroll_width": 768,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/tablet_platforms_new_source_sop31_tenant_id_beta.png"
+    },
+    {
+      "viewport": "tablet",
+      "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "url": "http://127.0.0.1:3415/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 566,
+        "dom_content_loaded_ms": 13.3,
+        "load_event_ms": 37.4,
+        "response_end_ms": 10,
+        "duration_ms": 37.4,
+        "transfer_size": 5091
+      },
+      "responsive": {
+        "inner_width": 768,
+        "scroll_width": 768,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/tablet_metrics_funnel_window_minutes_180_tenant_id_beta.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/",
+      "url": "http://127.0.0.1:3415/",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "mobile",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "viewport": "mobile",
+          "route": "/",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=1wtp7",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 3625,
+        "dom_content_loaded_ms": 1475.9,
+        "load_event_ms": 3120.8,
+        "response_end_ms": 2.2,
+        "duration_ms": 3120.8,
+        "transfer_size": 4185
+      },
+      "responsive": {
+        "inner_width": 390,
+        "scroll_width": 390,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/mobile_home.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/product",
+      "url": "http://127.0.0.1:3415/product",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "mobile",
+          "route": "/product",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/platforms?_rsc=rdc55",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 541,
+        "dom_content_loaded_ms": 5.6,
+        "load_event_ms": 17.2,
+        "response_end_ms": 1.6,
+        "duration_ms": 17.2,
+        "transfer_size": 2991
+      },
+      "responsive": {
+        "inner_width": 390,
+        "scroll_width": 390,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/mobile_product.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/compare/hashicorp-vault-alternative",
+      "url": "http://127.0.0.1:3415/compare/hashicorp-vault-alternative",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "mobile",
+          "route": "/compare/hashicorp-vault-alternative",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=7hi6r",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 543,
+        "dom_content_loaded_ms": 6.2,
+        "load_event_ms": 17.4,
+        "response_end_ms": 2,
+        "duration_ms": 17.4,
+        "transfer_size": 3067
+      },
+      "responsive": {
+        "inner_width": 390,
+        "scroll_width": 390,
+        "has_overflow": false
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/mobile_compare_hashicorp_vault_alternative.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/platforms/new?source=sop31&tenant_id=beta",
+      "url": "http://127.0.0.1:3415/platforms/new?source=sop31&tenant_id=beta",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "viewport": "mobile",
+          "route": "/platforms/new?source=sop31&tenant_id=beta",
+          "method": "GET",
+          "url": "http://127.0.0.1:3415/metrics/funnel?_rsc=g1eyb",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 551,
+        "dom_content_loaded_ms": 14.7,
+        "load_event_ms": 37.1,
+        "response_end_ms": 11.2,
+        "duration_ms": 37.1,
+        "transfer_size": 4162
+      },
+      "responsive": {
+        "inner_width": 390,
+        "scroll_width": 402,
+        "has_overflow": true
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/mobile_platforms_new_source_sop31_tenant_id_beta.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "url": "http://127.0.0.1:3415/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [],
+      "response_errors": [],
+      "navigation": {
+        "elapsed_ms": 556,
+        "dom_content_loaded_ms": 12.9,
+        "load_event_ms": 36.3,
+        "response_end_ms": 9.5,
+        "duration_ms": 36.3,
+        "transfer_size": 5142
+      },
+      "responsive": {
+        "inner_width": 390,
+        "scroll_width": 609,
+        "has_overflow": true
+      },
+      "screenshot": "outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_sop_3_1/screenshots/mobile_metrics_funnel_window_minutes_180_tenant_id_beta.png"
+    }
+  ]
+}

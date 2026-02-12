@@ -1,0 +1,24 @@
+{
+  "mode": "capture",
+  "evidence_dir": "outputs/full-loop-closure-check/20260211T153457Z/full_loop_execution/system_capture",
+  "manifest": "./services/api/testdata/fixtures/real_api_core_flow/manifest.json",
+  "acceptance_rule": "final acceptance must pass real API; mock responses are forbidden",
+  "summary": {
+    "mode": "capture",
+    "api_base": "http://localhost:4010",
+    "generated_at": "2026-02-11T15:41:03Z",
+    "ids": {
+      "platform_id": "ee985611-e198-4566-8863-878c66af02ed",
+      "account_id": "d1260291-84bf-444c-981f-fd7e17393967",
+      "credential_id": "b96d7010-52a3-4a67-99db-17b0d407e757",
+      "assistant_id": "c6246f64-6945-42e9-9a9d-a9598ed03142",
+      "export_id": "52ecfae4-d786-499d-9e05-716b6d5bfa58"
+    },
+    "checks": {
+      "event_count": 6,
+      "deny_event_count": 1,
+      "required_fields_ok": true,
+      "chain_link_ok": true
+    }
+  }
+}

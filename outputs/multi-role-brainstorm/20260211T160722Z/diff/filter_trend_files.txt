@@ -1,0 +1,3 @@
+apps/console/lib/public-telemetry-store.ts
+apps/console/app/api/telemetry/public-funnel/route.ts
+apps/console/app/metrics/funnel/page.tsx
