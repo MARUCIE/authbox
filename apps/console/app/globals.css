@@ -135,6 +135,7 @@ a:hover {
 
 .muted {
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .list {
@@ -146,6 +147,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -158,6 +160,46 @@ a:hover {
   border-radius: 999px;
   background: rgba(15, 118, 110, 0.1);
   color: var(--teal);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.list-item label {
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.list-item > * {
+  min-width: 0;
+}
+
+.list-item strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.list-item input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+}
+
+button {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+
+button:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 
 @media (max-width: 720px) {
@@ -169,5 +211,22 @@ a:hover {
 
   .shell {
     padding: 24px 18px 56px;
+  }
+
+  .list-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .list-item label {
+    min-width: 0;
+  }
+
+  .list-item input {
+    width: 100%;
+  }
+
+  .badge {
+    align-self: flex-start;
   }
 }

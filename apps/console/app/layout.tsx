@@ -4,8 +4,9 @@ import "./globals.css";
 import { navRoutes } from "../lib/routes";
 
 export const metadata: Metadata = {
-  title: "Auth Box Console",
-  description: "Unified console for account provisioning, credential management, and audit."
+  title: "Auth Box",
+  description:
+    "API authorization governance platform for account provisioning, credential lifecycle, assistant access, and audit traceability."
 };
 
 export default function RootLayout({
