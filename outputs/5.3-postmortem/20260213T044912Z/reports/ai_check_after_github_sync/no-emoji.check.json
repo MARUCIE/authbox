@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "scanned_files": 1385,
+  "files_with_emoji": 0,
+  "total_emoji_hits": 0,
+  "skipped_dirs": [
+    ".git",
+    ".mcp",
+    ".venv",
+    "__pycache__",
+    "icons",
+    "icons_out2",
+    "icons_out3",
+    "logs",
+    "node_modules",
+    "outputs",
+    "signin_pages_all",
+    "signin_results",
+    "svglogo_out",
+    "task-context",
+    "temp_signin_pages",
+    "tmp",
+    "vendors",
+    "venv"
+  ],
+  "extensions": [
+    ".html",
+    ".js",
+    ".json",
+    ".md",
+    ".py",
+    ".sh",
+    ".toml",
+    ".txt",
+    ".yaml",
+    ".yml"
+  ],
+  "files": []
+}

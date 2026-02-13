@@ -893,3 +893,9 @@ AuditEvent {
 - 汇总：`outputs/5.3-postmortem/20260213T044912Z/reports/sop53_summary.md`
 
 - 补充：postmortem/脚本/文档回写后复检 `ai check`（`--no-sbom`）PASS：`outputs/5.3-postmortem/20260213T044912Z/reports/ai_check_final.json`
+
+
+## 2026-02-13T04:57:36Z · GitHub 同步（SOP 5.2/5.3 证据推送）
+
+- 推送：`outputs/5.3-postmortem/20260213T044912Z/reports/git_push.txt`
+- 一致性：`outputs/5.3-postmortem/20260213T044912Z/reports/git_remote_consistency.txt`（origin/main@5d203b2 与本地一致）

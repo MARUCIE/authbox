@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "rounds": 2,
+  "results": [
+    {
+      "round": 1,
+      "ok": true,
+      "duration": 4.814019203186035,
+      "returncode": 0,
+      "log": "/Users/mauricewen/Projects/10-auth-box/outputs/5.3-postmortem/20260213T044912Z/reports/ai_check_after_github_sync/tests.round1.log"
+    },
+    {
+      "round": 2,
+      "ok": true,
+      "duration": 4.501623868942261,
+      "returncode": 0,
+      "log": "/Users/mauricewen/Projects/10-auth-box/outputs/5.3-postmortem/20260213T044912Z/reports/ai_check_after_github_sync/tests.round2.log"
+    }
+  ]
+}
