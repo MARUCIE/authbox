@@ -779,3 +779,59 @@ LastUpdated: 2026-02-13
 - 底层规范（CLAUDE/AGENTS）：N/A
 - Rolling Ledger：已追加一条回归复跑记录
 - 三端一致性：N/A（本轮仅本地回归与文档回写）
+
+## 增量交付（2026-02-13）- SOP 4.2 增量式 AI Code Review（Run 4-2-bdb5c6a4）
+
+### 交付项
+- 对 `origin/main...HEAD` 的增量变更执行 4 维审查（安全/风格/逻辑/架构），输出 severity 分级报告。
+
+### 证据
+- Run 根目录：`outputs/4.2-code-review/20260213T024852Z`
+- 报告：`outputs/4.2-code-review/20260213T024852Z/reports/code_review.md`
+
+### 结果
+- `overall.result=PASS`
+- SOP 4.2：COMPLETED
+
+### Task Closeout
+- Skills：N/A（本轮为 diff 级审查，不新增跨项目 Skill）
+- PDCA 四文档：N/A（本轮无需求/边界变更）
+- 底层规范（CLAUDE/AGENTS）：N/A
+- Rolling Ledger：N/A（未新增业务需求）
+- 三端一致性：N/A（本轮仅本地审查与证据落盘）
+
+## 增量交付（2026-02-13）- SOP 5.1 联合验收与发布守门（Run 5-1-70ef3334）
+
+### 交付项
+- 复跑 SOP `5.1` 五步验收门禁（planning -> 三方验收 -> Round1 -> Round2 -> 条件门）。
+- 形成产品/技术/质量联合结论，并输出本 run 的发布守门判定。
+
+### 证据
+- Run 根目录：
+  - `outputs/release-gate/20260213T025457Z`
+  - `outputs/release-gate/20260213T025457Z/run.meta`
+- Step 2 联合验收：
+  - `outputs/release-gate/20260213T025457Z/reports/joint_acceptance_council.md`
+  - `outputs/release-gate/20260213T025457Z/reports/sop51_step2_assertion.txt`
+- Step 3 Round 1：
+  - `outputs/release-gate/20260213T025457Z/logs/ai_check_round1.json`
+  - `outputs/release-gate/20260213T025457Z/reports/sop51_step3_assertion.txt`
+- Step 4 Round 2（UX Map）：
+  - `outputs/release-gate/20260213T025457Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+- Step 5 条件门：
+  - `outputs/release-gate/20260213T025457Z/reports/sop51_step5_assertion.txt`
+- 汇总：
+  - `outputs/release-gate/20260213T025457Z/reports/sop51_summary.md`
+
+### 结果
+- Product acceptance: PASS
+- Engineering acceptance: PASS
+- QA acceptance: PASS
+- Release Gate: PASS
+
+### Task Closeout
+- Skills：N/A（本轮为联合验收与门禁，不新增跨项目 Skill）
+- PDCA 四文档：N/A（本轮无需求边界变化）
+- 底层规范（CLAUDE/AGENTS）：N/A
+- Rolling Ledger：N/A（未新增业务需求）
+- 三端一致性：N/A（本轮未推送/未发布）

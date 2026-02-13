@@ -562,3 +562,15 @@ LastUpdated: 2026-02-13
 - E2E（real API replay + contract loop）PASS：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`。
 - Step 6（Round 1 `ai check`）PASS：`outputs/project-regression/20260213T021241Z/logs/ai_check_round1.log`。
 - 收尾：`outputs/project-regression/20260213T021241Z/reports/sop41_summary.md`、`outputs/project-regression/20260213T021241Z/run.meta`。
+
+## 决策记录（2026-02-13T02:48:52Z）
+- 启动并完成 SOP 4.2（Run ID: `4-2-bdb5c6a4`），证据目录：`outputs/4.2-code-review/20260213T024852Z`。
+- Diff 范围：`origin/main@c038577..HEAD@007eff5`。
+- 结论：PASS（无 critical）；warnings 见 `outputs/4.2-code-review/20260213T024852Z/reports/code_review.md`。
+
+## 决策记录（2026-02-13T02:54:57Z）
+- 启动并完成 SOP 5.1（Run ID: `5-1-70ef3334`），证据目录：`outputs/release-gate/20260213T025457Z`。
+- Step 2 联合验收：产品/技术/质量三方结论均为 PASS（`joint_acceptance_council.md`）。
+- Step 3 Round 1：`ai check` PASS（本次 `--no-sbom`，见 `outputs/release-gate/20260213T025457Z/logs/ai_check_round1.json`）。
+- Step 4 Round 2：UX Map 回归 PASS（`outputs/release-gate/20260213T025457Z/reports/uxmap_round2/uxmap_round2_assertion.txt`）。
+- Step 5 条件门：PASS（未触发 ralph-loop，`sop51_step5_assertion.txt`）。

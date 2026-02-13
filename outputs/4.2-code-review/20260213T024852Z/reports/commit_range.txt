@@ -1,0 +1,4 @@
+BASE: c0385779f74f5c03409cd1b4192e9fbfaf7caf67
+HEAD: 007eff50b0400d8642f798419b6cc5e2bf4b5c4c
+
+007eff5 (HEAD -> main) docs(initiative_10_auth_box): record SOP 4.1 regression run 20260213T021241Z

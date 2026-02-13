@@ -837,3 +837,32 @@ AuditEvent {
 - 收尾：
   - SOP 汇总：`outputs/project-regression/20260213T021241Z/reports/sop41_summary.md`
   - run meta：`outputs/project-regression/20260213T021241Z/run.meta`
+
+## 2026-02-13T02:48:52Z（SOP：4.2 增量式 AI Code Review）
+- Run ID：`4-2-bdb5c6a4`
+- 证据目录：`outputs/4.2-code-review/20260213T024852Z`
+- Diff 范围：`origin/main@c038577..HEAD@007eff5`
+- 结论：PASS（无 critical）
+- Warning：
+  - evidence SBOM 文件体积较大（`sbom.cdx.json`），长期可能导致仓库体积膨胀
+  - `apps/console/outputs/telemetry/public-events.ndjson` 追加写入会持续增长，建议按 run 截断/快照或改为忽略
+- 报告：`outputs/4.2-code-review/20260213T024852Z/reports/code_review.md`
+- Step 6（CI/PR 评论）：N/A（当前无 PR/未集成自动评论）
+
+## 2026-02-13T02:54:57Z（SOP：5.1 联合验收与发布守门）
+- Run ID：`5-1-70ef3334`
+- 证据目录：`outputs/release-gate/20260213T025457Z`
+- Step 1：planning files snapshot：`outputs/release-gate/20260213T025457Z/logs/sop51_planning_files_snapshot.txt`
+- Step 2：联合验收 PASS：
+  - `outputs/release-gate/20260213T025457Z/reports/joint_acceptance_council.md`
+  - `outputs/release-gate/20260213T025457Z/reports/sop51_step2_assertion.txt`
+- Step 3：Round 1 `ai check` PASS（本次跳过 SBOM 生成）：
+  - `outputs/release-gate/20260213T025457Z/logs/ai_check_round1.json`
+  - `outputs/release-gate/20260213T025457Z/reports/sop51_step3_assertion.txt`
+- Step 4：UX Map Round 2 PASS：
+  - `outputs/release-gate/20260213T025457Z/logs/uxmap_round2_round2.log`
+  - `outputs/release-gate/20260213T025457Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+- Step 5：条件门 PASS（未触发 ralph-loop）：
+  - `outputs/release-gate/20260213T025457Z/reports/sop51_step5_assertion.txt`
+- 汇总：`outputs/release-gate/20260213T025457Z/reports/sop51_summary.md`
+- 补充：文档回写后复检 `ai check`（`--no-sbom`）PASS：`outputs/release-gate/20260213T025457Z/logs/ai_check_after_docs.json`

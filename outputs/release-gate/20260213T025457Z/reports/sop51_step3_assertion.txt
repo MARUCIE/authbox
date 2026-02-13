@@ -1,0 +1,7 @@
+SOP 5.1 Step 3 - ai check Round 1
+run_ts=20260213T025457Z
+result=PASS
+ai_check.ok=true
+ai_check.outdir=outputs/release-gate/20260213T025457Z/reports/ai_check
+ai_check.rounds=2
+ai_check.skipped=audit,sbom

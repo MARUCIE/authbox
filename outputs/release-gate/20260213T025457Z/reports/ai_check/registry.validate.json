@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/mauricewen/AI-tools/core/registry_validator.py",
+    "validate",
+    "--json",
+    "--strict"
+  ],
+  "duration": 0.05278801918029785,
+  "returncode": 0,
+  "parse_error": null,
+  "result": {
+    "ok": true,
+    "checked": [
+      "/Users/mauricewen/AI-tools/tier-registry.json",
+      "/Users/mauricewen/AI-tools/tier1-skills/skills/skills-registry.json"
+    ],
+    "counts": {
+      "errors": 0,
+      "warnings": 0,
+      "total": 0
+    },
+    "issues": []
+  }
+}
