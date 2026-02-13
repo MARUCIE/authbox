@@ -778,7 +778,7 @@ LastUpdated: 2026-02-13
 - PDCA 四文档：已同步（追加回归记录与证据路径）
 - 底层规范（CLAUDE/AGENTS）：N/A
 - Rolling Ledger：已追加一条回归复跑记录
-- 三端一致性：GitHub PASS（origin/main@8bddc01，见 `outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`）；VPS N/A（未部署）
+- 三端一致性：GitHub PASS（origin/main@dd466b6，见 `outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`）；VPS N/A（未部署）
 
 ## 增量交付（2026-02-13）- SOP 4.2 增量式 AI Code Review（Run 4-2-bdb5c6a4）
 
@@ -798,7 +798,7 @@ LastUpdated: 2026-02-13
 - PDCA 四文档：N/A（本轮无需求/边界变更）
 - 底层规范（CLAUDE/AGENTS）：N/A
 - Rolling Ledger：N/A（未新增业务需求）
-- 三端一致性：GitHub PASS（origin/main@8bddc01，见 `outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`）；VPS N/A（未部署）
+- 三端一致性：GitHub PASS（origin/main@dd466b6，见 `outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`）；VPS N/A（未部署）
 
 ## 增量交付（2026-02-13）- SOP 5.1 联合验收与发布守门（Run 5-1-70ef3334）
 
@@ -834,4 +834,4 @@ LastUpdated: 2026-02-13
 - PDCA 四文档：N/A（本轮无需求边界变化）
 - 底层规范（CLAUDE/AGENTS）：N/A
 - Rolling Ledger：N/A（未新增业务需求）
-- 三端一致性：GitHub PASS（origin/main@8bddc01，见 `outputs/release-gate/20260213T025457Z/reports/git_push.txt` 与 `outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`）；VPS N/A（未发布）
+- 三端一致性：GitHub PASS（origin/main@dd466b6，见 `outputs/release-gate/20260213T025457Z/reports/git_push.txt` 与 `outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`）；VPS N/A（未发布）

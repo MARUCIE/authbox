@@ -871,4 +871,4 @@ AuditEvent {
 ## 2026-02-13T03:03:26Z · GitHub 同步
 
 - 推送：`outputs/release-gate/20260213T025457Z/reports/git_push.txt`
-- 一致性：`outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`（origin/main@8bddc01 与本地一致）
+- 一致性：`outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`（origin/main@dd466b6 与本地一致）

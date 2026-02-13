@@ -577,6 +577,6 @@ LastUpdated: 2026-02-13
 
 
 ## 决策记录（2026-02-13T03:03:26Z）
-- GitHub 同步：已推送到 origin/main@8bddc01。
+- GitHub 同步：已推送到 origin/main@dd466b6。
   - push 日志：`outputs/release-gate/20260213T025457Z/reports/git_push.txt`
   - 远端一致性：`outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`
