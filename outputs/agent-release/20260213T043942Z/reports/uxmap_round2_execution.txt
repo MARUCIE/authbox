@@ -1,0 +1,67 @@
+  ▲ Next.js 14.2.5
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/34) ...
+   Generating static pages (8/34) 
+   Generating static pages (16/34) 
+   Generating static pages (25/34) 
+ ✓ Generating static pages (34/34)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                    Size     First Load JS
+┌ ○ /                                          859 B          94.7 kB
+├ ○ /_not-found                                875 B            88 kB
+├ ○ /accounts                                  175 B          87.3 kB
+├ ƒ /accounts/[id]                             173 B          87.2 kB
+├ ○ /accounts/new                              171 B          87.2 kB
+├ ƒ /api/telemetry/public-events               0 B                0 B
+├ ƒ /api/telemetry/public-funnel               0 B                0 B
+├ ○ /assistants                                173 B          87.2 kB
+├ ƒ /assistants/[id]                           173 B          87.2 kB
+├ ○ /assistants/new                            173 B          87.2 kB
+├ ○ /audit                                     173 B          87.2 kB
+├ ○ /audit/exports                             173 B          87.2 kB
+├ ○ /blog                                      871 B          94.7 kB
+├ ○ /changelog                                 871 B          94.7 kB
+├ ● /compare/[slug]                            871 B          94.7 kB
+├   ├ /compare/hashicorp-vault-alternative
+├   ├ /compare/doppler-alternative
+├   └ /compare/kong-konnect-alternative
+├ ○ /contact                                   871 B          94.7 kB
+├ ○ /credentials                               173 B          87.2 kB
+├ ƒ /credentials/[id]                          173 B          87.2 kB
+├ ƒ /credentials/[id]/rotate                   173 B          87.2 kB
+├ ○ /docs                                      860 B          94.7 kB
+├ ● /features/[slug]                           871 B          94.7 kB
+├   ├ /features/platform-account-provisioning
+├   ├ /features/credential-lifecycle
+├   ├ /features/ai-assistant-governance
+├   └ /features/audit-hash-chain
+├ ƒ /metrics/funnel                            172 B          87.2 kB
+├ ƒ /platforms                                 175 B            94 kB
+├ ƒ /platforms/[id]                            173 B          87.2 kB
+├ ƒ /platforms/new                             175 B            94 kB
+├ ○ /pricing                                   871 B          94.7 kB
+├ ○ /product                                   871 B          94.7 kB
+├ ○ /robots.txt                                0 B                0 B
+├ ○ /security                                  871 B          94.7 kB
+├ ○ /settings                                  171 B          87.2 kB
+├ ○ /sitemap.xml                               0 B                0 B
+└ ● /use-cases/[slug]                          871 B          94.7 kB
+    ├ /use-cases/security-ops
+    ├ /use-cases/compliance-audit
+    └ /use-cases/platform-admin
++ First Load JS shared by all                  87.1 kB
+  ├ chunks/23-20f959bf0534b801.js              31.5 kB
+  ├ chunks/fd9d1056-6184565b3c21c232.js        53.7 kB
+  └ other shared chunks (total)                1.88 kB
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+

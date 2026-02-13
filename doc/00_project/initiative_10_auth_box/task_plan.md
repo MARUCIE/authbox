@@ -580,3 +580,13 @@ LastUpdated: 2026-02-13
 - GitHub 同步：已推送到 origin/main@dd466b6。
   - push 日志：`outputs/release-gate/20260213T025457Z/reports/git_push.txt`
   - 远端一致性：`outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`
+
+
+## 决策记录（2026-02-13T04:40:05Z）
+- 启动并完成 SOP 5.2（Run ID: `5-2-5b48afc4`），证据目录：`outputs/agent-release/20260213T043942Z`。
+- Release candidate：`cf1f014`；回滚方案见 `outputs/agent-release/20260213T043942Z/reports/release_record.md`。
+
+
+## 决策记录（2026-02-13T04:49:12Z）
+- 启动并完成 SOP 5.3（Run ID: `5-3-3aa4d1c1`），证据目录：`outputs/5.3-postmortem/20260213T044912Z`。
+- 新增 postmortem：`postmortem/PM-20260213-001-heredoc-command-substitution.md`；本地 gate：`make postmortem-scan`。

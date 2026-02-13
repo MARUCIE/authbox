@@ -1,7 +1,7 @@
 PROJECT_NAME := $(shell basename $(CURDIR))
 COMPOSE_FILE := docker-compose.yml
 
-.PHONY: help up down restart logs status clean build shell-api shell-console shell-db logs-api logs-console health dev watch real-api-capture real-api-replay full-loop-check
+.PHONY: help up down restart logs status clean build shell-api shell-console shell-db logs-api logs-console health dev watch real-api-capture real-api-replay full-loop-check postmortem-scan
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -67,3 +67,7 @@ real-api-replay: ## Replay regression flow against real API (no mock)
 
 full-loop-check: ## Run full-loop closure check (entry/system/contract/verification)
 	@scripts/full_loop_closure_check.sh --project-dir .
+
+
+postmortem-scan: ## Run postmortem trigger scan (local gate)
+	@scripts/postmortem_scan.sh --base 007eff50b0400d8642f798419b6cc5e2bf4b5c4c --head HEAD

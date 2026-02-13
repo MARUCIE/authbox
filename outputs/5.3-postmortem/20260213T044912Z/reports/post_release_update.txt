@@ -1,0 +1,6 @@
+post_release_update=PASS
+created_postmortem=postmortem/PM-20260213-001-heredoc-command-substitution.md
+last_release_sha=007eff50b0400d8642f798419b6cc5e2bf4b5c4c
+head_sha=cf1f01416614493115cd0297b410896a81870dcf
+fix_commits_detected=0
+notes=Process incident postmortem added; no product fix commits in range.

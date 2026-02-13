@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "rounds": 2,
+  "results": [
+    {
+      "round": 1,
+      "ok": true,
+      "duration": 4.831006050109863,
+      "returncode": 0,
+      "log": "/Users/mauricewen/Projects/10-auth-box/outputs/agent-release/20260213T043942Z/reports/ai_check/tests.round1.log"
+    },
+    {
+      "round": 2,
+      "ok": true,
+      "duration": 4.818635940551758,
+      "returncode": 0,
+      "log": "/Users/mauricewen/Projects/10-auth-box/outputs/agent-release/20260213T043942Z/reports/ai_check/tests.round2.log"
+    }
+  ]
+}

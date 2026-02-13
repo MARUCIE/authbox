@@ -872,3 +872,24 @@ AuditEvent {
 
 - 推送：`outputs/release-gate/20260213T025457Z/reports/git_push.txt`
 - 一致性：`outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`（origin/main@dd466b6 与本地一致）
+
+
+## 2026-02-13T04:40:05Z（SOP：5.2 智能体发布与版本治理）
+- Run ID：`5-2-5b48afc4`
+- 证据目录：`outputs/agent-release/20260213T043942Z`
+- Step 1：planning files snapshot：`outputs/agent-release/20260213T043942Z/reports/sop52_planning_files_snapshot.txt`
+- Step 2：验证 PASS：
+  - ai check：`outputs/agent-release/20260213T043942Z/reports/ai_check_round1.json`
+  - UX Map Round 2：`outputs/agent-release/20260213T043942Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+- Step 3：版本与回滚记录：`outputs/agent-release/20260213T043942Z/reports/release_record.md`
+
+
+## 2026-02-13T04:49:12Z（SOP：5.3 Postmortem 自动化守门）
+- Run ID：`5-3-3aa4d1c1`
+- 证据目录：`outputs/5.3-postmortem/20260213T044912Z`
+- Step 2 pre-release scan：`outputs/5.3-postmortem/20260213T044912Z/reports/pre_release_scan.txt`
+- Step 3 post-release update：`outputs/5.3-postmortem/20260213T044912Z/reports/post_release_update.txt`
+- 本地 gate：`scripts/postmortem_scan.sh` + `make postmortem-scan`
+- 汇总：`outputs/5.3-postmortem/20260213T044912Z/reports/sop53_summary.md`
+
+- 补充：postmortem/脚本/文档回写后复检 `ai check`（`--no-sbom`）PASS：`outputs/5.3-postmortem/20260213T044912Z/reports/ai_check_final.json`

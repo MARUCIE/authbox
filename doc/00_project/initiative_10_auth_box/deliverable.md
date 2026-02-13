@@ -835,3 +835,55 @@ LastUpdated: 2026-02-13
 - 底层规范（CLAUDE/AGENTS）：N/A
 - Rolling Ledger：N/A（未新增业务需求）
 - 三端一致性：GitHub PASS（origin/main@dd466b6，见 `outputs/release-gate/20260213T025457Z/reports/git_push.txt` 与 `outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`）；VPS N/A（未发布）
+
+
+## 增量交付（2026-02-13）- SOP 5.2 智能体发布与版本治理（Run 5-2-5b48afc4）
+
+### 交付项
+- 执行并完成 SOP `5.2` 三步发布治理（planning -> Round1+Round2 -> 版本/回滚记录）。
+
+### 证据
+- Run 根目录：`outputs/agent-release/20260213T043942Z`
+- Step 1 snapshot：`outputs/agent-release/20260213T043942Z/reports/sop52_planning_files_snapshot.txt`
+- Step 2 验证：
+  - `outputs/agent-release/20260213T043942Z/reports/ai_check_round1.json`
+  - `outputs/agent-release/20260213T043942Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+- Step 3 版本/回滚：`outputs/agent-release/20260213T043942Z/reports/release_record.md`
+
+### 结果
+- Round1: PASS
+- Round2: PASS
+- Release governance: PASS
+- SOP 5.2：COMPLETED
+
+### Task Closeout
+- Skills：N/A
+- PDCA 四文档：N/A（本轮无需求边界变化）
+- 底层规范（CLAUDE/AGENTS）：N/A
+- Rolling Ledger：N/A（本轮为发布治理与验证）
+- 三端一致性：GitHub/VPS N/A（本轮未新增 push/deploy）
+
+
+## 增量交付（2026-02-13）- SOP 5.3 Postmortem 自动化守门（Run 5-3-3aa4d1c1）
+
+### 交付项
+- 预发布扫描：基于 postmortem triggers 对 commit range 做机器匹配扫描。
+- 新增 process postmortem，并提供本地 gate（便于后续接入 CI）。
+
+### 证据
+- Run 根目录：`outputs/5.3-postmortem/20260213T044912Z`
+- pre-release scan：`outputs/5.3-postmortem/20260213T044912Z/reports/pre_release_scan.txt`
+- post-release update：`outputs/5.3-postmortem/20260213T044912Z/reports/post_release_update.txt`
+- scan result：`outputs/5.3-postmortem/20260213T044912Z/reports/postmortem_scan_result.txt`
+- 汇总：`outputs/5.3-postmortem/20260213T044912Z/reports/sop53_summary.md`
+
+### 结果
+- Gate: PASS（无命中 triggers；本地 gate 已落地）
+- SOP 5.3：COMPLETED
+
+### Task Closeout
+- Skills：N/A
+- PDCA 四文档：N/A
+- 底层规范（CLAUDE/AGENTS）：N/A
+- Rolling Ledger：已追加 PROMPT-20260213-011
+- 三端一致性：N/A（本轮未部署）

@@ -1,0 +1,7 @@
+last_release_sha=007eff50b0400d8642f798419b6cc5e2bf4b5c4c
+head_sha=cf1f01416614493115cd0297b410896a81870dcf
+
+commit_range (last_release..HEAD):
+cf1f014 docs(initiative_10_auth_box): update GitHub sync evidence to dd466b6
+dd466b6 docs(initiative_10_auth_box): record GitHub sync + normalize SOP 5.1 evidence
+8bddc01 docs(initiative_10_auth_box): record SOP 4.2 review + SOP 5.1 release gate 20260213T025457Z
