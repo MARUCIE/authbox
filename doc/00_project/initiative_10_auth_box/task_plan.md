@@ -602,3 +602,8 @@ LastUpdated: 2026-02-13
 - Step 2 基准与预算：PASS（`outputs/performance-budget/20260213T050159Z/reports/sop62_step2_assertion.txt`），first_load_js_shared_kb=87.1（<=100），endpoint p95 全部 < 0.2s。
 - Step 2 复跑说明：修正 telemetry payload 为有效 event，并移除 ripgrep lookahead 校验（v1 产物保留在 `outputs/performance-budget/20260213T050159Z/reports/benchmarks_v1/`）。
 - Step 3：未超预算，跳过优化（`outputs/performance-budget/20260213T050159Z/reports/sop62_step3_decision.txt`）。
+
+## 决策记录（2026-02-13T05:26:36Z）
+- GitHub 同步：已推送到 origin/main@d6a3dde。
+  - push 日志：`outputs/performance-budget/20260213T050159Z/reports/git_push.txt`
+  - 远端一致性：`outputs/performance-budget/20260213T050159Z/reports/git_remote_consistency.txt`

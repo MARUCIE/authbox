@@ -912,3 +912,8 @@ AuditEvent {
   - Round 1 `ai check`（--no-sbom）：`outputs/performance-budget/20260213T050159Z/reports/ai_check_round1.json`
   - v1（无效 payload + rg lookahead 校验不兼容）：`outputs/performance-budget/20260213T050159Z/reports/benchmarks_v1/`
 - Step 3：skip optimization：`outputs/performance-budget/20260213T050159Z/reports/sop62_step3_decision.txt`
+
+## 2026-02-13T05:26:36Z · GitHub 同步（SOP 6.2）
+
+- 推送：`outputs/performance-budget/20260213T050159Z/reports/git_push.txt`
+- 一致性：`outputs/performance-budget/20260213T050159Z/reports/git_remote_consistency.txt`（origin/main@d6a3dde 与本地一致）
