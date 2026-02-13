@@ -3,7 +3,7 @@ Title: task_plan - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-12
+LastUpdated: 2026-02-13
 ---
 
 # 任务计划
@@ -554,3 +554,11 @@ LastUpdated: 2026-02-12
     - 2c41c04 feat(api): add auth middleware, audit hash-chain, and real API fixtures
     - 4e15ffd feat(console): add public pages, telemetry funnel, and onboarding flow
     - 8395cde docs: sync PDCA, SOP evidence, and queue execution rule
+
+## 决策记录（2026-02-13T02:25:22Z）
+- 启动并执行 SOP 4.1（Run ID: `4-1-9e1cc49c`），证据目录：`outputs/project-regression/20260213T021241Z`。
+- Step 3（UX Map 回归）PASS：`outputs/project-regression/20260213T021241Z/reports/uxmap_round2/uxmap_round2_assertion.txt`。
+- Step 4（同类问题扫描）PASS：`outputs/project-regression/20260213T021241Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`。
+- E2E（real API replay + contract loop）PASS：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`。
+- Step 6（Round 1 `ai check`）PASS：`outputs/project-regression/20260213T021241Z/logs/ai_check_round1.log`。
+- 收尾：`outputs/project-regression/20260213T021241Z/reports/sop41_summary.md`、`outputs/project-regression/20260213T021241Z/run.meta`。

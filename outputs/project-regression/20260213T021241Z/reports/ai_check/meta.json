@@ -1,0 +1,13 @@
+{
+  "schema": "ai-tools.check.result.v1",
+  "started_at": "2026-02-13T02:31:48Z",
+  "base_dir": "/Users/mauricewen/AI-tools",
+  "run_dir": "/Users/mauricewen/Projects/10-auth-box/outputs/project-regression/20260213T021241Z/reports/ai_check",
+  "options": {
+    "strict": true,
+    "audit": false,
+    "no_sbom": false,
+    "no_tests": false,
+    "rounds": 2
+  }
+}

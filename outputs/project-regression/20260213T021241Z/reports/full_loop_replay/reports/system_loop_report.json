@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-02-13T02:21:13Z",
+  "evidence_dir": "outputs/project-regression/20260213T021241Z/reports/full_loop_replay/system_replay",
+  "run_report": "outputs/project-regression/20260213T021241Z/reports/full_loop_replay/system_replay/reports/run_report.json",
+  "summary": {
+    "mode": "replay",
+    "api_base": "http://localhost:4010",
+    "generated_at": "2026-02-13T02:21:13Z",
+    "ids": {
+      "platform_id": "f3345381-562e-4a17-b294-4b91b746f060",
+      "account_id": "c0b0e871-d229-4e8a-8b32-a184a7df309b",
+      "credential_id": "58d53a79-a361-4588-8590-fc3d2445272a",
+      "assistant_id": "8586b57d-b044-474f-ae49-bd28e4583ce8",
+      "export_id": "d4b1c1a5-915f-4297-983b-8c6b7eb25cf7"
+    },
+    "checks": {
+      "event_count": 9,
+      "deny_event_count": 2,
+      "required_fields_ok": true,
+      "chain_link_ok": true
+    }
+  },
+  "pass": true
+}

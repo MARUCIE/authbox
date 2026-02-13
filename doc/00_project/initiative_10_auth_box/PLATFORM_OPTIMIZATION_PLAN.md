@@ -3,7 +3,7 @@ Title: PLATFORM_OPTIMIZATION_PLAN - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-12
+LastUpdated: 2026-02-13
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -136,3 +136,12 @@ AuditEvent {
   - full-loop summary PASS：`outputs/project-regression/20260212T034924Z/reports/full_loop_closure/reports/full_loop_summary.json`
 - 修复沉淀：telemetry 请求字段统一为 `event`（与 API 契约一致），避免回归期 `INVALID_EVENT`。
 - 优化结论：维持现有性能/可靠性阈值，当前不调整优先级。
+
+## SOP 4.1 回归守门记录（2026-02-13，Run 20260213T021241Z）
+- 回归目标：复核 UX Map + E2E 门禁在当前基线仍通过。
+- 回归结果：
+  - Round 2 UX Map PASS：`outputs/project-regression/20260213T021241Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+  - 同类问题扫描 PASS：`outputs/project-regression/20260213T021241Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`
+  - E2E（real API + contract）PASS：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`
+  - Round 1 `ai check` PASS：`outputs/project-regression/20260213T021241Z/logs/ai_check_round1.log`
+- 优化结论：维持现有阈值与门禁策略。

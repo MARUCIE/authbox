@@ -3,7 +3,7 @@ Title: deliverable - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-12
+LastUpdated: 2026-02-13
 ---
 
 # 交付物
@@ -751,3 +751,31 @@ LastUpdated: 2026-02-12
   - summary：`outputs/full-loop-check/20260212T112402Z/reports/full_loop_closure/reports/full_loop_summary.json`
   - steps：`outputs/full-loop-check/20260212T112402Z/reports/full_loop_closure/logs/full_loop_steps.log`
 - toolchain gate（ai check）：`/Users/mauricewen/AI-tools/outputs/check/20260212-112438-fef171a1`
+
+## 增量交付（2026-02-13）- SOP 4.1 项目级全链路回归（Run 20260213T021241Z）
+
+### 交付项
+- 按队列模式复跑 SOP `4.1` 六步回归闭环（planning/ralph/UX Map/同类扫描/PDCA/Round1+Round2）。
+- 复核 Public 入口关键路径与 telemetry 事件/漏斗查询契约。
+- 复核 E2E 门禁：real API replay + contract loop。
+
+### 证据
+- Run 根目录：`outputs/project-regression/20260213T021241Z`
+- Round 2 UX Map：`outputs/project-regression/20260213T021241Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+- 同类问题扫描：`outputs/project-regression/20260213T021241Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`
+- E2E（real API + contract）：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`
+- Round 1 `ai check`：`outputs/project-regression/20260213T021241Z/logs/ai_check_round1.log`
+- 汇总：`outputs/project-regression/20260213T021241Z/reports/sop41_summary.md`
+
+### 结果
+- `round1.result=PASS`
+- `round2.result=PASS`
+- `overall.result=PASS`
+- SOP 4.1：COMPLETED
+
+### Task Closeout
+- Skills：N/A（本轮为回归验收，不新增跨项目 Skill）
+- PDCA 四文档：已同步（追加回归记录与证据路径）
+- 底层规范（CLAUDE/AGENTS）：N/A
+- Rolling Ledger：已追加一条回归复跑记录
+- 三端一致性：N/A（本轮仅本地回归与文档回写）

@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "finished_at": "2026-02-13T02:32:00Z",
+  "run_dir": "/Users/mauricewen/Projects/10-auth-box/outputs/project-regression/20260213T021241Z/reports/ai_check",
+  "rounds": 2,
+  "checks": {
+    "docs": true,
+    "no_emoji": true,
+    "registry": true,
+    "sbom": true,
+    "audit": true,
+    "tests": true
+  },
+  "skipped": [
+    "audit"
+  ]
+}

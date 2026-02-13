@@ -3,7 +3,7 @@ Title: PRD - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-12
+LastUpdated: 2026-02-13
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -211,3 +211,13 @@ MVP 采用 7 个核心对象：
   - Step 4 同类问题扫描 PASS：`outputs/project-regression/20260212T034924Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`
   - 问题修复：telemetry payload 字段从 `event_type` 修正为 `event`（避免 `INVALID_EVENT`）。
 - 结论：本轮为回归验收，不新增需求边界。
+
+## SOP 4.1 回归记录（2026-02-13，Run 20260213T021241Z）
+- Run：`outputs/project-regression/20260213T021241Z`
+- 目标：项目级全链路回归（UX Map + E2E）验证当前基线可用性。
+- 执行结果：
+  - Step 3 UX Map 回归 PASS：`outputs/project-regression/20260213T021241Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+  - Step 4 同类问题扫描 PASS：`outputs/project-regression/20260213T021241Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`
+  - E2E（real API replay + contract loop）PASS：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`
+  - Step 6 Round 1 `ai check` PASS：`outputs/project-regression/20260213T021241Z/logs/ai_check_round1.log`
+- 结论：本轮为回归验收复跑，不新增产品需求边界。

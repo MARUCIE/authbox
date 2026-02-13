@@ -3,7 +3,7 @@ Title: USER_EXPERIENCE_MAP - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-12
+LastUpdated: 2026-02-13
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -14,7 +14,7 @@ Related:
 
 <!-- AI-TOOLS:PROJECT_DIR:BEGIN -->
 - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
-- **VERIFIED_AT_UTC**: `2026-02-11T14:47:54Z`
+- -02-13T02:24:38Z`
 - **RULE**: Always run tasks against the project root. If the CLI detects a mismatch, it will update this block.
 <!-- AI-TOOLS:PROJECT_DIR:END -->
 
@@ -189,3 +189,9 @@ Related:
 - 关键事件：`PUBLIC_CTA_CLICK`、`ONBOARDING_ENTRY_VIEW`。
 - 结果：`outputs/project-regression/20260212T034924Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（overall.pass=PASS）。
 - 卡点修复：上报 payload 字段修正为 `event` 后，事件上报与漏斗查询恢复正常。
+
+## SOP 4.1 Round 2 回归记录（2026-02-13，Run 20260213T021241Z）
+- 复测路径：`/`、`/product`、`/compare/hashicorp-vault-alternative`、`/platforms/new?source=ux_round2_20260213T021241Z&tenant_id=beta`、`/metrics/funnel?window_minutes=180&tenant_id=beta`。
+- 关键事件：`PUBLIC_CTA_CLICK`、`ONBOARDING_ENTRY_VIEW`。
+- 结果：`outputs/project-regression/20260213T021241Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（overall.pass=PASS）。
+- E2E（real API + contract）PASS：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`。

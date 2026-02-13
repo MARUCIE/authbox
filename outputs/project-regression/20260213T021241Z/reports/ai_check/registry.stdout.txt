@@ -1,0 +1,1 @@
+{"ok": true, "checked": ["/Users/mauricewen/AI-tools/tier-registry.json", "/Users/mauricewen/AI-tools/tier1-skills/skills/skills-registry.json"], "counts": {"errors": 0, "warnings": 0, "total": 0}, "issues": []}

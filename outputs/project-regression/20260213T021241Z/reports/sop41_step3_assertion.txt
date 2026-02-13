@@ -1,0 +1,2 @@
+uxmap_round2.assertion=outputs/project-regression/20260213T021241Z/reports/uxmap_round2/uxmap_round2_assertion.txt
+uxmap_round2.overall=PASS

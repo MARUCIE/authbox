@@ -1,0 +1,5 @@
+scan.target=telemetry_event_payload
+scan.command=rg -n "event_type\\s*:|\"event_type\"" apps scripts doc
+scan.result=PASS
+step4.overall=PASS
+overall.pass=PASS

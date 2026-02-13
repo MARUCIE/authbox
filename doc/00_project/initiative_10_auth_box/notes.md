@@ -3,7 +3,7 @@ Title: notes - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-12
+LastUpdated: 2026-02-13
 ---
 
 # Notes
@@ -818,3 +818,22 @@ AuditEvent {
 ## 2026-02-12T11:32:46Z · GitHub 同步
 
 - 已推送到 GitHub：origin/main@8395cde。
+
+## 2026-02-13T02:25:22Z（SOP：4.1 项目级全链路回归）
+- Run ID：`4-1-9e1cc49c`
+- 证据目录：`outputs/project-regression/20260213T021241Z`
+- Step 1/2：
+  - planning files snapshot：`outputs/project-regression/20260213T021241Z/logs/sop41_read_task_plan.log` / `outputs/project-regression/20260213T021241Z/logs/sop41_read_notes.log` / `outputs/project-regression/20260213T021241Z/logs/sop41_read_deliverable.log`
+  - ralph loop：`outputs/project-regression/20260213T021241Z/logs/ralph_loop_init_4_1.log`
+- Step 3：
+  - UX Map Round 2 断言：`outputs/project-regression/20260213T021241Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（PASS）
+- Step 4：
+  - 同类问题扫描：`outputs/project-regression/20260213T021241Z/reports/similar_issue_scan/similar_issue_scan_assertion.txt`（PASS）
+- E2E（real API + contract）：
+  - full loop summary：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`（overall_pass=true）
+- Step 6：
+  - Round 1 `ai check`：`outputs/project-regression/20260213T021241Z/logs/ai_check_round1.log`（PASS）
+  - Round 2 汇总：`outputs/project-regression/20260213T021241Z/reports/sop41_round_summary.txt`（PASS）
+- 收尾：
+  - SOP 汇总：`outputs/project-regression/20260213T021241Z/reports/sop41_summary.md`
+  - run meta：`outputs/project-regression/20260213T021241Z/run.meta`

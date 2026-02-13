@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-02-13T02:21:20Z",
+  "evidence_root": "outputs/project-regression/20260213T021241Z/reports/full_loop_replay",
+  "acceptance_rule": "final acceptance must pass real API; mock responses are forbidden",
+  "entrypoint_report": "outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/entrypoint_report.json",
+  "system_report": "outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/system_loop_report.json",
+  "entrypoint_pass": true,
+  "system_pass": true,
+  "contract_pass": true,
+  "overall_pass": true
+}

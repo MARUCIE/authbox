@@ -3,7 +3,7 @@ Title: ROLLING_REQUIREMENTS_AND_PROMPTS - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-12
+LastUpdated: 2026-02-13
 ---
 
 # 滚动需求与提示词
@@ -34,6 +34,7 @@ LastUpdated: 2026-02-12
 | REQ-20260212-020 | 2026-02-12 | 一键全量交付（长任务）：执行 plan-first/ralph-loop/round1-round2/task-closeout 全链路验收 | 已完成 | one-click-full-delivery SOP |
 | REQ-20260212-021 | 2026-02-12 | 一键全量交付复跑：在最新代码基线复核 Round1/Round2 与前后端专项门禁 | 已完成 | one-click-full-delivery Run `20260212T032220Z` |
 | REQ-20260212-022 | 2026-02-12 | 队列执行规范固化（底层规范） | 已完成 | 将“队列执行/继续/go”写入 AGENTS/CLAUDE/CODEX/GEMINI；并复跑 full-loop-check（run_id=20260212T112402Z）留证据 |
+| REQ-20260213-023 | 2026-02-13 | SOP 4.1 项目级全链路回归复跑：在当前基线复核 UX Map Round 2 + real API replay + contract loop + ai check | 已完成 | project-regression Run `outputs/project-regression/20260213T021241Z` |
 
 ## 提示词台账
 
@@ -48,6 +49,7 @@ LastUpdated: 2026-02-12
 | PROMPT-20260211-007 | 2026-02-11 | 继续：落地租户维度与阈值告警，补齐 API/看板/断言证据与文档回写 | 任务实现 | 来自用户“继续”指令 |
 | PROMPT-20260212-008 | 2026-02-12 | SOP：一键全量交付（长任务），要求 planning-with-files + ralph loop + ai check + UX Map + Task Closeout | 任务验收 | 来自用户指令 |
 | PROMPT-20260212-009 | 2026-02-12 | SOP：一键全量交付（长任务）再次执行，要求 planning-with-files + ralph-loop + ai check + UX Map + Task Closeout | 任务验收 | 来自用户“继续/一键全量交付”指令 |
+| PROMPT-20260213-010 | 2026-02-13 | 继续/go（队列执行）：SOP 4.1 项目级全链路回归复跑（UX Map + E2E + ai check） | 任务验收 | 来自用户“继续/go/队列执行”指令 |
 
 ## 防回归 Q&A
 

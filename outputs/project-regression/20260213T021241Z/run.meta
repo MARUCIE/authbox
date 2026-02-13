@@ -1,0 +1,10 @@
+sop_id=project-regression
+run_id=20260213T021241Z
+started_at_utc=2026-02-13T02:12:41Z
+project_dir=/Users/mauricewen/Projects/10-auth-box
+git_head=c0385779f74f5c03409cd1b4192e9fbfaf7caf67
+sop_engine_run_id=4-1-9e1cc49c
+sop_engine_evidence_dir=/Users/mauricewen/AI-tools/outputs/sop/4-1-9e1cc49c/evidence
+status=completed
+completed_at_utc=2026-02-13T02:33:47Z
+summary_report=outputs/project-regression/20260213T021241Z/reports/sop41_summary.md
