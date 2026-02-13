@@ -1,0 +1,11 @@
+SOP 6.2 Step 2 - Performance Budget & Benchmark (v2)
+run_ts=20260213T050159Z
+budget.pass=true
+first_load_js_shared_kb=87.1
+budget.endpoint_p95_s_max=0.2
+telemetry_post.http_code=202
+note=reran benchmarks after fixing telemetry payload to a valid PublicEventName and replacing unsupported ripgrep lookahead status checks.
+evidence.script=outputs/performance-budget/20260213T050159Z/reports/run_benchmarks.sh
+evidence.summary_json=outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_summary.json
+evidence.report_md=outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_report.md
+evidence.v1_dir=outputs/performance-budget/20260213T050159Z/reports/benchmarks_v1

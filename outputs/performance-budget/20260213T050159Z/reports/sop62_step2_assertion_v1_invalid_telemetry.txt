@@ -1,0 +1,7 @@
+SOP 6.2 Step 2 - Performance Budget & Benchmark
+run_ts=20260213T050159Z
+budget.pass=true
+first_load_js_shared_kb=87.1
+budget.endpoint_p95_s_max=0.2
+evidence.summary_json=outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_summary.json
+evidence.report_md=outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_report.md

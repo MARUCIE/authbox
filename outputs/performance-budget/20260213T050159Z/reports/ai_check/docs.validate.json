@@ -1,0 +1,333 @@
+{
+  "ok": true,
+  "required": [
+    {
+      "path": "doc/index.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/index.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/index.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/USER_EXPERIENCE_MAP.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/SYSTEM_ARCHITECTURE.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/PRD.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/PLATFORM_OPTIMIZATION_PLAN.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/EXECUTION_ROADMAP.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/PDCA_EXECUTION_PLAN.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/PDCA_ITERATION_CHECKLIST.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/ROLLING_REQUIREMENTS_AND_PROMPTS.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/task_plan.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/notes.md",
+      "min_bytes": 50,
+      "require_changelog": false
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/deliverable.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    }
+  ],
+  "docs": [
+    {
+      "path": "doc/index.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/index.md",
+      "exists": true,
+      "size_bytes": 4926,
+      "min_bytes": 200,
+      "sha256": "6b96fc2c2ed2bbdb366daf22eeac857864d3ef205766cee7462fdaaab906167d",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-01",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/index.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/index.md",
+      "exists": true,
+      "size_bytes": 359,
+      "min_bytes": 200,
+      "sha256": "6b33dcb7112fe4cd8cdefa241d9646ce4e51b89cb7ce20bcbd303b267e0429cc",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-01-16",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/index.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/index.md",
+      "exists": true,
+      "size_bytes": 1492,
+      "min_bytes": 50,
+      "sha256": "3d32a70108f658f8dbaf828171cafe9cf16c6ab857949240f6422ddf636b1e9f",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-12",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/USER_EXPERIENCE_MAP.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/USER_EXPERIENCE_MAP.md",
+      "exists": true,
+      "size_bytes": 38211,
+      "min_bytes": 200,
+      "sha256": "b762766b44ad97b230357d0e065a26fd9063045438358bed2a079a0b27d805c2",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-13",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/SYSTEM_ARCHITECTURE.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/SYSTEM_ARCHITECTURE.md",
+      "exists": true,
+      "size_bytes": 26850,
+      "min_bytes": 200,
+      "sha256": "296ace02f6a898a374ef47778ced99126ab12c9a14b0f90e7396a52873cd1b42",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-13",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/PRD.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/PRD.md",
+      "exists": true,
+      "size_bytes": 23527,
+      "min_bytes": 200,
+      "sha256": "24f15837aa1a3064c2fff4670ae4e0018b539f3202a1006015e25db7a875e94e",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-13",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/PLATFORM_OPTIMIZATION_PLAN.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/PLATFORM_OPTIMIZATION_PLAN.md",
+      "exists": true,
+      "size_bytes": 16484,
+      "min_bytes": 200,
+      "sha256": "8c90f576502045719d0f9dd56fc82e189a93fee6898a977f96eb3d73113e8bda",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-13",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/EXECUTION_ROADMAP.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/EXECUTION_ROADMAP.md",
+      "exists": true,
+      "size_bytes": 2172,
+      "min_bytes": 50,
+      "sha256": "37b562d1d53f0b7e2533f8f217140dcf910c100e8e643b3558de20542de34770",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-01-19",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/PDCA_EXECUTION_PLAN.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/PDCA_EXECUTION_PLAN.md",
+      "exists": true,
+      "size_bytes": 2235,
+      "min_bytes": 50,
+      "sha256": "f00174e000fdbfb2400015ca26e2adde84e92058da5adcf50ce0b0542a4fe110",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-01-19",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/PDCA_ITERATION_CHECKLIST.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/PDCA_ITERATION_CHECKLIST.md",
+      "exists": true,
+      "size_bytes": 3421,
+      "min_bytes": 50,
+      "sha256": "1206daadeebb448db00d9cf8b21a155351f7a88554517e5004c921af803111a0",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-12",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/ROLLING_REQUIREMENTS_AND_PROMPTS.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/ROLLING_REQUIREMENTS_AND_PROMPTS.md",
+      "exists": true,
+      "size_bytes": 103307,
+      "min_bytes": 200,
+      "sha256": "14699c135fa07bdee31f39ecaa344461259dbad93e937bb239504fcf6e3caa48",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-13",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/task_plan.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/task_plan.md",
+      "exists": true,
+      "size_bytes": 85655,
+      "min_bytes": 50,
+      "sha256": "519b03345bc782e1a5e77f56fe31d335d85717e031973fb306883a934db956e5",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-13",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/notes.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/notes.md",
+      "exists": true,
+      "size_bytes": 206358,
+      "min_bytes": 50,
+      "sha256": "13f3ed57e8993ec30071d940aebd46843140362a20c4b9b0cd782af6757e89db",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-13",
+        "last_updated_ok": true,
+        "require_changelog": false,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_ai_tools/deliverable.md",
+      "abs_path": "/Users/mauricewen/AI-tools/doc/00_project/initiative_ai_tools/deliverable.md",
+      "exists": true,
+      "size_bytes": 53658,
+      "min_bytes": 50,
+      "sha256": "44af3f3eab4e13fc588c86a6bf610463dbef6ed05f8bc65dbb07a0eb16767483",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-02-13",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    }
+  ],
+  "doc_location_gate": {
+    "ok": true,
+    "hits": []
+  }
+}

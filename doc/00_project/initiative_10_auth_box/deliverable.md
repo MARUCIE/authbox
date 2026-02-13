@@ -887,3 +887,28 @@ LastUpdated: 2026-02-13
 - 底层规范（CLAUDE/AGENTS）：N/A
 - Rolling Ledger：已追加 PROMPT-20260213-011
 - 三端一致性：GitHub PASS（origin/main@5d203b2，见 `outputs/5.3-postmortem/20260213T044912Z/reports/git_remote_consistency.txt`）；VPS N/A（未部署）
+
+## 增量交付（2026-02-13）- SOP 6.2 性能与成本预算（Run 6-2-d0d3a92c）
+
+### 交付项
+- 建立 bundle/endpoint latency 的性能预算与基线报告。
+- 基准脚本可复现（包含状态码校验与报告生成）。
+
+### 证据
+- Run 根目录：`outputs/performance-budget/20260213T050159Z`
+- 汇总：`outputs/performance-budget/20260213T050159Z/reports/sop62_summary.md`
+- Step 2：`outputs/performance-budget/20260213T050159Z/reports/sop62_step2_assertion.txt`
+- Step 3：`outputs/performance-budget/20260213T050159Z/reports/sop62_step3_decision.txt`
+- 报告：`outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_report.md`
+- Round 1 `ai check`（--no-sbom）：`outputs/performance-budget/20260213T050159Z/reports/ai_check_round1.json`
+- v1 产物保留：`outputs/performance-budget/20260213T050159Z/reports/benchmarks_v1/`
+
+### 结果
+- Budget evaluation：PASS（未触发优化复测）
+
+### Task Closeout
+- Skills：N/A
+- PDCA 四文档：已更新 `doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md`（记录 SOP 6.2 基线与证据）
+- 底层规范（CLAUDE/AGENTS）：N/A
+- Rolling Ledger：N/A
+- 三端一致性：待随本轮 commit push 完成闭环

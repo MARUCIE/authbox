@@ -596,3 +596,9 @@ LastUpdated: 2026-02-13
 - GitHub 同步：已推送 SOP 5.2/5.3 证据与 postmortem gate 产物到 origin/main@5d203b2。
   - push 日志：`outputs/5.3-postmortem/20260213T044912Z/reports/git_push.txt`
   - 远端一致性：`outputs/5.3-postmortem/20260213T044912Z/reports/git_remote_consistency.txt`
+
+## 决策记录（2026-02-13T05:23:07Z）
+- 启动并完成 SOP 6.2（Run ID: `6-2-d0d3a92c`），证据目录：`outputs/performance-budget/20260213T050159Z`。
+- Step 2 基准与预算：PASS（`outputs/performance-budget/20260213T050159Z/reports/sop62_step2_assertion.txt`），first_load_js_shared_kb=87.1（<=100），endpoint p95 全部 < 0.2s。
+- Step 2 复跑说明：修正 telemetry payload 为有效 event，并移除 ripgrep lookahead 校验（v1 产物保留在 `outputs/performance-budget/20260213T050159Z/reports/benchmarks_v1/`）。
+- Step 3：未超预算，跳过优化（`outputs/performance-budget/20260213T050159Z/reports/sop62_step3_decision.txt`）。

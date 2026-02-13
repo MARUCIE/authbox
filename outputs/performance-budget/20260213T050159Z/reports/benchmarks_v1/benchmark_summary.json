@@ -1,0 +1,93 @@
+{
+  "budget_evaluation": {
+    "pass": true,
+    "violations": []
+  },
+  "budgets": {
+    "endpoint_p95_s_max": 0.2,
+    "first_load_js_shared_kb_max": 100.0
+  },
+  "console_build": {
+    "first_load_js_shared_kb": 87.1
+  },
+  "endpoints": {
+    "compare.raw": {
+      "codes": {
+        "200": 20
+      },
+      "count": 20,
+      "max_s": 0.001203,
+      "mean_s": 0.00092,
+      "min_s": 0.000708,
+      "p50_s": 0.0009209999999999999,
+      "p95_s": 0.0011897
+    },
+    "home.raw": {
+      "codes": {
+        "200": 20
+      },
+      "count": 20,
+      "max_s": 0.002013,
+      "mean_s": 0.00138115,
+      "min_s": 0.001006,
+      "p50_s": 0.0013125,
+      "p95_s": 0.0019142000000000002
+    },
+    "metrics_funnel_html.raw": {
+      "codes": {
+        "200": 20
+      },
+      "count": 20,
+      "max_s": 0.032175,
+      "mean_s": 0.0103952,
+      "min_s": 0.007548,
+      "p50_s": 0.0094255,
+      "p95_s": 0.011285450000000016
+    },
+    "metrics_funnel_json.raw": {
+      "codes": {
+        "200": 20
+      },
+      "count": 20,
+      "max_s": 0.009797,
+      "mean_s": 0.00904645,
+      "min_s": 0.008118,
+      "p50_s": 0.009114,
+      "p95_s": 0.0095804
+    },
+    "onboarding_entry.raw": {
+      "codes": {
+        "200": 20
+      },
+      "count": 20,
+      "max_s": 0.011305,
+      "mean_s": 0.00965465,
+      "min_s": 0.007444,
+      "p50_s": 0.0097685,
+      "p95_s": 0.010788200000000001
+    },
+    "product.raw": {
+      "codes": {
+        "200": 20
+      },
+      "count": 20,
+      "max_s": 0.001481,
+      "mean_s": 0.0011171,
+      "min_s": 0.000893,
+      "p50_s": 0.0011034999999999999,
+      "p95_s": 0.00138315
+    },
+    "telemetry_post.raw": {
+      "codes": {
+        "400": 20
+      },
+      "count": 20,
+      "max_s": 0.001409,
+      "mean_s": 0.00106175,
+      "min_s": 0.000928,
+      "p50_s": 0.001054,
+      "p95_s": 0.0012237500000000002
+    }
+  },
+  "run_ts": "20260213T050159Z"
+}

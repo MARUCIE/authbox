@@ -8,6 +8,10 @@ build/
 .next/
 out/
 
+# Runtime telemetry persistence (generated; not evidence)
+outputs/telemetry/
+apps/console/outputs/telemetry/
+
 # Environment files
 .env
 .env.local

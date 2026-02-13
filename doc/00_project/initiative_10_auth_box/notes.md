@@ -899,3 +899,16 @@ AuditEvent {
 
 - 推送：`outputs/5.3-postmortem/20260213T044912Z/reports/git_push.txt`
 - 一致性：`outputs/5.3-postmortem/20260213T044912Z/reports/git_remote_consistency.txt`（origin/main@5d203b2 与本地一致）
+
+## 2026-02-13T05:23:07Z（SOP：6.2 性能与成本预算）
+- Run ID：`6-2-d0d3a92c`
+- 证据目录：`outputs/performance-budget/20260213T050159Z`
+- Step 1：planning files snapshot：`outputs/performance-budget/20260213T050159Z/reports/sop62_planning_files_snapshot.txt`
+- Step 2：预算与基准 PASS：
+  - budgets：first_load_js_shared_kb_max=100.0；endpoint_p95_s_max=0.2
+  - baseline：first_load_js_shared_kb=87.1；telemetry_post=202:20
+  - report：`outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_report.md`
+  - summary：`outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_summary.json`
+  - Round 1 `ai check`（--no-sbom）：`outputs/performance-budget/20260213T050159Z/reports/ai_check_round1.json`
+  - v1（无效 payload + rg lookahead 校验不兼容）：`outputs/performance-budget/20260213T050159Z/reports/benchmarks_v1/`
+- Step 3：skip optimization：`outputs/performance-budget/20260213T050159Z/reports/sop62_step3_decision.txt`

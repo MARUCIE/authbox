@@ -145,3 +145,18 @@ AuditEvent {
   - E2E（real API + contract）PASS：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`
   - Round 1 `ai check` PASS：`outputs/project-regression/20260213T021241Z/logs/ai_check_round1.log`
 - 优化结论：维持现有阈值与门禁策略。
+
+## SOP 6.2 性能与成本预算记录（2026-02-13，Run 20260213T050159Z）
+- Run：`outputs/performance-budget/20260213T050159Z`
+- 预算：
+  - first_load_js_shared_kb_max=100.0
+  - endpoint_p95_s_max=0.2
+- 基线：
+  - first_load_js_shared_kb=87.1
+  - telemetry_post：202:20（见 report）
+- 证据：
+  - 汇总：`outputs/performance-budget/20260213T050159Z/reports/sop62_summary.md`
+  - Step 2：`outputs/performance-budget/20260213T050159Z/reports/sop62_step2_assertion.txt`
+  - 报告：`outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_report.md`
+  - 数据：`outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_summary.json`
+- 结论：PASS；未触发 Step 3 优化复测

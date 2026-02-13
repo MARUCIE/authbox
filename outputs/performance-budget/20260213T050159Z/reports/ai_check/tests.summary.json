@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "rounds": 2,
+  "results": [
+    {
+      "round": 1,
+      "ok": true,
+      "duration": 4.48895001411438,
+      "returncode": 0,
+      "log": "/Users/mauricewen/Projects/10-auth-box/outputs/performance-budget/20260213T050159Z/reports/ai_check/tests.round1.log"
+    },
+    {
+      "round": 2,
+      "ok": true,
+      "duration": 4.524839878082275,
+      "returncode": 0,
+      "log": "/Users/mauricewen/Projects/10-auth-box/outputs/performance-budget/20260213T050159Z/reports/ai_check/tests.round2.log"
+    }
+  ]
+}
