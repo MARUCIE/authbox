@@ -571,6 +571,12 @@ LastUpdated: 2026-02-13
 ## 决策记录（2026-02-13T02:54:57Z）
 - 启动并完成 SOP 5.1（Run ID: `5-1-70ef3334`），证据目录：`outputs/release-gate/20260213T025457Z`。
 - Step 2 联合验收：产品/技术/质量三方结论均为 PASS（`joint_acceptance_council.md`）。
-- Step 3 Round 1：`ai check` PASS（本次 `--no-sbom`，见 `outputs/release-gate/20260213T025457Z/logs/ai_check_round1.json`）。
+- Step 3 Round 1：`ai check` PASS（本次 `--no-sbom`，见 `outputs/release-gate/20260213T025457Z/reports/ai_check_round1.json`）。
 - Step 4 Round 2：UX Map 回归 PASS（`outputs/release-gate/20260213T025457Z/reports/uxmap_round2/uxmap_round2_assertion.txt`）。
 - Step 5 条件门：PASS（未触发 ralph-loop，`sop51_step5_assertion.txt`）。
+
+
+## 决策记录（2026-02-13T03:03:26Z）
+- GitHub 同步：已推送到 origin/main@8bddc01。
+  - push 日志：`outputs/release-gate/20260213T025457Z/reports/git_push.txt`
+  - 远端一致性：`outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`

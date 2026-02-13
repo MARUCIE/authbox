@@ -852,17 +852,23 @@ AuditEvent {
 ## 2026-02-13T02:54:57Z（SOP：5.1 联合验收与发布守门）
 - Run ID：`5-1-70ef3334`
 - 证据目录：`outputs/release-gate/20260213T025457Z`
-- Step 1：planning files snapshot：`outputs/release-gate/20260213T025457Z/logs/sop51_planning_files_snapshot.txt`
+- Step 1：planning files snapshot：`outputs/release-gate/20260213T025457Z/reports/sop51_planning_files_snapshot.txt`
 - Step 2：联合验收 PASS：
   - `outputs/release-gate/20260213T025457Z/reports/joint_acceptance_council.md`
   - `outputs/release-gate/20260213T025457Z/reports/sop51_step2_assertion.txt`
 - Step 3：Round 1 `ai check` PASS（本次跳过 SBOM 生成）：
-  - `outputs/release-gate/20260213T025457Z/logs/ai_check_round1.json`
+  - `outputs/release-gate/20260213T025457Z/reports/ai_check_round1.json`
   - `outputs/release-gate/20260213T025457Z/reports/sop51_step3_assertion.txt`
 - Step 4：UX Map Round 2 PASS：
-  - `outputs/release-gate/20260213T025457Z/logs/uxmap_round2_round2.log`
+  - `outputs/release-gate/20260213T025457Z/reports/uxmap_round2/run_uxmap_round2.sh`
   - `outputs/release-gate/20260213T025457Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
 - Step 5：条件门 PASS（未触发 ralph-loop）：
   - `outputs/release-gate/20260213T025457Z/reports/sop51_step5_assertion.txt`
 - 汇总：`outputs/release-gate/20260213T025457Z/reports/sop51_summary.md`
-- 补充：文档回写后复检 `ai check`（`--no-sbom`）PASS：`outputs/release-gate/20260213T025457Z/logs/ai_check_after_docs.json`
+- 补充：文档回写后复检 `ai check`（`--no-sbom`）PASS：`outputs/release-gate/20260213T025457Z/reports/ai_check_after_docs.json`
+
+
+## 2026-02-13T03:03:26Z · GitHub 同步
+
+- 推送：`outputs/release-gate/20260213T025457Z/reports/git_push.txt`
+- 一致性：`outputs/release-gate/20260213T025457Z/reports/git_remote_consistency.txt`（origin/main@8bddc01 与本地一致）
