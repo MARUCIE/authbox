@@ -931,3 +931,4 @@ LastUpdated: 2026-02-13
 - Release Note：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/release_note.md`
 - Release Tag：`release-uiux-20260218T042527Z`（证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push_tag.txt`）
 - GitHub Release：`https://github.com/MARUCIE/10-auth-box/releases/tag/release-uiux-20260218T042527Z`
+- VPS Probe：`vps-prod` reachable but no identifiable 10-auth-box deployment; `vps-secondary` unreachable. 结论维持 VPS=N/A。

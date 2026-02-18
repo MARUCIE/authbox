@@ -1,0 +1,6 @@
+host_alias=vps-prod
+probe_started_utc=2026-02-18T05:54:39Z
+remote_host=cloudcc
+remote_user=root
+remote_pwd=/root
+probe_exit_code=0

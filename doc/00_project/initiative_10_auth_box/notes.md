@@ -972,3 +972,12 @@ AuditEvent {
 ## 2026-02-18T05:57:00Z（GitHub Release）
 - Release URL：`https://github.com/MARUCIE/10-auth-box/releases/tag/release-uiux-20260218T042527Z`
 - 命令输出：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/gh_release_create.txt`
+
+## 2026-02-18T05:58:00Z（VPS Probe）
+- `vps-prod`：SSH 可达，仓库路径扫描未命中 `10-auth-box`，容器过滤未命中 `auth-box`。
+- `vps-secondary`：SSH 连接关闭（`Connection closed by 154.21.85.43 port 22`）。
+- 证据：
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_probe_vps-prod.txt`
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_probe_vps-prod_deep.txt`
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_vps-prod_authbox_filter.txt`
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_probe_vps-secondary.txt`

@@ -1,0 +1,23 @@
+host_alias=vps-prod
+probe_started_utc=2026-02-18T05:55:18Z
+docker_installed=yes
+running_containers_begin
+running_containers_end
+all_containers_begin
+sandbox-3f04fb61-5f7d-4f93-b2c3-37dac664d3a3 node:20-alpine
+sandbox-f8261dd0-45a7-4760-9d1a-b51df521072f node:20-alpine
+sandbox-e5b7364d-a7af-41c6-80f3-ed6aff59efa6 node:20-alpine
+sandbox-27f66554-8027-47da-8bcf-644844129e92 node:20-alpine
+sandbox-b8cc5946-4ba4-4304-8f18-15f4e87a6b9d node:20-alpine
+all_containers_end
+authbox_container_match_begin
+sandbox-3f04fb61-5f7d-4f93-b2c3-37dac664d3a3 node:20-alpine
+sandbox-f8261dd0-45a7-4760-9d1a-b51df521072f node:20-alpine
+sandbox-e5b7364d-a7af-41c6-80f3-ed6aff59efa6 node:20-alpine
+sandbox-27f66554-8027-47da-8bcf-644844129e92 node:20-alpine
+sandbox-b8cc5946-4ba4-4304-8f18-15f4e87a6b9d node:20-alpine
+authbox_container_match_end
+systemd_match_begin
+  polkit.service                                 loaded active running Authorization Manager
+systemd_match_end
+probe_exit_code=0

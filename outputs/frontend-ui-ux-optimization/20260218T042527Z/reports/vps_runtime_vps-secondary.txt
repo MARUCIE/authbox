@@ -1,0 +1,4 @@
+host_alias=vps-secondary
+probe_started_utc=2026-02-18T05:55:07Z
+Connection closed by 154.21.85.43 port 22
+probe_exit_code=255

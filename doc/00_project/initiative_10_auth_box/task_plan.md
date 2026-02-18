@@ -658,3 +658,9 @@ LastUpdated: 2026-02-18
 ## 决策记录（2026-02-18T05:57:00Z）
 - GitHub Release 已创建：`https://github.com/MARUCIE/10-auth-box/releases/tag/release-uiux-20260218T042527Z`
 - 命令证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/gh_release_create.txt`
+
+## 决策记录（2026-02-18T05:58:00Z）
+- VPS 探测完成：
+  - `vps-prod` 可连通，但未发现 `10-auth-box` 仓库路径与对应容器（证据见 run reports）。
+  - `vps-secondary` 连接关闭（port 22）。
+- 三端一致性结论更新：GitHub PASS；VPS 维持 N/A（无可识别部署目标）。

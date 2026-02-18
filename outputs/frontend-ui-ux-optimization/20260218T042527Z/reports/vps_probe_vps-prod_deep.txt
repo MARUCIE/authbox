@@ -1,0 +1,9 @@
+host_alias=vps-prod
+probe_started_utc=2026-02-18T05:54:54Z
+remote_host=cloudcc
+scan_candidates_begin
+scan_candidates_end
+scan_git_begin
+/root/.claude/plugins/marketplaces/claude-plugins-official/.git
+scan_git_end
+probe_exit_code=0
