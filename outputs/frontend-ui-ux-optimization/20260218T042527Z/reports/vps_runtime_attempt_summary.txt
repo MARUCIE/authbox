@@ -1,0 +1,7 @@
+runtime_attempt=EXECUTED
+runtime_attempt_result=ROLLED_BACK
+runtime_attempt_reason=Compose merge kept public port bindings (0.0.0.0:3010/4010/5410/6310), which is unsafe for production host
+runtime_health_check_api=PASS_DURING_ATTEMPT
+runtime_health_check_console=FAIL_DURING_ATTEMPT
+rollback_status=PASS
+rollback_evidence=outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_rollback_vps-prod.txt

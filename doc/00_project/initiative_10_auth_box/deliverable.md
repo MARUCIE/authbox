@@ -933,3 +933,4 @@ LastUpdated: 2026-02-13
 - GitHub Release：`https://github.com/MARUCIE/10-auth-box/releases/tag/release-uiux-20260218T042527Z`
 - VPS Probe：`vps-prod` reachable but no identifiable 10-auth-box deployment; `vps-secondary` unreachable. 结论维持 VPS=N/A。
 - VPS 代码镜像一致性：`PASS_CODE_MIRROR`（`/root/10-auth-box` 已对齐 `release-uiux-20260218T042527Z@850c226`，证据见 `vps_release_sync_assertion.txt`）
+- VPS 运行态尝试：已执行并出于安全原因回滚（公网端口暴露风险）；当前保留 `PASS_CODE_MIRROR` 结论。

@@ -992,3 +992,14 @@ AuditEvent {
   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_scp_bundle.txt`
   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_prod_repo_sync_from_bundle.txt`
   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_release_sync_assertion.txt`
+
+## 2026-02-18T06:40:00Z（VPS Runtime Attempt + Rollback）
+- 尝试在 `vps-prod` 启动 compose 运行态验证；API health 在尝试期间返回 200。
+- 风险发现：override 未覆盖原 ports，导致服务暴露到 `0.0.0.0`。
+- 处理：立即执行 `docker compose down -v`，端口验证已清空。
+- 证据：
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_deploy_vps-prod.txt`
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_deploy_vps-prod_retry.txt`
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_deploy_vps-prod_retry2.txt`
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_rollback_vps-prod.txt`
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_attempt_summary.txt`

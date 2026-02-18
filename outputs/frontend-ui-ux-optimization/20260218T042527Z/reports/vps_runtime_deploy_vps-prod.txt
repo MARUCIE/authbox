@@ -1,0 +1,543 @@
+deploy_started_utc=2026-02-18T06:37:08Z
+ Image redis:7 Pulling 
+ Image postgres:16 Pulling 
+ 672b38b519e3 Pulling fs layer 
+ 4a4ffd5284ad Pulling fs layer 
+ 0c8d55a45c0d Pulling fs layer 
+ 3e9da9a39d38 Pulling fs layer 
+ 006e4628b174 Pulling fs layer 
+ 11c7e7ae7017 Pulling fs layer 
+ 023a0ad09ee9 Pulling fs layer 
+ 4e9ec76c49bc Pulling fs layer 
+ 293fe20c06d4 Pulling fs layer 
+ 98b8196d5fac Pulling fs layer 
+ 453125fb7241 Pulling fs layer 
+ ce80fc5ff389 Pulling fs layer 
+ 646fe7da0dff Pulling fs layer 
+ 05469d57f587 Pulling fs layer 
+ c5761dea9b0e Pulling fs layer 
+ 4831516dd0cb Pulling fs layer 
+ 47a60771af96 Pulling fs layer 
+ 7b28be0c8c4d Pulling fs layer 
+ bbf018d6d4b8 Pulling fs layer 
+ 4f4fb700ef54 Pulling fs layer 
+ edcaff0d5e7e Pulling fs layer 
+ 22dca8215bc4 Pulling fs layer 
+ 4f4fb700ef54 Already exists 
+ d272ffb22f04 Download complete 
+ 4a4ffd5284ad Download complete 
+ 6b07fc76fde1 Downloading [=========>                                         ]  1.049MB/5.709MB
+ 006e4628b174 Downloading [==================================================>]  1.173kB/1.173kB
+ e7da101a9486 Download complete 
+ 6b07fc76fde1 Downloading [=========>                                         ]  1.049MB/5.709MB
+ 006e4628b174 Download complete 
+ c5761dea9b0e Download complete 
+ 11c7e7ae7017 Downloading [======>                                            ]  1.049MB/8.204MB
+ 6b07fc76fde1 Downloading [=========>                                         ]  1.049MB/5.709MB
+ 11c7e7ae7017 Downloading [======>                                            ]  1.049MB/8.204MB
+ 6b07fc76fde1 Downloading [==================>                                ]  2.097MB/5.709MB
+ 47a60771af96 Download complete 
+ 98b8196d5fac Download complete 
+ 453125fb7241 Download complete 
+ 0c8d55a45c0d Downloading [=>                                                 ]  1.049MB/29.78MB
+ 4e9ec76c49bc Download complete 
+ 672b38b519e3 Downloading [========>                                          ]  1.049MB/6.438MB
+ 7b28be0c8c4d Download complete 
+ bbf018d6d4b8 Download complete 
+ c4cc93acbec6 Downloading [======================>                            ]  1.049MB/2.377MB
+ 11c7e7ae7017 Downloading [======>                                            ]  1.049MB/8.204MB
+ 05469d57f587 Downloading [>                                                  ]  1.049MB/113.1MB
+ 6b07fc76fde1 Downloading [==================>                                ]  2.097MB/5.709MB
+ 293fe20c06d4 Download complete 
+ ce80fc5ff389 Download complete 
+ 646fe7da0dff Download complete 
+ 0c8d55a45c0d Downloading [=>                                                 ]  1.049MB/29.78MB
+ 3e9da9a39d38 Downloading [==================================================>]  1.257MB/1.257MB
+ 672b38b519e3 Downloading [========>                                          ]  1.049MB/6.438MB
+ c4cc93acbec6 Downloading [======================>                            ]  1.049MB/2.377MB
+ 4831516dd0cb Downloading [=>                                                 ]  1.049MB/28.23MB
+ edcaff0d5e7e Downloading [====================================>              ]  1.049MB/1.438MB
+ 22dca8215bc4 Downloading [===>                                               ]  1.049MB/15.35MB
+ c4cc93acbec6 Downloading [============================================>      ]  2.097MB/2.377MB
+ 4831516dd0cb Downloading [=>                                                 ]  1.049MB/28.23MB
+ 023a0ad09ee9 Download complete 
+ 0c8d55a45c0d Downloading [===>                                               ]  2.097MB/29.78MB
+ 3e9da9a39d38 Download complete 
+ 672b38b519e3 Downloading [================>                                  ]  2.097MB/6.438MB
+ 11c7e7ae7017 Downloading [===================>                               ]  3.146MB/8.204MB
+ 05469d57f587 Downloading [>                                                  ]  2.097MB/113.1MB
+ 6b07fc76fde1 Downloading [===========================>                       ]  3.146MB/5.709MB
+ edcaff0d5e7e Download complete 
+ 22dca8215bc4 Downloading [===>                                               ]  1.049MB/15.35MB
+ c4cc93acbec6 Download complete 
+ 4831516dd0cb Downloading [===>                                               ]  2.097MB/28.23MB
+ 11c7e7ae7017 Downloading [=========================>                         ]  4.194MB/8.204MB
+ 22dca8215bc4 Downloading [======>                                            ]  2.097MB/15.35MB
+ 4831516dd0cb Downloading [=====>                                             ]  3.146MB/28.23MB
+ 05469d57f587 Downloading [=>                                                 ]  3.146MB/113.1MB
+ 6b07fc76fde1 Downloading [=============================================>     ]  5.243MB/5.709MB
+ 0c8d55a45c0d Downloading [=======>                                           ]  4.194MB/29.78MB
+ 672b38b519e3 Downloading [================================>                  ]  4.194MB/6.438MB
+ 22dca8215bc4 Downloading [==========>                                        ]  3.146MB/15.35MB
+ 4831516dd0cb Downloading [=======>                                           ]  4.194MB/28.23MB
+ 05469d57f587 Downloading [==>                                                ]  5.243MB/113.1MB
+ 6b07fc76fde1 Download complete 
+ 0c8d55a45c0d Downloading [========>                                          ]  5.243MB/29.78MB
+ 672b38b519e3 Downloading [========================================>          ]  5.243MB/6.438MB
+ 11c7e7ae7017 Downloading [===============================>                   ]  5.243MB/8.204MB
+ 22dca8215bc4 Downloading [=============>                                     ]  4.194MB/15.35MB
+ 4831516dd0cb Downloading [=========>                                         ]  5.243MB/28.23MB
+ 672b38b519e3 Download complete 
+ 11c7e7ae7017 Downloading [======================================>            ]  6.291MB/8.204MB
+ 05469d57f587 Downloading [==>                                                ]  6.291MB/113.1MB
+ 0c8d55a45c0d Downloading [==========>                                        ]  6.291MB/29.78MB
+ 22dca8215bc4 Downloading [====================>                              ]  6.291MB/15.35MB
+ 4831516dd0cb Downloading [=============>                                     ]   7.34MB/28.23MB
+ 22dca8215bc4 Downloading [==============================>                    ]  9.437MB/15.35MB
+ 4831516dd0cb Downloading [================>                                  ]  9.437MB/28.23MB
+ 11c7e7ae7017 Download complete 
+ 05469d57f587 Downloading [====>                                              ]  9.437MB/113.1MB
+ 0c8d55a45c0d Downloading [===============>                                   ]  9.437MB/29.78MB
+ 4831516dd0cb Downloading [======================>                            ]  12.58MB/28.23MB
+ 22dca8215bc4 Downloading [=====================================>             ]  11.53MB/15.35MB
+ 0c8d55a45c0d Downloading [========================>                          ]  14.68MB/29.78MB
+ 05469d57f587 Downloading [======>                                            ]  14.68MB/113.1MB
+ 22dca8215bc4 Downloading [===============================================>   ]  14.68MB/15.35MB
+ 4831516dd0cb Downloading [==========================>                        ]  14.68MB/28.23MB
+ 22dca8215bc4 Download complete 
+ 4831516dd0cb Downloading [===============================>                   ]  17.83MB/28.23MB
+ 0c8d55a45c0d Downloading [=================================>                 ]  19.92MB/29.78MB
+ 05469d57f587 Downloading [=========>                                         ]  20.62MB/113.1MB
+ 4831516dd0cb Downloading [=====================================>             ]  20.97MB/28.23MB
+ 05469d57f587 Downloading [==========>                                        ]  23.07MB/113.1MB
+ 0c8d55a45c0d Downloading [====================================>              ]  22.02MB/29.78MB
+ 4831516dd0cb Downloading [==========================================>        ]  24.12MB/28.23MB
+ 4831516dd0cb Downloading [================================================>  ]  27.26MB/28.23MB
+ 0c8d55a45c0d Downloading [=============================================>     ]  27.26MB/29.78MB
+ 05469d57f587 Downloading [============>                                      ]  28.31MB/113.1MB
+ 4831516dd0cb Download complete 
+ 4831516dd0cb Extracting 1 s
+ 0c8d55a45c0d Download complete 
+ 05469d57f587 Downloading [==============>                                    ]  33.55MB/113.1MB
+ 4831516dd0cb Extracting 1 s
+ 4831516dd0cb Extracting 1 s
+ 0c8d55a45c0d Extracting 1 s
+ 05469d57f587 Downloading [=================>                                 ]   38.8MB/113.1MB
+ 4831516dd0cb Extracting 1 s
+ 0c8d55a45c0d Extracting 1 s
+ 05469d57f587 Downloading [===================>                               ]  42.99MB/113.1MB
+ 4831516dd0cb Extracting 1 s
+ 0c8d55a45c0d Extracting 1 s
+ 05469d57f587 Downloading [=====================>                             ]  48.23MB/113.1MB
+ 4831516dd0cb Extracting 1 s
+ 0c8d55a45c0d Extracting 1 s
+ 4831516dd0cb Extracting 1 s
+ 05469d57f587 Downloading [========================>                          ]  54.53MB/113.1MB
+ 4831516dd0cb Extracting 1 s
+ 0c8d55a45c0d Extracting 1 s
+ 05469d57f587 Downloading [=========================>                         ]  58.72MB/113.1MB
+ 4831516dd0cb Extracting 1 s
+ 4831516dd0cb Extracting 1 s
+ 0c8d55a45c0d Extracting 1 s
+ 05469d57f587 Downloading [===========================>                       ]  62.91MB/113.1MB
+ 4831516dd0cb Extracting 1 s
+ 0c8d55a45c0d Extracting 1 s
+ 05469d57f587 Downloading [=============================>                     ]  67.11MB/113.1MB
+ 4831516dd0cb Extracting 2 s
+ 4831516dd0cb Extracting 2 s
+ 0c8d55a45c0d Extracting 2 s
+ 05469d57f587 Downloading [================================>                  ]  74.45MB/113.1MB
+ 4831516dd0cb Extracting 2 s
+ 0c8d55a45c0d Extracting 2 s
+ 05469d57f587 Downloading [====================================>              ]  81.79MB/113.1MB
+ 4831516dd0cb Extracting 2 s
+ 0c8d55a45c0d Extracting 2 s
+ 4831516dd0cb Extracting 2 s
+ 05469d57f587 Downloading [======================================>            ]  85.98MB/113.1MB
+ 4831516dd0cb Extracting 2 s
+ 0c8d55a45c0d Extracting 2 s
+ 05469d57f587 Downloading [=========================================>         ]  93.32MB/113.1MB
+ 4831516dd0cb Extracting 2 s
+ 4831516dd0cb Extracting 2 s
+ 0c8d55a45c0d Extracting 2 s
+ 05469d57f587 Downloading [===========================================>       ]  98.57MB/113.1MB
+ 4831516dd0cb Extracting 2 s
+ 0c8d55a45c0d Extracting 2 s
+ 4831516dd0cb Extracting 2 s
+ 05469d57f587 Downloading [=============================================>     ]  102.8MB/113.1MB
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 2 s
+ 05469d57f587 Downloading [===============================================>   ]    108MB/113.1MB
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 3 s
+ 05469d57f587 Download complete 
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 3 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 4 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 4 s
+ 0c8d55a45c0d Extracting 3 s
+ 4831516dd0cb Extracting 4 s
+ 0c8d55a45c0d Extracting 4 s
+ 4831516dd0cb Extracting 4 s
+ 0c8d55a45c0d Extracting 4 s
+ 4831516dd0cb Extracting 4 s
+ 0c8d55a45c0d Extracting 4 s
+ 4831516dd0cb Extracting 4 s
+ 0c8d55a45c0d Extracting 4 s
+ 4831516dd0cb Extracting 4 s
+ 4831516dd0cb Pull complete 
+ 0c8d55a45c0d Extracting 4 s
+ 47a60771af96 Pull complete 
+ 006e4628b174 Pull complete 
+ 672b38b519e3 Extracting 1 s
+ 0c8d55a45c0d Pull complete 
+ 7b28be0c8c4d Pull complete 
+ edcaff0d5e7e Extracting 1 s
+ 672b38b519e3 Extracting 1 s
+ edcaff0d5e7e Pull complete 
+ 22dca8215bc4 Extracting 1 s
+ 672b38b519e3 Extracting 1 s
+ 22dca8215bc4 Extracting 1 s
+ 672b38b519e3 Extracting 1 s
+ 22dca8215bc4 Extracting 1 s
+ 672b38b519e3 Extracting 1 s
+ 22dca8215bc4 Extracting 1 s
+ 672b38b519e3 Extracting 1 s
+ 22dca8215bc4 Extracting 1 s
+ 672b38b519e3 Pull complete 
+ 22dca8215bc4 Extracting 1 s
+ 3e9da9a39d38 Extracting 1 s
+ 22dca8215bc4 Extracting 1 s
+ 3e9da9a39d38 Extracting 1 s
+ 22dca8215bc4 Extracting 1 s
+ 3e9da9a39d38 Pull complete 
+ 11c7e7ae7017 Extracting 1 s
+ 22dca8215bc4 Extracting 1 s
+ 11c7e7ae7017 Extracting 1 s
+ 22dca8215bc4 Extracting 1 s
+ 11c7e7ae7017 Extracting 1 s
+ 22dca8215bc4 Extracting 2 s
+ 11c7e7ae7017 Extracting 1 s
+ 22dca8215bc4 Extracting 2 s
+ 11c7e7ae7017 Extracting 1 s
+ 22dca8215bc4 Extracting 2 s
+ 11c7e7ae7017 Extracting 1 s
+ 22dca8215bc4 Extracting 2 s
+ 11c7e7ae7017 Extracting 1 s
+ 22dca8215bc4 Extracting 2 s
+ 11c7e7ae7017 Extracting 1 s
+ 22dca8215bc4 Pull complete 
+ 11c7e7ae7017 Extracting 1 s
+ 4f4fb700ef54 Pull complete 
+ c5761dea9b0e Extracting 1 s
+ bbf018d6d4b8 Pull complete 
+ 023a0ad09ee9 Extracting 1 s
+ 11c7e7ae7017 Pull complete 
+ c5761dea9b0e Pull complete 
+ 023a0ad09ee9 Pull complete 
+ Image redis:7 Pulled 
+ 98b8196d5fac Pull complete 
+ 453125fb7241 Pull complete 
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 1 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 2 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 3 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 4 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 5 s
+ 05469d57f587 Extracting 6 s
+ 05469d57f587 Extracting 6 s
+ 05469d57f587 Pull complete 
+ 4e9ec76c49bc Pull complete 
+ 293fe20c06d4 Pull complete 
+ ce80fc5ff389 Pull complete 
+ 4a4ffd5284ad Pull complete 
+ 646fe7da0dff Pull complete 
+ Image postgres:16 Pulled 
+ Image 10-auth-box-api Building 
+ Image 10-auth-box-console Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 945B done
+#1 DONE 0.0s
+
+#2 [api internal] load build definition from Dockerfile
+#2 transferring dockerfile: 409B 0.0s done
+#2 DONE 0.1s
+
+#3 [console internal] load build definition from Dockerfile
+#3 transferring dockerfile: 218B 0.0s done
+#3 DONE 0.1s
+
+#4 [api internal] load metadata for docker.io/library/alpine:3.19
+#4 DONE 0.1s
+
+#5 [console internal] load metadata for docker.io/library/node:20-alpine
+#5 DONE 0.1s
+
+#6 [console internal] load .dockerignore
+#6 transferring context:
+#6 transferring context: 2B done
+#6 DONE 0.0s
+
+#7 [console internal] load build context
+#7 transferring context: 8.23MB 0.3s done
+#7 DONE 0.3s
+
+#8 [console 1/5] FROM docker.io/library/node:20-alpine@sha256:09e2b3d9726018aecf269bd35325f46bf75046a643a66d28360ec71132750ec8
+#8 resolve docker.io/library/node:20-alpine@sha256:09e2b3d9726018aecf269bd35325f46bf75046a643a66d28360ec71132750ec8 0.1s done
+#8 DONE 0.3s
+
+#9 [console 2/5] WORKDIR /app
+#9 DONE 0.1s
+
+#10 [api internal] load metadata for docker.io/library/golang:1.22-alpine
+#10 ...
+
+#11 [console 3/5] COPY package.json ./
+#11 DONE 0.1s
+
+#12 [console 4/5] RUN npm install
+#12 ...
+
+#10 [api internal] load metadata for docker.io/library/golang:1.22-alpine
+#10 DONE 2.1s
+
+#13 [api internal] load .dockerignore
+#13 transferring context: 2B done
+#13 DONE 0.0s
+
+#14 [api internal] load build context
+#14 DONE 0.0s
+
+#15 [api stage-1 1/3] FROM docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1
+#15 resolve docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1 0.1s done
+#15 DONE 0.1s
+
+#16 [api build 1/8] FROM docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052
+#16 resolve docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052 0.1s done
+#16 DONE 0.4s
+
+#14 [api internal] load build context
+#14 transferring context: 77.81kB 0.0s done
+#14 DONE 0.2s
+
+#17 [api stage-1 2/3] RUN adduser -D -g '' app
+#17 DONE 0.6s
+
+#16 [api build 1/8] FROM docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052
+#16 sha256:5f837c998576dcb54bc285997f33fcc2166dff6aa48fe3a374da92474efd5fe8 126B / 126B 0.2s done
+#16 sha256:4d75fd4b73869ed224045c010cdec78756eefb6752a5a8e4804294009eac11e9 290.82kB / 294.90kB 0.3s
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 0B / 69.36MB 0.2s
+#16 sha256:1f3e46996e2966e4faa5846e56e76e3748b7315e2ded61476c24403d592134f0 0B / 3.64MB 0.2s
+#16 sha256:4d75fd4b73869ed224045c010cdec78756eefb6752a5a8e4804294009eac11e9 294.90kB / 294.90kB 0.3s done
+#16 sha256:1f3e46996e2966e4faa5846e56e76e3748b7315e2ded61476c24403d592134f0 2.10MB / 3.64MB 0.6s
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 12.58MB / 69.36MB 0.8s
+#16 sha256:1f3e46996e2966e4faa5846e56e76e3748b7315e2ded61476c24403d592134f0 3.64MB / 3.64MB 0.6s done
+#16 extracting sha256:1f3e46996e2966e4faa5846e56e76e3748b7315e2ded61476c24403d592134f0
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 20.97MB / 69.36MB 0.9s
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 28.31MB / 69.36MB 1.1s
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 34.60MB / 69.36MB 1.2s
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 44.04MB / 69.36MB 1.4s
+#16 extracting sha256:1f3e46996e2966e4faa5846e56e76e3748b7315e2ded61476c24403d592134f0 0.6s done
+#16 extracting sha256:4d75fd4b73869ed224045c010cdec78756eefb6752a5a8e4804294009eac11e9
+#16 extracting sha256:4d75fd4b73869ed224045c010cdec78756eefb6752a5a8e4804294009eac11e9 0.2s done
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 52.43MB / 69.36MB 1.5s
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 59.77MB / 69.36MB 1.7s
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 68.10MB / 69.36MB 1.8s
+#16 sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 69.36MB / 69.36MB 1.8s done
+#16 extracting sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac
+#16 extracting sha256:afa154b433c7f72db064d19e1bcfa84ee196ad29120328f6bdb2c5fbd7b8eeac 6.0s done
+#16 DONE 8.3s
+
+#12 [console 4/5] RUN npm install
+#12 ...
+
+#16 [api build 1/8] FROM docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052
+#16 extracting sha256:5f837c998576dcb54bc285997f33fcc2166dff6aa48fe3a374da92474efd5fe8 0.0s done
+#16 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 0.0s done
+#16 DONE 8.3s
+
+#18 [api build 2/8] WORKDIR /src
+#18 DONE 0.1s
+
+#19 [api build 3/8] COPY go.mod .
+#19 DONE 0.1s
+
+#20 [api build 4/8] COPY go.sum .
+#20 DONE 0.1s
+
+#12 [console 4/5] RUN npm install
+#12 ...
+
+#21 [api build 5/8] COPY cmd ./cmd
+#21 DONE 0.1s
+
+#22 [api build 6/8] COPY internal ./internal
+#22 DONE 0.2s
+
+#12 [console 4/5] RUN npm install
+#12 ...
+
+#23 [api build 7/8] RUN go mod download
+#23 DONE 0.9s
+
+#12 [console 4/5] RUN npm install
+#12 ...
+
+#24 [api build 8/8] RUN CGO_ENABLED=0 go build -o /out/auth-box-api ./cmd/api
+#24 ...
+
+#12 [console 4/5] RUN npm install
+#12 32.26 npm warn deprecated next@14.2.5: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details.
+#12 32.36 
+#12 32.36 added 26 packages, and audited 27 packages in 31s
+#12 32.36 
+#12 32.36 3 packages are looking for funding
+#12 32.37   run `npm fund` for details
+#12 32.60 
+#12 32.60 1 critical severity vulnerability
+#12 32.60 
+#12 32.60 To address all issues, run:
+#12 32.60   npm audit fix --force
+#12 32.60 
+#12 32.60 Run `npm audit` for details.
+#12 32.61 npm notice
+#12 32.61 npm notice New major version of npm available! 10.8.2 -> 11.10.0
+#12 32.61 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.10.0
+#12 32.61 npm notice To update run: npm install -g npm@11.10.0
+#12 32.61 npm notice
+#12 DONE 32.9s
+
+#24 [api build 8/8] RUN CGO_ENABLED=0 go build -o /out/auth-box-api ./cmd/api
+#24 ...
+
+#25 [console 5/5] COPY . .
+#25 DONE 0.7s
+
+#24 [api build 8/8] RUN CGO_ENABLED=0 go build -o /out/auth-box-api ./cmd/api
+#24 ...
+
+#26 [console] exporting to image
+#26 exporting layers
+#26 ...
+
+#24 [api build 8/8] RUN CGO_ENABLED=0 go build -o /out/auth-box-api ./cmd/api
+#24 DONE 52.4s
+
+#27 [api stage-1 3/3] COPY --from=build /out/auth-box-api /usr/local/bin/auth-box-api
+#27 DONE 0.1s
+
+#26 [console] exporting to image
+#26 ...
+
+#28 [api] exporting to image
+#28 exporting layers
+#28 exporting layers 0.9s done
+#28 exporting manifest sha256:255c12d67f377b416f17ed1fee70f90410fab2dbdce2767abe8c5e423b49592f
+#28 exporting manifest sha256:255c12d67f377b416f17ed1fee70f90410fab2dbdce2767abe8c5e423b49592f 0.0s done
+#28 exporting config sha256:7704102a1920dfbe2b51dc6bf853b30b5975e7c748f111ae24078db80a2cbd39 0.0s done
+#28 exporting attestation manifest sha256:beab9d2cec5fd6f859959b3f0ecf4b386853261cae5b018215df853980dfd502 0.0s done
+#28 exporting manifest list sha256:354d98e0d57c617f85ab44f17f800cbe0c3b47a9da1bde2c070287dc6b450e2e
+#28 exporting manifest list sha256:354d98e0d57c617f85ab44f17f800cbe0c3b47a9da1bde2c070287dc6b450e2e 0.0s done
+#28 naming to docker.io/library/10-auth-box-api:latest done
+#28 unpacking to docker.io/library/10-auth-box-api:latest
+#28 unpacking to docker.io/library/10-auth-box-api:latest 0.3s done
+#28 DONE 1.5s
+
+#26 [console] exporting to image
+#26 ...
+
+#29 [api] resolving provenance for metadata file
+#29 DONE 0.1s
+
+#26 [console] exporting to image
+#26 exporting layers 37.6s done
+#26 exporting manifest sha256:dbf96de972ccc0a23d58b10394c3f2839d9cce685af208e15a4b30ad887ddaae 0.0s done
+#26 exporting config sha256:a0ba99cbb780b29118bbdb65b207ee3c85fa5129461aa5b51a8e49f6574dca66 0.0s done
+#26 exporting attestation manifest sha256:2f6a9b7a81026cb3c559cbabcb2c3c53e52f713e77f8027e6421d7fc5646761d 0.0s done
+#26 exporting manifest list sha256:aec117f437997899afb472e9f1e07f2d9dfe28e2ee47ce9d9b937fae8e8f4aa6 0.0s done
+#26 naming to docker.io/library/10-auth-box-console:latest
+#26 naming to docker.io/library/10-auth-box-console:latest done
+#26 unpacking to docker.io/library/10-auth-box-console:latest
+#26 unpacking to docker.io/library/10-auth-box-console:latest 5.8s done
+#26 DONE 43.7s
+
+#30 [console] resolving provenance for metadata file
+#30 DONE 0.0s
+ Image 10-auth-box-api Built 
+ Image 10-auth-box-console Built 
+ Network 10-auth-box_default Creating 
+ Network 10-auth-box_default Created 
+ Volume 10-auth-box_postgres_data Creating 
+ Volume 10-auth-box_postgres_data Created 
+ Container 10-auth-box-postgres Creating 
+ Container 10-auth-box-redis Creating 
+ Container 10-auth-box-redis Created 
+ Container 10-auth-box-postgres Created 
+ Container 10-auth-box-api Creating 
+ Container 10-auth-box-api Created 
+ Container 10-auth-box-console Creating 
+ Container 10-auth-box-console Created 
+ Container 10-auth-box-postgres Starting 
+ Container 10-auth-box-redis Starting 
+Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint 10-auth-box-redis (661003f33f1663b7b156a4f699cf12bc823488df48899f2a296910562f16efb4): failed to bind host port 127.0.0.1:6310/tcp: address already in use
+deploy_exit_code=1

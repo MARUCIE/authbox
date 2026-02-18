@@ -1,0 +1,164 @@
+deploy_retry_started_utc=2026-02-18T06:39:06Z
+ Container 10-auth-box-console Stopping 
+ Container 10-auth-box-console Stopped 
+ Container 10-auth-box-console Removing 
+ Container 10-auth-box-console Removed 
+ Container 10-auth-box-api Stopping 
+ Container 10-auth-box-api Stopped 
+ Container 10-auth-box-api Removing 
+ Container 10-auth-box-api Removed 
+ Container 10-auth-box-redis Stopping 
+ Container 10-auth-box-postgres Stopping 
+ Container 10-auth-box-redis Stopped 
+ Container 10-auth-box-redis Removing 
+ Container 10-auth-box-postgres Stopped 
+ Container 10-auth-box-postgres Removing 
+ Container 10-auth-box-redis Removed 
+ Container 10-auth-box-postgres Removed 
+ Volume 10-auth-box_postgres_data Removing 
+ Network 10-auth-box_default Removing 
+ Volume 10-auth-box_postgres_data Removed 
+ Network 10-auth-box_default Removed 
+ Image 10-auth-box-api Building 
+ Image 10-auth-box-console Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 945B done
+#1 DONE 0.0s
+
+#2 [api internal] load build definition from Dockerfile
+#2 transferring dockerfile: 409B done
+#2 DONE 0.0s
+
+#3 [console internal] load build definition from Dockerfile
+#3 transferring dockerfile: 218B done
+#3 DONE 0.0s
+
+#4 [api internal] load metadata for docker.io/library/alpine:3.19
+#4 DONE 0.0s
+
+#5 [console internal] load metadata for docker.io/library/node:20-alpine
+#5 DONE 0.0s
+
+#6 [console internal] load .dockerignore
+#6 transferring context: 2B done
+#6 DONE 0.0s
+
+#7 [api internal] load metadata for docker.io/library/golang:1.22-alpine
+#7 ...
+
+#8 [console internal] load build context
+#8 transferring context: 11.49kB 0.0s done
+#8 DONE 0.0s
+
+#9 [console 1/5] FROM docker.io/library/node:20-alpine@sha256:09e2b3d9726018aecf269bd35325f46bf75046a643a66d28360ec71132750ec8
+#9 resolve docker.io/library/node:20-alpine@sha256:09e2b3d9726018aecf269bd35325f46bf75046a643a66d28360ec71132750ec8 0.0s done
+#9 DONE 0.0s
+
+#10 [console 2/5] WORKDIR /app
+#10 CACHED
+
+#11 [console 3/5] COPY package.json ./
+#11 CACHED
+
+#12 [console 4/5] RUN npm install
+#12 CACHED
+
+#13 [console 5/5] COPY . .
+#13 CACHED
+
+#14 [console] exporting to image
+#14 exporting layers done
+#14 exporting manifest sha256:dbf96de972ccc0a23d58b10394c3f2839d9cce685af208e15a4b30ad887ddaae done
+#14 exporting config sha256:a0ba99cbb780b29118bbdb65b207ee3c85fa5129461aa5b51a8e49f6574dca66 done
+#14 exporting attestation manifest sha256:f015e12030559bc0ed558f6c17a25830044219b98b95b91ca171435fb8c26ded 0.0s done
+#14 exporting manifest list sha256:419e5a6107780f493877aa1145a0408beba60c22f9a824e5b45591a23ba95b0a 0.0s done
+#14 naming to docker.io/library/10-auth-box-console:latest done
+#14 unpacking to docker.io/library/10-auth-box-console:latest 0.0s done
+#14 DONE 0.2s
+
+#7 [api internal] load metadata for docker.io/library/golang:1.22-alpine
+#7 ...
+
+#15 [console] resolving provenance for metadata file
+#15 DONE 0.0s
+
+#7 [api internal] load metadata for docker.io/library/golang:1.22-alpine
+#7 DONE 0.6s
+
+#16 [api internal] load .dockerignore
+#16 transferring context: 2B done
+#16 DONE 0.0s
+
+#17 [api stage-1 1/3] FROM docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1
+#17 resolve docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1 0.0s done
+#17 DONE 0.0s
+
+#18 [api build 1/8] FROM docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052
+#18 resolve docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052 0.0s done
+#18 DONE 0.0s
+
+#19 [api internal] load build context
+#19 transferring context: 1.62kB done
+#19 DONE 0.0s
+
+#20 [api stage-1 2/3] RUN adduser -D -g '' app
+#20 CACHED
+
+#21 [api build 8/8] RUN CGO_ENABLED=0 go build -o /out/auth-box-api ./cmd/api
+#21 CACHED
+
+#22 [api build 7/8] RUN go mod download
+#22 CACHED
+
+#23 [api build 2/8] WORKDIR /src
+#23 CACHED
+
+#24 [api build 3/8] COPY go.mod .
+#24 CACHED
+
+#25 [api build 5/8] COPY cmd ./cmd
+#25 CACHED
+
+#26 [api build 4/8] COPY go.sum .
+#26 CACHED
+
+#27 [api build 6/8] COPY internal ./internal
+#27 CACHED
+
+#28 [api stage-1 3/3] COPY --from=build /out/auth-box-api /usr/local/bin/auth-box-api
+#28 CACHED
+
+#29 [api] exporting to image
+#29 exporting layers done
+#29 exporting manifest sha256:255c12d67f377b416f17ed1fee70f90410fab2dbdce2767abe8c5e423b49592f done
+#29 exporting config sha256:7704102a1920dfbe2b51dc6bf853b30b5975e7c748f111ae24078db80a2cbd39 done
+#29 exporting attestation manifest sha256:63d1ed5cd46422faabfa76c2fde69af7793583dac23531391f26bb3b9c8ee7a3
+#29 exporting attestation manifest sha256:63d1ed5cd46422faabfa76c2fde69af7793583dac23531391f26bb3b9c8ee7a3 0.0s done
+#29 exporting manifest list sha256:f83361f734c002c128755ed953e3e514a172b17b2f69554d970cb186ef19a3f2 0.0s done
+#29 naming to docker.io/library/10-auth-box-api:latest done
+#29 unpacking to docker.io/library/10-auth-box-api:latest 0.0s done
+#29 DONE 0.1s
+
+#30 [api] resolving provenance for metadata file
+#30 DONE 0.0s
+ Image 10-auth-box-console Built 
+ Image 10-auth-box-api Built 
+ Network 10-auth-box_default Creating 
+ Network 10-auth-box_default Created 
+ Volume 10-auth-box_postgres_data Creating 
+ Volume 10-auth-box_postgres_data Created 
+ Container 10-auth-box-redis Creating 
+ Container 10-auth-box-postgres Creating 
+ Container 10-auth-box-redis Created 
+ Container 10-auth-box-postgres Created 
+ Container 10-auth-box-api Creating 
+ Container 10-auth-box-api Created 
+ Container 10-auth-box-console Creating 
+ Container 10-auth-box-console Created 
+ Container 10-auth-box-postgres Starting 
+ Container 10-auth-box-redis Starting 
+ Container 10-auth-box-redis Started 
+ Container 10-auth-box-postgres Started 
+ Container 10-auth-box-api Starting 
+Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint 10-auth-box-api (9d52e0bf7615083bb802d9513b496173c1edce48bdfc18fdc9b351144c9ac734): failed to bind host port 127.0.0.1:4010/tcp: address already in use
+deploy_retry_exit_code=1

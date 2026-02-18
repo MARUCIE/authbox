@@ -1,0 +1,24 @@
+rollback_started_utc=2026-02-18T06:39:36Z
+ Container 10-auth-box-console Stopping 
+ Container 10-auth-box-console Stopped 
+ Container 10-auth-box-console Removing 
+ Container 10-auth-box-console Removed 
+ Container 10-auth-box-api Stopping 
+ Container 10-auth-box-api Stopped 
+ Container 10-auth-box-api Removing 
+ Container 10-auth-box-api Removed 
+ Container 10-auth-box-postgres Stopping 
+ Container 10-auth-box-redis Stopping 
+ Container 10-auth-box-redis Stopped 
+ Container 10-auth-box-redis Removing 
+ Container 10-auth-box-postgres Stopped 
+ Container 10-auth-box-postgres Removing 
+ Container 10-auth-box-redis Removed 
+ Container 10-auth-box-postgres Removed 
+ Volume 10-auth-box_postgres_data Removing 
+ Network 10-auth-box_default Removing 
+ Volume 10-auth-box_postgres_data Removed 
+ Network 10-auth-box_default Removed 
+post_down_ports_begin
+post_down_ports_end
+rollback_exit_code=0

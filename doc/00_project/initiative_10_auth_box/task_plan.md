@@ -671,3 +671,8 @@ LastUpdated: 2026-02-18
   - 对齐提交：`850c226`（release tag 目标提交）
   - 断言：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_release_sync_assertion.txt`（PASS）
 - 三端一致性更新：`vps_consistency=PASS_CODE_MIRROR`（运行态部署未执行）。
+
+## 决策记录（2026-02-18T06:40:00Z）
+- 运行态部署尝试已执行，但因 compose 合并后仍暴露公网端口（0.0.0.0:3010/4010/5410/6310）触发安全回滚。
+- 回滚结果：容器与端口已清理（见 `vps_runtime_rollback_vps-prod.txt`）。
+- 当前结论：VPS 保持 `PASS_CODE_MIRROR`，运行态状态为 `ROLLED_BACK`。
