@@ -956,3 +956,7 @@ AuditEvent {
 - 三端一致性证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/three_end_consistency.txt`
   - local == GitHub: PASS
   - VPS: N/A（无可达目标）
+
+## 2026-02-18T05:52:00Z（Release Note）
+- 新增发布说明：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/release_note.md`
+- 当前 release commit 基线：`7b00ec6`

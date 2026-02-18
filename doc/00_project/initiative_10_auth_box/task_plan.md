@@ -645,3 +645,7 @@ LastUpdated: 2026-02-18
 - 三端一致性：
   - local vs GitHub：PASS（见 `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/three_end_consistency.txt`）
   - VPS：N/A（当前工作区未配置可达远端 VPS 目标）。
+
+## 决策记录（2026-02-18T05:52:00Z）
+- 发布收尾：新增 release note：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/release_note.md`。
+- 下一步：为本次 UI/UX 优化打 tag 并推送，标签证据落盘后回写 PDCA。
