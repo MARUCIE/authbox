@@ -1,0 +1,2 @@
+To https://github.com/MARUCIE/10-auth-box.git
+ * [new tag]         release-uiux-20260218T042527Z -> release-uiux-20260218T042527Z

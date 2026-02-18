@@ -649,3 +649,8 @@ LastUpdated: 2026-02-18
 ## 决策记录（2026-02-18T05:52:00Z）
 - 发布收尾：新增 release note：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/release_note.md`。
 - 下一步：为本次 UI/UX 优化打 tag 并推送，标签证据落盘后回写 PDCA。
+
+## 决策记录（2026-02-18T05:54:00Z）
+- 发布动作完成：`origin/main@850c226` 已推送。
+- 发布标签完成：`release-uiux-20260218T042527Z`（推送证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push_tag.txt`）。
+- 一致性复核：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/three_end_consistency.txt`（local==GitHub PASS，VPS N/A）。
