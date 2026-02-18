@@ -1,0 +1,58 @@
+[main 813b5cd] feat(console): optimize home CTA hierarchy and complete UI UX SOP evidence
+ Committer: Maurice Wen <mauricewen@MauricedeMacBook-Pro.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 53 files changed, 952 insertions(+), 30 deletions(-)
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/frontend_audit_assertion.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/frontend_audit_report.json
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/frontend_audit_summary.json
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/compare_hashicorp_vault_alternative.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/home.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/metrics_funnel_window_minutes_180_tenant_id_beta.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/platforms_new_source_frontend_audit_tenant_id_beta.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/product.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_baseline/compare_hashicorp_vault_alternative.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_baseline/home.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_baseline/platforms_new_source_frontend_audit_tenant_id_beta.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_baseline/product.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_regression_assertion.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/frontend_audit_assertion.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/frontend_audit_report.json
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/compare_hashicorp_vault_alternative.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/home.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/metrics_funnel_window_minutes_180_tenant_id_beta.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/platforms_new_source_frontend_audit_tenant_id_beta.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/product.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/visual_baseline/compare_hashicorp_vault_alternative.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/visual_baseline/home.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/visual_baseline/platforms_new_source_frontend_audit_tenant_id_beta.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/visual_baseline/product.png
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/scripts/frontend_audit.cjs
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/onecontext_search.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/event_onboarding_entry.json
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/event_onboarding_entry.response.json
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/event_onboarding_entry.status.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/event_public_cta_click.json
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/event_public_cta_click.response.json
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/event_public_cta_click.status.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_a_platform_new.html
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_a_platform_new.status.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_g_funnel_beta.json
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_g_funnel_beta.status.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_p0_home.html
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_p0_home.status.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_p0_product.html
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_p0_product.status.txt
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_p1_compare.html
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/journey_p1_compare.status.txt
+ create mode 100755 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/run_uxmap_round2.sh
+ create mode 100644 outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/uxmap_round2_assertion.txt
