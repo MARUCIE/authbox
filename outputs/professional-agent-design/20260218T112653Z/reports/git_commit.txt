@@ -1,0 +1,32 @@
+[main 20d59ab] docs(agent): add professional agent design and trigger routing config
+ Committer: Maurice Wen <mauricewen@MauricedeMacBook-Pro.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 29 files changed, 895 insertions(+), 5 deletions(-)
+ create mode 100644 configs/agent-router/professional-agent-routing.v1.json
+ create mode 100644 doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/ai_check_round1_final_status.txt
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/ai_check_round1_status.txt
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/cursor_ide_browser_metadata.json
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/design_doc_updates.diff
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/git_diff_stat_pre_commit.txt
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/git_status_pre_commit.txt
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/mcp_servers_snapshot.json
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/pipeline_checklist.txt
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/planning_with_files_registry.json
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/professional_agent_design_summary.md
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/round2_design_consistency_assertion.txt
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/run_meta.txt
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/skill_router_snapshot.md
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_detail.md
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_summary.txt
+ create mode 100644 outputs/professional-agent-design/20260218T112653Z/reports/workflow_router_registry.json
