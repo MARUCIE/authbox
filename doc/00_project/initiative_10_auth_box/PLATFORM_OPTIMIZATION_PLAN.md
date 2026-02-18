@@ -160,3 +160,39 @@ AuditEvent {
   - 报告：`outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_report.md`
   - 数据：`outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_summary.json`
 - 结论：PASS；未触发 Step 3 优化复测
+
+## SOP 优化专项：世界 SOTA 产品 SOP 基准迁移（2026-02-18）
+- Run：`outputs/sota-product-sop-research/20260218T064240Z`
+- 输入报告：
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/source_inventory.md`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
+
+### 优化目标
+1. 将当前发布流程升级为“风险分级驱动 + 双层门禁 + 观察窗口 + 指标阈值触发”闭环。
+2. 降低高风险变更回归泄漏率，并提升发布可审计性。
+
+### 实施阶段
+1. Phase A（治理定义）
+- 固化 P0/P1/P2 风险分类规则。
+- 固化 Layer A / Layer B 发布门禁检查项。
+
+2. Phase B（流程接入）
+- 将证据完整性校验接入发布前检查。
+- 引入 gatekeeper 签署记录。
+
+3. Phase C（观测与复盘）
+- 接入 24h/72h 观察窗口报告模板。
+- 阈值命中自动触发 postmortem。
+
+### KPI 与阈值（建议）
+- gate_pass_rate >= 95%
+- evidence_completeness_rate = 100%（P0 必须）
+- regression_escape_rate <= 2%（按月）
+- time_to_detect <= 30m（P0/P1）
+
+### 风险与缓解
+- 风险：门禁过严影响吞吐。
+- 缓解：按风险分级施加门禁，不一刀切。
+- 风险：指标形式化。
+- 缓解：每个指标绑定触发动作（回滚/冻结/补测）。

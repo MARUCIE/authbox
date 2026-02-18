@@ -676,3 +676,39 @@ LastUpdated: 2026-02-18
 - 运行态部署尝试已执行，但因 compose 合并后仍暴露公网端口（0.0.0.0:3010/4010/5410/6310）触发安全回滚。
 - 回滚结果：容器与端口已清理（见 `vps_runtime_rollback_vps-prod.txt`）。
 - 当前结论：VPS 保持 `PASS_CODE_MIRROR`，运行态状态为 `ROLLED_BACK`。
+
+## Changelog
+- 2026-02-18: ensured planning files exist. (reason: planning-with-files)
+
+## 决策记录（2026-02-18T06:46:27Z）
+- 启动 SOP：世界 SOTA 产品 SOP 调研（近 12 个月窗口，2025-02-18 至 2026-02-18）。
+- Run 证据目录：
+  - `outputs/sota-product-sop-research/20260218T064240Z`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/source_inventory.md`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
+- 样本策略：覆盖 7 个代表生态（OpenAI/Anthropic/DeepMind/Microsoft/GitHub/GitLab/Vercel），提炼流程步骤、角色、门禁、指标四维矩阵。
+- 本轮动作：先落证据后回写 PDCA（PRD/USER_EXPERIENCE_MAP/PLATFORM_OPTIMIZATION_PLAN）。
+
+## 决策记录（2026-02-18T06:48:03Z）
+- 已完成 Step 2/3/4：
+  - WebSearch/WebFetch 采样并沉淀来源清单（14 source / 7 ecosystem）。
+  - 输出 SOP 对比矩阵与差异分析（流程/角色/门禁/度量四维）。
+  - 输出可迁移清单与风险清单。
+- 已完成 PDCA 回写：
+  - `doc/00_project/initiative_10_auth_box/PRD.md`
+  - `doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md`
+  - `doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md`
+- 交付汇总：`outputs/sota-product-sop-research/20260218T064240Z/reports/benchmark_summary.md`
+
+## 决策记录（2026-02-18T06:48:40Z）
+- Task Closeout 已完成：
+  - deliverable 已补充本轮 closeout 条目。
+  - Rolling Ledger 已追加 REQ/PROMPT/Anti-Regression Q&A（SOTA SOP 调研）。
+- 本轮状态：completed（研究与文档交付范围内）。
+
+## 决策记录（2026-02-18T07:01:32Z）
+- DoD 验证完成：
+  - Round 1 `ai check --no-sbom`：PASS（`outputs/sota-product-sop-research/20260218T064240Z/logs/ai_check_round1.log`）
+  - Round 2 文档一致性人工模拟：PASS（`outputs/sota-product-sop-research/20260218T064240Z/reports/round2_doc_consistency_assertion.txt`）
+- 状态：本轮 SOTA SOP 调研任务进入可提交状态。

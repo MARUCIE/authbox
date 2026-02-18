@@ -208,3 +208,16 @@ Related:
   - post：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/frontend_audit_assertion.txt`
   - visual 断言：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_regression_assertion.txt`
 - 2026-02-18 UI/UX Round 2 证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（含 `primary_cta_count_home=1`）
+
+## Journey H: 发布门禁与观察闭环（SOP 治理新增，2026-02-18）
+| Step | 用户动作 | 系统响应 | 证据/产物 |
+|---|---|---|---|
+| H1 | 选择发布变更并提交发布申请 | 系统按风险规则打标（P0/P1/P2） | 风险分级记录 |
+| H2 | 触发自动化门禁 | 执行 Layer A（lint/type/test/build/security）并返回 gate 结果 | CI 报告 / Gate 断言 |
+| H3 | 查看并补齐发布证据包 | 系统校验 Layer B（风险清单、回归清单、签署记录、证据完整性） | `outputs/<sop-id>/<run-id>/` |
+| H4 | Gatekeeper 签署并发布 | 系统记录签署人与发布时间，进入观察窗口 | 发布日志 / 审计事件 |
+| H5 | 观察 24h/72h 指标 | 若超阈值触发回滚/冻结/补测并创建 postmortem | 观察报告 / postmortem 链接 |
+
+- Journey H 验证入口（本轮调研）：
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`

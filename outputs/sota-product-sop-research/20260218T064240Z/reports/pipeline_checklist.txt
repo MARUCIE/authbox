@@ -1,0 +1,5 @@
+step=1 planning-with-files verified
+step=2 web research completed
+step=3 matrix + transferability completed
+step=4 pdca docs updated
+step=5 evidence archived

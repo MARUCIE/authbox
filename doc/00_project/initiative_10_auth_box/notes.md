@@ -1003,3 +1003,31 @@ AuditEvent {
   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_deploy_vps-prod_retry2.txt`
   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_rollback_vps-prod.txt`
   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_attempt_summary.txt`
+
+# Logs
+- 2026-02-18: ensured planning files exist.
+
+## 2026-02-18T06:46:27Z（SOTA 产品 SOP 调研）
+- 窗口：2025-02-18 ~ 2026-02-18（UTC）
+- 来源与样本：见 `outputs/sota-product-sop-research/20260218T064240Z/reports/source_inventory.md`（14 个一手来源，7 个代表平台）
+- 对比矩阵：见 `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
+- 可迁移清单与风险：见 `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
+- 关键结论：
+  - SOTA SOP 共同趋势是“风险分级驱动 + 可阻断门禁 + 量化耐久性指标 + 发布后持续披露”。
+  - Frontier AI 更强调 capability threshold + safety case；Dev Platform 更强调 rulesets/checks/pipelines。
+
+## 2026-02-18T06:48:03Z（SOTA 调研收口）
+- 已完成文档回写（PRD/UX Map/Platform Plan）并与本轮证据目录对齐。
+- 证据根目录：`outputs/sota-product-sop-research/20260218T064240Z`
+- 备注：GitLab handbook 页面日期采用检索元数据（search snippet）近时更新信号，其他样本采用页面显式日期/更新时间。
+
+## 2026-02-18T06:48:40Z（Closeout）
+- 已在 deliverable 增补本轮 Task Closeout。
+- 已在 Rolling Ledger 增补 REQ/PROMPT/Q&A，便于后续复用与防回归检查。
+
+## 2026-02-18T07:01:32Z（DoD 验证）
+- Round 1：`ai check --no-sbom` PASS，run_dir=`/Users/mauricewen/AI-tools/outputs/check/20260218-070052-d7272a51`。
+- Round 2：文档一致性断言 PASS（PRD/UXMap/Platform Plan 章节与研究报告文件齐备）。
+- 证据：
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/ai_check_round1_status.txt`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/round2_doc_consistency_assertion.txt`

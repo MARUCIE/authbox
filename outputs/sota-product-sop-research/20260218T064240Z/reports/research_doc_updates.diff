@@ -1,0 +1,223 @@
+diff --git a/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md b/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
+index 68b246e..00deaae 100644
+--- a/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
++++ b/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
+@@ -160,3 +160,39 @@ AuditEvent {
+   - 报告：`outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_report.md`
+   - 数据：`outputs/performance-budget/20260213T050159Z/reports/benchmarks/benchmark_summary.json`
+ - 结论：PASS；未触发 Step 3 优化复测
++
++## SOP 优化专项：世界 SOTA 产品 SOP 基准迁移（2026-02-18）
++- Run：`outputs/sota-product-sop-research/20260218T064240Z`
++- 输入报告：
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/source_inventory.md`
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
++
++### 优化目标
++1. 将当前发布流程升级为“风险分级驱动 + 双层门禁 + 观察窗口 + 指标阈值触发”闭环。
++2. 降低高风险变更回归泄漏率，并提升发布可审计性。
++
++### 实施阶段
++1. Phase A（治理定义）
++- 固化 P0/P1/P2 风险分类规则。
++- 固化 Layer A / Layer B 发布门禁检查项。
++
++2. Phase B（流程接入）
++- 将证据完整性校验接入发布前检查。
++- 引入 gatekeeper 签署记录。
++
++3. Phase C（观测与复盘）
++- 接入 24h/72h 观察窗口报告模板。
++- 阈值命中自动触发 postmortem。
++
++### KPI 与阈值（建议）
++- gate_pass_rate >= 95%
++- evidence_completeness_rate = 100%（P0 必须）
++- regression_escape_rate <= 2%（按月）
++- time_to_detect <= 30m（P0/P1）
++
++### 风险与缓解
++- 风险：门禁过严影响吞吐。
++- 缓解：按风险分级施加门禁，不一刀切。
++- 风险：指标形式化。
++- 缓解：每个指标绑定触发动作（回滚/冻结/补测）。
+diff --git a/doc/00_project/initiative_10_auth_box/PRD.md b/doc/00_project/initiative_10_auth_box/PRD.md
+index 09e637e..8a1b775 100644
+--- a/doc/00_project/initiative_10_auth_box/PRD.md
++++ b/doc/00_project/initiative_10_auth_box/PRD.md
+@@ -236,3 +236,36 @@ MVP 采用 7 个核心对象：
+   - network/console/performance：PASS（post）
+   - visual regression：命中预期变更路由并通过断言（`visual_regression_assertion.txt`）
+   - `ai check --no-sbom`：PASS（`outputs/frontend-ui-ux-optimization/20260218T042527Z/logs/ai_check.log`）
++
++## SOP：世界 SOTA 产品/平台发布流程基准调研（2026-02-18）
++- 调研窗口：2025-02-18 ~ 2026-02-18（UTC）。
++- 样本：OpenAI / Anthropic / Google DeepMind / Microsoft / GitHub / GitLab / Vercel。
++- 证据：`outputs/sota-product-sop-research/20260218T064240Z/reports/`。
++
++### 新增产品需求（SOP 治理能力）
++1. 发布风险分级（P0/P1/P2）
++- P0：auth/session/secret/permission/data export 变更，必须双层门禁 + 人工签署。
++- P1：关键路径功能（核心 UI/API），必须自动门禁 + 抽样人工复核。
++- P2：低风险改动，走标准 CI + smoke。
++
++2. 双层发布门禁
++- Layer A（Pipeline Gate）：lint/type/test/build/security scan 全绿。
++- Layer B（Release Gate）：风险清单、回归清单、证据包完整性、签署记录。
++
++3. 发布后观察窗口
++- 固定 24h/72h 观察窗口；触发阈值时自动进入回滚/冻结/补测路径。
++
++4. 指标化治理（最小集）
++- gate_pass_rate
++- regression_escape_rate
++- time_to_detect / time_to_recover
++- error_budget_burn_rate
++- evidence_completeness_rate
++
++### 验收标准（新增）
++- 所有发布 run 必须生成 `outputs/<sop-id>/<run-id>/` 完整证据树。
++- P0 发布必须具备 gatekeeper 签署记录与 post-release 观察报告。
++- 指标阈值触发后，必须自动创建 postmortem 条目并回写问题库。
++
++### 备注（推断边界）
++- 本节为对 SOTA 样本流程的可迁移抽象，不是对任一厂商 SOP 的直接复制。
+diff --git a/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md b/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
+index 0049faa..be5334c 100644
+--- a/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
++++ b/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
+@@ -89,3 +89,20 @@ LastUpdated: 2026-02-13
+ | 症状：前端审计出现大量 404/500 与 `Cannot find module './xxx.js'`，是否代码引入回归？ | 根因多为 Next `.next` 缓存损坏或旧静态资源版本残留；先清理 `.next` 再复跑审计与 build。 |
+ | 修复与验证方法 | 执行 `rm -rf apps/console/.next` -> `npm run build` -> 重新启动服务并运行 frontend audit，确认 network/console/performance 通过。 |
+ | 防复发触发器 | 日志出现 `Cannot find module './*.js'`、`/_next/static/chunks/*.js 404` 时自动触发缓存清理与复测。 |
++
++## 2026-02-18 · REQ（SOTA SOP 调研）
++| id | requirement | scope | status | evidence |
++|---|---|---|---|---|
++| REQ-20260218-SOP-01 | 对近 12 个月世界 SOTA 产品/平台 SOP 做基准调研并形成可迁移清单 | `doc/00_project/initiative_10_auth_box/*` | done | `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md` |
++
++## 2026-02-18 · PROMPT（可复用）
++| id | prompt | notes |
++|---|---|---|
++| PROMPT-20260218-SOP-BENCH | "SOP：世界 SOTA 产品 SOP 调研，窗口近 12 个月，输出流程/角色/门禁/度量矩阵与可迁移风险" | 适用于流程治理与发布门禁升级任务 |
++
++## 2026-02-18 · Anti-Regression Q&A（SOP 调研）
++| Q | A |
++|---|---|
++| 症状：调研结论可读但无法审计复核 | 根因：缺少来源路径、日期窗口与证据目录统一规范 |
++| 修复与验证方法 | 强制产出 `source_inventory + matrix + transferability` 三件套，并写入 `outputs/<sop-id>/<run-id>/reports/` |
++| 防复发触发器 | 评审时若发现“无来源链接/无时间窗口/无证据目录”，直接判定不通过并返工 |
+diff --git a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+index bcde7a7..583a084 100644
+--- a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
++++ b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+@@ -208,3 +208,16 @@ Related:
+   - post：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/frontend_audit_assertion.txt`
+   - visual 断言：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_regression_assertion.txt`
+ - 2026-02-18 UI/UX Round 2 证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（含 `primary_cta_count_home=1`）
++
++## Journey H: 发布门禁与观察闭环（SOP 治理新增，2026-02-18）
++| Step | 用户动作 | 系统响应 | 证据/产物 |
++|---|---|---|---|
++| H1 | 选择发布变更并提交发布申请 | 系统按风险规则打标（P0/P1/P2） | 风险分级记录 |
++| H2 | 触发自动化门禁 | 执行 Layer A（lint/type/test/build/security）并返回 gate 结果 | CI 报告 / Gate 断言 |
++| H3 | 查看并补齐发布证据包 | 系统校验 Layer B（风险清单、回归清单、签署记录、证据完整性） | `outputs/<sop-id>/<run-id>/` |
++| H4 | Gatekeeper 签署并发布 | 系统记录签署人与发布时间，进入观察窗口 | 发布日志 / 审计事件 |
++| H5 | 观察 24h/72h 指标 | 若超阈值触发回滚/冻结/补测并创建 postmortem | 观察报告 / postmortem 链接 |
++
++- Journey H 验证入口（本轮调研）：
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
+diff --git a/doc/00_project/initiative_10_auth_box/deliverable.md b/doc/00_project/initiative_10_auth_box/deliverable.md
+index 28c673c..93eddc3 100644
+--- a/doc/00_project/initiative_10_auth_box/deliverable.md
++++ b/doc/00_project/initiative_10_auth_box/deliverable.md
+@@ -934,3 +934,20 @@ LastUpdated: 2026-02-13
+ - VPS Probe：`vps-prod` reachable but no identifiable 10-auth-box deployment; `vps-secondary` unreachable. 结论维持 VPS=N/A。
+ - VPS 代码镜像一致性：`PASS_CODE_MIRROR`（`/root/10-auth-box` 已对齐 `release-uiux-20260218T042527Z@850c226`，证据见 `vps_release_sync_assertion.txt`）
+ - VPS 运行态尝试：已执行并出于安全原因回滚（公网端口暴露风险）；当前保留 `PASS_CODE_MIRROR` 结论。
++
++## 2026-02-18 · 世界 SOTA 产品 SOP 调研（近 12 个月）
++- 交付范围：基于 7 个代表平台形成 SOP 对比矩阵、差异分析、可迁移清单与风险清单。
++- 证据目录：`outputs/sota-product-sop-research/20260218T064240Z`
++- 核心报告：
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/source_inventory.md`
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/benchmark_summary.md`
++- 主要结论：
++  - 建议将 10-auth-box 的发布 SOP 固化为“分级发布 + 双层门禁 + 角色签署 + 发布后观察窗口 + 指标阈值触发 postmortem”。
++- Task Closeout：
++  - Skills：N/A
++  - PDCA 四文档：已更新 `doc/00_project/initiative_10_auth_box/PRD.md`、`doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md`、`doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md`
++  - 底层规范（CLAUDE/AGENTS）：N/A
++  - Rolling Ledger：已更新 `doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md`
++  - 三端一致性：N/A（本轮为研究与文档更新，无代码发布动作）
+diff --git a/doc/00_project/initiative_10_auth_box/notes.md b/doc/00_project/initiative_10_auth_box/notes.md
+index d6340a7..d6348e9 100644
+--- a/doc/00_project/initiative_10_auth_box/notes.md
++++ b/doc/00_project/initiative_10_auth_box/notes.md
+@@ -1003,3 +1003,24 @@ AuditEvent {
+   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_deploy_vps-prod_retry2.txt`
+   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_rollback_vps-prod.txt`
+   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_attempt_summary.txt`
++
++# Logs
++- 2026-02-18: ensured planning files exist.
++
++## 2026-02-18T06:46:27Z（SOTA 产品 SOP 调研）
++- 窗口：2025-02-18 ~ 2026-02-18（UTC）
++- 来源与样本：见 `outputs/sota-product-sop-research/20260218T064240Z/reports/source_inventory.md`（14 个一手来源，7 个代表平台）
++- 对比矩阵：见 `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
++- 可迁移清单与风险：见 `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
++- 关键结论：
++  - SOTA SOP 共同趋势是“风险分级驱动 + 可阻断门禁 + 量化耐久性指标 + 发布后持续披露”。
++  - Frontier AI 更强调 capability threshold + safety case；Dev Platform 更强调 rulesets/checks/pipelines。
++
++## 2026-02-18T06:48:03Z（SOTA 调研收口）
++- 已完成文档回写（PRD/UX Map/Platform Plan）并与本轮证据目录对齐。
++- 证据根目录：`outputs/sota-product-sop-research/20260218T064240Z`
++- 备注：GitLab handbook 页面日期采用检索元数据（search snippet）近时更新信号，其他样本采用页面显式日期/更新时间。
++
++## 2026-02-18T06:48:40Z（Closeout）
++- 已在 deliverable 增补本轮 Task Closeout。
++- 已在 Rolling Ledger 增补 REQ/PROMPT/Q&A，便于后续复用与防回归检查。
+diff --git a/doc/00_project/initiative_10_auth_box/task_plan.md b/doc/00_project/initiative_10_auth_box/task_plan.md
+index 01654f7..bafc3d1 100644
+--- a/doc/00_project/initiative_10_auth_box/task_plan.md
++++ b/doc/00_project/initiative_10_auth_box/task_plan.md
+@@ -676,3 +676,33 @@ LastUpdated: 2026-02-18
+ - 运行态部署尝试已执行，但因 compose 合并后仍暴露公网端口（0.0.0.0:3010/4010/5410/6310）触发安全回滚。
+ - 回滚结果：容器与端口已清理（见 `vps_runtime_rollback_vps-prod.txt`）。
+ - 当前结论：VPS 保持 `PASS_CODE_MIRROR`，运行态状态为 `ROLLED_BACK`。
++
++## Changelog
++- 2026-02-18: ensured planning files exist. (reason: planning-with-files)
++
++## 决策记录（2026-02-18T06:46:27Z）
++- 启动 SOP：世界 SOTA 产品 SOP 调研（近 12 个月窗口，2025-02-18 至 2026-02-18）。
++- Run 证据目录：
++  - `outputs/sota-product-sop-research/20260218T064240Z`
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/source_inventory.md`
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
++  - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
++- 样本策略：覆盖 7 个代表生态（OpenAI/Anthropic/DeepMind/Microsoft/GitHub/GitLab/Vercel），提炼流程步骤、角色、门禁、指标四维矩阵。
++- 本轮动作：先落证据后回写 PDCA（PRD/USER_EXPERIENCE_MAP/PLATFORM_OPTIMIZATION_PLAN）。
++
++## 决策记录（2026-02-18T06:48:03Z）
++- 已完成 Step 2/3/4：
++  - WebSearch/WebFetch 采样并沉淀来源清单（14 source / 7 ecosystem）。
++  - 输出 SOP 对比矩阵与差异分析（流程/角色/门禁/度量四维）。
++  - 输出可迁移清单与风险清单。
++- 已完成 PDCA 回写：
++  - `doc/00_project/initiative_10_auth_box/PRD.md`
++  - `doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md`
++  - `doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md`
++- 交付汇总：`outputs/sota-product-sop-research/20260218T064240Z/reports/benchmark_summary.md`
++
++## 决策记录（2026-02-18T06:48:40Z）
++- Task Closeout 已完成：
++  - deliverable 已补充本轮 closeout 条目。
++  - Rolling Ledger 已追加 REQ/PROMPT/Anti-Regression Q&A（SOTA SOP 调研）。
++- 本轮状态：completed（研究与文档交付范围内）。

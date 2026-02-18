@@ -934,3 +934,23 @@ LastUpdated: 2026-02-13
 - VPS Probe：`vps-prod` reachable but no identifiable 10-auth-box deployment; `vps-secondary` unreachable. 结论维持 VPS=N/A。
 - VPS 代码镜像一致性：`PASS_CODE_MIRROR`（`/root/10-auth-box` 已对齐 `release-uiux-20260218T042527Z@850c226`，证据见 `vps_release_sync_assertion.txt`）
 - VPS 运行态尝试：已执行并出于安全原因回滚（公网端口暴露风险）；当前保留 `PASS_CODE_MIRROR` 结论。
+
+## 2026-02-18 · 世界 SOTA 产品 SOP 调研（近 12 个月）
+- 交付范围：基于 7 个代表平台形成 SOP 对比矩阵、差异分析、可迁移清单与风险清单。
+- 证据目录：`outputs/sota-product-sop-research/20260218T064240Z`
+- 核心报告：
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/source_inventory.md`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
+  - `outputs/sota-product-sop-research/20260218T064240Z/reports/benchmark_summary.md`
+- 主要结论：
+  - 建议将 10-auth-box 的发布 SOP 固化为“分级发布 + 双层门禁 + 角色签署 + 发布后观察窗口 + 指标阈值触发 postmortem”。
+- Task Closeout：
+  - Skills：N/A
+  - PDCA 四文档：已更新 `doc/00_project/initiative_10_auth_box/PRD.md`、`doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md`、`doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md`
+  - 底层规范（CLAUDE/AGENTS）：N/A
+  - Rolling Ledger：已更新 `doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md`
+  - 三端一致性：N/A（本轮为研究与文档更新，无代码发布动作）
+- 验收补充：
+  - Round 1 `ai check --no-sbom`：PASS（`outputs/sota-product-sop-research/20260218T064240Z/logs/ai_check_round1.log`）
+  - Round 2 文档一致性人工模拟：PASS（`outputs/sota-product-sop-research/20260218T064240Z/reports/round2_doc_consistency_assertion.txt`）

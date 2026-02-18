@@ -89,3 +89,20 @@ LastUpdated: 2026-02-13
 | 症状：前端审计出现大量 404/500 与 `Cannot find module './xxx.js'`，是否代码引入回归？ | 根因多为 Next `.next` 缓存损坏或旧静态资源版本残留；先清理 `.next` 再复跑审计与 build。 |
 | 修复与验证方法 | 执行 `rm -rf apps/console/.next` -> `npm run build` -> 重新启动服务并运行 frontend audit，确认 network/console/performance 通过。 |
 | 防复发触发器 | 日志出现 `Cannot find module './*.js'`、`/_next/static/chunks/*.js 404` 时自动触发缓存清理与复测。 |
+
+## 2026-02-18 · REQ（SOTA SOP 调研）
+| id | requirement | scope | status | evidence |
+|---|---|---|---|---|
+| REQ-20260218-SOP-01 | 对近 12 个月世界 SOTA 产品/平台 SOP 做基准调研并形成可迁移清单 | `doc/00_project/initiative_10_auth_box/*` | done | `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md` |
+
+## 2026-02-18 · PROMPT（可复用）
+| id | prompt | notes |
+|---|---|---|
+| PROMPT-20260218-SOP-BENCH | "SOP：世界 SOTA 产品 SOP 调研，窗口近 12 个月，输出流程/角色/门禁/度量矩阵与可迁移风险" | 适用于流程治理与发布门禁升级任务 |
+
+## 2026-02-18 · Anti-Regression Q&A（SOP 调研）
+| Q | A |
+|---|---|
+| 症状：调研结论可读但无法审计复核 | 根因：缺少来源路径、日期窗口与证据目录统一规范 |
+| 修复与验证方法 | 强制产出 `source_inventory + matrix + transferability` 三件套，并写入 `outputs/<sop-id>/<run-id>/reports/` |
+| 防复发触发器 | 评审时若发现“无来源链接/无时间窗口/无证据目录”，直接判定不通过并返工 |

@@ -236,3 +236,36 @@ MVP 采用 7 个核心对象：
   - network/console/performance：PASS（post）
   - visual regression：命中预期变更路由并通过断言（`visual_regression_assertion.txt`）
   - `ai check --no-sbom`：PASS（`outputs/frontend-ui-ux-optimization/20260218T042527Z/logs/ai_check.log`）
+
+## SOP：世界 SOTA 产品/平台发布流程基准调研（2026-02-18）
+- 调研窗口：2025-02-18 ~ 2026-02-18（UTC）。
+- 样本：OpenAI / Anthropic / Google DeepMind / Microsoft / GitHub / GitLab / Vercel。
+- 证据：`outputs/sota-product-sop-research/20260218T064240Z/reports/`。
+
+### 新增产品需求（SOP 治理能力）
+1. 发布风险分级（P0/P1/P2）
+- P0：auth/session/secret/permission/data export 变更，必须双层门禁 + 人工签署。
+- P1：关键路径功能（核心 UI/API），必须自动门禁 + 抽样人工复核。
+- P2：低风险改动，走标准 CI + smoke。
+
+2. 双层发布门禁
+- Layer A（Pipeline Gate）：lint/type/test/build/security scan 全绿。
+- Layer B（Release Gate）：风险清单、回归清单、证据包完整性、签署记录。
+
+3. 发布后观察窗口
+- 固定 24h/72h 观察窗口；触发阈值时自动进入回滚/冻结/补测路径。
+
+4. 指标化治理（最小集）
+- gate_pass_rate
+- regression_escape_rate
+- time_to_detect / time_to_recover
+- error_budget_burn_rate
+- evidence_completeness_rate
+
+### 验收标准（新增）
+- 所有发布 run 必须生成 `outputs/<sop-id>/<run-id>/` 完整证据树。
+- P0 发布必须具备 gatekeeper 签署记录与 post-release 观察报告。
+- 指标阈值触发后，必须自动创建 postmortem 条目并回写问题库。
+
+### 备注（推断边界）
+- 本节为对 SOTA 样本流程的可迁移抽象，不是对任一厂商 SOP 的直接复制。
