@@ -641,7 +641,7 @@ LastUpdated: 2026-02-18
 - 本轮新增门禁：`primary_cta_count_home=1`（首页单一主按钮）已通过。
 
 ## 决策记录（2026-02-18T05:48:30Z）
-- Git 交付闭环完成：已提交并推送 `origin/main@813b5cd`。
+- Git 交付闭环完成：已提交并推送 `origin/main`（见 `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push.txt` 与 `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push_closeout.txt`）。
 - 三端一致性：
   - local vs GitHub：PASS（见 `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/three_end_consistency.txt`）
   - VPS：N/A（当前工作区未配置可达远端 VPS 目标）。

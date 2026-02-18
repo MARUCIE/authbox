@@ -926,5 +926,5 @@ LastUpdated: 2026-02-13
   - `npm run build` PASS
   - `ai check --no-sbom` PASS
 - Round 2（UX Map 人工模拟）PASS：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
-- GitHub 同步：`main@813b5cd`（推送证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push.txt`）
+- GitHub 同步：`origin/main`（推送证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push.txt`、`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push_closeout.txt`）
 - 三端一致性：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/three_end_consistency.txt`（GitHub PASS，VPS N/A）

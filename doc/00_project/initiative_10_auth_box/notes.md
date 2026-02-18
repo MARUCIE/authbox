@@ -951,8 +951,8 @@ AuditEvent {
   - 首页主按钮唯一性：`primary_cta_count_home=1`
 
 ## 2026-02-18T05:48:30Z（Git 与三端一致性）
-- 提交：`813b5cd feat(console): optimize home CTA hierarchy and complete UI UX SOP evidence`
-- 推送：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push.txt`
+- 提交：`feat(console): optimize home CTA hierarchy and complete UI UX SOP evidence`（见 `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_commit.txt`）
+- 推送：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push.txt`、`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push_closeout.txt`
 - 三端一致性证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/three_end_consistency.txt`
   - local == GitHub: PASS
   - VPS: N/A（无可达目标）
