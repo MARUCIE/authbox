@@ -1,0 +1,26 @@
+[main 33b53d0] docs(sop): add world-class product SOP benchmark and migration baseline
+ Committer: Maurice Wen <mauricewen@MauricedeMacBook-Pro.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 20 files changed, 579 insertions(+), 1 deletion(-)
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/ai_check_round1_status.txt
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/benchmark_summary.md
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/git_diff_stat_pre_commit.txt
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/git_status_after.txt
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/git_status_pre_commit.txt
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/pipeline_checklist.txt
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/research_doc_updates.diff
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/round2_doc_consistency_assertion.txt
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/run_meta.txt
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/source_inventory.md
+ create mode 100644 outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md
