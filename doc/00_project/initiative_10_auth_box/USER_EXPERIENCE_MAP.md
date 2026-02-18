@@ -3,7 +3,7 @@ Title: USER_EXPERIENCE_MAP - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-13
+LastUpdated: 2026-02-18
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -195,3 +195,16 @@ Related:
 - 关键事件：`PUBLIC_CTA_CLICK`、`ONBOARDING_ENTRY_VIEW`。
 - 结果：`outputs/project-regression/20260213T021241Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（overall.pass=PASS）。
 - E2E（real API + contract）PASS：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`。
+
+## Journey P0 UI/UX 层级优化（2026-02-18）
+| Step | 用户动作 | 系统响应 | 证据/产物 |
+|---|---|---|---|
+| P0-0 | 进入首页 `/` | 展示单一主按钮 `Start onboarding`，其余入口降级为次级链接 | `apps/console/app/page.tsx` |
+| P0-0.1 | 浏览首页分区 | 按 Hero 主叙事 -> Activation path -> Features/Use cases/Compare 的节奏阅读 | `apps/console/app/globals.css` |
+| P0-0.2 | 点击主按钮 | 进入 `/platforms/new?source=home_primary_cta&tenant_id=public`，写 `PUBLIC_CTA_CLICK` 事件 | `apps/console/components/public-event-tracker.tsx` |
+
+- 回归证据：
+  - pre：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/frontend_audit_assertion.txt`
+  - post：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/frontend_audit_assertion.txt`
+  - visual 断言：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_regression_assertion.txt`
+- 2026-02-18 UI/UX Round 2 证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（含 `primary_cta_count_home=1`）

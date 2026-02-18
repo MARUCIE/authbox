@@ -1,0 +1,169 @@
+{
+  "generated_at": "2026-02-18T04:28:20.208Z",
+  "base_url": "http://localhost:3310",
+  "checks": {
+    "network": {
+      "pass": true,
+      "failed_requests": [],
+      "failed_requests_ignored": [],
+      "http_errors": []
+    },
+    "console": {
+      "pass": true,
+      "errors": [],
+      "page_errors": []
+    },
+    "performance": {
+      "pass": true,
+      "warnings": [],
+      "pages": [
+        {
+          "route": "/",
+          "elapsed_ms": 3582,
+          "dom_content_loaded_ms": 1984.5,
+          "load_event_ms": 3076.7,
+          "response_end_ms": 1047.2,
+          "duration_ms": 3076.7,
+          "transfer_size": 5846
+        },
+        {
+          "route": "/product",
+          "elapsed_ms": 817,
+          "dom_content_loaded_ms": 100.5,
+          "load_event_ms": 299.3,
+          "response_end_ms": 97.1,
+          "duration_ms": 299.3,
+          "transfer_size": 4425
+        },
+        {
+          "route": "/compare/hashicorp-vault-alternative",
+          "elapsed_ms": 987,
+          "dom_content_loaded_ms": 271.2,
+          "load_event_ms": 466.3,
+          "response_end_ms": 268.2,
+          "duration_ms": 466.3,
+          "transfer_size": 4498
+        },
+        {
+          "route": "/platforms/new?source=frontend_audit&tenant_id=beta",
+          "elapsed_ms": 760,
+          "dom_content_loaded_ms": 149.5,
+          "load_event_ms": 346.2,
+          "response_end_ms": 146.5,
+          "duration_ms": 346.2,
+          "transfer_size": 4721
+        },
+        {
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "elapsed_ms": 714,
+          "dom_content_loaded_ms": 101.6,
+          "load_event_ms": 298,
+          "response_end_ms": 98.4,
+          "duration_ms": 298,
+          "transfer_size": 5497
+        }
+      ]
+    },
+    "visual_regression": {
+      "pass": true,
+      "baseline_created": [
+        "/",
+        "/product",
+        "/compare/hashicorp-vault-alternative",
+        "/platforms/new?source=frontend_audit&tenant_id=beta"
+      ],
+      "changed": [],
+      "unchanged": [],
+      "excluded_dynamic": [
+        "/metrics/funnel?window_minutes=180&tenant_id=beta"
+      ]
+    }
+  },
+  "pages": [
+    {
+      "route": "/",
+      "url": "http://localhost:3310/",
+      "navigation": {
+        "elapsed_ms": 3582,
+        "dom_content_loaded_ms": 1984.5,
+        "load_event_ms": 3076.7,
+        "response_end_ms": 1047.2,
+        "duration_ms": 3076.7,
+        "transfer_size": 5846
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/home.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [],
+      "response_errors": []
+    },
+    {
+      "route": "/product",
+      "url": "http://localhost:3310/product",
+      "navigation": {
+        "elapsed_ms": 817,
+        "dom_content_loaded_ms": 100.5,
+        "load_event_ms": 299.3,
+        "response_end_ms": 97.1,
+        "duration_ms": 299.3,
+        "transfer_size": 4425
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/product.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [],
+      "response_errors": []
+    },
+    {
+      "route": "/compare/hashicorp-vault-alternative",
+      "url": "http://localhost:3310/compare/hashicorp-vault-alternative",
+      "navigation": {
+        "elapsed_ms": 987,
+        "dom_content_loaded_ms": 271.2,
+        "load_event_ms": 466.3,
+        "response_end_ms": 268.2,
+        "duration_ms": 466.3,
+        "transfer_size": 4498
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/compare_hashicorp_vault_alternative.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [],
+      "response_errors": []
+    },
+    {
+      "route": "/platforms/new?source=frontend_audit&tenant_id=beta",
+      "url": "http://localhost:3310/platforms/new?source=frontend_audit&tenant_id=beta",
+      "navigation": {
+        "elapsed_ms": 760,
+        "dom_content_loaded_ms": 149.5,
+        "load_event_ms": 346.2,
+        "response_end_ms": 146.5,
+        "duration_ms": 346.2,
+        "transfer_size": 4721
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/platforms_new_source_frontend_audit_tenant_id_beta.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [],
+      "response_errors": []
+    },
+    {
+      "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "url": "http://localhost:3310/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "navigation": {
+        "elapsed_ms": 714,
+        "dom_content_loaded_ms": 101.6,
+        "load_event_ms": 298,
+        "response_end_ms": 98.4,
+        "duration_ms": 298,
+        "transfer_size": 5497
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/screenshots/metrics_funnel_window_minutes_180_tenant_id_beta.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [],
+      "response_errors": []
+    }
+  ]
+}

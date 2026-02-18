@@ -1,0 +1,1 @@
+network.pass=PASS,console.pass=PASS,performance.pass=PASS,visual.pass=PASS

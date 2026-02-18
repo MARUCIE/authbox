@@ -61,6 +61,7 @@ export function MarketingPage({
             event="PUBLIC_CTA_CLICK"
             source={`${source}_cta`}
             tenantId={tenantId}
+            className="cta-primary"
           >
             Go to /platforms/new
           </PublicTrackedLink>

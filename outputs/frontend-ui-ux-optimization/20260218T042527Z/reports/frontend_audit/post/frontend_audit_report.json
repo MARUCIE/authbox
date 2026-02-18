@@ -1,0 +1,308 @@
+{
+  "generated_at": "2026-02-18T04:30:23.750Z",
+  "base_url": "http://localhost:3310",
+  "checks": {
+    "network": {
+      "pass": true,
+      "failed_requests": [],
+      "failed_requests_ignored": [
+        {
+          "route": "/",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=1wtp7",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/",
+          "url": "http://localhost:3310/platforms/new?source=home_primary_cta&tenant_id=public&_rsc=1wtp7",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/",
+          "url": "http://localhost:3310/platforms/new?source=home_quick_actions&tenant_id=public&_rsc=1wtp7",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/product",
+          "url": "http://localhost:3310/platforms?_rsc=rdc55",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/product",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=rdc55",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/compare/hashicorp-vault-alternative",
+          "url": "http://localhost:3310/platforms?_rsc=7hi6r",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/compare/hashicorp-vault-alternative",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=7hi6r",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/compare/hashicorp-vault-alternative",
+          "url": "http://localhost:3310/platforms/new?source=public_marketing&tenant_id=public&_rsc=7hi6r",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/platforms/new?source=frontend_audit&tenant_id=beta",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=1c938",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=1xgl4",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "http_errors": []
+    },
+    "console": {
+      "pass": true,
+      "errors": [],
+      "page_errors": []
+    },
+    "performance": {
+      "pass": true,
+      "warnings": [],
+      "pages": [
+        {
+          "route": "/",
+          "elapsed_ms": 2671,
+          "dom_content_loaded_ms": 1080.1,
+          "load_event_ms": 2165.4,
+          "response_end_ms": 64.2,
+          "duration_ms": 2165.4,
+          "transfer_size": 4325
+        },
+        {
+          "route": "/product",
+          "elapsed_ms": 541,
+          "dom_content_loaded_ms": 5.6,
+          "load_event_ms": 16.6,
+          "response_end_ms": 2,
+          "duration_ms": 16.6,
+          "transfer_size": 3009
+        },
+        {
+          "route": "/compare/hashicorp-vault-alternative",
+          "elapsed_ms": 548,
+          "dom_content_loaded_ms": 15.1,
+          "load_event_ms": 33.6,
+          "response_end_ms": 4.7,
+          "duration_ms": 33.6,
+          "transfer_size": 3085
+        },
+        {
+          "route": "/platforms/new?source=frontend_audit&tenant_id=beta",
+          "elapsed_ms": 565,
+          "dom_content_loaded_ms": 26,
+          "load_event_ms": 49.8,
+          "response_end_ms": 22.5,
+          "duration_ms": 49.8,
+          "transfer_size": 4187
+        },
+        {
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "elapsed_ms": 553,
+          "dom_content_loaded_ms": 14.9,
+          "load_event_ms": 37.4,
+          "response_end_ms": 11.4,
+          "duration_ms": 37.4,
+          "transfer_size": 5101
+        }
+      ]
+    },
+    "visual_regression": {
+      "pass": false,
+      "baseline_created": [],
+      "changed": [
+        {
+          "route": "/",
+          "baseline": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_baseline/home.png",
+          "current": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/home.png"
+        },
+        {
+          "route": "/product",
+          "baseline": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_baseline/product.png",
+          "current": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/product.png"
+        },
+        {
+          "route": "/compare/hashicorp-vault-alternative",
+          "baseline": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_baseline/compare_hashicorp_vault_alternative.png",
+          "current": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/compare_hashicorp_vault_alternative.png"
+        }
+      ],
+      "unchanged": [
+        "/platforms/new?source=frontend_audit&tenant_id=beta"
+      ],
+      "excluded_dynamic": [
+        "/metrics/funnel?window_minutes=180&tenant_id=beta"
+      ]
+    }
+  },
+  "pages": [
+    {
+      "route": "/",
+      "url": "http://localhost:3310/",
+      "navigation": {
+        "elapsed_ms": 2671,
+        "dom_content_loaded_ms": 1080.1,
+        "load_event_ms": 2165.4,
+        "response_end_ms": 64.2,
+        "duration_ms": 2165.4,
+        "transfer_size": 4325
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/home.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "route": "/",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=1wtp7",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/",
+          "url": "http://localhost:3310/platforms/new?source=home_primary_cta&tenant_id=public&_rsc=1wtp7",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/",
+          "url": "http://localhost:3310/platforms/new?source=home_quick_actions&tenant_id=public&_rsc=1wtp7",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": []
+    },
+    {
+      "route": "/product",
+      "url": "http://localhost:3310/product",
+      "navigation": {
+        "elapsed_ms": 541,
+        "dom_content_loaded_ms": 5.6,
+        "load_event_ms": 16.6,
+        "response_end_ms": 2,
+        "duration_ms": 16.6,
+        "transfer_size": 3009
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/product.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "route": "/product",
+          "url": "http://localhost:3310/platforms?_rsc=rdc55",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/product",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=rdc55",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": []
+    },
+    {
+      "route": "/compare/hashicorp-vault-alternative",
+      "url": "http://localhost:3310/compare/hashicorp-vault-alternative",
+      "navigation": {
+        "elapsed_ms": 548,
+        "dom_content_loaded_ms": 15.1,
+        "load_event_ms": 33.6,
+        "response_end_ms": 4.7,
+        "duration_ms": 33.6,
+        "transfer_size": 3085
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/compare_hashicorp_vault_alternative.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "route": "/compare/hashicorp-vault-alternative",
+          "url": "http://localhost:3310/platforms?_rsc=7hi6r",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/compare/hashicorp-vault-alternative",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=7hi6r",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        },
+        {
+          "route": "/compare/hashicorp-vault-alternative",
+          "url": "http://localhost:3310/platforms/new?source=public_marketing&tenant_id=public&_rsc=7hi6r",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": []
+    },
+    {
+      "route": "/platforms/new?source=frontend_audit&tenant_id=beta",
+      "url": "http://localhost:3310/platforms/new?source=frontend_audit&tenant_id=beta",
+      "navigation": {
+        "elapsed_ms": 565,
+        "dom_content_loaded_ms": 26,
+        "load_event_ms": 49.8,
+        "response_end_ms": 22.5,
+        "duration_ms": 49.8,
+        "transfer_size": 4187
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/platforms_new_source_frontend_audit_tenant_id_beta.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "route": "/platforms/new?source=frontend_audit&tenant_id=beta",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=1c938",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": []
+    },
+    {
+      "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "url": "http://localhost:3310/metrics/funnel?window_minutes=180&tenant_id=beta",
+      "navigation": {
+        "elapsed_ms": 553,
+        "dom_content_loaded_ms": 14.9,
+        "load_event_ms": 37.4,
+        "response_end_ms": 11.4,
+        "duration_ms": 37.4,
+        "transfer_size": 5101
+      },
+      "screenshot": "../../outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/screenshots/metrics_funnel_window_minutes_180_tenant_id_beta.png",
+      "console_errors": [],
+      "page_errors": [],
+      "request_failed": [
+        {
+          "route": "/metrics/funnel?window_minutes=180&tenant_id=beta",
+          "url": "http://localhost:3310/metrics/funnel?_rsc=1xgl4",
+          "method": "GET",
+          "error_text": "net::ERR_ABORTED"
+        }
+      ],
+      "response_errors": []
+    }
+  ]
+}

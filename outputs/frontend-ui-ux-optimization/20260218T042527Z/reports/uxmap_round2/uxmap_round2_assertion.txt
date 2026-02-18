@@ -1,0 +1,11 @@
+uxmap_round2=PASS
+run_ts=20260218T042527Z
+base_url=http://127.0.0.1:3430
+p0_home=200
+p0_product=200
+p1_compare=200
+onboarding_entry=200
+telemetry_onboarding_entry_status=202
+telemetry_public_cta_click_status=202
+funnel_json=200
+primary_cta_count_home=1

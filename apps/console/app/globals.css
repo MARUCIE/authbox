@@ -119,6 +119,30 @@ a:hover {
   gap: 16px;
 }
 
+.home-page {
+  gap: 20px;
+}
+
+.home-hero {
+  display: grid;
+  gap: 18px;
+}
+
+.home-hero-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.home-secondary-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.home-action-list {
+  gap: 10px;
+}
+
 .page-header h1 {
   margin: 4px 0 6px;
   font-family: "Space Grotesk", system-ui, sans-serif;
@@ -185,6 +209,43 @@ a:hover {
   border-radius: 8px;
   padding: 8px 10px;
   font: inherit;
+}
+
+.cta-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.cta-primary:hover {
+  color: #fff;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.cta-link {
+  color: var(--teal);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cta-link:hover {
+  color: var(--accent-strong);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
 }
 
 button {

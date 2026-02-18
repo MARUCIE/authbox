@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-02-18T04:30:23.750Z",
+  "checks": {
+    "network": true,
+    "console": true,
+    "performance": true,
+    "visual": false,
+    "visual_changed_routes": [
+      "/",
+      "/product",
+      "/compare/hashicorp-vault-alternative"
+    ]
+  }
+}

@@ -912,3 +912,17 @@ LastUpdated: 2026-02-13
 - 底层规范（CLAUDE/AGENTS）：N/A
 - Rolling Ledger：N/A
 - 三端一致性：GitHub PASS（origin/main@d6a3dde，见 `outputs/performance-budget/20260213T050159Z/reports/git_push.txt` 与 `outputs/performance-budget/20260213T050159Z/reports/git_remote_consistency.txt`）；VPS N/A（未部署）
+
+## 2026-02-18 · 前端 UI/UX 优化交付
+- 交付范围：首页层级与间距优化、单一主按钮、营销页 CTA 统一。
+- 代码变更：
+  - `apps/console/app/page.tsx`
+  - `apps/console/app/globals.css`
+  - `apps/console/components/marketing-page.tsx`
+- 证据目录：`outputs/frontend-ui-ux-optimization/20260218T042527Z`
+- 验证结论：
+  - frontend audit（post）：network/console/performance PASS
+  - visual regression：预期差异断言 PASS
+  - `npm run build` PASS
+  - `ai check --no-sbom` PASS
+- Round 2（UX Map 人工模拟）PASS：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/uxmap_round2_assertion.txt`

@@ -3,7 +3,7 @@ Title: task_plan - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-13
+LastUpdated: 2026-02-18
 ---
 
 # 任务计划
@@ -607,3 +607,35 @@ LastUpdated: 2026-02-13
 - GitHub 同步：已推送到 origin/main@d6a3dde。
   - push 日志：`outputs/performance-budget/20260213T050159Z/reports/git_push.txt`
   - 远端一致性：`outputs/performance-budget/20260213T050159Z/reports/git_remote_consistency.txt`
+
+## Changelog
+- 2026-02-18: ensured planning files exist. (reason: planning-with-files)
+
+## 决策记录（2026-02-18T04:30:00Z）
+- 启动 SOP：前端 UI/UX 优化（关键词：ui-skills / web-interface-guidelines / planning-with-files / ralph-loop / ai check）。
+- Run 证据目录：`outputs/frontend-ui-ux-optimization/20260218T042527Z`。
+- 自动化策略：连续命令队列执行（无人打断），除安全/HITL/关键资源缺失外不中断。
+- onecontext：已执行 broad 检索，当前环境命中 0（见 `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/onecontext_search.txt`）。
+- Brainstorming 方案评估（内部）：
+  - 方案 A：全局样式统一重排（影响面大，视觉回归成本高）。
+  - 方案 B（选中）：聚焦首页信息层级与 CTA 语义重构，仅新增局部样式类，控制影响面。
+  - 方案 C：引入完整设计系统（超出本次 SOP 范围）。
+- 本轮目标：修复首页间距与层级，保证页面单一主按钮（Primary CTA 唯一）。
+
+## 决策记录（2026-02-18T04:36:00Z）
+- UI/UX 实施完成：
+  - 首页（`apps/console/app/page.tsx`）重构信息层级：Hero 主信息 + Activation path；收敛为单一 Primary CTA（`Start onboarding`）。
+  - 样式（`apps/console/app/globals.css`）新增 `cta-primary` / `cta-link` 与首页局部节奏类（`home-*`）。
+  - 营销页 CTA（`apps/console/components/marketing-page.tsx`）统一主按钮样式。
+- 验证结果：
+  - frontend audit pre：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/frontend_audit_assertion.txt`（全 PASS）
+  - frontend audit post：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/frontend_audit_assertion.txt`（network/console/performance PASS；visual 有预期差异）
+  - visual 预期断言：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_regression_assertion.txt`（PASS）
+  - build：`outputs/frontend-ui-ux-optimization/20260218T042527Z/logs/console_build_after_clean.log`（PASS）
+  - Round 1：`ai check --no-sbom` PASS（`outputs/frontend-ui-ux-optimization/20260218T042527Z/logs/ai_check.log`）
+- 缓存异常记录：首次 post audit 与 build 受 `.next` 缓存损坏影响；已执行 `rm -rf apps/console/.next` 后复跑通过。
+
+## 决策记录（2026-02-18T04:41:00Z）
+- Round 2（UX Map 人工模拟）完成并通过：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
+- 覆盖路径：`/`、`/product`、`/compare/hashicorp-vault-alternative`、`/platforms/new?...`、`/api/telemetry/public-funnel?...`
+- 本轮新增门禁：`primary_cta_count_home=1`（首页单一主按钮）已通过。

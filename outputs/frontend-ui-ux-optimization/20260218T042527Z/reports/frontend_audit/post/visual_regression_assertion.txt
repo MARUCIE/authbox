@@ -1,0 +1,3 @@
+expected_changed_routes: /,/product,/compare/hashicorp-vault-alternative
+actual_changed_routes: /,/product,/compare/hashicorp-vault-alternative
+assertion: PASS

@@ -28,10 +28,67 @@ const statusCards = [
 
 export default function HomePage() {
   const tenantId = "public";
+  const onboardingHref = `/platforms/new?source=home_primary_cta&tenant_id=${encodeURIComponent(
+    tenantId
+  )}`;
 
   return (
-    <div className="page">
+    <div className="page home-page">
       <PublicPageViewTracker source="public_home" tenantId={tenantId} />
+
+      <section className="panel home-hero">
+        <div className="page-header">
+          <div>
+            <p className="eyebrow">Public entry</p>
+            <h1>API Authorization Governance for AI Workloads</h1>
+            <p className="muted">
+              Build a traceable authorization lifecycle across platform accounts,
+              credentials, assistant bindings, and audit exports.
+            </p>
+          </div>
+        </div>
+        <div className="home-hero-actions">
+          <PublicTrackedLink
+            href={onboardingHref}
+            event="PUBLIC_CTA_CLICK"
+            source="home_primary_cta"
+            tenantId={tenantId}
+            className="cta-primary"
+          >
+            Start onboarding
+          </PublicTrackedLink>
+          <div className="home-secondary-links">
+            <PublicTrackedLink
+              href="/product"
+              event="PUBLIC_CTA_CLICK"
+              source="home_support_product"
+              tenantId={tenantId}
+              className="cta-link"
+            >
+              Product overview
+            </PublicTrackedLink>
+            <PublicTrackedLink
+              href="/docs"
+              event="PUBLIC_CTA_CLICK"
+              source="home_support_docs"
+              tenantId={tenantId}
+              className="cta-link"
+            >
+              Docs
+            </PublicTrackedLink>
+            <PublicTrackedLink
+              href="/pricing"
+              event="PUBLIC_CTA_CLICK"
+              source="home_support_pricing"
+              tenantId={tenantId}
+              className="cta-link"
+            >
+              Pricing
+            </PublicTrackedLink>
+          </div>
+        </div>
+      </section>
+
       <section className="hero">
         {statusCards.map((card) => (
           <div key={card.label} className="hero-card">
@@ -46,33 +103,11 @@ export default function HomePage() {
       <section className="panel">
         <div className="page-header">
           <div>
-            <p className="eyebrow">Public entry</p>
-            <h1>API Authorization Governance for AI Workloads</h1>
-            <p className="muted">
-              Build a traceable authorization lifecycle across platform accounts,
-              credentials, assistant bindings, and audit exports.
-            </p>
+            <p className="eyebrow">Activation path</p>
+            <h2>Recommended next steps</h2>
           </div>
         </div>
-
-        <div className="list" style={{ marginBottom: 12 }}>
-          <div className="list-item">
-            <div>
-              <strong>Product overview</strong>
-              <p className="muted">Understand how Auth Box differs from secret-only tooling.</p>
-            </div>
-            <PublicTrackedLink
-              href="/product"
-              event="PUBLIC_CTA_CLICK"
-              source="home_product_overview"
-              tenantId={tenantId}
-            >
-              Open
-            </PublicTrackedLink>
-          </div>
-        </div>
-
-        <div className="list">
+        <div className="list home-action-list">
           {quickActions.map((action) => (
             <div key={action.title} className="list-item">
               <div>
@@ -87,11 +122,14 @@ export default function HomePage() {
                   event="PUBLIC_CTA_CLICK"
                   source="home_quick_actions"
                   tenantId={tenantId}
+                  className="cta-link"
                 >
-                  Open
+                  Open flow
                 </PublicTrackedLink>
               ) : (
-                <Link href={action.href}>Open</Link>
+                <Link href={action.href} className="cta-link">
+                  Open flow
+                </Link>
               )}
             </div>
           ))}
@@ -112,7 +150,9 @@ export default function HomePage() {
                 <strong>{item.title}</strong>
                 <p className="muted">{item.summary}</p>
               </div>
-              <Link href={`/features/${item.slug}`}>Read</Link>
+              <Link href={`/features/${item.slug}`} className="cta-link">
+                Read
+              </Link>
             </div>
           ))}
         </div>
@@ -132,7 +172,9 @@ export default function HomePage() {
                 <strong>{item.title}</strong>
                 <p className="muted">{item.summary}</p>
               </div>
-              <Link href={`/use-cases/${item.slug}`}>Read</Link>
+              <Link href={`/use-cases/${item.slug}`} className="cta-link">
+                Read
+              </Link>
             </div>
           ))}
         </div>
@@ -157,6 +199,7 @@ export default function HomePage() {
                 event="PUBLIC_COMPARE_CLICK"
                 source="home_compare_list"
                 tenantId={tenantId}
+                className="cta-link"
               >
                 Compare
               </PublicTrackedLink>

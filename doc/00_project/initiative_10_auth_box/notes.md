@@ -3,7 +3,7 @@ Title: notes - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-13
+LastUpdated: 2026-02-18
 ---
 
 # Notes
@@ -917,3 +917,35 @@ AuditEvent {
 
 - 推送：`outputs/performance-budget/20260213T050159Z/reports/git_push.txt`
 - 一致性：`outputs/performance-budget/20260213T050159Z/reports/git_remote_consistency.txt`（origin/main@d6a3dde 与本地一致）
+
+# Logs
+- 2026-02-18: ensured planning files exist.
+
+## 2026-02-18T04:30:00Z（SOP：前端 UI/UX 优化）
+- Run ID：`20260218T042527Z`
+- 证据目录：`outputs/frontend-ui-ux-optimization/20260218T042527Z`
+- 工具盘点：skills/plugin/mcp 已扫描；本轮使用 `planning-with-files` + `onecontext` + `ui-skills` + `web-interface-guidelines` + `ralph-loop`。
+- onecontext 检索：当前项目历史索引命中 0，已落盘 `reports/onecontext_search.txt`。
+- 执行策略：先做改前基线（截图/console/network/perf），再做最小范围 UI 修复，最后做 visual regression 与 ai check。
+
+## 2026-02-18T04:36:00Z（SOP 执行结果）
+- 代码改动：
+  - `apps/console/app/page.tsx`：首页结构重排，主 CTA 唯一化（Start onboarding），其余操作降级为 `cta-link`。
+  - `apps/console/app/globals.css`：新增 `home-*` 局部间距类、`cta-primary`/`cta-link`、focus-visible 样式。
+  - `apps/console/components/marketing-page.tsx`：营销页底部 CTA 使用主按钮样式。
+- 前端验证：
+  - pre：`network/console/performance/visual` 全 PASS。
+  - post：`network/console/performance` PASS；visual 比对命中预期变更路由：`/`、`/product`、`/compare/hashicorp-vault-alternative`。
+  - 断言：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_regression_assertion.txt` 为 PASS。
+- 额外验证：
+  - `npm run build`（清理 `.next` 后）PASS。
+  - `ai check --no-sbom` PASS，run_dir=`/Users/mauricewen/AI-tools/outputs/check/20260218-043043-651c13eb`。
+
+## 2026-02-18T04:41:00Z（Round 2：UX Map 人工模拟）
+- 脚本：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/run_uxmap_round2.sh`
+- 断言：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（PASS）
+- 关键结果：
+  - 页面访问状态：`p0_home/p0_product/p1_compare/onboarding_entry` 均为 200
+  - 事件上报：`ONBOARDING_ENTRY_VIEW` / `PUBLIC_CTA_CLICK` 均为 202
+  - 漏斗接口：`/api/telemetry/public-funnel` 返回 200
+  - 首页主按钮唯一性：`primary_cta_count_home=1`

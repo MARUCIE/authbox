@@ -72,3 +72,20 @@ LastUpdated: 2026-02-13
 | QA-20260212-015 | 2026-02-12 | 如何避免前端自动化审计把 Next.js 预取中止请求误判为 network fail？ | Playwright 会捕获 `_rsc` 预取在导航切换时产生的 `net::ERR_ABORTED` | 审计脚本将 `_rsc` + `ERR_ABORTED` 归类为可忽略请求，并单独记录 `failed_requests_ignored` | network fail 仅统计非 `_rsc` 请求；同时保留 ignored 列表供审计追踪 | `outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_audit/frontend_audit_report.json` |
 | QA-20260212-016 | 2026-02-12 | 如何在不新增功能的情况下确认“当前开发基线”仍满足一键交付门禁？ | 连续多轮改动后，旧验收证据可能失效或不可代表当前基线 | 复跑 SOP 1.1 并重新留存 Round1/Round2 + 前后端专项证据 | 每次“继续/复跑”都生成独立 run 目录并回写 PDCA + deliverable | `outputs/one-click-full-delivery/20260212T032220Z` |
 | QA-20260212-017 | 2026-02-12 | 为什么要支持连续命令队列模式（队列执行/继续/go）？ | 反复确认/人为停顿会打断 SOP pipeline，导致上下文漂移与证据不连贯 | 将队列规则写入底层规范，并要求每批命令结果落盘到 task_plan.md/notes.md | 规范门禁：grep 命中队列规则；流程门禁：task_plan/notes 必须写入批次命令与证据路径 | AGENTS.md / CLAUDE.md / CODEX.md / GEMINI.md |
+
+## 2026-02-18 · REQ（UI/UX 优化）
+| id | requirement | scope | status | evidence |
+|---|---|---|---|---|
+| REQ-20260218-UI-01 | 首页保持单一 Primary CTA，修复层级与间距节奏 | `apps/console/app/page.tsx`, `apps/console/app/globals.css` | done | `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_regression_assertion.txt` |
+
+## 2026-02-18 · PROMPT（可复用）
+| id | prompt | notes |
+|---|---|---|
+| PROMPT-20260218-UI-CTA | "前端 UI/UX 优化：按 ui-skills + web-interface-guidelines 收敛为单一主按钮，并输出 network/console/performance/visual 证据" | 适用于营销首页与 onboarding 入口统一 |
+
+## 2026-02-18 · Anti-Regression Q&A
+| Q | A |
+|---|---|
+| 症状：前端审计出现大量 404/500 与 `Cannot find module './xxx.js'`，是否代码引入回归？ | 根因多为 Next `.next` 缓存损坏或旧静态资源版本残留；先清理 `.next` 再复跑审计与 build。 |
+| 修复与验证方法 | 执行 `rm -rf apps/console/.next` -> `npm run build` -> 重新启动服务并运行 frontend audit，确认 network/console/performance 通过。 |
+| 防复发触发器 | 日志出现 `Cannot find module './*.js'`、`/_next/static/chunks/*.js 404` 时自动触发缓存清理与复测。 |

@@ -3,7 +3,7 @@ Title: PRD - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-13
+LastUpdated: 2026-02-18
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -221,3 +221,18 @@ MVP 采用 7 个核心对象：
   - E2E（real API replay + contract loop）PASS：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`
   - Step 6 Round 1 `ai check` PASS：`outputs/project-regression/20260213T021241Z/logs/ai_check_round1.log`
 - 结论：本轮为回归验收复跑，不新增产品需求边界。
+
+## SOP：前端 UI/UX 优化（2026-02-18）
+- Run：`outputs/frontend-ui-ux-optimization/20260218T042527Z`
+- 需求边界：
+  - 修复首页信息层级与间距节奏（Hero 主叙事 -> Activation path -> 能力列表）。
+  - 保持单一主按钮（Primary CTA 仅保留 `Start onboarding`）。
+  - 次级动作统一为文本链接样式，降低视觉竞争。
+- 实现落点：
+  - `apps/console/app/page.tsx`
+  - `apps/console/app/globals.css`
+  - `apps/console/components/marketing-page.tsx`
+- 验收结果：
+  - network/console/performance：PASS（post）
+  - visual regression：命中预期变更路由并通过断言（`visual_regression_assertion.txt`）
+  - `ai check --no-sbom`：PASS（`outputs/frontend-ui-ux-optimization/20260218T042527Z/logs/ai_check.log`）
