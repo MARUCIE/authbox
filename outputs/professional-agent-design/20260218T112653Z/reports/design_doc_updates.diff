@@ -1,0 +1,291 @@
+diff --git a/.sop_current_run_path b/.sop_current_run_path
+index 1c94451..5e8c99c 100644
+--- a/.sop_current_run_path
++++ b/.sop_current_run_path
+@@ -1 +1 @@
+-outputs/release-gate/20260218T112357Z
++outputs/professional-agent-design/20260218T112653Z
+diff --git a/doc/00_project/index.md b/doc/00_project/index.md
+index 60d0c41..9ededb0 100644
+--- a/doc/00_project/index.md
++++ b/doc/00_project/index.md
+@@ -3,7 +3,7 @@ Title: 00_project 索引
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-01-29
++LastUpdated: 2026-02-18
+ Related:
+   - /doc/index.md
+   - /doc/00_project/initiative_10_auth_box/index.md
+@@ -18,4 +18,5 @@ Related:
+ - N/A
+ 
+ ## 变更记录
++- 2026-02-18: 00_project 索引时间戳更新并同步 initiative 文档扩展。（原因：professional-agent-design SOP）
+ - 2026-01-29: 初始化。（原因：新项目启动）
+diff --git a/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md b/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
+index 2da092d..45fe047 100644
+--- a/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
++++ b/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
+@@ -206,3 +206,21 @@ AuditEvent {
+ - 验证证据：
+   - `outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`（PASS）
+   - `outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`（FAIL，security gate）
++
++## SOP 优化专项：专业智能体设计（2026-02-18）
++- Run：`outputs/professional-agent-design/20260218T112653Z`
++- 设计输入：
++  - `outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_summary.txt`
++  - `outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_detail.md`
++- 设计产物：
++  - `configs/agent-router/professional-agent-routing.v1.json`
++  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
++
++### 优化目标
++1. 建立项目级专业智能体 persona 与职责边界，降低执行漂移。
++2. 固化 trigger/router 规则，提升任务路由一致性与可追溯性。
++3. 将 Round1/Round2 验收纳入智能体 SOP 默认门禁。
++
++### 验证结果
++- Round 1 `ai check --no-sbom`：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1.log`）
++- Round 2 设计一致性断言：PASS（`outputs/professional-agent-design/20260218T112653Z/reports/round2_design_consistency_assertion.txt`）
+diff --git a/doc/00_project/initiative_10_auth_box/PRD.md b/doc/00_project/initiative_10_auth_box/PRD.md
+index 5fe64af..264b780 100644
+--- a/doc/00_project/initiative_10_auth_box/PRD.md
++++ b/doc/00_project/initiative_10_auth_box/PRD.md
+@@ -274,3 +274,26 @@ MVP 采用 7 个核心对象：
+ - “发布风险分级 + 双层门禁”已进入可执行状态：
+   - 本地命令：`make risk-classify`、`make release-gate`
+   - CI 工作流：`.github/workflows/release-gate.yml`
++
++## SOP：专业智能体设计（2026-02-18）
++- Run：`outputs/professional-agent-design/20260218T112653Z`
++- 设计目标：构建“可路由、可审计、可验收”的专业智能体执行体系。
++- 设计规格：`doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
++- 路由配置：`configs/agent-router/professional-agent-routing.v1.json`
++
++### 需求条目
++1. Persona 结构化定义
++- 必须定义 Leader/Researcher/Builder/Watchdog 的职责、边界、输入、输出、验收。
++
++2. 触发式路由
++- 基于 `workflow-router` 触发词映射 scenario/scope/mode。
++- 复杂任务默认 `planning-with-files` 并启用证据落盘。
++
++3. 技能与工具策略
++- 技能优先级：skill > plugin > MCP > manual。
++- Web 自动化优先级：Claude Code > Claude Chrome/MCP > Playwright MCP > agent-browser。
++
++4. 验收标准
++- Round 1：`ai check` PASS。
++- Round 2：按 UX Map 做流程模拟并留证据。
++- 全量动作必须写入 `task_plan.md` / `notes.md` 并归档到 `outputs/<sop-id>/<run-id>/`。
+diff --git a/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md b/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
+index 38fc277..1ea5977 100644
+--- a/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
++++ b/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
+@@ -123,3 +123,20 @@ LastUpdated: 2026-02-13
+ | 症状：P1 发布门禁失败，但构建与测试都通过 | 根因：安全扫描发现 critical 漏洞（如 `next` 版本命中 advisory） |
+ | 修复与验证方法 | 升级依赖到修复版本后重跑 `scripts/release_gate.sh`，确认 `console_security_audit` 变为 PASS |
+ | 防复发触发器 | `layer_a_results.json` 中 `console_security_audit.status=FAIL` 即阻断发布并进入修复流程 |
++
++## 2026-02-18 · REQ（专业智能体设计）
++| id | requirement | scope | status | evidence |
++|---|---|---|---|---|
++| REQ-20260218-AGENT-01 | 设计专业智能体 persona/职责边界/I-O/验收标准，并形成触发路由配置 | `configs/agent-router`, `doc/00_project/initiative_10_auth_box` | done | `outputs/professional-agent-design/20260218T112653Z/reports/professional_agent_design_summary.md` |
++
++## 2026-02-18 · PROMPT（可复用）
++| id | prompt | notes |
++|---|---|---|
++| PROMPT-20260218-AGENT-DESIGN | "专业智能体设计 SOP：先盘点工具，再定义 persona/边界/I-O/验收，最后配置 trigger/router 并回写 PRD+UXMap" | 适用于项目级执行体系设计 |
++
++## 2026-02-18 · Anti-Regression Q&A（专业智能体设计）
++| Q | A |
++|---|---|
++| 症状：执行链路有流程但无法稳定复用 | 根因：缺少机器可读 trigger/router 规则与 persona 边界定义 |
++| 修复与验证方法 | 引入 `configs/agent-router/professional-agent-routing.v1.json`，并校验 PRD/UXMap/设计文档一致性 |
++| 防复发触发器 | 若缺少 routing config 或 Round2 断言失败，则任务不得标记完成 |
+diff --git a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+index d85d71d..ed2f9a7 100644
+--- a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
++++ b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+@@ -226,3 +226,17 @@ Related:
+   - 执行入口：`scripts/release_gate.sh`
+   - 结果样本：`outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`
+   - 安全阻断样本：`outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`
++
++## Journey I: 专业智能体执行闭环（新增，2026-02-18）
++| Step | 用户动作 | 系统响应 | 证据/产物 |
++|---|---|---|---|
++| I1 | 提交任务指令 | `workflow-router` 识别 scenario/scope/mode | 路由决策记录 |
++| I2 | 启动 planning-with-files | 初始化并锚定 `task_plan/notes/deliverable` | 规划文件与 run_meta |
++| I3 | 选择 persona 与技能 | 分配 Leader/Researcher/Builder/Watchdog 职责 | 路由配置 JSON |
++| I4 | 执行批次并留证据 | 按 skill/tool 优先级持续执行 | `outputs/<sop-id>/<run-id>/` |
++| I5 | 完成 Round1/Round2 验收 | 输出 PASS/FAIL 与阻断项 | 断言报告与 closeout 记录 |
++
++- Journey I 设计证据：
++  - `configs/agent-router/professional-agent-routing.v1.json`
++  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
++  - `outputs/professional-agent-design/20260218T112653Z/reports/professional_agent_design_summary.md`
+diff --git a/doc/00_project/initiative_10_auth_box/deliverable.md b/doc/00_project/initiative_10_auth_box/deliverable.md
+index 8b72aaf..9649322 100644
+--- a/doc/00_project/initiative_10_auth_box/deliverable.md
++++ b/doc/00_project/initiative_10_auth_box/deliverable.md
+@@ -969,3 +969,24 @@ LastUpdated: 2026-02-13
+   - docs-only 变更按 P2 放行。
+   - P1/P0 变更若命中 critical 安全漏洞，Layer A 阻断，Layer B 不通过。
+ - Make 入口验证：`make release-gate` PASS（`outputs/release-gate/20260218T112357Z/reports/release_gate_summary.json`）。
++
++## 2026-02-18 · 专业智能体设计 SOP 交付
++- 交付范围：persona 体系、职责边界、I/O、验收标准、触发路由规则。
++- 核心产物：
++  - `configs/agent-router/professional-agent-routing.v1.json`
++  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
++- 证据目录：`outputs/professional-agent-design/20260218T112653Z`
++- 关键报告：
++  - `outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_summary.txt`
++  - `outputs/professional-agent-design/20260218T112653Z/reports/professional_agent_design_summary.md`
++  - `outputs/professional-agent-design/20260218T112653Z/reports/skill_router_snapshot.md`
++- 验收补充：
++  - Round 1 `ai check --no-sbom`：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1.log`）
++  - Round 2 设计一致性断言：PASS（`outputs/professional-agent-design/20260218T112653Z/reports/round2_design_consistency_assertion.txt`）
++- Task Closeout：
++  - Skills：N/A（本轮为项目级设计与路由配置）
++  - PDCA 四文档：已更新 `PRD.md`、`USER_EXPERIENCE_MAP.md`
++  - 底层规范（CLAUDE/AGENTS）：N/A
++  - Rolling Ledger：已更新 `doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md`
++  - 三端一致性：N/A（本轮以配置/文档交付为主）
++- Final Round 1 复核：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1_final.log`）。
+diff --git a/doc/00_project/initiative_10_auth_box/index.md b/doc/00_project/initiative_10_auth_box/index.md
+index 0fd5f16..bd40b67 100644
+--- a/doc/00_project/initiative_10_auth_box/index.md
++++ b/doc/00_project/initiative_10_auth_box/index.md
+@@ -3,7 +3,7 @@ Title: initiative_10_auth_box 索引
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-02-11
++LastUpdated: 2026-02-18
+ Related:
+   - /doc/index.md
+   - /doc/00_project/index.md
+@@ -16,6 +16,7 @@ Related:
+ - 系统架构：`/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md`
+ - 用户体验地图：`/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md`
+ - 平台优化计划：`/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md`
++- 专业智能体设计：`/doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
+ - 网站地图与关键词策略：`/doc/00_project/initiative_10_auth_box/SITEMAP_KEYWORD_STRATEGY.md`
+ - 架构 ADR：`/doc/00_project/initiative_10_auth_box/ARCHITECTURE_ADR.md`
+ - 架构风险清单：`/doc/00_project/initiative_10_auth_box/ARCHITECTURE_RISK_REGISTER.md`
+@@ -37,6 +38,7 @@ Related:
+ - auth-box-console：`/doc/20_components/auth-box-console/index.md`
+ 
+ ## 变更记录
++- 2026-02-18: 新增专业智能体设计文档与路由配置入口（原因：professional-agent-design SOP）。
+ - 2026-02-11: 新增多角色脑暴产物（竞品/UX/SEO）并落地 sitemap 策略文档。（原因：multi-role-brainstorm SOP）
+ - 2026-02-11: API 契约与鉴权同步（role 白名单、source 透传、契约测试补齐）。（原因：api-contract-auth-sync SOP）
+ - 2026-02-11: 新增架构圆桌 ADR 与风险清单。（原因：architecture council SOP）
+diff --git a/doc/00_project/initiative_10_auth_box/notes.md b/doc/00_project/initiative_10_auth_box/notes.md
+index 991830b..47187a8 100644
+--- a/doc/00_project/initiative_10_auth_box/notes.md
++++ b/doc/00_project/initiative_10_auth_box/notes.md
+@@ -1051,3 +1051,27 @@ AuditEvent {
+ - `make risk-classify` 已验证可用，并可识别历史 P0 区间。
+ - `make release-gate` 已验证可用，docs-only 场景按 P2 放行。
+ - 证据：`outputs/release-gate/20260218T112357Z/reports/release_gate_summary.json`。
++
++# Logs
++- 2026-02-18: ensured planning files exist.
++
++## 2026-02-18T11:29:02Z（专业智能体设计 SOP）
++- 工具盘点结论：
++  - plugin_count=117, project_skill_count=56, user_skill_count=25, tier1_skill_count=89, skills_registry_entries=86
++  - 关键技能：`workflow-router`、`planning-with-files`、`ralph-loop`（registry 中已启用）
++- 设计结论：采用 4 persona + trigger 路由 + 双轮验收（Round1/Round2）
++- 关键产物：
++  - `outputs/professional-agent-design/20260218T112653Z/reports/professional_agent_design_summary.md`
++  - `outputs/professional-agent-design/20260218T112653Z/reports/skill_router_snapshot.md`
++  - `configs/agent-router/professional-agent-routing.v1.json`
++
++## 2026-02-18T11:30:20Z（DoD 验证）
++- Round 1：`ai check --no-sbom` PASS，run_dir=`/Users/mauricewen/AI-tools/outputs/check/20260218-113014-c67cbaad`。
++- Round 2：配置与文档一致性 PASS（PRD/UXMap/agent design doc/routing json）。
++- 证据：
++  - `outputs/professional-agent-design/20260218T112653Z/reports/ai_check_round1_status.txt`
++  - `outputs/professional-agent-design/20260218T112653Z/reports/round2_design_consistency_assertion.txt`
++
++## 2026-02-18T11:32:55Z（Final Gate）
++- Round 1 最终复核 PASS，run_dir=`/Users/mauricewen/AI-tools/outputs/check/20260218-113250-a1d35ba3`。
++- 状态文件：`outputs/professional-agent-design/20260218T112653Z/reports/ai_check_round1_final_status.txt`。
+diff --git a/doc/00_project/initiative_10_auth_box/task_plan.md b/doc/00_project/initiative_10_auth_box/task_plan.md
+index 29df151..d33f247 100644
+--- a/doc/00_project/initiative_10_auth_box/task_plan.md
++++ b/doc/00_project/initiative_10_auth_box/task_plan.md
+@@ -736,3 +736,28 @@ LastUpdated: 2026-02-18
+   - `make risk-classify BASE=7f218d2 HEAD=2c41c04` => `risk_level=P0`
+   - `make release-gate BASE=HEAD~1 HEAD=HEAD GATEKEEPER=mauricewen` => PASS
+ - 新增验证证据：`outputs/release-gate/20260218T112357Z/`。
++
++## Changelog
++- 2026-02-18: ensured planning files exist. (reason: planning-with-files)
++
++## 决策记录（2026-02-18T11:29:02Z）
++- 启动 SOP：专业智能体设计（workflow-router / skills-registry / planning-with-files）。
++- Run 证据目录：`outputs/professional-agent-design/20260218T112653Z`
++- 已完成 Step 1/2/3：
++  - planning-with-files 初始化确认。
++  - plugin/skill/mcp 盘点完成（见 `outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_summary.txt`）。
++  - persona/职责/边界/I/O/验收标准与触发路由配置完成。
++- 新增产物：
++  - `configs/agent-router/professional-agent-routing.v1.json`
++  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
++
++## 决策记录（2026-02-18T11:30:20Z）
++- Step 4 完成：已更新 PRD 与 UX Map，并补充专业智能体设计规格文档。
++- DoD 验证：
++  - Round 1 `ai check --no-sbom`：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1.log`）
++  - Round 2 设计一致性断言：PASS（`outputs/professional-agent-design/20260218T112653Z/reports/round2_design_consistency_assertion.txt`）
++- 当前状态：专业智能体设计 SOP 可提交。
++
++## 决策记录（2026-02-18T11:32:55Z）
++- Final Round 1 复核：`ai check --no-sbom` PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1_final.log`）。
++- 本轮交付保持 completed，进入提交流程。
+diff --git a/doc/index.md b/doc/index.md
+index 3d39201..6ab3e08 100644
+--- a/doc/index.md
++++ b/doc/index.md
+@@ -3,7 +3,7 @@ Title: 文档索引
+ Scope: project
+ Owner: ai-agent
+ Status: active
+-LastUpdated: 2026-02-11
++LastUpdated: 2026-02-18
+ Related:
+   - /doc/00_project/index.md
+   - /doc/10_features/
+@@ -27,7 +27,7 @@ Related:
+ 
+ <!-- AI-TOOLS:PATH_INDEX:BEGIN -->
+ - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
+-- **VERIFIED_AT_UTC**: `2026-02-11T15:11:00Z`
++- **VERIFIED_AT_UTC**: `2026-02-18T11:31:00Z`
+ - **Top-level dirs**: `.codex`, `apps`, `doc`, `services`
+ - **Top-level files**: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `GEMINI.md`, `README.md`, `docker-compose.yml`
+ - **Key files**: `AGENTS.md`, `CLAUDE.md`, `README.md`
+@@ -35,6 +35,7 @@ Related:
+   - `doc/index.md`
+   - `doc/00_project/index.md`
+   - `doc/00_project/initiative_10_auth_box/index.md`
++  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
+   - `doc/00_project/initiative_10_auth_box/PRD.md`
+   - `doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md`
+   - `doc/00_project/initiative_10_auth_box/ARCHITECTURE_ADR.md`
+@@ -61,6 +62,7 @@ Related:
+ <!-- AI-TOOLS:PATH_INDEX:END -->
+ 
+ ## 变更记录
++- 2026-02-18: 新增专业智能体设计文档索引与路径映射。（原因：professional-agent-design SOP）
+ - 2026-02-11: 新增 sitemap 与关键词策略文档并回写索引。（原因：multi-role-brainstorm SOP）
+ - 2026-02-11: 增量更新 API 契约与鉴权同步文档（组件契约、runbook、PDCA 回写）。（原因：api-contract-auth-sync SOP）
+ - 2026-02-11: 文档索引新增架构 ADR 与风险清单路径。（原因：architecture council SOP）

@@ -1,0 +1,156 @@
+{
+  "version": "1.0.0",
+  "project": "10-auth-box",
+  "updated_at_utc": "2026-02-18T11:28:00Z",
+  "registry": {
+    "skill_registry_path": "/Users/mauricewen/AI-tools/tier1-skills/skills/skills-registry.json",
+    "router_skill": "workflow-router",
+    "planning_skill": "planning-with-files"
+  },
+  "defaults": {
+    "mode": "planning-with-files",
+    "team_mode": "Leader",
+    "skill_priority": ["skill", "plugin", "mcp", "manual"],
+    "web_automation_priority": ["Claude Code", "Claude Chrome/MCP", "Playwright MCP", "agent-browser"]
+  },
+  "personas": [
+    {
+      "id": "agent_leader",
+      "name": "Leader Orchestrator",
+      "responsibility": [
+        "Route task by scenario/scope/mode",
+        "Break down execution batches",
+        "Ensure evidence and doc sync"
+      ],
+      "boundary": [
+        "Does not bypass release/safety gates",
+        "Does not skip planning files for complex tasks"
+      ],
+      "inputs": ["user_request", "task_plan_md", "notes_md", "skills_registry"],
+      "outputs": ["routing_decision", "execution_batches", "closeout_record"],
+      "acceptance": [
+        "Every batch has evidence path",
+        "PDCA docs updated when scope changes"
+      ]
+    },
+    {
+      "id": "agent_researcher",
+      "name": "Research & Context Analyst",
+      "responsibility": [
+        "Collect primary references and constraints",
+        "Extract decision-critical signals"
+      ],
+      "boundary": [
+        "No direct production changes",
+        "No unverified 'latest' claims"
+      ],
+      "inputs": ["requirements", "docs", "web_sources"],
+      "outputs": ["source_inventory", "comparison_matrix", "risk_notes"],
+      "acceptance": [
+        "Sources and time window are explicit",
+        "Inferences are clearly labeled"
+      ]
+    },
+    {
+      "id": "agent_builder",
+      "name": "Implementation Builder",
+      "responsibility": [
+        "Implement code/config/docs changes",
+        "Produce reproducible scripts and outputs"
+      ],
+      "boundary": [
+        "No destructive git operations",
+        "No mock-only acceptance path"
+      ],
+      "inputs": ["approved_plan", "routing_rules", "repo_context"],
+      "outputs": ["patches", "scripts", "artifacts"],
+      "acceptance": [
+        "Changes are minimal and auditable",
+        "Commands are reproducible"
+      ]
+    },
+    {
+      "id": "agent_watchdog",
+      "name": "Quality Watchdog",
+      "responsibility": [
+        "Run gates and consistency checks",
+        "Block release on high-risk failures"
+      ],
+      "boundary": [
+        "Cannot waive critical security failures",
+        "Cannot approve without evidence completeness"
+      ],
+      "inputs": ["build_results", "gate_reports", "postmortem_triggers"],
+      "outputs": ["pass_fail_decision", "blocking_findings", "closeout_assertions"],
+      "acceptance": [
+        "Round1/Round2 checks recorded",
+        "Gate result linked to evidence files"
+      ]
+    }
+  ],
+  "trigger_rules": [
+    {
+      "id": "new_task",
+      "keywords": ["新任务：", "新任务:"],
+      "scenario": "new_task",
+      "scope": "project",
+      "mode": "planning-with-files",
+      "team_mode": "Leader",
+      "skills": ["workflow-router", "planning-with-files"]
+    },
+    {
+      "id": "refactor_task",
+      "keywords": ["重构任务", "refactor task", "重构：", "重构:"],
+      "scenario": "refactor",
+      "scope": "feature",
+      "mode": "feature-dev",
+      "team_mode": "Pipeline",
+      "skills": ["workflow-router", "writing-plans", "verification-before-completion"]
+    },
+    {
+      "id": "feature_optimization",
+      "keywords": ["功能优化", "功能迭代", "feature optimization"],
+      "scenario": "feature_optimization",
+      "scope": "feature",
+      "mode": "feature-dev",
+      "team_mode": "Swarm",
+      "skills": ["workflow-router", "test-driven-development", "verification-before-completion"]
+    },
+    {
+      "id": "component_work",
+      "keywords": ["组件优化", "组件重构", "component refactor"],
+      "scenario": "component_work",
+      "scope": "component",
+      "mode": "feature-dev",
+      "team_mode": "Pipeline",
+      "skills": ["workflow-router", "writing-plans", "systematic-debugging"]
+    },
+    {
+      "id": "project_design",
+      "keywords": ["架构设计", "系统设计", "项目优化", "平台优化"],
+      "scenario": "project_design",
+      "scope": "project",
+      "mode": "planning-with-files",
+      "team_mode": "Council",
+      "skills": ["workflow-router", "planning-with-files", "dispatching-parallel-agents"]
+    }
+  ],
+  "routing_rules": {
+    "complexity_to_team_mode": {
+      "simple": "Leader",
+      "medium": "Pipeline",
+      "complex": "Swarm"
+    },
+    "risk_to_gate": {
+      "P2": "light gate",
+      "P1": "Layer A + Layer B",
+      "P0": "Layer A + Layer B + gatekeeper signoff"
+    }
+  },
+  "acceptance_gates": [
+    "Round 1: ai check pass",
+    "Round 2: UX/flow simulation pass with evidence",
+    "All actions recorded in task_plan.md and notes.md",
+    "Evidence stored under outputs/<sop-id>/<run-id>/"
+  ]
+}

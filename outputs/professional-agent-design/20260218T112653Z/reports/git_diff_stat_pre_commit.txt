@@ -1,0 +1,12 @@
+ .sop_current_run_path                              |  2 +-
+ doc/00_project/index.md                            |  3 ++-
+ .../PLATFORM_OPTIMIZATION_PLAN.md                  | 18 ++++++++++++++++
+ doc/00_project/initiative_10_auth_box/PRD.md       | 23 ++++++++++++++++++++
+ .../ROLLING_REQUIREMENTS_AND_PROMPTS.md            | 17 +++++++++++++++
+ .../initiative_10_auth_box/USER_EXPERIENCE_MAP.md  | 14 ++++++++++++
+ .../initiative_10_auth_box/deliverable.md          | 21 ++++++++++++++++++
+ doc/00_project/initiative_10_auth_box/index.md     |  4 +++-
+ doc/00_project/initiative_10_auth_box/notes.md     | 24 +++++++++++++++++++++
+ doc/00_project/initiative_10_auth_box/task_plan.md | 25 ++++++++++++++++++++++
+ doc/index.md                                       |  6 ++++--
+ 11 files changed, 152 insertions(+), 5 deletions(-)

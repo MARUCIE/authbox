@@ -969,3 +969,24 @@ LastUpdated: 2026-02-13
   - docs-only 变更按 P2 放行。
   - P1/P0 变更若命中 critical 安全漏洞，Layer A 阻断，Layer B 不通过。
 - Make 入口验证：`make release-gate` PASS（`outputs/release-gate/20260218T112357Z/reports/release_gate_summary.json`）。
+
+## 2026-02-18 · 专业智能体设计 SOP 交付
+- 交付范围：persona 体系、职责边界、I/O、验收标准、触发路由规则。
+- 核心产物：
+  - `configs/agent-router/professional-agent-routing.v1.json`
+  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
+- 证据目录：`outputs/professional-agent-design/20260218T112653Z`
+- 关键报告：
+  - `outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_summary.txt`
+  - `outputs/professional-agent-design/20260218T112653Z/reports/professional_agent_design_summary.md`
+  - `outputs/professional-agent-design/20260218T112653Z/reports/skill_router_snapshot.md`
+- 验收补充：
+  - Round 1 `ai check --no-sbom`：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1.log`）
+  - Round 2 设计一致性断言：PASS（`outputs/professional-agent-design/20260218T112653Z/reports/round2_design_consistency_assertion.txt`）
+- Task Closeout：
+  - Skills：N/A（本轮为项目级设计与路由配置）
+  - PDCA 四文档：已更新 `PRD.md`、`USER_EXPERIENCE_MAP.md`
+  - 底层规范（CLAUDE/AGENTS）：N/A
+  - Rolling Ledger：已更新 `doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md`
+  - 三端一致性：N/A（本轮以配置/文档交付为主）
+- Final Round 1 复核：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1_final.log`）。

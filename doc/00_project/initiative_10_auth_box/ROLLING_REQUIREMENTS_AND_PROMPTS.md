@@ -123,3 +123,20 @@ LastUpdated: 2026-02-13
 | 症状：P1 发布门禁失败，但构建与测试都通过 | 根因：安全扫描发现 critical 漏洞（如 `next` 版本命中 advisory） |
 | 修复与验证方法 | 升级依赖到修复版本后重跑 `scripts/release_gate.sh`，确认 `console_security_audit` 变为 PASS |
 | 防复发触发器 | `layer_a_results.json` 中 `console_security_audit.status=FAIL` 即阻断发布并进入修复流程 |
+
+## 2026-02-18 · REQ（专业智能体设计）
+| id | requirement | scope | status | evidence |
+|---|---|---|---|---|
+| REQ-20260218-AGENT-01 | 设计专业智能体 persona/职责边界/I-O/验收标准，并形成触发路由配置 | `configs/agent-router`, `doc/00_project/initiative_10_auth_box` | done | `outputs/professional-agent-design/20260218T112653Z/reports/professional_agent_design_summary.md` |
+
+## 2026-02-18 · PROMPT（可复用）
+| id | prompt | notes |
+|---|---|---|
+| PROMPT-20260218-AGENT-DESIGN | "专业智能体设计 SOP：先盘点工具，再定义 persona/边界/I-O/验收，最后配置 trigger/router 并回写 PRD+UXMap" | 适用于项目级执行体系设计 |
+
+## 2026-02-18 · Anti-Regression Q&A（专业智能体设计）
+| Q | A |
+|---|---|
+| 症状：执行链路有流程但无法稳定复用 | 根因：缺少机器可读 trigger/router 规则与 persona 边界定义 |
+| 修复与验证方法 | 引入 `configs/agent-router/professional-agent-routing.v1.json`，并校验 PRD/UXMap/设计文档一致性 |
+| 防复发触发器 | 若缺少 routing config 或 Round2 断言失败，则任务不得标记完成 |

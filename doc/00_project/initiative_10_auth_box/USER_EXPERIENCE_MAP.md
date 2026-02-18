@@ -226,3 +226,17 @@ Related:
   - 执行入口：`scripts/release_gate.sh`
   - 结果样本：`outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`
   - 安全阻断样本：`outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`
+
+## Journey I: 专业智能体执行闭环（新增，2026-02-18）
+| Step | 用户动作 | 系统响应 | 证据/产物 |
+|---|---|---|---|
+| I1 | 提交任务指令 | `workflow-router` 识别 scenario/scope/mode | 路由决策记录 |
+| I2 | 启动 planning-with-files | 初始化并锚定 `task_plan/notes/deliverable` | 规划文件与 run_meta |
+| I3 | 选择 persona 与技能 | 分配 Leader/Researcher/Builder/Watchdog 职责 | 路由配置 JSON |
+| I4 | 执行批次并留证据 | 按 skill/tool 优先级持续执行 | `outputs/<sop-id>/<run-id>/` |
+| I5 | 完成 Round1/Round2 验收 | 输出 PASS/FAIL 与阻断项 | 断言报告与 closeout 记录 |
+
+- Journey I 设计证据：
+  - `configs/agent-router/professional-agent-routing.v1.json`
+  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
+  - `outputs/professional-agent-design/20260218T112653Z/reports/professional_agent_design_summary.md`

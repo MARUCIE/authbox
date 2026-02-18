@@ -736,3 +736,28 @@ LastUpdated: 2026-02-18
   - `make risk-classify BASE=7f218d2 HEAD=2c41c04` => `risk_level=P0`
   - `make release-gate BASE=HEAD~1 HEAD=HEAD GATEKEEPER=mauricewen` => PASS
 - 新增验证证据：`outputs/release-gate/20260218T112357Z/`。
+
+## Changelog
+- 2026-02-18: ensured planning files exist. (reason: planning-with-files)
+
+## 决策记录（2026-02-18T11:29:02Z）
+- 启动 SOP：专业智能体设计（workflow-router / skills-registry / planning-with-files）。
+- Run 证据目录：`outputs/professional-agent-design/20260218T112653Z`
+- 已完成 Step 1/2/3：
+  - planning-with-files 初始化确认。
+  - plugin/skill/mcp 盘点完成（见 `outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_summary.txt`）。
+  - persona/职责/边界/I/O/验收标准与触发路由配置完成。
+- 新增产物：
+  - `configs/agent-router/professional-agent-routing.v1.json`
+  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
+
+## 决策记录（2026-02-18T11:30:20Z）
+- Step 4 完成：已更新 PRD 与 UX Map，并补充专业智能体设计规格文档。
+- DoD 验证：
+  - Round 1 `ai check --no-sbom`：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1.log`）
+  - Round 2 设计一致性断言：PASS（`outputs/professional-agent-design/20260218T112653Z/reports/round2_design_consistency_assertion.txt`）
+- 当前状态：专业智能体设计 SOP 可提交。
+
+## 决策记录（2026-02-18T11:32:55Z）
+- Final Round 1 复核：`ai check --no-sbom` PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1_final.log`）。
+- 本轮交付保持 completed，进入提交流程。

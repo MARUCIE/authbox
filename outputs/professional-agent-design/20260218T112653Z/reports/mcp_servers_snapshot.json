@@ -1,0 +1,17 @@
+{
+  "name": "MCP Constellation",
+  "version": "1.0.0",
+  "totalServers": 100,
+  "tiers": 4,
+  "coreServers": [
+    "@modelcontextprotocol/server-github",
+    "@smithery-ai/server-sequential-thinking",
+    "@modelcontextprotocol/server-brave-search",
+    "@modelcontextprotocol/server-fetch",
+    "task-master-ai"
+  ],
+  "loadBalancer": true,
+  "performanceMonitor": true,
+  "enabled": true,
+  "installDate": "2025-09-06T13:18:01+08:00"
+}

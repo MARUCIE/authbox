@@ -206,3 +206,21 @@ AuditEvent {
 - 验证证据：
   - `outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`（PASS）
   - `outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`（FAIL，security gate）
+
+## SOP 优化专项：专业智能体设计（2026-02-18）
+- Run：`outputs/professional-agent-design/20260218T112653Z`
+- 设计输入：
+  - `outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_summary.txt`
+  - `outputs/professional-agent-design/20260218T112653Z/reports/tooling_inventory_detail.md`
+- 设计产物：
+  - `configs/agent-router/professional-agent-routing.v1.json`
+  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
+
+### 优化目标
+1. 建立项目级专业智能体 persona 与职责边界，降低执行漂移。
+2. 固化 trigger/router 规则，提升任务路由一致性与可追溯性。
+3. 将 Round1/Round2 验收纳入智能体 SOP 默认门禁。
+
+### 验证结果
+- Round 1 `ai check --no-sbom`：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1.log`）
+- Round 2 设计一致性断言：PASS（`outputs/professional-agent-design/20260218T112653Z/reports/round2_design_consistency_assertion.txt`）

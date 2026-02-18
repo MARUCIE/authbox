@@ -3,7 +3,7 @@ Title: 文档索引
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-11
+LastUpdated: 2026-02-18
 Related:
   - /doc/00_project/index.md
   - /doc/10_features/
@@ -27,7 +27,7 @@ Related:
 
 <!-- AI-TOOLS:PATH_INDEX:BEGIN -->
 - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
-- **VERIFIED_AT_UTC**: `2026-02-11T15:11:00Z`
+- **VERIFIED_AT_UTC**: `2026-02-18T11:31:00Z`
 - **Top-level dirs**: `.codex`, `apps`, `doc`, `services`
 - **Top-level files**: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `GEMINI.md`, `README.md`, `docker-compose.yml`
 - **Key files**: `AGENTS.md`, `CLAUDE.md`, `README.md`
@@ -35,6 +35,7 @@ Related:
   - `doc/index.md`
   - `doc/00_project/index.md`
   - `doc/00_project/initiative_10_auth_box/index.md`
+  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
   - `doc/00_project/initiative_10_auth_box/PRD.md`
   - `doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md`
   - `doc/00_project/initiative_10_auth_box/ARCHITECTURE_ADR.md`
@@ -61,6 +62,7 @@ Related:
 <!-- AI-TOOLS:PATH_INDEX:END -->
 
 ## 变更记录
+- 2026-02-18: 新增专业智能体设计文档索引与路径映射。（原因：professional-agent-design SOP）
 - 2026-02-11: 新增 sitemap 与关键词策略文档并回写索引。（原因：multi-role-brainstorm SOP）
 - 2026-02-11: 增量更新 API 契约与鉴权同步文档（组件契约、runbook、PDCA 回写）。（原因：api-contract-auth-sync SOP）
 - 2026-02-11: 文档索引新增架构 ADR 与风险清单路径。（原因：architecture council SOP）

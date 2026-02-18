@@ -1,0 +1,6 @@
+step1_planning_with_files=PASS
+step2_persona_definition=PASS
+step3_skill_tool_routing=PASS
+step4_prd_uxmap_update=PASS
+round1_ai_check=PASS
+round2_design_consistency=PASS

@@ -1,0 +1,13 @@
+generated_at_utc=2026-02-18T11:27:11Z
+plugin_dir=/Users/mauricewen/AI-tools/claude-code-marketplace/plugins
+project_skills_dir=/Users/mauricewen/AI-tools/.claude/skills
+user_skills_dir=/Users/mauricewen/.agents/skills
+tier1_skills_dir=/Users/mauricewen/AI-tools/tier1-skills/skills
+mcp_registry=/Users/mauricewen/AI-tools/tier8-mcp-constellation/mcp-servers.json
+cursor_mcp_dir=/Users/mauricewen/.cursor/projects/Users-mauricewen-AI-tools/mcps
+
+plugin_count=117
+project_skill_count=56
+user_skill_count=25
+tier1_skill_count=89
+skills_registry_entries=86

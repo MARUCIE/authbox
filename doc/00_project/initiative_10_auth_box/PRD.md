@@ -274,3 +274,26 @@ MVP 采用 7 个核心对象：
 - “发布风险分级 + 双层门禁”已进入可执行状态：
   - 本地命令：`make risk-classify`、`make release-gate`
   - CI 工作流：`.github/workflows/release-gate.yml`
+
+## SOP：专业智能体设计（2026-02-18）
+- Run：`outputs/professional-agent-design/20260218T112653Z`
+- 设计目标：构建“可路由、可审计、可验收”的专业智能体执行体系。
+- 设计规格：`doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
+- 路由配置：`configs/agent-router/professional-agent-routing.v1.json`
+
+### 需求条目
+1. Persona 结构化定义
+- 必须定义 Leader/Researcher/Builder/Watchdog 的职责、边界、输入、输出、验收。
+
+2. 触发式路由
+- 基于 `workflow-router` 触发词映射 scenario/scope/mode。
+- 复杂任务默认 `planning-with-files` 并启用证据落盘。
+
+3. 技能与工具策略
+- 技能优先级：skill > plugin > MCP > manual。
+- Web 自动化优先级：Claude Code > Claude Chrome/MCP > Playwright MCP > agent-browser。
+
+4. 验收标准
+- Round 1：`ai check` PASS。
+- Round 2：按 UX Map 做流程模拟并留证据。
+- 全量动作必须写入 `task_plan.md` / `notes.md` 并归档到 `outputs/<sop-id>/<run-id>/`。

@@ -1,0 +1,58 @@
+{
+  "id": "planning-with-files",
+  "name": "Planning with Files",
+  "emoji": "",
+  "version": "2.0.0",
+  "description": "用 /doc/00_project/initiative_<project>/task_plan.md + notes.md + deliverable.md 外置工作记忆，并确保 PDCA_ITERATION_CHECKLIST.md 存在，降低目标漂移与上下文丢失（受 Manus 工作流启发）。",
+  "path": "./planning-with-files",
+  "enabled": true,
+  "category": "productivity",
+  "priority": 2.7,
+  "entryPoint": "__init__.py",
+  "configFile": "config.json",
+  "skillFile": "SKILL.md",
+  "capabilities": [
+    "file-based-planning",
+    "context-anchor",
+    "append-only-notes",
+    "deliverable-packaging"
+  ],
+  "triggers": [
+    "Planning with Files",
+    "planning-with-files",
+    "doc/00_project/initiative_<project>/task_plan.md",
+    "task_plan.md",
+    "task plan",
+    "计划文件",
+    "进度跟踪",
+    "doc/00_project/initiative_<project>/notes.md",
+    "notes.md",
+    "研究笔记",
+    "外置记忆",
+    "doc/00_project/initiative_<project>/deliverable.md",
+    "deliverable.md",
+    "交付物",
+    "最终交付",
+    "doc/00_project/initiative_<project>/PDCA_ITERATION_CHECKLIST.md",
+    "PDCA_ITERATION_CHECKLIST.md",
+    "iteration checklist",
+    "pdca checklist",
+    "迭代清单",
+    "Manus",
+    "目标漂移",
+    "上下文丢失"
+  ],
+  "dependencies": [],
+  "tags": [
+    "planning",
+    "files",
+    "workflow",
+    "manus",
+    "context",
+    "deliverable"
+  ],
+  "runtime": {
+    "kind": "base_skill"
+  },
+  "source": "internal"
+}
