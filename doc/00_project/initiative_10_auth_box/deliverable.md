@@ -954,3 +954,4 @@ LastUpdated: 2026-02-13
 - 验收补充：
   - Round 1 `ai check --no-sbom`：PASS（`outputs/sota-product-sop-research/20260218T064240Z/logs/ai_check_round1.log`）
   - Round 2 文档一致性人工模拟：PASS（`outputs/sota-product-sop-research/20260218T064240Z/reports/round2_doc_consistency_assertion.txt`）
+- Git 同步：`origin/main@58f6a6a`（本轮调研交付已推送）。

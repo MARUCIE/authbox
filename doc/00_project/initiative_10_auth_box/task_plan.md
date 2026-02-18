@@ -712,3 +712,10 @@ LastUpdated: 2026-02-18
   - Round 1 `ai check --no-sbom`：PASS（`outputs/sota-product-sop-research/20260218T064240Z/logs/ai_check_round1.log`）
   - Round 2 文档一致性人工模拟：PASS（`outputs/sota-product-sop-research/20260218T064240Z/reports/round2_doc_consistency_assertion.txt`）
 - 状态：本轮 SOTA SOP 调研任务进入可提交状态。
+
+## 决策记录（2026-02-18T07:02:10Z）
+- Git 交付闭环：
+  - commit `33b53d0`：SOTA 调研与 PDCA 回写
+  - commit `58f6a6a`：补充 run 证据日志
+- 远端同步：`origin/main@58f6a6a`。
+- 三端一致性：local==GitHub PASS；VPS N/A（研究/文档任务）。
