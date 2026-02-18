@@ -654,3 +654,7 @@ LastUpdated: 2026-02-18
 - 发布动作完成：`origin/main@850c226` 已推送。
 - 发布标签完成：`release-uiux-20260218T042527Z`（推送证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/git_push_tag.txt`）。
 - 一致性复核：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/three_end_consistency.txt`（local==GitHub PASS，VPS N/A）。
+
+## 决策记录（2026-02-18T05:57:00Z）
+- GitHub Release 已创建：`https://github.com/MARUCIE/10-auth-box/releases/tag/release-uiux-20260218T042527Z`
+- 命令证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/gh_release_create.txt`
