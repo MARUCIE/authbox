@@ -1,6 +1,6 @@
 verification_scope=release_candidate
 release_commit_sha=850c226bd0ffc4f13d678528780c34050f559b22
-origin_main_sha_at_verification=77789bc7925fd8a00bb11bf7fbe91a8325471ab3
+origin_main_sha_at_verification=43fb1628f0d65f5fa9568a41a1c1dda2925d622e
 release_commit_in_origin_main=PASS
 release_tag=release-uiux-20260218T042527Z
 release_tag_target_sha=850c226bd0ffc4f13d678528780c34050f559b22
@@ -20,4 +20,5 @@ vps_evidence_2=outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_
 vps_evidence_3=outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_attempt_summary.txt
 vps_evidence_4=outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_rollback_vps-prod.txt
 vps_evidence_5=outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_probe_vps-secondary.txt
-verified_at_utc=2026-02-18T06:40:04Z
+vps_evidence_6=outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_post_rollback_ports_verify.txt
+verified_at_utc=2026-02-18T06:40:53Z
