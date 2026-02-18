@@ -765,3 +765,7 @@ LastUpdated: 2026-02-18
 ## 决策记录（2026-02-18T11:33:40Z）
 - Git 交付闭环：commit `20d59ab` 已推送 `origin/main`。
 - 三端一致性：local==GitHub PASS；VPS N/A（本轮为专业智能体设计文档/配置任务）。
+
+## 决策记录（2026-02-18T11:34:20Z）
+- 收尾补充提交：`ddad4e0`（补充 git log 与三端一致性证据文件）。
+- 远端同步：`origin/main@ddad4e0`。
