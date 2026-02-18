@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-02-18T11:22:19Z",
+  "risk_level": "P1",
+  "layer_a_pass": false,
+  "gatekeeper_required": false,
+  "gatekeeper": "mauricewen",
+  "gatekeeper_ok": true,
+  "evidence_complete": true,
+  "missing_count": 0,
+  "required_files": [
+    "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z-p1-sample/reports/risk_assessment.json",
+    "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z-p1-sample/reports/layer_a_results.json",
+    "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z-p1-sample/reports/npm_audit.json"
+  ],
+  "pass": false
+}

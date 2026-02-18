@@ -1,0 +1,40 @@
+{
+  "checks": [
+    {
+      "name": "postmortem_scan",
+      "status": "PASS",
+      "exit_code": 0,
+      "log_path": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z-p1-sample/logs/layer_a_postmortem_scan.log",
+      "note": ""
+    },
+    {
+      "name": "console_install",
+      "status": "PASS",
+      "exit_code": 0,
+      "log_path": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z-p1-sample/logs/layer_a_console_install.log",
+      "note": ""
+    },
+    {
+      "name": "console_build",
+      "status": "PASS",
+      "exit_code": 0,
+      "log_path": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z-p1-sample/logs/layer_a_console_build.log",
+      "note": ""
+    },
+    {
+      "name": "console_security_audit",
+      "status": "FAIL",
+      "exit_code": 1,
+      "log_path": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z-p1-sample/logs/layer_a_console_security_audit.log",
+      "note": "critical=1,high=0,total=1"
+    },
+    {
+      "name": "ai_check",
+      "status": "PASS",
+      "exit_code": 0,
+      "log_path": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z-p1-sample/logs/layer_a_ai_check.log",
+      "note": ""
+    }
+  ],
+  "pass": false
+}

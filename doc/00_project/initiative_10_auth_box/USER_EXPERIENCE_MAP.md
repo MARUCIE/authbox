@@ -221,3 +221,8 @@ Related:
 - Journey H 验证入口（本轮调研）：
   - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
   - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
+
+- Journey H 状态更新（2026-02-18）：
+  - 执行入口：`scripts/release_gate.sh`
+  - 结果样本：`outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`
+  - 安全阻断样本：`outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`

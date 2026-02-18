@@ -1,0 +1,94 @@
+name: Release Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: "Base SHA for diff"
+        required: false
+        type: string
+      head_sha:
+        description: "Head SHA for diff"
+        required: false
+        type: string
+      gatekeeper:
+        description: "Gatekeeper signoff identity (required for P0 if you want explicit signoff)"
+        required: false
+        type: string
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/console/package-lock.json
+
+      - name: Resolve base/head
+        id: refs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.sha }}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            BASE_SHA="${{ inputs.base_sha }}"
+            HEAD_SHA="${{ inputs.head_sha }}"
+            if [[ -z "$BASE_SHA" ]]; then
+              BASE_SHA="$(git rev-parse HEAD~1)"
+            fi
+            if [[ -z "$HEAD_SHA" ]]; then
+              HEAD_SHA="${{ github.sha }}"
+            fi
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+            if [[ "$BASE_SHA" =~ ^0+$ ]]; then
+              BASE_SHA="$(git rev-parse HEAD~1)"
+            fi
+          fi
+
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+
+      - name: Run release gate
+        shell: bash
+        env:
+          GATEKEEPER_INPUT: ${{ inputs.gatekeeper }}
+        run: |
+          set -euo pipefail
+          GATEKEEPER_VALUE="${GATEKEEPER_INPUT:-${{ github.actor }}}"
+          scripts/release_gate.sh \
+            --base "${{ steps.refs.outputs.base_sha }}" \
+            --head "${{ steps.refs.outputs.head_sha }}" \
+            --sop-id "release-gate-ci" \
+            --run-id "${{ steps.refs.outputs.run_id }}" \
+            --gatekeeper "$GATEKEEPER_VALUE"
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-evidence-${{ steps.refs.outputs.run_id }}
+          path: outputs/release-gate-ci/${{ steps.refs.outputs.run_id }}
+          if-no-files-found: warn

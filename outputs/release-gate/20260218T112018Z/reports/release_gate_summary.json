@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-02-18T11:20:46Z",
+  "base": "HEAD~1",
+  "head": "HEAD",
+  "risk_level": "P2",
+  "evidence_dir": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z",
+  "risk_report": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z/reports/risk_assessment.json",
+  "layer_a_report": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z/reports/layer_a_results.json",
+  "layer_b_report": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112018Z/reports/layer_b_results.json",
+  "pass": true
+}

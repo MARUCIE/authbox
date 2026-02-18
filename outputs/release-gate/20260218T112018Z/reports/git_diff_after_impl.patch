@@ -1,0 +1,161 @@
+diff --git a/.sop_current_run_path b/.sop_current_run_path
+index d51d4d8..5322a2b 100644
+--- a/.sop_current_run_path
++++ b/.sop_current_run_path
+@@ -1 +1 @@
+-outputs/sota-product-sop-research/20260218T064240Z
++outputs/release-gate/20260218T112018Z
+diff --git a/Makefile b/Makefile
+index 2096a15..b0a32d7 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ PROJECT_NAME := $(shell basename $(CURDIR))
+ COMPOSE_FILE := docker-compose.yml
+ 
+-.PHONY: help up down restart logs status clean build shell-api shell-console shell-db logs-api logs-console health dev watch real-api-capture real-api-replay full-loop-check postmortem-scan
++.PHONY: help up down restart logs status clean build shell-api shell-console shell-db logs-api logs-console health dev watch real-api-capture real-api-replay full-loop-check postmortem-scan risk-classify release-gate
+ 
+ help: ## Show this help
+ 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+@@ -68,6 +68,11 @@ real-api-replay: ## Replay regression flow against real API (no mock)
+ full-loop-check: ## Run full-loop closure check (entry/system/contract/verification)
+ 	@scripts/full_loop_closure_check.sh --project-dir .
+ 
+-
+ postmortem-scan: ## Run postmortem trigger scan (local gate)
+ 	@scripts/postmortem_scan.sh --base 007eff50b0400d8642f798419b6cc5e2bf4b5c4c --head HEAD
++
++risk-classify: ## Classify release risk (P0/P1/P2). Usage: make risk-classify BASE=<sha> HEAD=<sha>
++	@scripts/release_risk_classify.sh --base $${BASE:-HEAD~1} --head $${HEAD:-HEAD}
++
++release-gate: ## Run Layer A/B release gate. Usage: make release-gate BASE=<sha> HEAD=<sha> GATEKEEPER=<name>
++	@scripts/release_gate.sh --base $${BASE:-HEAD~1} --head $${HEAD:-HEAD} $$(if [ -n "$${GATEKEEPER:-}" ]; then printf -- '--gatekeeper %q' "$${GATEKEEPER}"; fi)
+diff --git a/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md b/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
+index 00deaae..2da092d 100644
+--- a/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
++++ b/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md
+@@ -196,3 +196,13 @@ AuditEvent {
+ - 缓解：按风险分级施加门禁，不一刀切。
+ - 风险：指标形式化。
+ - 缓解：每个指标绑定触发动作（回滚/冻结/补测）。
++
++## 实施进展（2026-02-18）- 发布门禁自动化已落地
++- 已实现：风险分级（P0/P1/P2）与双层门禁（Layer A/Layer B）脚本化执行。
++- 实现文件：
++  - `scripts/release_risk_classify.sh`
++  - `scripts/release_gate.sh`
++  - `.github/workflows/release-gate.yml`
++- 验证证据：
++  - `outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`（PASS）
++  - `outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`（FAIL，security gate）
+diff --git a/doc/00_project/initiative_10_auth_box/PRD.md b/doc/00_project/initiative_10_auth_box/PRD.md
+index 8a1b775..5fe64af 100644
+--- a/doc/00_project/initiative_10_auth_box/PRD.md
++++ b/doc/00_project/initiative_10_auth_box/PRD.md
+@@ -269,3 +269,8 @@ MVP 采用 7 个核心对象：
+ 
+ ### 备注（推断边界）
+ - 本节为对 SOTA 样本流程的可迁移抽象，不是对任一厂商 SOP 的直接复制。
++
++### 状态更新（2026-02-18）
++- “发布风险分级 + 双层门禁”已进入可执行状态：
++  - 本地命令：`make risk-classify`、`make release-gate`
++  - CI 工作流：`.github/workflows/release-gate.yml`
+diff --git a/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md b/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
+index be5334c..38fc277 100644
+--- a/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
++++ b/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md
+@@ -106,3 +106,20 @@ LastUpdated: 2026-02-13
+ | 症状：调研结论可读但无法审计复核 | 根因：缺少来源路径、日期窗口与证据目录统一规范 |
+ | 修复与验证方法 | 强制产出 `source_inventory + matrix + transferability` 三件套，并写入 `outputs/<sop-id>/<run-id>/reports/` |
+ | 防复发触发器 | 评审时若发现“无来源链接/无时间窗口/无证据目录”，直接判定不通过并返工 |
++
++## 2026-02-18 · REQ（Release Gate 落地）
++| id | requirement | scope | status | evidence |
++|---|---|---|---|---|
++| REQ-20260218-SOP-02 | 将 P0/P1/P2 风险分级与 Layer A/B 门禁落地为可执行脚本与 CI 规则 | `scripts/`, `.github/workflows`, `Makefile` | done | `outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json` |
++
++## 2026-02-18 · PROMPT（可复用）
++| id | prompt | notes |
++|---|---|---|
++| PROMPT-20260218-RELEASE-GATE | "执行发布门禁：先分级(P0/P1/P2)，再跑 Layer A 自动检查，最后做 Layer B 证据与签署校验" | 适用于发布前自动验收 |
++
++## 2026-02-18 · Anti-Regression Q&A（Release Gate）
++| Q | A |
++|---|---|
++| 症状：P1 发布门禁失败，但构建与测试都通过 | 根因：安全扫描发现 critical 漏洞（如 `next` 版本命中 advisory） |
++| 修复与验证方法 | 升级依赖到修复版本后重跑 `scripts/release_gate.sh`，确认 `console_security_audit` 变为 PASS |
++| 防复发触发器 | `layer_a_results.json` 中 `console_security_audit.status=FAIL` 即阻断发布并进入修复流程 |
+diff --git a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+index 583a084..d85d71d 100644
+--- a/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
++++ b/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
+@@ -221,3 +221,8 @@ Related:
+ - Journey H 验证入口（本轮调研）：
+   - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
+   - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
++
++- Journey H 状态更新（2026-02-18）：
++  - 执行入口：`scripts/release_gate.sh`
++  - 结果样本：`outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`
++  - 安全阻断样本：`outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`
+diff --git a/doc/00_project/initiative_10_auth_box/deliverable.md b/doc/00_project/initiative_10_auth_box/deliverable.md
+index 9bf2da5..6687b76 100644
+--- a/doc/00_project/initiative_10_auth_box/deliverable.md
++++ b/doc/00_project/initiative_10_auth_box/deliverable.md
+@@ -955,3 +955,16 @@ LastUpdated: 2026-02-13
+   - Round 1 `ai check --no-sbom`：PASS（`outputs/sota-product-sop-research/20260218T064240Z/logs/ai_check_round1.log`）
+   - Round 2 文档一致性人工模拟：PASS（`outputs/sota-product-sop-research/20260218T064240Z/reports/round2_doc_consistency_assertion.txt`）
+ - Git 同步：`origin/main@58f6a6a`（本轮调研交付已推送）。
++
++## 2026-02-18 · 发布门禁自动化落地（P0/P1/P2 + Layer A/B）
++- 代码交付：
++  - `scripts/release_risk_classify.sh`
++  - `scripts/release_gate.sh`
++  - `.github/workflows/release-gate.yml`
++  - `Makefile`（新增 `risk-classify`、`release-gate`）
++- 证据：
++  - PASS 样本：`outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`
++  - FAIL 样本（安全阻断）：`outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`
++- 结论：
++  - docs-only 变更按 P2 放行。
++  - P1/P0 变更若命中 critical 安全漏洞，Layer A 阻断，Layer B 不通过。
+diff --git a/doc/00_project/initiative_10_auth_box/notes.md b/doc/00_project/initiative_10_auth_box/notes.md
+index 699ded1..42c5d26 100644
+--- a/doc/00_project/initiative_10_auth_box/notes.md
++++ b/doc/00_project/initiative_10_auth_box/notes.md
+@@ -1035,3 +1035,14 @@ AuditEvent {
+ ## 2026-02-18T07:02:10Z（Git Closeout）
+ - 推送完成：`origin/main` 已更新到 `58f6a6a`。
+ - 研究 run 证据：`outputs/sota-product-sop-research/20260218T064240Z/reports/`。
++
++## 2026-02-18T11:23:00Z（Release Gate Implementation）
++- 交付：
++  - 风险分级脚本：`scripts/release_risk_classify.sh`
++  - 门禁脚本：`scripts/release_gate.sh`
++  - CI 规则：`.github/workflows/release-gate.yml`
++- Layer A：postmortem scan、按范围执行 backend tests / console install+build、security audit、ai check。
++- Layer B：证据完整性校验 + P0 gatekeeper 签署要求。
++- 样本结果：
++  - `outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json` => pass=true
++  - `outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json` => pass=false（critical=1）
+diff --git a/doc/00_project/initiative_10_auth_box/task_plan.md b/doc/00_project/initiative_10_auth_box/task_plan.md
+index 92ce119..97b29d8 100644
+--- a/doc/00_project/initiative_10_auth_box/task_plan.md
++++ b/doc/00_project/initiative_10_auth_box/task_plan.md
+@@ -719,3 +719,14 @@ LastUpdated: 2026-02-18
+   - commit `58f6a6a`：补充 run 证据日志
+ - 远端同步：`origin/main@58f6a6a`。
+ - 三端一致性：local==GitHub PASS；VPS N/A（研究/文档任务）。
++
++## 决策记录（2026-02-18T11:23:00Z）
++- 已实现发布门禁自动化（P0/P1/P2 + Layer A/B）：
++  - `scripts/release_risk_classify.sh`
++  - `scripts/release_gate.sh`
++  - `.github/workflows/release-gate.yml`
++  - `Makefile` 新增 `risk-classify` / `release-gate`。
++- 本地验证：
++  - 样本 A（docs-only，HEAD~1..HEAD）：PASS，证据 `outputs/release-gate/20260218T112018Z/`。
++  - 样本 B（历史 P1 区间 3454a20..813b5cd）：FAIL（命中 `next` critical 漏洞），证据 `outputs/release-gate/20260218T112018Z-p1-sample/`。
++- 门禁策略：P1/P0 对 `npm audit` critical 违规阻断发布。

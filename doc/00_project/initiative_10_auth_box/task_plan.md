@@ -719,3 +719,20 @@ LastUpdated: 2026-02-18
   - commit `58f6a6a`：补充 run 证据日志
 - 远端同步：`origin/main@58f6a6a`。
 - 三端一致性：local==GitHub PASS；VPS N/A（研究/文档任务）。
+
+## 决策记录（2026-02-18T11:23:00Z）
+- 已实现发布门禁自动化（P0/P1/P2 + Layer A/B）：
+  - `scripts/release_risk_classify.sh`
+  - `scripts/release_gate.sh`
+  - `.github/workflows/release-gate.yml`
+  - `Makefile` 新增 `risk-classify` / `release-gate`。
+- 本地验证：
+  - 样本 A（docs-only，HEAD~1..HEAD）：PASS，证据 `outputs/release-gate/20260218T112018Z/`。
+  - 样本 B（历史 P1 区间 3454a20..813b5cd）：FAIL（命中 `next` critical 漏洞），证据 `outputs/release-gate/20260218T112018Z-p1-sample/`。
+- 门禁策略：P1/P0 对 `npm audit` critical 违规阻断发布。
+
+## 决策记录（2026-02-18T11:24:10Z）
+- Make 入口验证完成：
+  - `make risk-classify BASE=7f218d2 HEAD=2c41c04` => `risk_level=P0`
+  - `make release-gate BASE=HEAD~1 HEAD=HEAD GATEKEEPER=mauricewen` => PASS
+- 新增验证证据：`outputs/release-gate/20260218T112357Z/`。

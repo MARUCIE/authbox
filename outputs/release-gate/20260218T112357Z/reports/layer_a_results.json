@@ -1,0 +1,19 @@
+{
+  "checks": [
+    {
+      "name": "postmortem_scan",
+      "status": "PASS",
+      "exit_code": 0,
+      "log_path": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112357Z/logs/layer_a_postmortem_scan.log",
+      "note": ""
+    },
+    {
+      "name": "ai_check",
+      "status": "PASS",
+      "exit_code": 0,
+      "log_path": "/Users/mauricewen/Projects/10-auth-box/outputs/release-gate/20260218T112357Z/logs/layer_a_ai_check.log",
+      "note": ""
+    }
+  ],
+  "pass": true
+}

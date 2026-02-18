@@ -1,0 +1,10 @@
+ .sop_current_run_path                                   |  2 +-
+ Makefile                                                |  9 +++++++--
+ .../PLATFORM_OPTIMIZATION_PLAN.md                       | 10 ++++++++++
+ doc/00_project/initiative_10_auth_box/PRD.md            |  5 +++++
+ .../ROLLING_REQUIREMENTS_AND_PROMPTS.md                 | 17 +++++++++++++++++
+ .../initiative_10_auth_box/USER_EXPERIENCE_MAP.md       |  5 +++++
+ doc/00_project/initiative_10_auth_box/deliverable.md    | 13 +++++++++++++
+ doc/00_project/initiative_10_auth_box/notes.md          | 11 +++++++++++
+ doc/00_project/initiative_10_auth_box/task_plan.md      | 11 +++++++++++
+ 9 files changed, 80 insertions(+), 3 deletions(-)

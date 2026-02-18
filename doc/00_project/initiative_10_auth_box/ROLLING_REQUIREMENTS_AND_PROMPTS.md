@@ -106,3 +106,20 @@ LastUpdated: 2026-02-13
 | 症状：调研结论可读但无法审计复核 | 根因：缺少来源路径、日期窗口与证据目录统一规范 |
 | 修复与验证方法 | 强制产出 `source_inventory + matrix + transferability` 三件套，并写入 `outputs/<sop-id>/<run-id>/reports/` |
 | 防复发触发器 | 评审时若发现“无来源链接/无时间窗口/无证据目录”，直接判定不通过并返工 |
+
+## 2026-02-18 · REQ（Release Gate 落地）
+| id | requirement | scope | status | evidence |
+|---|---|---|---|---|
+| REQ-20260218-SOP-02 | 将 P0/P1/P2 风险分级与 Layer A/B 门禁落地为可执行脚本与 CI 规则 | `scripts/`, `.github/workflows`, `Makefile` | done | `outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json` |
+
+## 2026-02-18 · PROMPT（可复用）
+| id | prompt | notes |
+|---|---|---|
+| PROMPT-20260218-RELEASE-GATE | "执行发布门禁：先分级(P0/P1/P2)，再跑 Layer A 自动检查，最后做 Layer B 证据与签署校验" | 适用于发布前自动验收 |
+
+## 2026-02-18 · Anti-Regression Q&A（Release Gate）
+| Q | A |
+|---|---|
+| 症状：P1 发布门禁失败，但构建与测试都通过 | 根因：安全扫描发现 critical 漏洞（如 `next` 版本命中 advisory） |
+| 修复与验证方法 | 升级依赖到修复版本后重跑 `scripts/release_gate.sh`，确认 `console_security_audit` 变为 PASS |
+| 防复发触发器 | `layer_a_results.json` 中 `console_security_audit.status=FAIL` 即阻断发布并进入修复流程 |

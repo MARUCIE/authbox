@@ -955,3 +955,17 @@ LastUpdated: 2026-02-13
   - Round 1 `ai check --no-sbom`：PASS（`outputs/sota-product-sop-research/20260218T064240Z/logs/ai_check_round1.log`）
   - Round 2 文档一致性人工模拟：PASS（`outputs/sota-product-sop-research/20260218T064240Z/reports/round2_doc_consistency_assertion.txt`）
 - Git 同步：`origin/main@58f6a6a`（本轮调研交付已推送）。
+
+## 2026-02-18 · 发布门禁自动化落地（P0/P1/P2 + Layer A/B）
+- 代码交付：
+  - `scripts/release_risk_classify.sh`
+  - `scripts/release_gate.sh`
+  - `.github/workflows/release-gate.yml`
+  - `Makefile`（新增 `risk-classify`、`release-gate`）
+- 证据：
+  - PASS 样本：`outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`
+  - FAIL 样本（安全阻断）：`outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`
+- 结论：
+  - docs-only 变更按 P2 放行。
+  - P1/P0 变更若命中 critical 安全漏洞，Layer A 阻断，Layer B 不通过。
+- Make 入口验证：`make release-gate` PASS（`outputs/release-gate/20260218T112357Z/reports/release_gate_summary.json`）。

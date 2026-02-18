@@ -196,3 +196,13 @@ AuditEvent {
 - 缓解：按风险分级施加门禁，不一刀切。
 - 风险：指标形式化。
 - 缓解：每个指标绑定触发动作（回滚/冻结/补测）。
+
+## 实施进展（2026-02-18）- 发布门禁自动化已落地
+- 已实现：风险分级（P0/P1/P2）与双层门禁（Layer A/Layer B）脚本化执行。
+- 实现文件：
+  - `scripts/release_risk_classify.sh`
+  - `scripts/release_gate.sh`
+  - `.github/workflows/release-gate.yml`
+- 验证证据：
+  - `outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`（PASS）
+  - `outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`（FAIL，security gate）

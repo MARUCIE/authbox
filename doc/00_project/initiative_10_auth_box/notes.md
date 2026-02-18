@@ -1035,3 +1035,19 @@ AuditEvent {
 ## 2026-02-18T07:02:10Z（Git Closeout）
 - 推送完成：`origin/main` 已更新到 `58f6a6a`。
 - 研究 run 证据：`outputs/sota-product-sop-research/20260218T064240Z/reports/`。
+
+## 2026-02-18T11:23:00Z（Release Gate Implementation）
+- 交付：
+  - 风险分级脚本：`scripts/release_risk_classify.sh`
+  - 门禁脚本：`scripts/release_gate.sh`
+  - CI 规则：`.github/workflows/release-gate.yml`
+- Layer A：postmortem scan、按范围执行 backend tests / console install+build、security audit、ai check。
+- Layer B：证据完整性校验 + P0 gatekeeper 签署要求。
+- 样本结果：
+  - `outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json` => pass=true
+  - `outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json` => pass=false（critical=1）
+
+## 2026-02-18T11:24:10Z（Make 入口验证）
+- `make risk-classify` 已验证可用，并可识别历史 P0 区间。
+- `make release-gate` 已验证可用，docs-only 场景按 P2 放行。
+- 证据：`outputs/release-gate/20260218T112357Z/reports/release_gate_summary.json`。

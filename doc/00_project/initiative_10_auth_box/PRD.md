@@ -269,3 +269,8 @@ MVP 采用 7 个核心对象：
 
 ### 备注（推断边界）
 - 本节为对 SOTA 样本流程的可迁移抽象，不是对任一厂商 SOP 的直接复制。
+
+### 状态更新（2026-02-18）
+- “发布风险分级 + 双层门禁”已进入可执行状态：
+  - 本地命令：`make risk-classify`、`make release-gate`
+  - CI 工作流：`.github/workflows/release-gate.yml`
