@@ -1,0 +1,4 @@
+sync_started_utc=2026-02-18T06:34:25Z
+Cloning into '/root/10-auth-box'...
+fatal: could not read Username for 'https://github.com': No such device or address
+sync_exit_code=128

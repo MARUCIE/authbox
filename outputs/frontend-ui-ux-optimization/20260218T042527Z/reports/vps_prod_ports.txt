@@ -1,0 +1,18 @@
+probe_started_utc=2026-02-18T06:33:53Z
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                                                                  
+LISTEN 0      128          0.0.0.0:2222       0.0.0.0:*    users:(("sshd",pid=1717577,fd=3))                                                       
+LISTEN 0      200        127.0.0.1:5432       0.0.0.0:*    users:(("postgres",pid=2402906,fd=6))                                                   
+LISTEN 0      65535     127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=1717575,fd=17))                                           
+LISTEN 0      511          0.0.0.0:443        0.0.0.0:*    users:(("nginx",pid=2079202,fd=6),("nginx",pid=2079201,fd=6),("nginx",pid=2079199,fd=6))
+LISTEN 0      511          0.0.0.0:80         0.0.0.0:*    users:(("nginx",pid=2079202,fd=7),("nginx",pid=2079201,fd=7),("nginx",pid=2079199,fd=7))
+LISTEN 0      80         127.0.0.1:3306       0.0.0.0:*    users:(("mariadbd",pid=1717740,fd=24))                                                  
+LISTEN 0      65535  127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=1717575,fd=15))                                           
+LISTEN 0      511        127.0.0.1:6379       0.0.0.0:*    users:(("redis-server",pid=1717566,fd=6))                                               
+LISTEN 0      128             [::]:2222          [::]:*    users:(("sshd",pid=1717577,fd=4))                                                       
+LISTEN 0      511                *:3000             *:*    users:(("next-server (v1",pid=2489270,fd=21))                                           
+LISTEN 0      511             [::]:443           [::]:*    users:(("nginx",pid=2079202,fd=5),("nginx",pid=2079201,fd=5),("nginx",pid=2079199,fd=5))
+LISTEN 0      511             [::]:80            [::]:*    users:(("nginx",pid=2079202,fd=8),("nginx",pid=2079201,fd=8),("nginx",pid=2079199,fd=8))
+LISTEN 0      511                *:5000             *:*    users:(("node",pid=2310923,fd=21))                                                      
+LISTEN 0      4096               *:18388            *:*    users:(("xray",pid=3853,fd=3))                                                          
+LISTEN 0      511            [::1]:6379          [::]:*    users:(("redis-server",pid=1717566,fd=7))                                               
+probe_exit_code=0

@@ -664,3 +664,10 @@ LastUpdated: 2026-02-18
   - `vps-prod` 可连通，但未发现 `10-auth-box` 仓库路径与对应容器（证据见 run reports）。
   - `vps-secondary` 连接关闭（port 22）。
 - 三端一致性结论更新：GitHub PASS；VPS 维持 N/A（无可识别部署目标）。
+
+## 决策记录（2026-02-18T06:36:00Z）
+- VPS 代码镜像同步完成（bundle 方案，无需 GitHub 凭证）：
+  - 远端路径：`/root/10-auth-box`
+  - 对齐提交：`850c226`（release tag 目标提交）
+  - 断言：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_release_sync_assertion.txt`（PASS）
+- 三端一致性更新：`vps_consistency=PASS_CODE_MIRROR`（运行态部署未执行）。

@@ -1,0 +1,38 @@
+probe_started_utc=2026-02-18T06:33:29Z
+host=cloudcc
+user=root
+pwd=/root
+Linux cloudcc 6.8.0-88-generic #89-Ubuntu SMP PREEMPT_DYNAMIC Sat Oct 11 01:02:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+git version 2.43.0
+Docker version 29.2.0, build 0b9d198
+Docker Compose version v5.0.2
+total 248
+drwx------ 16 root root   4096 Feb  5 02:16 .
+drwxr-xr-x 22 root root   4096 Dec  1 01:26 ..
+-rw-------  1 root root 108250 Jan 15 00:47 .bash_history
+-rw-r--r--  1 root root   3106 Apr 22  2024 .bashrc
+drwx------  7 root root   4096 Jan 14 17:34 .cache
+drwxr-xr-x 13 root root   4096 Jan 19 09:08 .claude
+-rw-------  1 root root   5382 Jan 19 09:08 .claude.json
+-rw-------  1 root root   5362 Jan 19 09:08 .claude.json.backup
+drwxr-xr-x  3 root root   4096 Dec  1 00:48 .codex
+drwxr-xr-x  5 root root   4096 Jan 15 02:13 .config
+drwx------  3 root root   4096 Feb  5 02:16 .docker
+-rw-------  1 root root    126 Jan 14 14:29 .lesshst
+drwx------  2 root root   4096 Jan 11 14:30 .lingque
+drwxr-xr-x  4 root root   4096 Jan 14 17:34 .local
+drwxr-xr-x  6 root root   4096 Jan  4 08:06 .npm
+drwxr-xr-x  5 root root   4096 Jan 30 06:33 .pm2
+-rw-r--r--  1 root root    161 Apr 22  2024 .profile
+drwx------  2 root root   4096 Jan 14 17:19 .ssh
+-rw-r--r--  1 root root    165 Jan 10 11:51 .wget-hsts
+drwxr-xr-x  3 root root   4096 Jan 29 17:53 apps
+drwxr-xr-x  8 root root   4096 Jan 29 17:53 backup-app
+drwxr-xr-x  2 root root   4096 Jan 11 13:10 backup-nginx
+drwxr-xr-x  2 root root   4096 Jan 11 13:27 backup-ssh
+-rw-r--r--  1 root root  11426 Jan 11 19:30 lingque-admin-clarity.tar.gz
+-rw-r--r--  1 root root  19633 Jan 11 19:13 lingque-token-fix.tar.gz
+-rw-r--r--  1 root root    874 Jan 10 18:22 nginx-default.backup
+-rw-r--r--  1 root root   1116 Dec  1 02:24 s -tlnp | grep 2222
+-rw-r--r--  1 root root   1075 Dec  1 02:33 tatus
+probe_exit_code=0

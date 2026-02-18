@@ -981,3 +981,14 @@ AuditEvent {
   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_probe_vps-prod_deep.txt`
   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_runtime_vps-prod_authbox_filter.txt`
   - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_probe_vps-secondary.txt`
+
+## 2026-02-18T06:36:00Z（VPS Code Mirror）
+- 私有仓库直拉失败（缺少 GitHub 凭证）后，改用 bundle 同步：
+  1. 本地生成 `10-auth-box-release.bundle`
+  2. `scp` 到 `vps-prod:/root/10-auth-box-release.bundle`
+  3. 远端从 bundle 恢复到 `/root/10-auth-box` 并 checkout `release-uiux-20260218T042527Z`
+- 同步结果：`repo_head_sha=850c226...`（PASS）。
+- 证据：
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_scp_bundle.txt`
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_prod_repo_sync_from_bundle.txt`
+  - `outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/vps_release_sync_assertion.txt`

@@ -1,0 +1,23 @@
+scan_started_utc=2026-02-18T06:33:40Z
+apps_dir
+total 3493780
+drwxr-xr-x  3 root root        4096 Jan 29 17:53 .
+drwx------ 16 root root        4096 Feb  5 02:16 ..
+-rw-r--r--  1 root root         348 Jan 10 12:29 .env
+drwxr-xr-x 18  501 staff       4096 Feb 13 01:46 lingque-agentic-platform
+-rw-r--r--  1 root root           0 Jan 10 11:50 lingque-temp.tar.gz
+-rw-r--r--  1 root root  3577605120 Jan 10 12:27 lingque-v1.0.1.tar.gz
+-rw-r--r--  1 root root          83 Jan 10 12:29 package-lock.json
+backup_app_dir
+total 32
+drwxr-xr-x  8 root root 4096 Jan 29 17:53 .
+drwx------ 16 root root 4096 Feb  5 02:16 ..
+drwxr-xr-x  2 root root 4096 Jan 11 13:19 2026-01-11-211922
+drwxr-xr-x  2 root root 4096 Jan 11 13:19 2026-01-11-211949
+drwxr-xr-x  2 root root 4096 Jan 11 13:20 2026-01-11-212013
+drwxr-xr-x  2 root root 4096 Jan 11 13:22 2026-01-11-212232
+drwxr-xr-x  2 root root 4096 Jan 11 14:04 20260111-220408-invitation-guard
+drwxr-xr-x  2 root root 4096 Jan 11 14:48 20260111-224814-provider-keys-lockdown
+git_dirs
+git_remotes
+scan_exit_code=0
