@@ -223,7 +223,7 @@ export default function SettingsPage() {
           )}
 
           {!loadingSessions && sessions.length === 0 && (
-            <div className="rounded-lg border border-dashed border-[var(--border)] p-12 text-center">
+            <div className="rounded-lg border border-dashed border-ghost p-12 text-center">
               <p className="text-sm text-[var(--muted-foreground)]">
                 No active sessions found.
               </p>
@@ -233,11 +233,11 @@ export default function SettingsPage() {
           {sessions.map((session) => (
             <div
               key={session.id}
-              className="flex items-center justify-between rounded-lg border border-[var(--border)] p-4 transition-colors hover:bg-[var(--accent)]"
+              className="flex items-center justify-between rounded-lg border border-ghost p-4 transition-colors hover:surface-high"
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--accent)] text-xs font-mono">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md surface-high text-xs font-mono">
                     D
                   </span>
                   <span className="font-medium text-sm">
@@ -289,10 +289,10 @@ export default function SettingsPage() {
 
         {/* State: idle -- 2FA is off */}
         {twoFAState === 'idle' && (
-          <div className="rounded-lg border border-[var(--border)] p-6">
+          <div className="rounded-lg border border-ghost p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--muted)] text-sm font-mono font-bold">
+                <span className="flex h-9 w-9 items-center justify-center rounded-md surface-highest text-sm font-mono font-bold">
                   2F
                 </span>
                 <div>
@@ -311,7 +311,7 @@ export default function SettingsPage() {
 
         {/* State: enrolling -- loading */}
         {twoFAState === 'enrolling' && (
-          <div className="rounded-lg border border-[var(--border)] p-6 flex justify-center">
+          <div className="rounded-lg border border-ghost p-6 flex justify-center">
             <div className="animate-pulse text-sm text-[var(--muted-foreground)]">
               Generating TOTP secret...
             </div>
@@ -320,7 +320,7 @@ export default function SettingsPage() {
 
         {/* State: verifying -- show secret + code input */}
         {twoFAState === 'verifying' && (
-          <div className="rounded-lg border border-[var(--border)] p-6 space-y-5">
+          <div className="rounded-lg border border-ghost p-6 space-y-5">
             <div>
               <p className="font-medium text-sm mb-2">
                 1. Add this account to your authenticator app
@@ -333,7 +333,7 @@ export default function SettingsPage() {
               <div className="flex justify-center mb-4">
                 <canvas
                   ref={qrCanvasRef}
-                  className="rounded-lg border border-[var(--border)]"
+                  className="rounded-lg border border-ghost"
                 />
               </div>
 
@@ -343,7 +343,7 @@ export default function SettingsPage() {
                     Secret (Base32)
                   </label>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md bg-[var(--muted)] px-3 py-2 text-sm font-mono break-all select-all">
+                    <code className="flex-1 rounded-md surface-highest px-3 py-2 text-sm font-mono break-all select-all">
                       {totpSecret}
                     </code>
                     <Button
@@ -361,7 +361,7 @@ export default function SettingsPage() {
                     OTPAuth URI
                   </label>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md bg-[var(--muted)] px-3 py-2 text-xs font-mono break-all select-all max-h-16 overflow-auto">
+                    <code className="flex-1 rounded-md surface-highest px-3 py-2 text-xs font-mono break-all select-all max-h-16 overflow-auto">
                       {totpURI}
                     </code>
                     <Button
@@ -419,7 +419,7 @@ export default function SettingsPage() {
 
         {/* State: enabled -- 2FA is on */}
         {twoFAState === 'enabled' && (
-          <div className="rounded-lg border border-[var(--border)] p-6 space-y-4">
+          <div className="rounded-lg border border-ghost p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--success-bg,#dcfce7)] text-sm font-mono font-bold text-[var(--success-fg,#166534)]">
@@ -434,7 +434,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="border-t border-[var(--border)] pt-4">
+            <div className="border-t border-ghost pt-4">
               <p className="text-sm text-[var(--muted-foreground)] mb-3">
                 To disable 2FA, enter a valid code from your authenticator app.
               </p>

@@ -221,6 +221,31 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgba(195, 192, 255, 0.4);
 }
 
+/* Input placeholder + focus (Vault Onyx) */
+input::placeholder,
+textarea::placeholder {
+  color: var(--outline);
+  opacity: 0.7;
+}
+
+input:focus,
+textarea:focus {
+  border-color: rgba(195, 192, 255, 0.4) !important;
+  box-shadow: 0 0 0 2px rgba(195, 192, 255, 0.15);
+}
+
+select {
+  background: var(--surface-highest);
+  border: 1px solid var(--ghost-border);
+  color: var(--foreground);
+}
+
+select:focus {
+  border-color: rgba(195, 192, 255, 0.4);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(195, 192, 255, 0.15);
+}
+
 /* Scrollbar styling (dark mode) */
 ::-webkit-scrollbar {
   width: 6px;

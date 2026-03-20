@@ -37,11 +37,11 @@ const PROVIDERS = [
   { value: 'custom', label: 'Custom API', icon: 'AP' },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  active: 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950',
-  expired: 'text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950',
-  revoked: 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950',
-  error: 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950',
+const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
+  active: { bg: 'var(--tertiary-container)', text: 'var(--tertiary)', dot: 'var(--tertiary)' },
+  expired: { bg: 'rgba(255, 183, 125, 0.15)', text: 'var(--secondary)', dot: 'var(--secondary)' },
+  revoked: { bg: 'rgba(255, 180, 171, 0.15)', text: 'var(--destructive)', dot: 'var(--destructive)' },
+  error: { bg: 'rgba(255, 180, 171, 0.15)', text: 'var(--destructive)', dot: 'var(--destructive)' },
 };
 
 export default function AuthorizationsPage() {
@@ -161,14 +161,17 @@ export default function AuthorizationsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold">Authorizations</h2>
-            <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
+            <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Authorizations</h2>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
               {connections.length} connection{connections.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Button onClick={() => setViewMode('create')}>
+          <button onClick={() => setViewMode('create')} className="btn-gradient px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m9.86-2.758-1.757 1.757a4.5 4.5 0 0 1-6.364-6.364l4.5-4.5a4.5 4.5 0 0 1 7.244 1.242" />
+            </svg>
             Add Connection
-          </Button>
+          </button>
         </div>
 
         {error && (
@@ -194,23 +197,32 @@ export default function AuthorizationsPage() {
                 <button
                   key={conn.id}
                   onClick={() => { setSelectedId(conn.id); setViewMode('detail'); setConfirmDelete(false); }}
-                  className={`w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
-                    conn.id === selectedId
-                      ? 'border-[var(--primary)] bg-[var(--accent)]'
-                      : 'border-[var(--border)] hover:bg-[var(--accent)]'
-                  }`}
+                  className="w-full flex items-center gap-3 rounded-lg p-3 text-left transition-all"
+                  style={{
+                    background: conn.id === selectedId ? 'var(--surface-highest)' : 'transparent',
+                    border: conn.id === selectedId ? '1px solid var(--ghost-border)' : '1px solid transparent',
+                  }}
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--muted)] text-xs font-medium shrink-0">
+                  <div
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-xs font-medium shrink-0"
+                    style={{ background: 'var(--primary-container)', color: 'var(--primary)' }}
+                  >
                     {info.icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm truncate">{conn.displayName}</p>
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${STATUS_COLORS[conn.status] ?? ''}`}>
-                        {conn.status}
-                      </span>
+                      {(() => {
+                        const cfg = STATUS_CONFIG[conn.status];
+                        return cfg ? (
+                          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md" style={{ background: cfg.bg, color: cfg.text }}>
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: cfg.dot }} />
+                            {conn.status}
+                          </span>
+                        ) : null;
+                      })()}
                       {isExpiringSoon(conn.tokenExpiresAt) && (
-                        <span className="text-xs text-yellow-600 dark:text-yellow-400">Expiring soon</span>
+                        <span className="text-xs" style={{ color: 'var(--secondary)' }}>Expiring soon</span>
                       )}
                     </div>
                     <p className="text-xs text-[var(--muted-foreground)] truncate">
@@ -226,8 +238,8 @@ export default function AuthorizationsPage() {
 
       {/* Right: Detail panel */}
       {selectedConnection && viewMode === 'detail' && (
-        <aside className="w-96 shrink-0 border-l border-[var(--border)] pl-6 flex flex-col">
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
+        <aside className="w-96 shrink-0 pl-6 flex flex-col" style={{ borderLeft: '1px solid var(--ghost-border)' }}>
+          <div className="flex items-center justify-between pb-4" style={{ borderBottom: '1px solid var(--ghost-border)' }}>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-sm font-medium">
                 {providerInfo(selectedConnection.provider).icon}
@@ -249,7 +261,15 @@ export default function AuthorizationsPage() {
           <div className="flex-1 py-4 space-y-4 overflow-y-auto">
             <div className="flex justify-between text-xs text-[var(--muted-foreground)]">
               <span>Status</span>
-              <span className={`px-1.5 py-0.5 rounded ${STATUS_COLORS[selectedConnection.status] ?? ''}`}>{selectedConnection.status}</span>
+              {(() => {
+                const cfg = STATUS_CONFIG[selectedConnection.status];
+                return cfg ? (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs" style={{ background: cfg.bg, color: cfg.text }}>
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: cfg.dot }} />
+                    {selectedConnection.status}
+                  </span>
+                ) : <span>{selectedConnection.status}</span>;
+              })()}
             </div>
 
             {selectedConnection.providerAccountId && (
