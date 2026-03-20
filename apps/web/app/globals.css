@@ -1,42 +1,237 @@
 @import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --border: #e5e5e5;
-  --primary: #0a0a0a;
-  --primary-foreground: #fafafa;
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --accent: #f5f5f5;
-  --accent-foreground: #0a0a0a;
-  --input: #e5e5e5;
-  --ring: #0a0a0a;
-  --radius: 0.5rem;
+/* ============================================================
+   Vault Onyx Design System — "The Fortified Interface"
+   Auth Box v2 Unified Design Tokens (Tailwind v4 CSS-native)
+   ============================================================ */
+
+/* --- Fonts: Space Grotesk (headlines) + IBM Plex Sans (body) --- */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+@theme {
+  /* --- Typography --- */
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* --- Border Radius (ROUND_FOUR scale) --- */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* --- Shadows (tinted indigo, never pure black) --- */
+  --shadow-ambient: 0 4px 40px rgba(55, 48, 163, 0.06);
+  --shadow-elevated: 0 8px 60px rgba(55, 48, 163, 0.08);
+  --shadow-float: 0 16px 80px rgba(55, 48, 163, 0.12);
 }
 
-@media (prefers-color-scheme: dark) {
+/* === Dark Mode (DEFAULT — security product convention) === */
+:root {
+  color-scheme: dark;
+
+  /* Surface Hierarchy (6-tier tonal layering) */
+  --surface-lowest: #060e20;
+  --surface-low: #131b2e;
+  --surface: #0b1326;
+  --surface-container: #171f33;
+  --surface-high: #222a3d;
+  --surface-highest: #2d3449;
+  --surface-bright: #31394d;
+
+  /* Semantic Tokens (mapped to Tailwind CSS vars) */
+  --background: var(--surface);
+  --foreground: #dae2fd;
+  --muted: var(--surface-low);
+  --muted-foreground: #c8c4d5;
+  --border: var(--surface-high);
+  --input: var(--surface-highest);
+  --ring: #c3c0ff;
+
+  /* Primary: Deep Indigo */
+  --primary: #c3c0ff;
+  --primary-foreground: #231691;
+  --primary-container: #3730a3;
+  --primary-fixed: #e2dfff;
+
+  /* Secondary: Amber (warnings, "Moment of Truth") */
+  --secondary: #ffb77d;
+  --secondary-foreground: #4d2600;
+  --secondary-container: #d97707;
+
+  /* Tertiary: Emerald (success, "State of Safety") */
+  --tertiary: #68dba9;
+  --tertiary-foreground: #003825;
+  --tertiary-container: #004d34;
+
+  /* Destructive: Error states */
+  --destructive: #ffb4ab;
+  --destructive-foreground: #690005;
+
+  /* Accent (hover/active states) */
+  --accent: var(--surface-high);
+  --accent-foreground: #dae2fd;
+
+  /* Outline tokens */
+  --outline: #918f9e;
+  --outline-variant: #464553;
+
+  /* Ghost Border: 20% opacity outline-variant for a11y */
+  --ghost-border: rgba(70, 69, 83, 0.2);
+
+  --radius: 6px;
+}
+
+/* === Light Mode Override === */
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #fafafa;
-    --muted: #262626;
-    --muted-foreground: #a3a3a3;
-    --border: #262626;
-    --primary: #fafafa;
-    --primary-foreground: #0a0a0a;
-    --destructive: #ef4444;
-    --destructive-foreground: #fafafa;
-    --accent: #262626;
-    --accent-foreground: #fafafa;
-    --input: #3f3f46;
-    --ring: #d4d4d4;
+    color-scheme: light;
+
+    --surface-lowest: #f8f9fc;
+    --surface-low: #f0f2f8;
+    --surface: #ffffff;
+    --surface-container: #f4f5fa;
+    --surface-high: #e8eaf2;
+    --surface-highest: #dde0ec;
+    --surface-bright: #ffffff;
+
+    --background: var(--surface);
+    --foreground: #1a1b2e;
+    --muted: var(--surface-low);
+    --muted-foreground: #64647a;
+    --border: var(--surface-high);
+    --input: var(--surface-highest);
+    --ring: #3730a3;
+
+    --primary: #3730a3;
+    --primary-foreground: #ffffff;
+    --primary-container: #e2dfff;
+    --primary-fixed: #3730a3;
+
+    --secondary: #d97707;
+    --secondary-foreground: #ffffff;
+    --secondary-container: #ffdcc3;
+
+    --tertiary: #059669;
+    --tertiary-foreground: #ffffff;
+    --tertiary-container: #85f8c4;
+
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+
+    --accent: var(--surface-high);
+    --accent-foreground: #1a1b2e;
+
+    --outline: #78788a;
+    --outline-variant: #c8c4d5;
+    --ghost-border: rgba(200, 196, 213, 0.3);
   }
 }
 
+/* === Base Styles === */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+/* === Vault Onyx Utility Classes === */
+
+/* Security Ceremony: pulse indicator for active sessions */
+.pulse-secure {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tertiary);
+  box-shadow: 0 0 4px var(--tertiary);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 4px var(--tertiary); }
+  50% { box-shadow: 0 0 12px var(--tertiary); }
+}
+
+/* Gradient CTA button */
+.btn-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+  color: var(--primary-foreground);
+  border: none;
+  border-radius: var(--radius-md);
+  transition: filter 0.2s ease;
+}
+.btn-gradient:hover {
+  filter: brightness(1.1);
+}
+
+/* Glassmorphism (modals, dropdowns) */
+.glass {
+  background: rgba(49, 57, 77, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--ghost-border);
+}
+
+/* Ghost border (a11y-only borders) */
+.border-ghost {
+  border: 1px solid var(--ghost-border);
+}
+
+/* Tonal section backgrounds */
+.surface-lowest { background: var(--surface-lowest); }
+.surface-low { background: var(--surface-low); }
+.surface-container { background: var(--surface-container); }
+.surface-high { background: var(--surface-high); }
+.surface-highest { background: var(--surface-highest); }
+
+/* Hash chain block (audit log) */
+.hash-block {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-highest);
+  color: var(--primary);
+}
+
+/* Auth code input (TOTP 6-digit) */
+.auth-code-input {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 500;
+  text-align: center;
+  width: 3rem;
+  height: 3.5rem;
+  border-radius: var(--radius-xl);
+  background: var(--surface-highest);
+  border: 2px solid transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+.auth-code-input:focus {
+  outline: none;
+  border-color: rgba(195, 192, 255, 0.4);
+}
+
+/* Scrollbar styling (dark mode) */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
 }

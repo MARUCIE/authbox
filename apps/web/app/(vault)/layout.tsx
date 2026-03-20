@@ -52,13 +52,23 @@ export default function VaultLayout({
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-[var(--border)] bg-[var(--muted)] flex flex-col">
+      {/* Sidebar — Vault Onyx: surface-low background, no border lines */}
+      <aside className="w-64 flex flex-col" style={{ background: 'var(--surface-low)' }}>
         <div className="p-6">
-          <h1 className="text-lg font-bold">Auth Box</h1>
-          <p className="text-xs text-[var(--muted-foreground)] mt-1">
-            {status === 'unlocked' ? 'Vault unlocked' : status === 'loading' ? 'Loading...' : 'Vault locked'}
-          </p>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'var(--primary-container)' }}>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="var(--primary)">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+              </svg>
+            </div>
+            <h1 className="text-lg font-bold font-heading">Auth Box</h1>
+          </div>
+          <div className="flex items-center gap-2 mt-3">
+            <span className="pulse-secure" />
+            <p className="text-xs text-[var(--muted-foreground)]">
+              {status === 'unlocked' ? 'Vault Unlocked' : status === 'loading' ? 'Loading...' : 'Vault Locked'}
+            </p>
+          </div>
         </div>
 
         <nav className="flex-1 px-3">
@@ -67,11 +77,12 @@ export default function VaultLayout({
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors mb-1',
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all mb-0.5',
                 pathname === item.href
-                  ? 'bg-[var(--background)] font-medium shadow-sm'
-                  : 'text-[var(--muted-foreground)] hover:bg-[var(--background)] hover:text-[var(--foreground)]',
+                  ? 'font-medium text-[var(--primary)]'
+                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]',
               )}
+              style={pathname === item.href ? { background: 'var(--surface-highest)' } : undefined}
             >
               <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
@@ -84,14 +95,20 @@ export default function VaultLayout({
         <div className="p-3 space-y-1">
           <button
             onClick={handleLock}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--muted-foreground)] hover:bg-[var(--background)] transition-colors"
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--secondary)] transition-colors"
           >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
             Lock Vault
           </button>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--muted-foreground)] hover:bg-[var(--background)] transition-colors"
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-colors"
           >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+            </svg>
             Sign Out
           </button>
         </div>
