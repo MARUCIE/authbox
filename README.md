@@ -1,106 +1,151 @@
-# Auth Box v2
+# Auth Box
 
-Zero-knowledge encrypted password manager + authorization manager + AI agent gateway.
+**Your Keys. Your Identity. Unstoppable.**
 
-## Architecture
+The password manager that works even if we disappear. 24 words = all your passwords. No email, no account, no server dependency.
+
+## Why Auth Box
+
+Every password manager asks you to trust them. Auth Box asks you to trust **math**.
+
+- **No Email Required** -- Create a vault in 45 seconds. Just a seed phrase and a master password.
+- **Survive Without Us** -- Your vault is encrypted with keys derived from your seed phrase. Even if Auth Box ceases to exist, your passwords remain yours.
+- **Passwords Without Storage** -- Derive passwords deterministically from your seed + site name. Your vault can literally be empty.
+- **AI Agent Gateway** -- Give AI assistants controlled access to credentials via MCP protocol, with policy-gated, auditable delegation.
+- **Import Everything** -- Migrate from 13 sources: Apple, Google, Chrome, Edge, Firefox, 1Password, Bitwarden, LastPass, Dashlane, KeePass, Samsung Pass, NordPass, Enpass.
+
+## The Unstoppable Promise
 
 ```
-Client (holds decrypted vault)          Server (encrypted blobs only)
-+-----------------------------+         +---------------------------+
-| Web App     Extension       |  E2E    | Auth (SRP-6a)             |
-| (Next.js)   (Chrome MV3)   | ------> | Vault (encrypted CRUD)    |
-|                             |         | Agents + Policies (JSONB) |
-| @authbox/crypto (WASM)     |         | Audit (hash chain)        |
-| MCP Gateway (WebSocket)    |         | PostgreSQL + Redis        |
-+-----------------------------+         +---------------------------+
+You trust your crypto to 24 words. Why not your passwords?
 ```
+
+Auth Box uses the same proven model as Bitcoin wallets:
+
+```
+seed phrase (24 words)
+  -> master key (PBKDF2-HMAC-SHA512)
+    -> vault encryption key
+    -> sync encryption key
+    -> per-agent delegation keys
+    -> deterministic passwords (no storage needed)
+```
+
+If you have your seed phrase, you have everything. No server. No company. No dependency.
 
 ## Quick Start
 
-Prerequisites: Node.js 22+, pnpm 10+, Go 1.22+, Docker
-
 ```bash
-# 1. Install dependencies
+# Install dependencies
 pnpm install
 
-# 2. Copy environment config
-cp .env.example .env
-
-# 3. Start Postgres + Redis, run migrations, start web dev server
-make dev
-
-# 4. In a second terminal, start the Go API
-make dev-api
-
-# Or start everything in one command (API backgrounded)
-make dev-full
+# Start development
+make dev        # Postgres + Redis + Web
+make dev-api    # Go API
+make dev-full   # Everything at once
 ```
 
 - Web app: http://localhost:3010
 - API: http://localhost:4010
-- Health check: http://localhost:4010/health
+
+## Architecture
+
+```
+Client (holds all keys)              Server (encrypted blobs only)
++-----------------------------+      +---------------------------+
+| Web App     Extension       | E2E  | Auth (SRP-6a)             |
+| (Next.js)   (Chrome MV3)   | ---> | Vault (encrypted CRUD)    |
+|                             |      | Agents + Policies (JSONB) |
+| @authbox/crypto (seed+HD)  |      | Audit (hash chain)        |
+| MCP Gateway (WebSocket)    |      | PostgreSQL + Redis        |
++-----------------------------+      +---------------------------+
+```
+
+**Zero-knowledge**: The server stores only encrypted blobs. It cannot decrypt anything.
+
+**Unstoppable Mode**: The server is optional. Your vault works offline with keys derived from your seed phrase.
 
 ## Monorepo Structure
 
 ```
 packages/
-  crypto/           @authbox/crypto     -- Argon2id, AES-256-GCM, SRP-6a, HKDF
+  crypto/           @authbox/crypto     -- BIP-39 seed, HD keys, Argon2id, AES-256-GCM, SRP-6a
   shared/           @authbox/shared     -- Types, validation schemas
   mcp-protocol/     @authbox/mcp-protocol -- AI gateway (MCP over WebSocket)
 apps/
-  web/              @authbox/web        -- Next.js 15 dashboard
+  web/              @authbox/web        -- Next.js 15, Vault Onyx design system
+  console/          auth-box-console    -- Public portal + admin dashboard
   extension/        auth-box-extension  -- Chrome MV3 (popup + content + background)
 services/
-  api/              auth-box-api        -- Go API (chi v5, pgx v5)
+  api/              auth-box-api        -- Go API (chi v5, pgx v5, DDD layered)
 ```
+
+## Encryption
+
+| Layer | Primitive | Purpose |
+|-------|-----------|---------|
+| Seed | BIP-39 (24 words) | Sole recovery mechanism |
+| Master Key | PBKDF2-HMAC-SHA512 | Key derivation from seed |
+| Sub-keys | HD derivation (BIP-32 style) | vault / sync / agent / auth / derive |
+| Vault | AES-256-GCM | Encrypt all vault items |
+| Auth | SRP-6a | Mutual authentication (optional server) |
+| Passwords | Deterministic derivation | seed + site = password (no storage) |
 
 ## Key Commands
 
 | Command | Description |
 |---------|-------------|
-| `make setup` | Install pnpm dependencies |
-| `make dev` | Start infra + migrations + web dev server |
-| `make dev-api` | Start infra + migrations + Go API |
-| `make dev-full` | Start everything (API + web) |
-| `make build` | Build all packages (turbo) |
-| `make migrate` | Run database migrations |
-| `make migrate-down` | Rollback last migration |
-| `make up` | Start Docker infra (Postgres, Redis) |
-| `make down` | Stop Docker infra |
-| `make health` | Check service health |
+| `make dev` | Start infra + web dev server |
+| `make dev-api` | Start Go API |
+| `make dev-full` | Start everything |
+| `make build` | Build all packages |
 | `make test` | Run all tests |
-| `make test-api` | Run Go API tests |
-| `make test-crypto` | Run crypto package tests |
+| `make test-api` | Run Go API tests (6 SRP tests) |
+| `make test-crypto` | Run crypto tests (21 seed tests) |
 
-## Docker (Full Stack)
+## Design System
 
-```bash
-make docker-build   # Build all images
-make docker-up      # Start API + Web + Postgres + Redis
-```
+**Vault Onyx** -- "The Fortified Interface"
 
-## API Routes
+- Primary: Deep Indigo (#3730A3)
+- Success: Emerald (#059669)
+- Warning: Amber (#D97706)
+- Surface: 6-tier tonal layering
+- Typography: Space Grotesk (headlines) + IBM Plex Sans (body)
+- Principles: No-Line Rule, Ghost Border, Tonal Layering, Security Ceremony
 
-| Group | Endpoints |
-|-------|-----------|
-| Auth (SRP, public) | `POST /api/v1/auth/{register,login/init,login/verify}` |
-| Auth (protected) | `POST logout`, `GET/DELETE sessions`, `POST totp/{enroll,verify,disable}` |
-| Vault | `GET key`, `GET/POST sync`, `CRUD items` |
-| Agents | `CRUD /api/v1/agents`, `CRUD agents/:id/policies` |
-| Connections | `CRUD /api/v1/connections` |
-| Audit | `GET /api/v1/audit`, `GET /api/v1/audit/verify` |
-
-## Encryption
-
-- Master password never leaves the client
-- Argon2id key derivation (256MB memory, 3 iterations)
-- HKDF sub-keys: auth (SRP), encryption (vault key wrap), MAC
-- AES-256-GCM for all vault items
-- SRP-6a mutual authentication (server never sees password)
-
-## Documentation
+## Tests
 
 ```
-doc/index.md                    # Documentation index
-doc/00_project/                 # Project-level docs (PRD, architecture, UX map)
+Go API:    6/6  SRP-6a protocol tests (handshake, wrong password, zero A/verifier)
+Crypto:   21/21 BIP-39 + HD derivation + deterministic passwords
+Build:    15/15 Web pages, 34/34 Console pages, 0 errors
 ```
+
+## Comparison
+
+| Feature | 1Password | Bitwarden | Apple Keychain | **Auth Box** |
+|---------|-----------|-----------|----------------|-------------|
+| Self-sovereign (seed phrase) | No | No | No | **Yes** |
+| Works without server | No | Self-host only | Apple only | **Yes** |
+| Deterministic passwords | No | No | No | **Yes** |
+| AI Agent gateway | Unified Access | No | No | **MCP + Policies** |
+| Open source client | No | Yes | No | **Yes (MIT)** |
+| Import sources | Few | 8 | Apple only | **13** |
+| Company disappears | Data at risk | Self-host option | Locked | **24 words = recovery** |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+Auth Box is MIT licensed. PRs welcome.
+
+## License
+
+[MIT](LICENSE) -- Use it, fork it, build on it.
+
+---
+
+**Auth Box v3** -- Zero Knowledge Identity Gateway
+
+Maurice | maurice_wen@proton.me
