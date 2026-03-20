@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auth Box v2 -- 架构审计与设计重构报告</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mckinsey-blue: #003A70;
+    --mckinsey-blue-light: #004B8D;
+    --mckinsey-blue-lighter: #E8F0F8;
+    --mckinsey-blue-pale: #F4F8FC;
+    --mckinsey-accent: #0070C0;
+    --mckinsey-dark: #1A1A2E;
+    --mckinsey-gray-900: #212529;
+    --mckinsey-gray-700: #495057;
+    --mckinsey-gray-500: #6C757D;
+    --mckinsey-gray-300: #CED4DA;
+    --mckinsey-gray-100: #F8F9FA;
+    --mckinsey-white: #FFFFFF;
+    --mckinsey-red: #C62828;
+    --mckinsey-amber: #E65100;
+    --mckinsey-green: #2E7D32;
+    --mckinsey-gold: #B8860B;
+    --font-heading: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+    --font-body: 'Inter', 'Noto Sans SC', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--mckinsey-gray-900);
+    background: var(--mckinsey-gray-100);
+    line-height: 1.8;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-wrapper {
+    max-width: 1080px;
+    margin: 0 auto;
+    background: var(--mckinsey-white);
+    box-shadow: 0 0 60px rgba(0, 58, 112, 0.06);
+  }
+
+  /* ── Cover ── */
+  .cover {
+    background: linear-gradient(135deg, var(--mckinsey-blue) 0%, #001F3F 100%);
+    color: var(--mckinsey-white);
+    padding: 80px 60px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #0070C0, #00A3E0, #0070C0);
+  }
+
+  .cover-label {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 32px;
+  }
+
+  .cover h1 {
+    font-family: var(--font-heading);
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+
+  .cover-subtitle {
+    font-size: 18px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.6;
+    max-width: 680px;
+  }
+
+  .cover-meta {
+    margin-top: 48px;
+    display: flex;
+    gap: 40px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .cover-meta span { display: flex; align-items: center; gap: 6px; }
+
+  /* ── Content Area ── */
+  .content {
+    padding: 48px 60px 60px;
+  }
+
+  /* ── Table of Contents ── */
+  .toc {
+    background: var(--mckinsey-blue-pale);
+    border-left: 4px solid var(--mckinsey-blue);
+    padding: 32px 36px;
+    margin-bottom: 48px;
+  }
+
+  .toc h2 {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--mckinsey-blue);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .toc ol {
+    list-style: none;
+    counter-reset: toc-counter;
+    padding: 0;
+  }
+
+  .toc li {
+    counter-increment: toc-counter;
+    margin-bottom: 8px;
+  }
+
+  .toc li a {
+    color: var(--mckinsey-gray-700);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    transition: color 0.15s;
+  }
+
+  .toc li a:hover { color: var(--mckinsey-blue); }
+
+  .toc li a::before {
+    content: counter(toc-counter, decimal-leading-zero);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--mckinsey-blue);
+    min-width: 20px;
+  }
+
+  /* ── Section Headings ── */
+  .section {
+    margin-bottom: 56px;
+    page-break-inside: avoid;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--mckinsey-blue);
+  }
+
+  .section-number {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mckinsey-white);
+    background: var(--mckinsey-blue);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .section-header h2 {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--mckinsey-blue);
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-family: var(--font-heading);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--mckinsey-dark);
+    margin: 28px 0 14px;
+  }
+
+  h4 {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--mckinsey-gray-700);
+    margin: 20px 0 10px;
+  }
+
+  p {
+    margin-bottom: 14px;
+    color: var(--mckinsey-gray-700);
+  }
+
+  /* ── Executive Summary Box ── */
+  .exec-summary {
+    background: var(--mckinsey-blue-pale);
+    border: 1px solid rgba(0, 58, 112, 0.1);
+    padding: 32px 36px;
+    margin-bottom: 40px;
+    position: relative;
+  }
+
+  .exec-summary::before {
+    content: 'EXECUTIVE SUMMARY';
+    position: absolute;
+    top: -11px;
+    left: 24px;
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--mckinsey-blue);
+    background: var(--mckinsey-blue-pale);
+    padding: 0 12px;
+  }
+
+  .exec-summary p {
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--mckinsey-gray-900);
+  }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0 28px;
+    font-size: 14px;
+  }
+
+  thead th {
+    background: var(--mckinsey-blue);
+    color: var(--mckinsey-white);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    padding: 12px 16px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--mckinsey-gray-300);
+    color: var(--mckinsey-gray-700);
+    vertical-align: top;
+    line-height: 1.6;
+  }
+
+  tbody tr:nth-child(even) { background: var(--mckinsey-blue-pale); }
+  tbody tr:hover { background: var(--mckinsey-blue-lighter); }
+
+  /* ── Score Badge ── */
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 13px;
+    min-width: 48px;
+    padding: 3px 10px;
+    border-radius: 3px;
+  }
+
+  .score-high { background: #E8F5E9; color: var(--mckinsey-green); }
+  .score-mid { background: #FFF3E0; color: var(--mckinsey-amber); }
+  .score-low { background: #FFEBEE; color: var(--mckinsey-red); }
+
+  /* ── Alert Boxes ── */
+  .alert-critical {
+    background: #FFF5F5;
+    border-left: 4px solid var(--mckinsey-red);
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+
+  .alert-critical .alert-label {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--mckinsey-red);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .alert-warn {
+    background: #FFFBF0;
+    border-left: 4px solid var(--mckinsey-amber);
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+
+  .alert-warn .alert-label {
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--mckinsey-amber);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* ── Code ── */
+  code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--mckinsey-gray-100);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--mckinsey-blue-light);
+  }
+
+  /* ── Score Dial ── */
+  .score-dial {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: linear-gradient(135deg, var(--mckinsey-blue) 0%, #001F3F 100%);
+    color: var(--mckinsey-white);
+    padding: 28px 36px;
+    margin: 24px 0 32px;
+  }
+
+  .score-dial .dial-number {
+    font-family: var(--font-heading);
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .score-dial .dial-unit {
+    font-size: 22px;
+    font-weight: 300;
+    opacity: 0.6;
+  }
+
+  .score-dial .dial-text {
+    font-size: 14px;
+    line-height: 1.7;
+    opacity: 0.85;
+  }
+
+  /* ── Color Swatch ── */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0 28px;
+  }
+
+  .swatch {
+    padding: 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .swatch .swatch-name {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .swatch .swatch-value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    opacity: 0.8;
+  }
+
+  /* ── Principle Cards ── */
+  .principle-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .principle-card {
+    background: var(--mckinsey-blue-pale);
+    border: 1px solid rgba(0, 58, 112, 0.08);
+    padding: 20px 24px;
+  }
+
+  .principle-card .principle-number {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--mckinsey-blue);
+    margin-bottom: 8px;
+  }
+
+  .principle-card h4 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    color: var(--mckinsey-dark);
+  }
+
+  .principle-card p {
+    font-size: 13px;
+    margin: 0;
+    color: var(--mckinsey-gray-500);
+    line-height: 1.6;
+  }
+
+  /* ── Roadmap Timeline ── */
+  .roadmap-phase {
+    display: flex;
+    gap: 20px;
+    margin: 16px 0;
+    align-items: stretch;
+  }
+
+  .roadmap-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 40px;
+    flex-shrink: 0;
+  }
+
+  .roadmap-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--mckinsey-blue);
+    border: 3px solid var(--mckinsey-blue-lighter);
+    flex-shrink: 0;
+  }
+
+  .roadmap-line {
+    width: 2px;
+    flex: 1;
+    background: var(--mckinsey-gray-300);
+    margin-top: 4px;
+  }
+
+  .roadmap-content {
+    flex: 1;
+    padding-bottom: 24px;
+  }
+
+  .roadmap-content h4 {
+    margin: -2px 0 6px;
+    font-size: 15px;
+    color: var(--mckinsey-dark);
+  }
+
+  .roadmap-content .phase-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--mckinsey-blue);
+    margin-bottom: 8px;
+  }
+
+  .roadmap-content p {
+    font-size: 13px;
+    margin: 0;
+    color: var(--mckinsey-gray-500);
+  }
+
+  /* ── Recommendations ── */
+  .rec-list {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0;
+    counter-reset: rec-counter;
+  }
+
+  .rec-list li {
+    counter-increment: rec-counter;
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--mckinsey-gray-300);
+    align-items: baseline;
+  }
+
+  .rec-list li::before {
+    content: counter(rec-counter);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mckinsey-white);
+    background: var(--mckinsey-blue);
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .rec-list li p {
+    margin: 0;
+    font-size: 14px;
+  }
+
+  /* ── Divider ── */
+  .section-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--mckinsey-gray-300), transparent);
+    margin: 48px 0;
+  }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 60px 20px 40px;
+    color: #9B9B9D;
+    font-size: 13px;
+    line-height: 2.2;
+    border-top: 2px solid var(--mckinsey-blue);
+  }
+
+  footer p { color: #9B9B9D; }
+
+  /* ── Print ── */
+  @media print {
+    body { background: white; }
+    .page-wrapper { box-shadow: none; max-width: 100%; }
+    .cover { page-break-after: always; }
+    .section { page-break-inside: avoid; }
+    .score-dial { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  @media (max-width: 768px) {
+    .cover { padding: 48px 28px 40px; }
+    .content { padding: 32px 28px 40px; }
+    .cover h1 { font-size: 28px; }
+    .swatch-grid { grid-template-columns: repeat(2, 1fr); }
+    .principle-grid { grid-template-columns: 1fr; }
+    .cover-meta { flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- ════════ Cover ════════ -->
+  <header class="cover">
+    <div class="cover-label">Architecture Audit &amp; Design Report</div>
+    <h1>Auth Box v2<br>架构审计与设计重构报告</h1>
+    <p class="cover-subtitle">零知识加密密码管理器 + AI Agent 网关 -- 整合架构审计、代码审查和 UI 设计重构三大工作流的完整交付物。</p>
+    <div class="cover-meta">
+      <span>2026-03-20</span>
+      <span>Auth Box v2.0</span>
+      <span>Confidential</span>
+    </div>
+  </header>
+
+  <!-- ════════ Content ════════ -->
+  <main class="content">
+
+    <!-- ── TOC ── -->
+    <nav class="toc">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#s1">架构审计评分 (7.5/10)</a></li>
+        <li><a href="#s2">P0 阻断问题 (4 项)</a></li>
+        <li><a href="#s3">P1 代码质量问题 (4 项)</a></li>
+        <li><a href="#s4">设计系统重构 -- Vault Onyx</a></li>
+        <li><a href="#s5">Stitch 原型交付 (10/10 页面)</a></li>
+        <li><a href="#s6">修复路线图</a></li>
+        <li><a href="#s7">设计实施建议</a></li>
+      </ol>
+    </nav>
+
+    <!-- ── Executive Summary ── -->
+    <div class="exec-summary">
+      <p>Auth Box v2 是一款零知识加密密码管理器，同时作为 AI Agent 的凭据网关。本报告整合了三大工作流的成果：<strong>架构审计</strong>（加密/后端/前端/MCP/数据库/安全/基础设施 7 维度评分）、<strong>代码审查</strong>（4 个 P0 阻断问题 + 4 个 P1 质量问题）、<strong>UI 设计重构</strong>（Vault Onyx 设计系统 + 10 页 Stitch 原型）。综合评分 <strong>7.5/10</strong>，核心加密架构健壮，但存在 SRP 协议不一致等阻断性问题需要优先修复。</p>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- ════════ Section 1 ════════ -->
+    <section class="section" id="s1">
+      <div class="section-header">
+        <div class="section-number">01</div>
+        <h2>架构审计评分</h2>
+      </div>
+
+      <div class="score-dial">
+        <div>
+          <span class="dial-number">7.5</span><span class="dial-unit"> /10</span>
+        </div>
+        <div class="dial-text">
+          综合架构评分。加密层达到生产级水准 (9/10)，后端 DDD 分层清晰，但前端架构割裂、基础设施缺少 CI/CD 和测试覆盖拉低了整体分数。需优先解决 4 个 P0 阻断问题。
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th style="text-align:center;">评分</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>加密架构</strong></td>
+            <td style="text-align:center;"><span class="score-badge score-high">9/10</span></td>
+            <td>Argon2id + HKDF + AES-256-GCM + SRP-6a，零知识原则贯彻到位</td>
+          </tr>
+          <tr>
+            <td><strong>后端架构</strong></td>
+            <td style="text-align:center;"><span class="score-badge score-mid">7/10</span></td>
+            <td>DDD 分层清晰 (domain/service/handler/repository/pg)，但 Service 层硬编码仓库类型</td>
+          </tr>
+          <tr>
+            <td><strong>前端架构</strong></td>
+            <td style="text-align:center;"><span class="score-badge score-low">6/10</span></td>
+            <td>两个 App (web + console) 完全割裂，组件库极度简陋 (3 UI + 5 业务组件)</td>
+          </tr>
+          <tr>
+            <td><strong>MCP 协议</strong></td>
+            <td style="text-align:center;"><span class="score-badge score-mid">7/10</span></td>
+            <td>Policy Engine 实现完整，但缺少集成测试</td>
+          </tr>
+          <tr>
+            <td><strong>数据库</strong></td>
+            <td style="text-align:center;"><span class="score-badge score-high">8/10</span></td>
+            <td>Schema 设计合理，无 N+1 查询，全部参数化 SQL</td>
+          </tr>
+          <tr>
+            <td><strong>安全性</strong></td>
+            <td style="text-align:center;"><span class="score-badge score-mid">7/10</span></td>
+            <td>缺少 CSRF 令牌，速率限制存在内存泄漏风险</td>
+          </tr>
+          <tr>
+            <td><strong>基础设施</strong></td>
+            <td style="text-align:center;"><span class="score-badge score-low">6/10</span></td>
+            <td>Docker Compose 可用，但无 CI/CD 流水线，零测试覆盖</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ════════ Section 2 ════════ -->
+    <section class="section" id="s2">
+      <div class="section-header">
+        <div class="section-number">02</div>
+        <h2>P0 阻断问题 (4 项)</h2>
+      </div>
+
+      <p>以下 4 个问题均为阻断性缺陷，必须在任何功能迭代之前修复。每个问题都会直接导致核心功能失效或安全机制失守。</p>
+
+      <!-- P0-1 -->
+      <div class="alert-critical">
+        <div class="alert-label">P0-1 CRITICAL -- SRP M1 客户端/服务端不一致</div>
+        <p><strong>现象：</strong>SRP-6a 认证流程中，客户端与服务端对 M1 证明值的计算方式不一致。</p>
+        <p><strong>定位：</strong></p>
+        <ul style="margin: 8px 0 8px 20px; color: var(--mckinsey-gray-700);">
+          <li>客户端 <code>srp.ts:207</code>: <code>M1 = H(A | B | K)</code>，其中 <code>K = H(S)</code></li>
+          <li>服务端 <code>srp.go:111</code>: 期望 <code>M1 = H(A | B | S)</code></li>
+        </ul>
+        <p><strong>影响：</strong>登录流程完全无法工作，认证握手必然失败。</p>
+        <p><strong>修复：</strong>统一为 <code>M1 = H(A | B | K)</code> 标准，K = H(S)。这是 RFC 5054 推荐的做法。</p>
+      </div>
+
+      <!-- P0-2 -->
+      <div class="alert-critical">
+        <div class="alert-label">P0-2 CRITICAL -- TOTP 2FA 未集成到登录流程</div>
+        <p><strong>现象：</strong><code>LoginVerify</code> 方法未检查 <code>user.TOTPEnabled</code> 字段，启用 2FA 的用户可以绕过验证直接登录。</p>
+        <p><strong>影响：</strong>二因素认证形同虚设，安全等级降级为纯密码认证。</p>
+        <p><strong>修复：</strong>在 <code>auth_service.go</code> 的 <code>LoginVerify</code> 方法中，SRP 验证通过后、签发 JWT 之前，添加 TOTP 检查逻辑。若用户已启用 TOTP，返回中间状态要求客户端提交验证码。</p>
+      </div>
+
+      <!-- P0-3 -->
+      <div class="alert-critical">
+        <div class="alert-label">P0-3 CRITICAL -- 零测试覆盖</div>
+        <p><strong>现象：</strong>整个 Go 后端没有任何 <code>_test.go</code> 文件。</p>
+        <p><strong>影响：</strong>无法验证任何代码修改的正确性，回归风险极高。上述 SRP 修复若无测试保护，可能引入新问题。</p>
+        <p><strong>修复：</strong>优先覆盖三个核心路径 -- SRP 握手全流程、Vault CRUD 操作、Auth middleware 鉴权逻辑。目标覆盖率 &ge; 70%。</p>
+      </div>
+
+      <!-- P0-4 -->
+      <div class="alert-critical">
+        <div class="alert-label">P0-4 CRITICAL -- Service 层硬编码仓库类型</div>
+        <p><strong>现象：</strong>Service 层直接引用 <code>*pg.UserRepository</code> 具体实现而非接口。</p>
+        <p><strong>影响：</strong>无法编写单元测试（无法注入 mock 仓库），无法替换数据库实现。DDD 的 Repository 模式形同虚设。</p>
+        <p><strong>修复：</strong>在 <code>domain</code> 层定义 <code>UserRepository</code>、<code>VaultRepository</code> 等接口，Service 层仅依赖接口。</p>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ════════ Section 3 ════════ -->
+    <section class="section" id="s3">
+      <div class="section-header">
+        <div class="section-number">03</div>
+        <h2>P1 代码质量问题 (4 项)</h2>
+      </div>
+
+      <p>P1 问题不会导致功能失效，但会增加维护成本、降低代码健壮性，建议在 Phase B 中统一修复。</p>
+
+      <div class="alert-warn">
+        <div class="alert-label">P1-1 -- 错误字符串匹配</div>
+        <p><strong>位置：</strong><code>auth_handler.go:51</code></p>
+        <p>当前使用字符串比较判断错误类型，脆弱且不可维护。应定义 sentinel errors 并使用 <code>errors.Is()</code> 进行类型安全的错误匹配。</p>
+      </div>
+
+      <div class="alert-warn">
+        <div class="alert-label">P1-2 -- Content-Type 验证跳过 DELETE</div>
+        <p><strong>位置：</strong><code>security.go:32</code></p>
+        <p>安全中间件仅对 GET/HEAD 跳过 Content-Type 验证，遗漏了 OPTIONS 预检请求，同时错误地跳过了 DELETE 请求的验证。应仅跳过 GET/HEAD/OPTIONS。</p>
+      </div>
+
+      <div class="alert-warn">
+        <div class="alert-label">P1-3 -- Base64 解码重复 11 次</div>
+        <p><strong>位置：</strong><code>connection_service.go:114-149</code></p>
+        <p>同一个 base64 解码+错误处理模式在文件中重复出现 11 次。应抽离为 <code>decodeB64Field(name, value string) ([]byte, error)</code> 工具函数。</p>
+      </div>
+
+      <div class="alert-warn">
+        <div class="alert-label">P1-4 -- 不安全类型转换</div>
+        <p><strong>位置：</strong><code>passwords/page.tsx:203</code></p>
+        <p>前端使用 <code>as any</code> 进行类型断言，丢失了 TypeScript 的类型安全保护。应定义 <code>VaultItemData</code> 共享类型，在前后端间保持一致。</p>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ════════ Section 4 ════════ -->
+    <section class="section" id="s4">
+      <div class="section-header">
+        <div class="section-number">04</div>
+        <h2>设计系统重构 -- Vault Onyx</h2>
+      </div>
+
+      <h3>设计系统名称: "The Fortified Interface"</h3>
+      <p>北极星设计理念: <strong>"The Digital Vault"</strong> -- 将银行金库的安全感与现代数字界面的流畅性融合，让用户在每次交互中都能感受到「我的数据正在被保护」。</p>
+
+      <h3>色彩架构</h3>
+
+      <div class="swatch-grid">
+        <div class="swatch" style="background: #3730A3; color: #fff;">
+          <div class="swatch-name">Primary (Deep Indigo)</div>
+          <div class="swatch-value">#3730A3</div>
+          <div style="margin-top: 4px; font-size: 12px; opacity: 0.85;">品牌核心 / 主要操作</div>
+        </div>
+        <div class="swatch" style="background: #D97706; color: #fff;">
+          <div class="swatch-name">Accent (Amber)</div>
+          <div class="swatch-value">#D97706</div>
+          <div style="margin-top: 4px; font-size: 12px; opacity: 0.85;">警告 / 关键时刻</div>
+        </div>
+        <div class="swatch" style="background: #059669; color: #fff;">
+          <div class="swatch-name">Success (Emerald)</div>
+          <div class="swatch-value">#059669</div>
+          <div style="margin-top: 4px; font-size: 12px; opacity: 0.85;">安全状态 / 验证通过</div>
+        </div>
+        <div class="swatch" style="background: #0b1326; color: #fff;">
+          <div class="swatch-name">Surface (Base)</div>
+          <div class="swatch-value">#0b1326</div>
+          <div style="margin-top: 4px; font-size: 12px; opacity: 0.85;">基础背景</div>
+        </div>
+        <div class="swatch" style="background: #131b2e; color: #fff;">
+          <div class="swatch-name">Surface Container Low</div>
+          <div class="swatch-value">#131b2e</div>
+          <div style="margin-top: 4px; font-size: 12px; opacity: 0.85;">二级区域</div>
+        </div>
+        <div class="swatch" style="background: #2d3449; color: #fff;">
+          <div class="swatch-name">Surface Container Highest</div>
+          <div class="swatch-value">#2d3449</div>
+          <div style="margin-top: 4px; font-size: 12px; opacity: 0.85;">可操作容器</div>
+        </div>
+      </div>
+
+      <h3>字体系统</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>用途</th>
+            <th>字体</th>
+            <th>参数</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Headlines</td>
+            <td><strong>Space Grotesk</strong></td>
+            <td>Bold, -0.02em tracking</td>
+          </tr>
+          <tr>
+            <td>Body</td>
+            <td><strong>IBM Plex Sans / Inter</strong></td>
+            <td>Regular/Medium, 0 tracking</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>风格定义: <strong>"Hard Shell, Soft Core"</strong> -- 刚性几何标题传递安全感，中性正文保持可读性和亲和力。</p>
+
+      <h3>核心设计原则</h3>
+
+      <div class="principle-grid">
+        <div class="principle-card">
+          <div class="principle-number">PRINCIPLE 01</div>
+          <h4>No-Line Rule</h4>
+          <p>用色彩层次替代传统边框线。通过 surface 色阶差异创建视觉分隔，减少界面噪音。</p>
+        </div>
+        <div class="principle-card">
+          <div class="principle-number">PRINCIPLE 02</div>
+          <h4>Ghost Border</h4>
+          <p>仅在无障碍需要时使用 20% opacity 边框。所有视觉分隔优先依赖色彩对比而非线条。</p>
+        </div>
+        <div class="principle-card">
+          <div class="principle-number">PRINCIPLE 03</div>
+          <h4>Security Ceremony</h4>
+          <p>加密过程可视化，让安全感看得见。每一次解锁、同步、加密操作都有对应的动效仪式。</p>
+        </div>
+        <div class="principle-card">
+          <div class="principle-number">PRINCIPLE 04</div>
+          <h4>Tonal Layering</h4>
+          <p>通过 surface 层级创建深度感，取代传统 box-shadow。层级越高，色彩越亮。</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ════════ Section 5 ════════ -->
+    <section class="section" id="s5">
+      <div class="section-header">
+        <div class="section-number">05</div>
+        <h2>Stitch 原型交付 (10/10 页面)</h2>
+      </div>
+
+      <p>全部 10 个页面已在 Stitch 中完成原型设计，覆盖完整用户旅程：注册 &rarr; 登录 &rarr; 密码库 &rarr; AI Agent 管理 &rarr; 审计日志 &rarr; 设置。</p>
+
+      <p style="margin-bottom: 6px;"><strong>Stitch Project ID:</strong> <code>10513833126747888133</code></p>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:center;">#</th>
+            <th>页面</th>
+            <th>Screen ID</th>
+            <th style="text-align:center;">尺寸</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align:center;">1</td>
+            <td><strong>Landing Page</strong></td>
+            <td><code>b16c3dba</code></td>
+            <td style="text-align:center;">2560 &times; 7478</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">2</td>
+            <td><strong>Register</strong></td>
+            <td><code>57ad01bc</code></td>
+            <td style="text-align:center;">2560 &times; 2688</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">3</td>
+            <td><strong>Login (SRP)</strong></td>
+            <td><code>0e0c4b15</code></td>
+            <td style="text-align:center;">2560 &times; 2504</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">4</td>
+            <td><strong>Passwords Vault</strong></td>
+            <td><code>2fe2b28e</code></td>
+            <td style="text-align:center;">2560 &times; 2048</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">5</td>
+            <td><strong>AI Agents</strong></td>
+            <td><code>641064cc</code></td>
+            <td style="text-align:center;">2560 &times; 2048</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">6</td>
+            <td><strong>Audit Log</strong></td>
+            <td><code>f40e19dd</code></td>
+            <td style="text-align:center;">2560 &times; 3122</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">7</td>
+            <td><strong>Settings</strong></td>
+            <td><code>fd5781d7</code></td>
+            <td style="text-align:center;">2560 &times; 3870</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">8</td>
+            <td><strong>Console Dashboard</strong></td>
+            <td><code>3e7f4c45</code></td>
+            <td style="text-align:center;">2560 &times; 2048</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">9</td>
+            <td><strong>Pricing</strong></td>
+            <td><code>bdce7e3c</code></td>
+            <td style="text-align:center;">2560 &times; 6304</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;">10</td>
+            <td><strong>Security</strong></td>
+            <td><code>f2f5e55f</code></td>
+            <td style="text-align:center;">2560 &times; 6178</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ════════ Section 6 ════════ -->
+    <section class="section" id="s6">
+      <div class="section-header">
+        <div class="section-number">06</div>
+        <h2>修复路线图</h2>
+      </div>
+
+      <p>基于问题严重程度和依赖关系，推荐分三阶段推进修复工作：</p>
+
+      <div class="roadmap-phase">
+        <div class="roadmap-marker">
+          <div class="roadmap-dot" style="background: var(--mckinsey-red);"></div>
+          <div class="roadmap-line"></div>
+        </div>
+        <div class="roadmap-content">
+          <h4>Phase A: 最小修复</h4>
+          <div class="phase-meta">1-2 周 | 立即执行</div>
+          <p>修复全部 4 个 P0 阻断问题 + 核心路径测试覆盖 (SRP / Vault CRUD / Auth middleware)。目标：让登录流程和 2FA 正常工作，具备基本回归保护。</p>
+        </div>
+      </div>
+
+      <div class="roadmap-phase">
+        <div class="roadmap-marker">
+          <div class="roadmap-dot" style="background: var(--mckinsey-amber);"></div>
+          <div class="roadmap-line"></div>
+        </div>
+        <div class="roadmap-content">
+          <h4>Phase B: 生产就绪</h4>
+          <div class="phase-meta">3-4 周 | Phase A 之后跟进</div>
+          <p>Phase A 成果 + Redis 会话存储替换内存 Map + CI/CD 流水线 (GitHub Actions) + TLS 证书自动化 + 4 个 P1 问题修复。目标：达到可部署状态。</p>
+        </div>
+      </div>
+
+      <div class="roadmap-phase">
+        <div class="roadmap-marker">
+          <div class="roadmap-dot" style="background: var(--mckinsey-blue);"></div>
+          <div class="roadmap-line" style="background: transparent;"></div>
+        </div>
+        <div class="roadmap-content">
+          <h4>Phase C: 全面重构</h4>
+          <div class="phase-meta">6-8 周 | 长期目标</div>
+          <p>Phase B 成果 + Repository 接口全面改造 + Vault Onyx UI 实现 + Stitch 原型转 React 组件 + 组件库补齐 (Tooltip / Dropdown / Toast / Skeleton / Tabs) + 两个 App 统一架构。</p>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>阶段</th>
+            <th>范围</th>
+            <th style="text-align:center;">周期</th>
+            <th>推荐</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>A. 最小修复</strong></td>
+            <td>4 个 P0 + 核心测试</td>
+            <td style="text-align:center;">1-2 周</td>
+            <td><span class="score-badge score-low" style="font-size: 11px;">立即执行</span></td>
+          </tr>
+          <tr>
+            <td><strong>B. 生产就绪</strong></td>
+            <td>A + Redis + CI/CD + TLS</td>
+            <td style="text-align:center;">3-4 周</td>
+            <td><span class="score-badge score-mid" style="font-size: 11px;">A 之后跟进</span></td>
+          </tr>
+          <tr>
+            <td><strong>C. 全面重构</strong></td>
+            <td>B + 仓库接口 + UI 实现 + Stitch &rarr; React</td>
+            <td style="text-align:center;">6-8 周</td>
+            <td><span class="score-badge score-high" style="font-size: 11px;">长期目标</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ════════ Section 7 ════════ -->
+    <section class="section" id="s7">
+      <div class="section-header">
+        <div class="section-number">07</div>
+        <h2>设计实施建议</h2>
+      </div>
+
+      <p>基于 Vault Onyx 设计系统和 Stitch 原型，提出以下实施建议：</p>
+
+      <ol class="rec-list">
+        <li><p><strong>将 Vault Onyx 设计系统固化为 Tailwind CSS preset</strong><br>在 <code>tailwind.config.ts</code> 中定义 colors / spacing / typography / borderRadius 等 design tokens，确保设计系统与代码实现的单一真相源。</p></li>
+        <li><p><strong>基于 shadcn/ui 扩展组件库</strong><br>当前组件库仅有 3 个 UI 组件 + 5 个业务组件，严重不足。需补齐 Tooltip / Dropdown / Toast / Skeleton / Tabs / Dialog / Sheet 等基础组件。</p></li>
+        <li><p><strong>统一两个 App 的样式基础</strong><br>web 和 console 两个 App 的 <code>globals.css</code> + <code>layout.tsx</code> 结构完全割裂。应抽离共享 <code>packages/ui</code>，统一主题/布局/组件。</p></li>
+        <li><p><strong>将 Stitch 原型转为 React 组件</strong><br>10 个 Stitch 页面作为视觉参考，按 Phase C 计划逐步转化为 React 组件。优先转化高频页面：Passwords Vault / Login / AI Agents。</p></li>
+        <li><p><strong>3 轮 UI polish 迭代</strong><br>每次 UI/UX 打磨必须做满 3 轮迭代。第 1 轮结构还原，第 2 轮细节打磨 (间距/色彩/动效)，第 3 轮无障碍+响应式验证。</p></li>
+      </ol>
+    </section>
+
+  </main>
+
+  <!-- ════════ Footer ════════ -->
+  <footer>
+    <p>Auth Box v2 -- 架构审计与设计重构报告</p>
+    <p>Maurice | maurice_wen@proton.me</p>
+    <p style="font-size: 12px; margin-top: 8px;">2026-03-20 | 数据来源: 代码审查 + Stitch 原型 + 架构评审</p>
+  </footer>
+
+</div>
+
+</body>
+</html>
