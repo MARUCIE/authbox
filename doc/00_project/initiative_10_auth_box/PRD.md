@@ -148,6 +148,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | M3.6 | UX Optimization Round 1 (12/12 fixes) | DONE |
 | M3.7 | UX Optimization Round 2 (7 Journey simulation) | DONE |
 | M3.8 | Architecture Audit + Vault Onyx Design System | DONE |
+| M3.9 | v3 Unstoppable Layer (Seed Phrase + HD Keys + Deterministic Passwords) | DONE |
 | M4 | Desktop + Mobile + 团队功能 | Post-MVP |
 
 ## 当前状态
@@ -162,7 +163,12 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 - Repository 接口化 (6 interfaces in domain/repository.go)
 - 14/14 审计问题全部修复 (4 P0 + 4 P1 + 4 P2 + 2 P3)
 - Vault Onyx 设计系统统一 Web + Console 两个 App (Stitch 10 屏原型)
-- 9 commits pushed to GitHub (4c3b0b2 → 9acacf9)
+- v3 Unstoppable Layer: BIP-39 种子词 + HD 密钥派生 (21 tests PASS)
+- 确定性密码派生: seed + site → password (无需存储)
+- 新增 /create (种子词 onboarding) + /restore (种子词恢复) 页面
+- 13 源密码导入器 (Apple/Google/Chrome/Edge/Firefox/1Password/Bitwarden/LastPass/Dashlane/KeePass/Samsung/NordPass/Enpass)
+- 2 轮蜂群战略思考 (10 位顾问): AGI 战略 + Unstoppable 学习
+- 22 commits pushed to GitHub (4c3b0b2 → 5aacf59)
 
 ---
 
