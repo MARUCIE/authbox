@@ -1,0 +1,75 @@
+{
+  "generated_at": "2026-02-18T11:51:38Z",
+  "config": "configs/agent-router/professional-agent-routing.v1.json",
+  "prd": "doc/00_project/initiative_10_auth_box/PRD.md",
+  "uxmap": "doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md",
+  "design_doc": "doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md",
+  "checks": [
+    {
+      "name": "config_exists",
+      "status": "PASS",
+      "note": "routing config exists"
+    },
+    {
+      "name": "config_json_valid",
+      "status": "PASS",
+      "note": "routing config is valid json"
+    },
+    {
+      "name": "config_has_core_fields",
+      "status": "PASS",
+      "note": "version/personas/trigger_rules/defaults/acceptance_gates present"
+    },
+    {
+      "name": "persona_count",
+      "status": "PASS",
+      "note": "at least 4 personas"
+    },
+    {
+      "name": "trigger_rule_count",
+      "status": "PASS",
+      "note": "at least 5 trigger rules"
+    },
+    {
+      "name": "persona_ids_unique",
+      "status": "PASS",
+      "note": "persona ids are unique"
+    },
+    {
+      "name": "required_personas_present",
+      "status": "PASS",
+      "note": "leader/researcher/builder/watchdog present"
+    },
+    {
+      "name": "trigger_rules_have_workflow_router",
+      "status": "PASS",
+      "note": "all trigger rules include workflow-router"
+    },
+    {
+      "name": "planning_mode_has_planning_skill",
+      "status": "PASS",
+      "note": "planning-with-files mode includes planning skill"
+    },
+    {
+      "name": "defaults_skill_priority",
+      "status": "PASS",
+      "note": "skill priority is skill>plugin>mcp>manual"
+    },
+    {
+      "name": "prd_section_present",
+      "status": "PASS",
+      "note": "PRD contains agent design SOP section"
+    },
+    {
+      "name": "uxmap_journey_present",
+      "status": "PASS",
+      "note": "UXMap contains Journey I"
+    },
+    {
+      "name": "design_doc_present",
+      "status": "PASS",
+      "note": "design doc has expected title"
+    }
+  ],
+  "pass": true
+}

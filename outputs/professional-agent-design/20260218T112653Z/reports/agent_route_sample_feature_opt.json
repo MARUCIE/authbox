@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-02-18T11:51:39Z",
+  "matched": true,
+  "input_text": "功能优化：提升看板可读性",
+  "matched_keyword": "功能优化",
+  "rule": {
+    "id": "feature_optimization",
+    "keywords": [
+      "功能优化",
+      "功能迭代",
+      "feature optimization"
+    ],
+    "scenario": "feature_optimization",
+    "scope": "feature",
+    "mode": "feature-dev",
+    "team_mode": "Swarm",
+    "skills": [
+      "workflow-router",
+      "test-driven-development",
+      "verification-before-completion"
+    ]
+  },
+  "scenario": "feature_optimization",
+  "scope": "feature",
+  "mode": "feature-dev",
+  "team_mode": "Swarm",
+  "skills": [
+    "workflow-router",
+    "test-driven-development",
+    "verification-before-completion"
+  ]
+}

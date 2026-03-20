@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-02-18T11:51:39Z",
+  "matched": true,
+  "input_text": "新任务：完善发布门禁策略",
+  "matched_keyword": "新任务：",
+  "rule": {
+    "id": "new_task",
+    "keywords": [
+      "新任务：",
+      "新任务:"
+    ],
+    "scenario": "new_task",
+    "scope": "project",
+    "mode": "planning-with-files",
+    "team_mode": "Leader",
+    "skills": [
+      "workflow-router",
+      "planning-with-files"
+    ]
+  },
+  "scenario": "new_task",
+  "scope": "project",
+  "mode": "planning-with-files",
+  "team_mode": "Leader",
+  "skills": [
+    "workflow-router",
+    "planning-with-files"
+  ]
+}
