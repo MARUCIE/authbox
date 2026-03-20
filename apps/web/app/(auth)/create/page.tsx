@@ -135,13 +135,13 @@ export default function CreateVaultPage() {
 
           <p className="text-xs mt-6" style={{ color: 'var(--outline)' }}>
             Already have a recovery phrase?{' '}
-            <button
-              onClick={() => {/* TODO: import flow */}}
+            <a
+              href="/restore"
               className="font-medium"
               style={{ color: 'var(--primary)' }}
             >
               Restore vault
-            </button>
+            </a>
           </p>
         </div>
       )}
