@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/mail"
 	"strings"
 
 	"auth-box-api/internal/auth"
@@ -35,8 +36,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "missing required fields", "BAD_REQUEST")
 		return
 	}
-	// Basic email format check (contains @ with non-empty local and domain parts).
-	if atIdx := strings.Index(req.Email, "@"); atIdx < 1 || atIdx >= len(req.Email)-1 || !strings.Contains(req.Email[atIdx+1:], ".") {
+	// RFC 5321 email format validation via net/mail.
+	if _, err := mail.ParseAddress(req.Email); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid email format", "BAD_REQUEST")
 		return
 	}

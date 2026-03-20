@@ -68,9 +68,14 @@ func (h *VaultHandler) SyncPull(w http.ResponseWriter, r *http.Request) {
 	sinceVersion := 0
 	if v := r.URL.Query().Get("sinceVersion"); v != "" {
 		parsed, err := strconv.Atoi(v)
-		if err == nil && parsed >= 0 {
-			sinceVersion = parsed
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "sinceVersion must be an integer", "BAD_REQUEST")
+			return
 		}
+		if parsed < 0 {
+			parsed = 0
+		}
+		sinceVersion = parsed
 	}
 
 	limit := parsePaginationParam(r, "limit", 500, 1000)

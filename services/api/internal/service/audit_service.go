@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"auth-box-api/internal/domain"
@@ -65,8 +66,15 @@ func (s *AuditService) LogEvent(ctx context.Context, userID uuid.UUID, req Audit
 		prevHash = latest.EventHash
 	}
 
-	metadata, _ := json.Marshal(req.Metadata)
-	if req.Metadata == nil {
+	var metadata []byte
+	if req.Metadata != nil {
+		var err2 error
+		metadata, err2 = json.Marshal(req.Metadata)
+		if err2 != nil {
+			slog.Warn("failed to marshal audit metadata", "error", err2)
+			metadata = []byte("{}")
+		}
+	} else {
 		metadata = []byte("{}")
 	}
 
