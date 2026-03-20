@@ -27,20 +27,33 @@ export function Dialog({ open, onClose, title, children }: DialogProps) {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(6, 14, 32, 0.7)' }}
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
     >
-      <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-[var(--background)] border border-[var(--border)] shadow-2xl p-6">
+      <div
+        className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl glass p-6"
+        style={{
+          background: 'var(--surface-container)',
+          boxShadow: 'var(--shadow-float)',
+        }}
+      >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <h2
+            className="text-lg font-semibold"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            {title}
+          </h2>
           <button
             onClick={onClose}
-            className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            className="transition-colors text-lg"
+            style={{ color: 'var(--muted-foreground)' }}
             aria-label="Close"
           >
-            x
+            &times;
           </button>
         </div>
         {children}
