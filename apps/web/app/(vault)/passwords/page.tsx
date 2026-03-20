@@ -9,12 +9,14 @@ import { Dialog } from '@/components/vault/dialog';
 import { PasswordForm, type PasswordFormData } from '@/components/vault/password-form';
 import { PasswordDetail } from '@/components/vault/password-detail';
 import { ImportDialog } from '@/components/vault/import-dialog';
+import { DerivePasswordDialog } from '@/components/vault/derive-password-dialog';
 
 type ViewMode = 'list' | 'detail' | 'create' | 'edit';
 
 export default function PasswordsPage() {
   const items = useVaultStore((s) => s.items);
   const status = useVaultStore((s) => s.status);
+  const vaultKey = useVaultStore((s) => s.vaultKey);
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -22,6 +24,7 @@ export default function PasswordsPage() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [showDerive, setShowDerive] = useState(false);
 
   // Sync vault on mount when unlocked
   useEffect(() => {
@@ -96,12 +99,25 @@ export default function PasswordsPage() {
               {syncing && <span className="ml-2"><span className="pulse-secure inline-block" /> syncing</span>}
             </p>
           </div>
-          <button onClick={() => setViewMode('create')} className="btn-gradient px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Password
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowDerive(true)}
+              className="px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+              style={{ background: 'var(--surface-highest)', color: 'var(--primary)' }}
+              title="Derive a deterministic password from your seed phrase"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+              </svg>
+              Derive
+            </button>
+            <button onClick={() => setViewMode('create')} className="btn-gradient px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add Password
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -215,6 +231,13 @@ export default function PasswordsPage() {
           />
         </Dialog>
       )}
+
+      {/* Derive password dialog */}
+      <DerivePasswordDialog
+        open={showDerive}
+        onClose={() => setShowDerive(false)}
+        vaultKey={vaultKey}
+      />
 
       {/* Import dialog */}
       <ImportDialog
