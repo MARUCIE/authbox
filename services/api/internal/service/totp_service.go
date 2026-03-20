@@ -11,16 +11,16 @@ import (
 	"math"
 	"time"
 
-	"auth-box-api/internal/repository/pg"
+	"auth-box-api/internal/domain"
 
 	"github.com/google/uuid"
 )
 
 type TOTPService struct {
-	userRepo *pg.UserRepository
+	userRepo domain.UserRepository
 }
 
-func NewTOTPService(userRepo *pg.UserRepository) *TOTPService {
+func NewTOTPService(userRepo domain.UserRepository) *TOTPService {
 	return &TOTPService{userRepo: userRepo}
 }
 

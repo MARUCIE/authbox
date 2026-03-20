@@ -10,16 +10,15 @@ import (
 	"errors"
 
 	"auth-box-api/internal/domain"
-	"auth-box-api/internal/repository/pg"
 
 	"github.com/google/uuid"
 )
 
 type AgentService struct {
-	agentRepo *pg.AgentRepository
+	agentRepo domain.AgentRepository
 }
 
-func NewAgentService(agentRepo *pg.AgentRepository) *AgentService {
+func NewAgentService(agentRepo domain.AgentRepository) *AgentService {
 	return &AgentService{agentRepo: agentRepo}
 }
 

@@ -59,14 +59,33 @@ func (rl *RateLimiter) Handler(next http.Handler) http.Handler {
 	})
 }
 
+// maxVisitors caps the number of tracked IPs to prevent unbounded memory growth
+// from IP rotation attacks.
+const maxVisitors = 10000
+
 func (rl *RateLimiter) cleanup() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for range ticker.C {
 		rl.mu.Lock()
+		// Evict expired visitors
 		for ip, v := range rl.visitors {
 			if time.Since(v.lastSeen) > rl.window*2 {
 				delete(rl.visitors, ip)
+			}
+		}
+		// Hard cap: if still over limit, evict oldest entries
+		if len(rl.visitors) > maxVisitors {
+			oldest := time.Now()
+			var oldestIP string
+			for ip, v := range rl.visitors {
+				if v.lastSeen.Before(oldest) {
+					oldest = v.lastSeen
+					oldestIP = ip
+				}
+			}
+			if oldestIP != "" {
+				delete(rl.visitors, oldestIP)
 			}
 		}
 		rl.mu.Unlock()

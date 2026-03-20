@@ -6,17 +6,16 @@ import (
 	"errors"
 
 	"auth-box-api/internal/domain"
-	"auth-box-api/internal/repository/pg"
 
 	"github.com/google/uuid"
 )
 
 type VaultService struct {
-	userRepo  *pg.UserRepository
-	vaultRepo *pg.VaultRepository
+	userRepo  domain.UserRepository
+	vaultRepo domain.VaultRepository
 }
 
-func NewVaultService(userRepo *pg.UserRepository, vaultRepo *pg.VaultRepository) *VaultService {
+func NewVaultService(userRepo domain.UserRepository, vaultRepo domain.VaultRepository) *VaultService {
 	return &VaultService{userRepo: userRepo, vaultRepo: vaultRepo}
 }
 

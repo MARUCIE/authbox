@@ -7,16 +7,25 @@ import (
 	"time"
 
 	"auth-box-api/internal/domain"
-	"auth-box-api/internal/repository/pg"
+	"fmt"
 
 	"github.com/google/uuid"
 )
 
-type ConnectionService struct {
-	connRepo *pg.ConnectionRepository
+// decodeB64 decodes a base64-encoded string, returning a descriptive error on failure.
+func decodeB64(value, fieldName string) ([]byte, error) {
+	b, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s encoding", fieldName)
+	}
+	return b, nil
 }
 
-func NewConnectionService(connRepo *pg.ConnectionRepository) *ConnectionService {
+type ConnectionService struct {
+	connRepo domain.ConnectionRepository
+}
+
+func NewConnectionService(connRepo domain.ConnectionRepository) *ConnectionService {
 	return &ConnectionService{connRepo: connRepo}
 }
 
@@ -111,17 +120,17 @@ func (s *ConnectionService) CreateConnection(ctx context.Context, userID uuid.UU
 		return nil, errors.New("access token encryption fields are required")
 	}
 
-	accessEnc, err := base64.StdEncoding.DecodeString(req.AccessTokenEnc)
+	accessEnc, err := decodeB64(req.AccessTokenEnc, "accessTokenEnc")
 	if err != nil {
-		return nil, errors.New("invalid accessTokenEnc encoding")
+		return nil, err
 	}
-	accessNonce, err := base64.StdEncoding.DecodeString(req.AccessTokenNonce)
+	accessNonce, err := decodeB64(req.AccessTokenNonce, "accessTokenNonce")
 	if err != nil {
-		return nil, errors.New("invalid accessTokenNonce encoding")
+		return nil, err
 	}
-	accessTag, err := base64.StdEncoding.DecodeString(req.AccessTokenTag)
+	accessTag, err := decodeB64(req.AccessTokenTag, "accessTokenTag")
 	if err != nil {
-		return nil, errors.New("invalid accessTokenTag encoding")
+		return nil, err
 	}
 
 	conn := &domain.AuthConnection{
@@ -137,21 +146,15 @@ func (s *ConnectionService) CreateConnection(ctx context.Context, userID uuid.UU
 	}
 
 	if req.RefreshTokenEnc != "" {
-		refreshEnc, err := base64.StdEncoding.DecodeString(req.RefreshTokenEnc)
-		if err != nil {
-			return nil, errors.New("invalid refreshTokenEnc encoding")
+		if conn.RefreshTokenEnc, err = decodeB64(req.RefreshTokenEnc, "refreshTokenEnc"); err != nil {
+			return nil, err
 		}
-		refreshNonce, err := base64.StdEncoding.DecodeString(req.RefreshTokenNonce)
-		if err != nil {
-			return nil, errors.New("invalid refreshTokenNonce encoding")
+		if conn.RefreshTokenNonce, err = decodeB64(req.RefreshTokenNonce, "refreshTokenNonce"); err != nil {
+			return nil, err
 		}
-		refreshTag, err := base64.StdEncoding.DecodeString(req.RefreshTokenTag)
-		if err != nil {
-			return nil, errors.New("invalid refreshTokenTag encoding")
+		if conn.RefreshTokenTag, err = decodeB64(req.RefreshTokenTag, "refreshTokenTag"); err != nil {
+			return nil, err
 		}
-		conn.RefreshTokenEnc = refreshEnc
-		conn.RefreshTokenNonce = refreshNonce
-		conn.RefreshTokenTag = refreshTag
 	}
 
 	if req.TokenExpiresAt != nil {
@@ -163,11 +166,9 @@ func (s *ConnectionService) CreateConnection(ctx context.Context, userID uuid.UU
 	}
 
 	if req.Metadata != "" {
-		meta, err := base64.StdEncoding.DecodeString(req.Metadata)
-		if err != nil {
-			return nil, errors.New("invalid metadata encoding")
+		if conn.Metadata, err = decodeB64(req.Metadata, "metadata"); err != nil {
+			return nil, err
 		}
-		conn.Metadata = meta
 	}
 
 	if err := s.connRepo.CreateConnection(ctx, conn); err != nil {
@@ -204,17 +205,17 @@ func (s *ConnectionService) ListConnections(ctx context.Context, userID uuid.UUI
 }
 
 func (s *ConnectionService) UpdateConnection(ctx context.Context, id, userID uuid.UUID, req UpdateConnectionRequest) error {
-	accessEnc, err := base64.StdEncoding.DecodeString(req.AccessTokenEnc)
+	accessEnc, err := decodeB64(req.AccessTokenEnc, "accessTokenEnc")
 	if err != nil {
-		return errors.New("invalid accessTokenEnc encoding")
+		return err
 	}
-	accessNonce, err := base64.StdEncoding.DecodeString(req.AccessTokenNonce)
+	accessNonce, err := decodeB64(req.AccessTokenNonce, "accessTokenNonce")
 	if err != nil {
-		return errors.New("invalid accessTokenNonce encoding")
+		return err
 	}
-	accessTag, err := base64.StdEncoding.DecodeString(req.AccessTokenTag)
+	accessTag, err := decodeB64(req.AccessTokenTag, "accessTokenTag")
 	if err != nil {
-		return errors.New("invalid accessTokenTag encoding")
+		return err
 	}
 
 	conn := &domain.AuthConnection{
@@ -231,21 +232,15 @@ func (s *ConnectionService) UpdateConnection(ctx context.Context, id, userID uui
 	}
 
 	if req.RefreshTokenEnc != "" {
-		refreshEnc, err := base64.StdEncoding.DecodeString(req.RefreshTokenEnc)
-		if err != nil {
-			return errors.New("invalid refreshTokenEnc encoding")
+		if conn.RefreshTokenEnc, err = decodeB64(req.RefreshTokenEnc, "refreshTokenEnc"); err != nil {
+			return err
 		}
-		refreshNonce, err := base64.StdEncoding.DecodeString(req.RefreshTokenNonce)
-		if err != nil {
-			return errors.New("invalid refreshTokenNonce encoding")
+		if conn.RefreshTokenNonce, err = decodeB64(req.RefreshTokenNonce, "refreshTokenNonce"); err != nil {
+			return err
 		}
-		refreshTag, err := base64.StdEncoding.DecodeString(req.RefreshTokenTag)
-		if err != nil {
-			return errors.New("invalid refreshTokenTag encoding")
+		if conn.RefreshTokenTag, err = decodeB64(req.RefreshTokenTag, "refreshTokenTag"); err != nil {
+			return err
 		}
-		conn.RefreshTokenEnc = refreshEnc
-		conn.RefreshTokenNonce = refreshNonce
-		conn.RefreshTokenTag = refreshTag
 	}
 
 	if req.TokenExpiresAt != nil {
@@ -257,11 +252,9 @@ func (s *ConnectionService) UpdateConnection(ctx context.Context, id, userID uui
 	}
 
 	if req.Metadata != "" {
-		meta, err := base64.StdEncoding.DecodeString(req.Metadata)
-		if err != nil {
-			return errors.New("invalid metadata encoding")
+		if conn.Metadata, err = decodeB64(req.Metadata, "metadata"); err != nil {
+			return err
 		}
-		conn.Metadata = meta
 	}
 
 	return s.connRepo.UpdateConnection(ctx, conn)

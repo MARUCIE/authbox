@@ -6,16 +6,15 @@ import (
 	"time"
 
 	"auth-box-api/internal/domain"
-	"auth-box-api/internal/repository/pg"
 
 	"github.com/google/uuid"
 )
 
 type AuditService struct {
-	auditRepo *pg.AuditRepository
+	auditRepo domain.AuditRepository
 }
 
-func NewAuditService(auditRepo *pg.AuditRepository) *AuditService {
+func NewAuditService(auditRepo domain.AuditRepository) *AuditService {
 	return &AuditService{auditRepo: auditRepo}
 }
 

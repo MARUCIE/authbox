@@ -9,7 +9,6 @@ import (
 
 	"auth-box-api/internal/auth"
 	"auth-box-api/internal/domain"
-	"auth-box-api/internal/repository/pg"
 
 	"github.com/google/uuid"
 )
@@ -60,8 +59,8 @@ type pendingLogin struct {
 }
 
 type AuthService struct {
-	userRepo    *pg.UserRepository
-	sessionRepo *pg.SessionRepository
+	userRepo    domain.UserRepository
+	sessionRepo domain.SessionRepository
 	totpService *TOTPService
 	sessionTTL  time.Duration
 
@@ -69,7 +68,7 @@ type AuthService struct {
 	pending  map[string]*pendingLogin // keyed by email
 }
 
-func NewAuthService(userRepo *pg.UserRepository, sessionRepo *pg.SessionRepository, totpService *TOTPService, sessionTTL time.Duration) *AuthService {
+func NewAuthService(userRepo domain.UserRepository, sessionRepo domain.SessionRepository, totpService *TOTPService, sessionTTL time.Duration) *AuthService {
 	s := &AuthService{
 		userRepo:    userRepo,
 		sessionRepo: sessionRepo,
