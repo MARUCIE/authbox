@@ -4,7 +4,7 @@ import "./globals.css";
 import { navRoutes } from "../lib/routes";
 
 export const metadata: Metadata = {
-  title: "Auth Box",
+  title: "Auth Box Console",
   description:
     "API authorization governance platform for account provisioning, credential lifecycle, assistant access, and audit traceability."
 };
@@ -19,10 +19,11 @@ export default function RootLayout({
       <body>
         <div className="layout">
           <header className="topbar">
-            <div className="brand">
+            <Link href="/" className="brand">
               <div className="brand-mark" />
               <span>Auth Box</span>
-            </div>
+              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--muted)', marginLeft: -4 }}>Console</span>
+            </Link>
             <nav className="nav">
               {navRoutes.map((route) => (
                 <Link key={route.href} href={route.href}>

@@ -1,17 +1,27 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap");
 
+/* ============================================================
+   Vault Onyx Design System — Console App
+   Unified with apps/web via shared color tokens
+   ============================================================ */
+
 :root {
-  --bg: #f4efe6;
-  --bg-accent: #e8dfd0;
-  --surface: #fff8ed;
-  --surface-strong: #ffffff;
-  --text: #1f1b16;
-  --muted: #6f6257;
-  --accent: #b45309;
-  --accent-strong: #92400e;
-  --teal: #0f766e;
-  --border: #e1d7c8;
-  --shadow: 0 20px 40px rgba(31, 27, 22, 0.08);
+  --bg: #0b1326;
+  --bg-accent: #131b2e;
+  --surface: #171f33;
+  --surface-strong: #222a3d;
+  --text: #dae2fd;
+  --muted: #c8c4d5;
+  --accent: #3730a3;
+  --accent-strong: #544fc0;
+  --teal: #68dba9;
+  --teal-container: #004d34;
+  --border: rgba(70, 69, 83, 0.2);
+  --shadow: 0 20px 40px rgba(55, 48, 163, 0.06);
+  --primary: #c3c0ff;
+  --secondary: #ffb77d;
+  --secondary-container: #d97707;
+  --destructive: #ffb4ab;
 }
 
 * {
@@ -22,8 +32,8 @@ body {
   margin: 0;
   font-family: "IBM Plex Sans", system-ui, sans-serif;
   color: var(--text);
-  background: radial-gradient(circle at top left, var(--bg-accent), var(--bg))
-    fixed;
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -32,7 +42,7 @@ a {
 }
 
 a:hover {
-  color: var(--accent-strong);
+  color: var(--primary);
 }
 
 .layout {
@@ -45,10 +55,8 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 28px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(255, 248, 237, 0.9);
-  backdrop-filter: blur(10px);
+  padding: 16px 28px;
+  background: var(--bg-accent);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -64,18 +72,22 @@ a:hover {
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent), var(--teal));
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
 }
 
 .nav {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
   font-size: 14px;
   color: var(--muted);
+}
+
+.nav a:hover {
+  color: var(--text);
 }
 
 .shell {
@@ -88,29 +100,37 @@ a:hover {
 .hero {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
+  gap: 16px;
   margin-bottom: 28px;
 }
 
 .hero-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 12px;
   padding: 20px;
   box-shadow: var(--shadow);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hero-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 48px rgba(55, 48, 163, 0.1);
 }
 
 .hero-card h2 {
   margin: 0 0 8px;
   font-family: "Space Grotesk", system-ui, sans-serif;
-  font-size: 20px;
+  font-size: 18px;
+  color: var(--text);
 }
 
 .eyebrow {
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--muted);
+  letter-spacing: 0.15em;
+  color: var(--primary);
+  font-weight: 500;
 }
 
 .page {
@@ -147,11 +167,13 @@ a:hover {
   margin: 4px 0 6px;
   font-family: "Space Grotesk", system-ui, sans-serif;
   font-size: 28px;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
 .panel {
-  background: var(--surface-strong);
-  border-radius: 16px;
+  background: var(--surface);
+  border-radius: 12px;
   border: 1px solid var(--border);
   padding: 20px;
   box-shadow: var(--shadow);
@@ -164,7 +186,7 @@ a:hover {
 
 .list {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .list-item {
@@ -173,17 +195,23 @@ a:hover {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--surface-strong);
+  transition: background 0.15s;
+}
+
+.list-item:hover {
+  background: #2d3449;
 }
 
 .badge {
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(15, 118, 110, 0.1);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--teal-container);
   color: var(--teal);
+  font-weight: 500;
   max-width: 100%;
   overflow-wrap: anywhere;
 }
@@ -191,6 +219,7 @@ a:hover {
 .list-item label {
   font-weight: 600;
   min-width: 140px;
+  color: var(--text);
 }
 
 .list-item > * {
@@ -206,61 +235,80 @@ a:hover {
   flex: 1;
   min-width: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 8px 10px;
   font: inherit;
+  background: var(--bg-accent);
+  color: var(--text);
+}
+
+.list-item input:focus {
+  outline: none;
+  border-color: rgba(195, 192, 255, 0.4);
 }
 
 .cta-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
+  border: none;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #231691;
   border-radius: 8px;
-  padding: 10px 14px;
+  padding: 10px 18px;
   font-weight: 600;
   width: fit-content;
+  transition: filter 0.2s;
 }
 
 .cta-primary:hover {
-  color: #fff;
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  color: #231691;
+  filter: brightness(1.1);
 }
 
 .cta-link {
-  color: var(--teal);
+  color: var(--primary);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .cta-link:hover {
-  color: var(--accent-strong);
+  color: var(--teal);
 }
 
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--teal);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
 button {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
-  border-radius: 8px;
-  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 14px;
   cursor: pointer;
   font: inherit;
+  transition: background 0.15s;
 }
 
 button:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  background: #2d3449;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #464553;
+  border-radius: 3px;
 }
 
 @media (max-width: 720px) {
