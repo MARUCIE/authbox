@@ -1,8 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: 'export',
   poweredByHeader: false,
+  images: { unoptimized: true },
   transpilePackages: ['@authbox/crypto', '@authbox/shared'],
   async headers() {
     return [
