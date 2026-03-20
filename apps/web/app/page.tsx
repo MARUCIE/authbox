@@ -92,7 +92,7 @@ export default function Home() {
           </p>
 
           <div className="flex gap-4 justify-center flex-wrap">
-            <Link href="/register" className="btn-gradient px-8 py-3.5 text-base font-medium rounded-lg">
+            <Link href="/create" className="btn-gradient px-8 py-3.5 text-base font-medium rounded-lg">
               Get Started Free
             </Link>
             <Link
@@ -254,7 +254,7 @@ export default function Home() {
           Zero Knowledge Identity Gateway
         </p>
         <div className="flex justify-center gap-6 mt-6">
-          <Link href="/register" className="text-xs hover:underline" style={{ color: 'var(--primary)' }}>
+          <Link href="/create" className="text-xs hover:underline" style={{ color: 'var(--primary)' }}>
             Get Started
           </Link>
           <Link href="/login" className="text-xs hover:underline" style={{ color: 'var(--muted-foreground)' }}>
