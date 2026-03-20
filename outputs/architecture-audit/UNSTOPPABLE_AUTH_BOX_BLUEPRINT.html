@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unstoppable Auth Box -- 不可阻挡的个人数字主权平台</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mckinsey-blue: #003A70;
+    --mckinsey-blue-dark: #002347;
+    --mckinsey-blue-light: #0056A4;
+    --mckinsey-accent: #0078D4;
+    --mckinsey-gold: #C4962C;
+    --mckinsey-gold-light: #E8C468;
+    --text-primary: #1A1A2E;
+    --text-secondary: #4A4A5A;
+    --text-muted: #7A7A8A;
+    --bg-white: #FFFFFF;
+    --bg-light: #F7F8FA;
+    --bg-subtle: #EEF1F5;
+    --border-light: #D8DCE3;
+    --border-medium: #B0B8C4;
+    --success: #1B7A3D;
+    --warning: #B8860B;
+    --danger: #C41E3A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    background: var(--bg-light);
+    line-height: 1.7;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Cover */
+  .cover {
+    background: linear-gradient(135deg, var(--mckinsey-blue) 0%, var(--mckinsey-blue-dark) 60%, #001428 100%);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(0,120,212,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(196,150,44,0.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 6px 20px;
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .cover h1 {
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+    position: relative;
+    max-width: 800px;
+  }
+
+  .cover h1 .en { font-size: 36px; font-weight: 300; display: block; margin-bottom: 8px; letter-spacing: 2px; }
+
+  .cover-subtitle {
+    font-size: 18px;
+    font-weight: 300;
+    opacity: 0.85;
+    max-width: 600px;
+    line-height: 1.8;
+    position: relative;
+    margin-bottom: 56px;
+  }
+
+  .cover-meta {
+    position: relative;
+    font-size: 13px;
+    opacity: 0.6;
+    letter-spacing: 1px;
+  }
+
+  .cover-rule {
+    width: 60px;
+    height: 3px;
+    background: var(--mckinsey-gold);
+    margin: 0 auto 32px;
+    position: relative;
+  }
+
+  /* Main content */
+  .content-wrapper {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  /* Section */
+  .section {
+    background: var(--bg-white);
+    border-radius: 2px;
+    margin: 32px auto;
+    max-width: 1040px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    padding: 28px 40px 24px;
+    border-bottom: 2px solid var(--mckinsey-blue);
+  }
+
+  .section-number {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--mckinsey-blue);
+    margin-right: 20px;
+    font-variant-numeric: tabular-nums;
+    min-width: 48px;
+  }
+
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--mckinsey-blue);
+    letter-spacing: -0.3px;
+  }
+
+  .section-body {
+    padding: 32px 40px 36px;
+  }
+
+  .section-body p {
+    margin-bottom: 16px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+  }
+
+  .section-body p:last-child { margin-bottom: 0; }
+
+  /* Lead paragraph */
+  .lead {
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.8;
+    border-left: 3px solid var(--mckinsey-blue);
+    padding-left: 20px;
+    margin-bottom: 24px;
+  }
+
+  /* Verdict badge */
+  .verdict-banner {
+    background: linear-gradient(135deg, var(--mckinsey-blue), var(--mckinsey-blue-dark));
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin: 24px 0 0;
+    border-radius: 2px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+
+  /* Advisor cards */
+  .advisor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .advisor-card {
+    border: 1px solid var(--border-light);
+    border-radius: 2px;
+    padding: 20px 24px;
+    background: var(--bg-light);
+  }
+
+  .advisor-card .name {
+    font-weight: 700;
+    color: var(--mckinsey-blue);
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .advisor-card p {
+    font-size: 14px;
+    margin: 0;
+    color: var(--text-secondary);
+  }
+
+  .advisor-card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* Transformation box */
+  .transform-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    margin: 24px 0;
+    padding: 28px;
+    background: var(--bg-light);
+    border-radius: 2px;
+  }
+
+  .transform-side {
+    flex: 1;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .transform-side.from {
+    background: white;
+    border: 1px solid var(--danger);
+    border-radius: 2px;
+  }
+
+  .transform-side.to {
+    background: white;
+    border: 2px solid var(--mckinsey-blue);
+    border-radius: 2px;
+  }
+
+  .transform-side .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .transform-side.from .label { color: var(--danger); }
+  .transform-side.to .label { color: var(--mckinsey-blue); }
+
+  .transform-side .text {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .transform-arrow {
+    font-size: 28px;
+    color: var(--mckinsey-gold);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Complection items */
+  .complection-list {
+    counter-reset: complection;
+    list-style: none;
+    margin: 20px 0;
+  }
+
+  .complection-item {
+    counter-increment: complection;
+    padding: 20px 24px;
+    border: 1px solid var(--border-light);
+    margin-bottom: 12px;
+    border-radius: 2px;
+    background: white;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .complection-num {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--mckinsey-blue);
+    min-width: 32px;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+
+  .complection-content { flex: 1; }
+
+  .complection-content .braid {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .complection-content .solution {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .complection-content .solution strong {
+    color: var(--mckinsey-blue);
+    font-weight: 600;
+  }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    background: var(--mckinsey-blue-dark);
+    color: white;
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 24px 0;
+  }
+
+  .arch-layer {
+    padding: 24px 32px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    position: relative;
+  }
+
+  .arch-layer:last-child { border-bottom: none; }
+
+  .arch-layer .layer-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .arch-layer.l3 { background: rgba(255,255,255,0.08); }
+  .arch-layer.l3 .layer-label { color: var(--mckinsey-gold-light); }
+
+  .arch-layer.l2 { background: rgba(255,255,255,0.04); }
+  .arch-layer.l2 .layer-label { color: #64B5F6; }
+
+  .arch-layer.l1 { background: transparent; }
+  .arch-layer.l1 .layer-label { color: #81C784; }
+
+  .arch-layer .layer-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 600;
+  }
+
+  .tag-optional { background: rgba(196,150,44,0.3); color: var(--mckinsey-gold-light); }
+  .tag-required { background: rgba(129,199,132,0.3); color: #81C784; }
+
+  .arch-layer .layer-items {
+    font-size: 14px;
+    line-height: 1.8;
+    opacity: 0.9;
+  }
+
+  /* Key derivation tree */
+  .key-tree {
+    background: #1a1a2e;
+    color: #E0E0E0;
+    padding: 28px 32px;
+    border-radius: 2px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 2;
+    margin: 24px 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .key-tree .comment { color: #6A9955; }
+  .key-tree .path { color: #64B5F6; }
+  .key-tree .highlight { color: var(--mckinsey-gold-light); font-weight: 600; }
+  .key-tree .arrow { color: #888; }
+
+  /* Degradation table */
+  .degrade-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 13.5px;
+  }
+
+  .degrade-table th {
+    background: var(--mckinsey-blue);
+    color: white;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .degrade-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+    line-height: 1.6;
+  }
+
+  .degrade-table tr:nth-child(even) td { background: var(--bg-light); }
+
+  .degrade-table .level-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 2px;
+    min-width: 72px;
+    text-align: center;
+  }
+
+  .level-0 { background: #E8F5E9; color: #1B5E20; }
+  .level-1 { background: #FFF3E0; color: #E65100; }
+  .level-2 { background: #FFF8E1; color: #F57F17; }
+  .level-3 { background: #FFEBEE; color: #B71C1C; }
+  .level-4 { background: #FCE4EC; color: #880E4F; }
+
+  /* Kill list */
+  .kill-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .kill-item {
+    padding: 16px 20px;
+    border-radius: 2px;
+    background: var(--bg-light);
+    border-left: 3px solid var(--danger);
+  }
+
+  .kill-item .killed {
+    font-size: 13px;
+    color: var(--danger);
+    font-weight: 600;
+    text-decoration: line-through;
+    margin-bottom: 4px;
+  }
+
+  .kill-item .replacement {
+    font-size: 13px;
+    color: var(--success);
+    font-weight: 500;
+  }
+
+  .new-feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .new-feature {
+    padding: 16px 20px;
+    border-radius: 2px;
+    background: var(--bg-light);
+    border-left: 3px solid var(--mckinsey-blue);
+  }
+
+  .new-feature .feat-name {
+    font-weight: 600;
+    color: var(--mckinsey-blue);
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .new-feature .feat-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  /* Revenue model */
+  .revenue-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .revenue-card {
+    border: 1px solid var(--border-light);
+    border-radius: 2px;
+    padding: 20px 24px;
+    background: white;
+    position: relative;
+  }
+
+  .revenue-card .rank {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--bg-subtle);
+    line-height: 1;
+  }
+
+  .revenue-card .rev-name {
+    font-weight: 700;
+    color: var(--mckinsey-blue);
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .revenue-card .rev-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* Warning box */
+  .warning-box {
+    background: #FFF8E1;
+    border: 1px solid #FFE082;
+    border-left: 3px solid var(--warning);
+    padding: 16px 20px;
+    border-radius: 2px;
+    margin: 20px 0;
+    font-size: 14px;
+    color: #5D4037;
+    line-height: 1.7;
+  }
+
+  .warning-box strong { color: var(--warning); }
+
+  /* Barbell */
+  .barbell-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 24px 0;
+  }
+
+  .barbell-end {
+    padding: 20px 28px;
+    border-radius: 2px;
+    text-align: center;
+    min-width: 200px;
+  }
+
+  .barbell-end.cold {
+    background: var(--mckinsey-blue);
+    color: white;
+  }
+
+  .barbell-end.hot {
+    background: var(--mckinsey-gold);
+    color: white;
+  }
+
+  .barbell-bar {
+    height: 4px;
+    width: 80px;
+    background: var(--border-medium);
+    flex-shrink: 0;
+  }
+
+  .barbell-end .pct {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .barbell-end .desc {
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0.9;
+    line-height: 1.5;
+  }
+
+  /* Triangle analysis */
+  .triangle-insight {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .tri-item {
+    text-align: center;
+    padding: 20px;
+    border: 1px solid var(--border-light);
+    border-radius: 2px;
+    background: white;
+  }
+
+  .tri-item .tri-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .tri-item .tri-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--mckinsey-blue);
+    margin-bottom: 4px;
+  }
+
+  .tri-item .tri-layer {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* Timeline */
+  .timeline {
+    position: relative;
+    padding-left: 40px;
+    margin: 24px 0;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--mckinsey-blue);
+  }
+
+  .timeline-item {
+    position: relative;
+    padding: 16px 24px;
+    margin-bottom: 16px;
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 2px;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -32px;
+    top: 22px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--mckinsey-blue);
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px var(--mckinsey-blue);
+  }
+
+  .timeline-item.done::before { background: var(--success); box-shadow: 0 0 0 2px var(--success); }
+
+  .timeline-item .phase {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--mckinsey-blue);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .timeline-item.done .phase { color: var(--success); }
+
+  .timeline-item .phase-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .timeline-item .phase-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* Bullet list */
+  .bullet-list {
+    list-style: none;
+    margin: 12px 0;
+  }
+
+  .bullet-list li {
+    padding: 6px 0 6px 20px;
+    position: relative;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .bullet-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 6px;
+    height: 6px;
+    background: var(--mckinsey-blue);
+    border-radius: 1px;
+  }
+
+  /* Subheading */
+  h3.sub {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 24px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  h3.sub:first-child { margin-top: 0; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 60px 20px 40px;
+    color: #9B9B9D;
+    font-size: 13px;
+    line-height: 2.2;
+  }
+
+  footer p { margin: 0; }
+  footer .small { font-size: 12px; margin-top: 8px; }
+
+  /* Print */
+  @media print {
+    .cover { min-height: auto; padding: 80px 40px; page-break-after: always; }
+    .section { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Cover -->
+<div class="cover">
+  <div class="cover-badge">STRATEGIC BLUEPRINT</div>
+  <h1>
+    <span class="en">Unstoppable Auth Box</span>
+    不可阻挡的个人数字主权平台
+  </h1>
+  <div class="cover-rule"></div>
+  <div class="cover-subtitle">
+    从 Bitcoin 钱包哲学到 AGI 时代身份架构的范式转换<br>
+    五位顾问深度分析综合报告
+  </div>
+  <div class="cover-meta">2026-03-20 &nbsp;|&nbsp; 5-Advisor Swarm Synthesis (Round 2)</div>
+</div>
+
+<!-- S1: 执行摘要 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">01</span>
+    <span class="section-title">执行摘要</span>
+  </div>
+  <div class="section-body">
+    <p class="lead">Auth Box 必须从"信任我们"转变为"你不需要信任任何人"。这是五位顾问达成的唯一共识，也是整个重建的基石。</p>
+
+    <div class="advisor-grid">
+      <div class="advisor-card">
+        <div class="name">Taleb -- 反脆弱</div>
+        <p>种子词是"免费期权" -- 公司在时体验不变，公司死时用户不丢一切。凸性回报，零额外成本。</p>
+      </div>
+      <div class="advisor-card">
+        <div class="name">Hickey -- 简单之道</div>
+        <p>"从值(Value)开始建，不要从场所(Place)开始建。" 三层架构: Layer 1 Core (不可阻挡) + Layer 2 Sync (可选) + Layer 3 Convenience (可选)。</p>
+      </div>
+      <div class="advisor-card">
+        <div class="name">Jobs -- 极致体验</div>
+        <p>"Your keys, your identity." 45秒 onboarding，杀掉邮箱注册。把复杂留给系统，把简单留给用户。</p>
+      </div>
+      <div class="advisor-card">
+        <div class="name">Meadows -- 系统思维</div>
+        <p>服务器从"状态所有者"降级为"加密传输媒介"。所谓不可能三角，实则是不同层次的设计选择。</p>
+      </div>
+      <div class="advisor-card full-width">
+        <div class="name">Research -- 竞品实证</div>
+        <p>Unstoppable Wallet 评分: 隐私 10/10, 去中心化 9/10, 安全 9/10, 商业可持续性 6/10。最后一项是关键警示 -- Auth Box 必须在主权架构上找到可持续变现路径。</p>
+      </div>
+    </div>
+
+    <div class="verdict-banner">VERDICT: REDESIGN -- 不是修补，是重建地基</div>
+  </div>
+</div>
+
+<!-- S2: 哲学转换 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">02</span>
+    <span class="section-title">哲学转换</span>
+  </div>
+  <div class="section-body">
+    <div class="transform-box">
+      <div class="transform-side from">
+        <div class="label">FROM</div>
+        <div class="text">"Your data is safe WITH US"<br>数据在我们这里是安全的</div>
+      </div>
+      <div class="transform-arrow">&rarr;</div>
+      <div class="transform-side to">
+        <div class="label">TO</div>
+        <div class="text">"Your data is safe WITHOUT US"<br>即使没有我们，你的数据也是安全的</div>
+      </div>
+    </div>
+
+    <h3 class="sub">Unstoppable 的核心教训</h3>
+    <ul class="bullet-list">
+      <li><strong>账户是牢笼，密钥才是自由。</strong> 账户意味着你必须请求许可才能访问自己的数据；密钥意味着你天然拥有访问权，无需向任何人证明。</li>
+      <li><strong>值(Value)可以存在于任何场所(Place)，场所消失了值还在。</strong> 你的密码、身份凭证、AI Agent 配置 -- 这些是"值"。服务器、云盘、手机 -- 这些是"场所"。前者是本质，后者是容器。</li>
+      <li><strong>系统的简单性不在于它做的事少，而在于它的概念少且彼此正交。</strong> 正交意味着改变一个维度不会影响另一个维度。身份、存储、同步、AI 必须彼此独立。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- S3: 五条 Complection 解辫 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">03</span>
+    <span class="section-title">五条 Complection 解辫</span>
+  </div>
+  <div class="section-body">
+    <p>Hickey 将"complection"定义为将本不相关的概念编织在一起。以下是他在 Auth Box 当前架构中发现的五条编辫，以及对应的解法。符号 ⊗ 表示不当耦合。</p>
+
+    <div class="complection-list">
+      <div class="complection-item">
+        <div class="complection-num">1</div>
+        <div class="complection-content">
+          <div class="braid">身份(email) ⊗ 保险库访问</div>
+          <div class="solution"><strong>解:</strong> 种子词是唯一访问凭证，email 降级为可选的便利层通知通道。删除 email 不影响任何核心功能。</div>
+        </div>
+      </div>
+      <div class="complection-item">
+        <div class="complection-num">2</div>
+        <div class="complection-content">
+          <div class="braid">同步 ⊗ 存储 ⊗ 认证</div>
+          <div class="solution"><strong>解:</strong> 三者拆开，各自独立可替换。存储是本地文件，同步是可选传输，认证是本地密钥签名。任何一个出问题，其余两个完全不受影响。</div>
+        </div>
+      </div>
+      <div class="complection-item">
+        <div class="complection-num">3</div>
+        <div class="complection-content">
+          <div class="braid">在线状态 ⊗ 可用性</div>
+          <div class="solution"><strong>解:</strong> 本地优先，离线完全可用。在线是增强，不是前提。断网、断云、断服务器 -- 保险库照样打开，密码照样用。</div>
+        </div>
+      </div>
+      <div class="complection-item">
+        <div class="complection-num">4</div>
+        <div class="complection-content">
+          <div class="braid">AI 网关 ⊗ 密码存储</div>
+          <div class="solution"><strong>解:</strong> 本地签发委托密钥，AI 网关是可选的能力加速器。Agent 权限由用户本地签发和撤销，网关只是中继，不持有任何密钥。</div>
+        </div>
+      </div>
+      <div class="complection-item">
+        <div class="complection-num">5</div>
+        <div class="complection-content">
+          <div class="braid">账户生命周期 ⊗ 数据生命周期</div>
+          <div class="solution"><strong>解:</strong> 数据属于用户，与账户无关。注销账户 = 停止使用我们的同步服务。你的保险库、你的密钥、你的一切，永远在你手上。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S4: 三层架构蓝图 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">04</span>
+    <span class="section-title">三层架构蓝图</span>
+  </div>
+  <div class="section-body">
+    <p class="lead">关键原则: 从 Layer 1 开始建 (SIMPLE)，向上叠加 (EASY)。绝不反过来。每一层都可以独立存在，上层的移除不影响下层。</p>
+
+    <div class="arch-diagram">
+      <div class="arch-layer l3">
+        <div class="layer-label">
+          Layer 3: CONVENIENCE
+          <span class="layer-tag tag-optional">可选</span>
+        </div>
+        <div class="layer-items">
+          email 通知 / 云同步 / 忘记密码找回 / AI Agent 云端增强能力
+        </div>
+      </div>
+      <div class="arch-layer l2">
+        <div class="layer-label">
+          Layer 2: SYNC
+          <span class="layer-tag tag-optional">可选，可替换</span>
+        </div>
+        <div class="layer-items">
+          CRDT 合并引擎 / 传输通道: 服务端 relay | P2P | WebDAV | 手动导入导出
+        </div>
+      </div>
+      <div class="arch-layer l1">
+        <div class="layer-label">
+          Layer 1: CORE
+          <span class="layer-tag tag-required">不可阻挡，必须</span>
+        </div>
+        <div class="layer-items">
+          本地加密保险库 / 种子短语 &rarr; HD 密钥派生 / 离线完全可用<br>
+          Agent 委托密钥 (本地签发) / 公开加密格式规范 (任何人可实现解密工具)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S5: HD 密钥派生体系 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">05</span>
+    <span class="section-title">HD 密钥派生体系</span>
+  </div>
+  <div class="section-body">
+    <p>以 BIP-39 助记词为根，通过分层确定性(HD)派生，一颗种子生成所有密钥。每个用途独立路径，互不影响，可单独撤销。</p>
+
+    <div class="key-tree"><span class="highlight">seed phrase</span> <span class="comment">(BIP-39, 24 words)</span>
+  <span class="arrow">&rarr;</span> <span class="highlight">master key</span> <span class="comment">(Argon2id + HKDF)</span>
+    <span class="arrow">&rarr;</span> <span class="path">m/auth_box'/vault'/0'</span>   <span class="comment">保管库主加密密钥</span>
+    <span class="arrow">&rarr;</span> <span class="path">m/auth_box'/sync'/0'</span>    <span class="comment">同步加密密钥</span>
+    <span class="arrow">&rarr;</span> <span class="path">m/auth_box'/agent'/0'</span>   <span class="comment">Agent 委托根密钥</span>
+    <span class="arrow">&rarr;</span> <span class="path">m/auth_box'/agent'/1'</span>   <span class="comment">Agent A 子密钥 (可单独撤销)</span>
+    <span class="arrow">&rarr;</span> <span class="path">m/auth_box'/derive'/0'/&lt;site_index&gt;</span> <span class="comment">确定性派生密码 (无需存储!)</span></div>
+
+    <div class="warning-box">
+      <strong>最激进的创新: 确定性密码派生。</strong> seed + 网站名 + 计数器 &rarr; 密码。Vault 里可以什么都没有。即使保险库被清空，只要种子词还在，所有密码都能重新计算出来。这不是恢复，这是重新推导 -- 数学上的确定性保证。
+    </div>
+  </div>
+</div>
+
+<!-- S6: 优雅降级谱系 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">06</span>
+    <span class="section-title">优雅降级谱系</span>
+  </div>
+  <div class="section-body">
+    <p>真正的反脆弱不是"不会出问题"，而是"出了问题之后会怎样"。以下是从全功能到最极端场景的五级降级路径，每一级都有明确的能力边界。</p>
+
+    <table class="degrade-table">
+      <thead>
+        <tr>
+          <th style="width:130px;">降级等级</th>
+          <th>触发场景</th>
+          <th>可用功能</th>
+          <th style="width:100px;">恢复时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="level-tag level-0">Level 0</span></td>
+          <td>全在线，所有服务正常</td>
+          <td>全部功能: 同步、AI Agent 云端增强、跨设备、实时通知</td>
+          <td>N/A</td>
+        </tr>
+        <tr>
+          <td><span class="level-tag level-1">Level 1</span></td>
+          <td>服务器下线 / 网络中断</td>
+          <td>本地 Vault 完整可用 + 确定性密码派生 + 本地 AI 推理</td>
+          <td>0 秒</td>
+        </tr>
+        <tr>
+          <td><span class="level-tag level-2">Level 2</span></td>
+          <td>公司倒闭 / 服务永久终止</td>
+          <td>Vault 永久可用。公开加密格式，任何人可实现兼容解密工具</td>
+          <td>0 秒</td>
+        </tr>
+        <tr>
+          <td><span class="level-tag level-3">Level 3</span></td>
+          <td>设备丢失 / 损坏</td>
+          <td>新设备 + 种子短语 &rarr; 完整恢复所有密钥和确定性密码</td>
+          <td>&lt; 5 分钟</td>
+        </tr>
+        <tr>
+          <td><span class="level-tag level-4">Level 4</span></td>
+          <td>一切丢失，仅剩纸上种子词</td>
+          <td>种子短语 &rarr; 确定性密码重建。无需 Vault 文件，纯数学推导</td>
+          <td>&lt; 10 分钟</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-size:14px; color:var(--mckinsey-blue); font-weight:600;">注意: 每一级降级都保证数据安全性不降低。降低的只是便利性，不是安全性。</p>
+  </div>
+</div>
+
+<!-- S7: 产品重生 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">07</span>
+    <span class="section-title">产品重生</span>
+  </div>
+  <div class="section-body">
+    <h3 class="sub">Jobs 的 Kill List -- 杀掉旧范式</h3>
+    <div class="kill-grid">
+      <div class="kill-item">
+        <div class="killed">邮箱注册流程</div>
+        <div class="replacement">&rarr; 24 词种子 + 主密码 (45 秒完成)</div>
+      </div>
+      <div class="kill-item">
+        <div class="killed">服务器用户表</div>
+        <div class="replacement">&rarr; 没有"用户"概念，只有密钥</div>
+      </div>
+      <div class="kill-item">
+        <div class="killed">SRP 认证握手</div>
+        <div class="replacement">&rarr; 本地密钥直接解密，零网络往返</div>
+      </div>
+      <div class="kill-item">
+        <div class="killed">Argon2id 进度条等待</div>
+        <div class="replacement">&rarr; 本地即时解密，无感知延迟</div>
+      </div>
+      <div class="kill-item">
+        <div class="killed">"确认密码"输入框</div>
+        <div class="replacement">&rarr; 种子词本身就是终极确认</div>
+      </div>
+      <div class="kill-item">
+        <div class="killed">"忘记密码"找回流程</div>
+        <div class="replacement">&rarr; 种子词恢复，无需信任第三方</div>
+      </div>
+    </div>
+
+    <h3 class="sub">新功能 -- 重建后的可能性</h3>
+    <div class="new-feature-grid">
+      <div class="new-feature">
+        <div class="feat-name">数字身份智能仪表盘</div>
+        <div class="feat-desc">密码健康评分 + 暗网泄露监控 + 数字足迹地图。所有分析在本地完成。</div>
+      </div>
+      <div class="new-feature">
+        <div class="feat-name">AI Agent 活动日志</div>
+        <div class="feat-desc">实时可审计的 Agent 行为记录。每次 Agent 使用你的密钥，你都知道。</div>
+      </div>
+      <div class="new-feature">
+        <div class="feat-name">Duress Mode (胁迫模式)</div>
+        <div class="feat-desc">受胁迫时输入特定密码，显示伪装保险库。真实数据不可见。</div>
+      </div>
+      <div class="new-feature">
+        <div class="feat-name">Unstoppable Mode</div>
+        <div class="feat-desc">一键切换纯本地模式，零在线依赖。适用于高安全场景或离线环境。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S8: 变现模型 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">08</span>
+    <span class="section-title">变现模型</span>
+  </div>
+  <div class="section-body">
+    <div class="warning-box">
+      <strong>Unstoppable 的教训:</strong> DEX 手续费收入约 $600K/年，而运营成本约 $3M/年，年均缺口 $2.4M。Auth Box 必须避免走同样的路 -- 主权架构和商业可持续性不是对立的。
+    </div>
+
+    <h3 class="sub">推荐变现路径</h3>
+    <div class="revenue-grid">
+      <div class="revenue-card">
+        <div class="rank">01</div>
+        <div class="rev-name">AI Agent 策略市场</div>
+        <div class="rev-desc">策略创作者发布 Agent 能力包，用户付费订阅。Auth Box 抽成 -- "身份领域的 App Store"。平台效应，长尾收入。</div>
+      </div>
+      <div class="revenue-card">
+        <div class="rank">02</div>
+        <div class="rev-name">企业团队版</div>
+        <div class="rev-desc">SaaS 订阅模式，端对端加密的团队密码管理。企业不碰明文，合规无忧。按席位收费，可预测收入。</div>
+      </div>
+      <div class="revenue-card">
+        <div class="rank">03</div>
+        <div class="rev-name">高级智能分析</div>
+        <div class="rev-desc">密码健康深度报告、暗网监控、数字足迹治理。订阅制，分析全在本地执行，仅上报匿名统计。</div>
+      </div>
+      <div class="revenue-card">
+        <div class="rank">04</div>
+        <div class="rev-name">可验证凭证签发</div>
+        <div class="rev-desc">为用户签发 W3C Verifiable Credentials，按次收费。身份验证即服务，与 DID 生态对接。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S9: 风险与权衡 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">09</span>
+    <span class="section-title">风险与权衡</span>
+  </div>
+  <div class="section-body">
+    <h3 class="sub">杠铃策略确认</h3>
+    <div class="barbell-diagram">
+      <div class="barbell-end cold">
+        <div class="pct">90%</div>
+        <div class="desc">种子词派生的用户主权<br>(冷端 -- 不可阻挡)</div>
+      </div>
+      <div class="barbell-bar"></div>
+      <div class="barbell-end hot">
+        <div class="pct">10%</div>
+        <div class="desc">服务器增强的 AI 委托<br>(热端 -- 可选增强)</div>
+      </div>
+    </div>
+
+    <h3 class="sub">不可能三角分析 (Meadows)</h3>
+    <p>传统观点认为"安全性 / 便利性 / 去中心化"三者不可兼得。Meadows 的系统思维揭示: 这不是真正的不可能三角 -- 三个目标实际存在于不同的系统层次。</p>
+
+    <div class="triangle-insight">
+      <div class="tri-item">
+        <div class="tri-label">韧性 / 安全</div>
+        <div class="tri-value">Layer 1 解决</div>
+        <div class="tri-layer">状态架构层 -- 密钥在用户手中</div>
+      </div>
+      <div class="tri-item">
+        <div class="tri-label">便利性</div>
+        <div class="tri-value">Layer 2-3 解决</div>
+        <div class="tri-layer">UX 和同步层 -- 可选叠加</div>
+      </div>
+      <div class="tri-item">
+        <div class="tri-label">AI 能力</div>
+        <div class="tri-value">有限授权解决</div>
+        <div class="tri-layer">受限代理 -- 不是全能代理</div>
+      </div>
+    </div>
+
+    <p>关键洞察: 当你把三个目标放在同一层试图同时优化时，才会出现三角矛盾。把它们放在各自正确的层次上，矛盾消失。</p>
+  </div>
+</div>
+
+<!-- S10: 实施路径 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-number">10</span>
+    <span class="section-title">实施路径</span>
+  </div>
+  <div class="section-body">
+    <div class="timeline">
+      <div class="timeline-item done">
+        <div class="phase">Phase 0 -- 已完成</div>
+        <div class="phase-title">基础设施就位</div>
+        <div class="phase-desc">Vault 加密存储 + MCP 协议层 + Policy 引擎 + Hash-chain 审计链</div>
+      </div>
+      <div class="timeline-item">
+        <div class="phase">Phase 1 -- Q2 2026</div>
+        <div class="phase-title">不可阻挡内核</div>
+        <div class="phase-desc">BIP-39 种子词生成 + HD 密钥分层派生 + 本地优先架构重建 + 公开加密格式规范发布</div>
+      </div>
+      <div class="timeline-item">
+        <div class="phase">Phase 2 -- Q3 2026</div>
+        <div class="phase-title">可选同步层</div>
+        <div class="phase-desc">CRDT 合并引擎 + P2P relay 传输 + WebDAV 兼容 + 多设备无冲突同步</div>
+      </div>
+      <div class="timeline-item">
+        <div class="phase">Phase 3 -- Q4 2026</div>
+        <div class="phase-title">智能增强层</div>
+        <div class="phase-desc">确定性密码派生 + 数字身份智能仪表盘 + Unstoppable Mode + Duress Mode</div>
+      </div>
+      <div class="timeline-item">
+        <div class="phase">Phase 4 -- 2027</div>
+        <div class="phase-title">生态扩展</div>
+        <div class="phase-desc">AI Agent 策略市场上线 + 企业团队版 + 可验证凭证签发 + DID 生态对接</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <p>Unstoppable Auth Box -- 不可阻挡的个人数字主权平台</p>
+  <p>Maurice | maurice_wen@proton.me</p>
+  <p class="small">2026-03-20 | 5-Advisor Swarm Synthesis (Round 2)</p>
+</footer>
+
+</body>
+</html>
