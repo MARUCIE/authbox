@@ -13,6 +13,20 @@ export {
   type SRPClientState,
 } from './srp';
 export {
+  generateMnemonic,
+  validateMnemonic,
+  mnemonicToSeed,
+  deriveKey,
+  deriveAllKeys,
+  deriveAgentKey,
+  derivePassword,
+  setWordlist,
+  KeyPurpose,
+  type SeedKeyBundle,
+  type DerivePasswordOptions,
+} from './seed';
+export { ENGLISH_WORDLIST } from './wordlist-en';
+export {
   generateVaultKey,
   encryptVaultKey,
   decryptVaultKey,
