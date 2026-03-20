@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/vault/dialog';
 import {
   autoDetectAndParse,
+  IMPORT_SOURCES,
   type ImportFormat,
   type LoginImportItem,
   type ImportResult,
@@ -21,9 +22,7 @@ type ImportStep = 'upload' | 'preview' | 'importing' | 'done';
 
 const FORMAT_OPTIONS: { value: ImportFormat | 'auto'; label: string; description: string }[] = [
   { value: 'auto', label: 'Auto-detect', description: 'Detect format from file content' },
-  { value: 'chrome', label: 'Chrome', description: 'Passwords exported from Chrome (CSV)' },
-  { value: 'bitwarden', label: 'Bitwarden', description: 'JSON or CSV export from Bitwarden' },
-  { value: '1password', label: '1Password', description: 'CSV export from 1Password' },
+  ...IMPORT_SOURCES.map((s) => ({ value: s.value, label: s.label, description: s.hint })),
 ];
 
 export function ImportDialog({ open, onClose, onComplete }: ImportDialogProps) {
