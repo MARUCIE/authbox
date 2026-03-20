@@ -188,6 +188,72 @@ export default function SettingsPage() {
         </p>
       </div>
 
+      {/* ── Unstoppable Mode ── */}
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold" style={{ fontFamily: 'var(--font-heading)' }}>Unstoppable Mode</h3>
+          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+            Local-first operation. Your vault works without any server connection.
+          </p>
+        </div>
+
+        <div className="rounded-xl p-5" style={{ background: 'var(--surface-low)' }}>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="pulse-secure" />
+                <span className="text-sm font-medium" style={{ color: 'var(--tertiary)' }}>Active</span>
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+                Your vault is encrypted locally with keys derived from your seed phrase.
+                Even if Auth Box servers go offline or the company ceases to exist,
+                your passwords remain accessible on this device.
+              </p>
+            </div>
+            <div
+              className="flex items-center gap-2 rounded-lg px-3 py-2 shrink-0"
+              style={{ background: 'var(--tertiary-container)', color: 'var(--tertiary)' }}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+              </svg>
+              <span className="text-xs font-medium">Sovereign</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="rounded-lg p-3" style={{ background: 'var(--surface-highest)' }}>
+              <p className="text-xs font-medium mb-1">Recovery Phrase</p>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                24 words backed up
+              </p>
+            </div>
+            <div className="rounded-lg p-3" style={{ background: 'var(--surface-highest)' }}>
+              <p className="text-xs font-medium mb-1">Derive Passwords</p>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                No storage needed
+              </p>
+            </div>
+            <div className="rounded-lg p-3" style={{ background: 'var(--surface-highest)' }}>
+              <p className="text-xs font-medium mb-1">Offline Access</p>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                Works without internet
+              </p>
+            </div>
+            <div className="rounded-lg p-3" style={{ background: 'var(--surface-highest)' }}>
+              <p className="text-xs font-medium mb-1">Open Format</p>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                Export anytime
+              </p>
+            </div>
+          </div>
+
+          <p className="text-[10px] mt-4 text-center" style={{ color: 'var(--outline)' }}>
+            &quot;Even if we disappear, your vault is yours.&quot;
+          </p>
+        </div>
+      </section>
+
       {/* ── Session Management ── */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">

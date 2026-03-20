@@ -37,10 +37,33 @@ const PILLARS = [
 ];
 
 const HOW_IT_WORKS = [
-  { step: '01', title: 'Create Account', desc: 'Register with email and a strong master password' },
-  { step: '02', title: 'Encrypt Locally', desc: 'Keys derived on-device via Argon2id + HKDF' },
-  { step: '03', title: 'Sync Securely', desc: 'Only encrypted blobs reach the server' },
-  { step: '04', title: 'Access Anywhere', desc: 'Browser, extension, or AI agent via MCP' },
+  { step: '01', title: 'Generate Seed', desc: '24 words generated on your device. No email needed.' },
+  { step: '02', title: 'Derive Keys', desc: 'All encryption keys derived from your seed phrase.' },
+  { step: '03', title: 'Use Anywhere', desc: 'Browser, extension, or AI agent via MCP protocol.' },
+  { step: '04', title: 'Recover Anytime', desc: '24 words = full recovery. Even without us.' },
+];
+
+const UNSTOPPABLE_PROMISES = [
+  {
+    title: 'No Email Required',
+    desc: 'Create a vault in 45 seconds. No signup, no account, no email.',
+    icon: 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0',
+  },
+  {
+    title: 'Survive Without Us',
+    desc: 'If Auth Box disappears tomorrow, your vault still works. Your seed phrase is the only key.',
+    icon: 'M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622',
+  },
+  {
+    title: 'Passwords Without Storage',
+    desc: 'Derive passwords deterministically from your seed + site name. Vault can be empty.',
+    icon: 'M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z',
+  },
+  {
+    title: 'Import Everything',
+    desc: 'Migrate from 13 password managers: Apple, Google, Chrome, Firefox, 1Password, Bitwarden, and more.',
+    icon: 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5',
+  },
 ];
 
 const TRUST_BADGES = [
@@ -80,15 +103,15 @@ export default function Home() {
 
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-tight"
               style={{ fontFamily: 'var(--font-heading)' }}>
-            Your Passwords.{' '}
-            <span style={{ color: 'var(--primary)' }}>Your Keys.</span>
+            Your Keys.{' '}
+            <span style={{ color: 'var(--primary)' }}>Your Identity.</span>
             <br />
-            Zero Knowledge.
+            Unstoppable.
           </h1>
 
           <p className="text-lg md:text-xl mb-10 max-w-2xl mx-auto" style={{ color: 'var(--muted-foreground)' }}>
-            The encrypted vault that even we can&apos;t read. Password management + OAuth lifecycle + AI agent gateway
-            -- unified under one zero-knowledge architecture.
+            24 words. That&apos;s all you need. No email, no account, no server dependency.
+            Even if we disappear, your passwords survive.
           </p>
 
           <div className="flex gap-4 justify-center flex-wrap">
@@ -192,6 +215,45 @@ export default function Home() {
               {badge}
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Unstoppable Promise */}
+      <section className="px-6 py-24" style={{ background: 'var(--surface)' }}>
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-4" style={{ fontFamily: 'var(--font-heading)' }}>
+            The Unstoppable Promise
+          </h2>
+          <p className="text-center mb-16" style={{ color: 'var(--muted-foreground)' }}>
+            What makes Auth Box different from every other password manager.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {UNSTOPPABLE_PROMISES.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-xl p-6 flex gap-4"
+                style={{ background: 'var(--surface-container)', boxShadow: 'var(--shadow-ambient)' }}
+              >
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
+                  style={{ background: 'var(--primary-container)' }}
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="var(--primary)">
+                    <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold mb-1" style={{ fontFamily: 'var(--font-heading)' }}>
+                    {item.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
