@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "jsx": "react-jsx",
+    "types": ["chrome"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@authbox/crypto": ["../../packages/crypto/src"],
+      "@authbox/shared": ["../../packages/shared/src"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}

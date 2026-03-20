@@ -3,7 +3,7 @@ Title: 文档索引
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-18
+LastUpdated: 2026-02-24
 Related:
   - /doc/00_project/index.md
   - /doc/10_features/
@@ -27,43 +27,41 @@ Related:
 
 <!-- AI-TOOLS:PATH_INDEX:BEGIN -->
 - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
-- **VERIFIED_AT_UTC**: `2026-02-18T11:31:00Z`
-- **Top-level dirs**: `.codex`, `apps`, `doc`, `services`
-- **Top-level files**: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `GEMINI.md`, `README.md`, `docker-compose.yml`
-- **Key files**: `AGENTS.md`, `CLAUDE.md`, `README.md`
+- **VERIFIED_AT_UTC**: `2026-02-24T00:00:00Z`
+- **Top-level dirs**: `apps`, `packages`, `services`, `doc`
+- **Top-level files**: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `GEMINI.md`, `README.md`, `docker-compose.yml`, `turbo.json`, `pnpm-workspace.yaml`, `Makefile`
+- **Key files**: `AGENTS.md`, `CLAUDE.md`, `README.md`, `turbo.json`
+- **Monorepo packages**:
+  - `packages/crypto` - @authbox/crypto (Argon2id, HKDF, AES-GCM, SRP-6a)
+  - `packages/shared` - @authbox/shared (types, constants, utils)
+  - `packages/mcp-protocol` - @authbox/mcp-protocol (MCP server + tools)
+- **Apps**:
+  - `apps/web` - Next.js 15 Web App (React 19, App Router)
+  - `apps/extension` - Chrome MV3 Extension (autofill + MCP Server)
+- **Services**:
+  - `services/api` - Go API Service (SRP auth, vault CRUD, agent gateway)
 - **Docs map**:
   - `doc/index.md`
   - `doc/00_project/index.md`
   - `doc/00_project/initiative_10_auth_box/index.md`
-  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
   - `doc/00_project/initiative_10_auth_box/PRD.md`
   - `doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md`
-  - `doc/00_project/initiative_10_auth_box/ARCHITECTURE_ADR.md`
-  - `doc/00_project/initiative_10_auth_box/ARCHITECTURE_RISK_REGISTER.md`
   - `doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md`
   - `doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md`
-  - `doc/00_project/initiative_10_auth_box/SITEMAP_KEYWORD_STRATEGY.md`
-  - `doc/00_project/initiative_10_auth_box/EXECUTION_ROADMAP.md`
-  - `doc/00_project/initiative_10_auth_box/PDCA_EXECUTION_PLAN.md`
-  - `doc/00_project/initiative_10_auth_box/PDCA_ITERATION_CHECKLIST.md`
   - `doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md`
   - `doc/00_project/initiative_10_auth_box/task_plan.md`
   - `doc/00_project/initiative_10_auth_box/notes.md`
   - `doc/00_project/initiative_10_auth_box/deliverable.md`
-  - `doc/00_project/initiative_10_auth_box/REQUIREMENT_CONFIRMATION_ZH_FR.md`
-  - `doc/20_components/auth-box-api/index.md`
-  - `doc/20_components/auth-box-api/design.md`
-  - `doc/20_components/auth-box-api/api.md`
-  - `doc/20_components/auth-box-api/config.md`
-  - `doc/20_components/auth-box-api/runbook.md`
-  - `doc/20_components/auth-box-console/index.md`
-  - `doc/20_components/auth-box-console/design.md`
-  - `doc/20_components/auth-box-console/runbook.md`
 <!-- AI-TOOLS:PATH_INDEX:END -->
 
 ## 变更记录
-- 2026-02-18: 新增专业智能体设计文档索引与路径映射。（原因：professional-agent-design SOP）
-- 2026-02-11: 新增 sitemap 与关键词策略文档并回写索引。（原因：multi-role-brainstorm SOP）
-- 2026-02-11: 增量更新 API 契约与鉴权同步文档（组件契约、runbook、PDCA 回写）。（原因：api-contract-auth-sync SOP）
-- 2026-02-11: 文档索引新增架构 ADR 与风险清单路径。（原因：architecture council SOP）
-- 2026-01-29: 初始化。（原因：新项目启动）
+- 2026-02-24: v2 重写，更新 monorepo 结构映射（Turborepo + pnpm, packages/crypto, packages/shared, apps/web, services/api）。（原因：Auth Box v2 产品方向转型）
+- 2026-02-18: 新增专业智能体设计文档索引与路径映射。
+- 2026-02-11: 新增 sitemap 与关键词策略文档并回写索引。
+- 2026-02-11: 增量更新 API 契约与鉴权同步文档。
+- 2026-02-11: 文档索引新增架构 ADR 与风险清单路径。
+- 2026-01-29: 初始化。
+
+---
+
+Maurice | maurice_wen@proton.me

@@ -8,6 +8,12 @@ build/
 .next/
 out/
 
+# Turborepo
+.turbo/
+
+# pnpm
+pnpm-debug.log*
+
 # Runtime telemetry persistence (generated; not evidence)
 outputs/telemetry/
 apps/console/outputs/telemetry/

@@ -3,314 +3,523 @@ Title: SYSTEM_ARCHITECTURE - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-13
+LastUpdated: 2026-02-24
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
   - /doc/00_project/initiative_10_auth_box/index.md
   - /doc/00_project/initiative_10_auth_box/PRD.md
   - /doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md
-  - /doc/00_project/initiative_10_auth_box/SITEMAP_KEYWORD_STRATEGY.md
-  - /doc/00_project/initiative_10_auth_box/ARCHITECTURE_ADR.md
-  - /doc/00_project/initiative_10_auth_box/ARCHITECTURE_RISK_REGISTER.md
 ---
 
 <!-- AI-TOOLS:PROJECT_DIR:BEGIN -->
 - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
-- -02-13T02:24:38Z`
+- **VERIFIED_AT_UTC**: `2026-02-24T00:00:00Z`
 - **RULE**: Always run tasks against the project root. If the CLI detects a mismatch, it will update this block.
 <!-- AI-TOOLS:PROJECT_DIR:END -->
 
-# 系统架构 - Auth Box
+# 系统架构 - Auth Box v2
 
 ## 概览
-平台提供统一的账号创建、授权管理与 AI 助手接入治理能力，包含控制台、API 服务、密钥与审计系统。
 
-## 高层架构（Mermaid）
+Auth Box v2 采用零知识架构：**客户端持有解密后的 Vault，服务端仅存储加密后的 Blob**。Master Password 永不离开客户端，服务端无法解密任何凭据。
+
+核心原则：
+- 加密/解密全部在客户端完成
+- 服务端仅做加密数据的 CRUD 与访问控制
+- AI Agent 通过 MCP 网关获取凭据，受策略引擎管控
+
+## 高层架构
 
 ```mermaid
 graph TD
-  V[Visitor/Search User] --> WEB[Public Web Layer]
-  WEB --> UI[Web Console]
-  U[Admin/Engineer] --> UI
-  UI --> API[Auth Box API]
+    subgraph Client Layer
+        WEB[Web App - Next.js 15]
+        EXT[Chrome Extension - MV3]
+        DESK[Desktop App - Tauri]
+        MOBILE[Mobile App - RN]
+    end
 
-  API --> ACC[Account Provisioning]
-  API --> AUTH[Credential Manager]
-  API --> ASSIST[AI Assistant Gateway]
-  API --> AUDIT[Audit Log]
-  API --> CACHE[(Redis)]
+    subgraph MCP Gateway
+        MCP_SRV[MCP Server ws://localhost:19876]
+    end
 
-  AUTH --> DB[(PostgreSQL)]
-  AUTH --> KMS[(KMS)]
-  ACC --> EXT[External Platforms]
-  ASSIST --> EXT
-  AUDIT --> DB
-  AUDIT --> OBJ[(Object Storage)]
+    subgraph Server Layer
+        API[Go API Service]
+        POLICY[Policy Engine]
+        AUDIT[Audit Logger]
+    end
 
-  EXT[(Multi-Platform APIs)]
+    subgraph Storage Layer
+        DB[(PostgreSQL 16)]
+        CACHE[(Redis 7)]
+    end
+
+    subgraph External
+        AGENT[AI Agent / Claude / GPT]
+        OAUTH[OAuth Providers]
+    end
+
+    WEB --> API
+    EXT --> API
+    EXT --> MCP_SRV
+    DESK --> API
+    MOBILE --> API
+
+    AGENT --> MCP_SRV
+    MCP_SRV --> EXT
+    MCP_SRV --> POLICY
+    MCP_SRV --> AUDIT
+
+    API --> DB
+    API --> CACHE
+    API --> AUDIT
+    API --> POLICY
+    API --> OAUTH
+
+    AUDIT --> DB
 ```
 
-## 代码结构（当前骨架）
+## 加密设计
+
+### 密钥派生流程
+
 ```
-apps/console        # Next.js console
-services/api        # Go API service
-doc/                # project docs
-docker-compose.yml  # local runtime
+Master Password
+       |
+       v
+  Argon2id(password, email_as_salt, m=64MB, t=3, p=4)
+       |
+       v
+  Master Key (32 bytes)
+       |
+       +---> HKDF("auth")   ---> Auth Key     (用于 SRP-6a 认证)
+       |
+       +---> HKDF("enc")    ---> Encryption Key (用于包装 Vault Key)
+       |
+       +---> HKDF("mac")    ---> MAC Key       (用于完整性验证)
 ```
 
-## 关键模块
-- Public Web Layer: 承载 SEO 入口、产品说明、对比页与文档导流。
-- Web Console: 管理平台连接、账号与权限。
-- Auth Box API: 核心业务 API，统一对外接口。
-- Account Provisioning: 多平台账号自动创建与登记。
-- Credential Manager: 授权凭据生成、轮换、吊销。
-- AI Assistant Gateway: AI 助手接入与访问控制。
-- Policy Engine: 策略引擎（OPA），裁决工具调用与动作权限。
-- Audit Log: 操作与调用记录（Event Sourcing with hash chain）。
+### Vault Key 管理
 
-## 核心数据模型（来自调研 ai_master_control_prd.html）
+```mermaid
+flowchart TD
+    A[注册时] --> B[客户端生成随机 Vault Key 256-bit]
+    B --> C[用 Encryption Key 包装 Vault Key]
+    C --> D[AES-256-GCM 加密]
+    D --> E[上传 Encrypted Vault Key 到服务端]
+
+    F[登录时] --> G[下载 Encrypted Vault Key]
+    G --> H[用 Encryption Key 解包]
+    H --> I[得到 Vault Key]
+    I --> J[解密 Vault Items]
+```
+
+### 加密层级
+
+| 层级 | 密钥 | 算法 | 用途 |
+|------|------|------|------|
+| L0 | Master Password | 用户记忆 | 唯一入口 |
+| L1 | Master Key | Argon2id | 派生中间密钥 |
+| L2 | Auth Key | HKDF | SRP-6a 注册与登录 |
+| L2 | Encryption Key | HKDF | 包装/解包 Vault Key |
+| L2 | MAC Key | HKDF | 数据完整性 |
+| L3 | Vault Key | Random 256-bit | 加解密所有 Vault Items |
+
+## SRP-6a 认证流程
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+
+    Note over C: 注册阶段
+    C->>C: salt = random(32)
+    C->>C: x = Argon2id(password, email)
+    C->>C: Auth Key = HKDF(x, "auth")
+    C->>C: verifier = g^(Auth Key) mod N
+    C->>S: Register(email, salt, verifier)
+    S->>S: Store(email, salt, verifier)
+
+    Note over C: 登录阶段
+    C->>S: Login Start(email, A = g^a mod N)
+    S->>S: b = random, B = k*v + g^b mod N
+    S->>C: (salt, B)
+    C->>C: x = Argon2id(password, salt)
+    C->>C: Auth Key = HKDF(x, "auth")
+    C->>C: S_client = (B - k*g^x)^(a + u*x) mod N
+    C->>C: K = H(S_client)
+    C->>C: M1 = H(A, B, K)
+    C->>S: Login Verify(M1)
+    S->>S: S_server = (A * v^u)^b mod N
+    S->>S: K = H(S_server)
+    S->>S: Verify M1
+    S->>S: M2 = H(A, M1, K)
+    S->>C: (M2, session_token, encrypted_vault_key)
+    C->>C: Verify M2 (mutual auth)
+```
+
+## 数据库 Schema
 
 ```mermaid
 erDiagram
-    SERVICE ||--o{ ACCOUNT : "hosts"
-    ACCOUNT ||--o{ GRANT : "receives"
-    GRANT ||--o{ CONSENT_RECORD : "logs"
-    POLICY ||--o{ GRANT : "governs"
-    ACCOUNT ||--o{ AUTOMATION : "triggers"
-    AUTOMATION ||--o{ AUDIT_EVENT : "produces"
+    USERS ||--o{ SESSIONS : "has"
+    USERS ||--o{ VAULTS : "owns"
+    VAULTS ||--o{ VAULT_ITEMS : "contains"
+    USERS ||--o{ AGENTS : "registers"
+    AGENTS ||--o{ AGENT_POLICIES : "governed_by"
+    USERS ||--o{ AUTH_CONNECTIONS : "connects"
+    USERS ||--o{ AUDIT_EVENTS : "produces"
+    AGENTS ||--o{ AUDIT_EVENTS : "produces"
 
-    SERVICE {
-        string provider_id PK
-        json api_capabilities
-        string auth_type
+    USERS {
+        uuid id PK
+        string email UK
+        bytes srp_salt
+        bytes srp_verifier
+        bytes encrypted_vault_key
+        bytes vault_key_nonce
+        string mfa_secret
+        timestamp created_at
+        timestamp updated_at
     }
-    ACCOUNT {
-        string account_id PK
-        json identifiers
-        int risk_score
-    }
-    GRANT {
-        string grant_id PK
-        json scopes
-        timestamp issued_at
+
+    SESSIONS {
+        uuid id PK
+        uuid user_id FK
+        bytes session_key_hash
+        string device_info
+        inet ip_address
         timestamp expires_at
-        bool refreshable
+        timestamp created_at
     }
-    CONSENT_RECORD {
-        string consent_id PK
-        string purpose
-        string lawful_basis
-        timestamp timestamp
-        json receipt
+
+    VAULTS {
+        uuid id PK
+        uuid user_id FK
+        string name
+        string vault_type
+        timestamp created_at
+        timestamp updated_at
     }
-    POLICY {
-        string policy_id PK
-        json rules
-        json exceptions
-        string enforcement_level
+
+    VAULT_ITEMS {
+        uuid id PK
+        uuid vault_id FK
+        string item_type
+        bytes encrypted_data
+        bytes nonce
+        string folder
+        string[] tags
+        int sort_order
+        bool favorite
+        timestamp created_at
+        timestamp updated_at
     }
-    AUTOMATION {
-        string automation_id PK
-        json trigger
-        json steps
-        json approvals
-        json rollback
+
+    AGENTS {
+        uuid id PK
+        uuid user_id FK
+        string name
+        string agent_type
+        bytes api_key_hash
+        string[] allowed_scopes
+        bool active
+        timestamp last_used_at
+        timestamp created_at
     }
-    AUDIT_EVENT {
-        string event_id PK
-        timestamp timestamp
-        string actor
+
+    AGENT_POLICIES {
+        uuid id PK
+        uuid agent_id FK
+        string resource_pattern
+        string[] allowed_actions
+        int rate_limit_per_min
+        string time_window_cron
+        bool require_approval
+        timestamp created_at
+    }
+
+    AUTH_CONNECTIONS {
+        uuid id PK
+        uuid user_id FK
+        string provider
+        bytes encrypted_access_token
+        bytes encrypted_refresh_token
+        bytes token_nonce
+        string[] scopes
+        timestamp token_expires_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    AUDIT_EVENTS {
+        uuid id PK
+        uuid user_id FK
+        uuid agent_id FK
+        string event_type
+        string resource_type
+        uuid resource_id
         string action
-        string resource_ref
         string decision
-        string inputs_hash
-        string outputs_hash
-        string reason
-        string signature
+        jsonb metadata
+        string event_hash
         string prev_event_hash
+        timestamp created_at
     }
 ```
 
-## 接管程度刻度
+## API 路由
 
-系统支持 4 级接管程度，用户可在 `/settings` 配置：
-- **手动**：AI 只做分析与建议，不执行动作
-- **辅助（MVP 默认）**：AI 生成方案，用户确认后批量执行
-- **自动**：低风险动作自动执行；高风险仍需确认
-- **托管**：接近"代管"，需更强身份验证
+### Auth (SRP)
 
-## 策略引擎（OPA）
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/v1/auth/register` | SRP 注册（email, salt, verifier, encrypted_vault_key） |
+| POST | `/api/v1/auth/login/start` | SRP 登录第一步（email, A） |
+| POST | `/api/v1/auth/login/verify` | SRP 登录第二步（M1） |
+| POST | `/api/v1/auth/logout` | 注销当前会话 |
+| POST | `/api/v1/auth/sessions` | 列出活跃会话 |
+| DELETE | `/api/v1/auth/sessions/:id` | 撤销指定会话 |
+
+### Vault
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/vaults` | 列出用户的 Vault |
+| POST | `/api/v1/vaults` | 创建 Vault |
+| GET | `/api/v1/vaults/:id` | 获取 Vault 详情 |
+| PUT | `/api/v1/vaults/:id` | 更新 Vault |
+| DELETE | `/api/v1/vaults/:id` | 删除 Vault |
+
+### Vault Items
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/vaults/:vid/items` | 列出 Vault 中的条目（返回加密数据） |
+| POST | `/api/v1/vaults/:vid/items` | 创建条目（客户端加密后上传） |
+| GET | `/api/v1/vaults/:vid/items/:id` | 获取单个条目 |
+| PUT | `/api/v1/vaults/:vid/items/:id` | 更新条目 |
+| DELETE | `/api/v1/vaults/:vid/items/:id` | 删除条目 |
+
+### Agents
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/agents` | 列出已注册的 Agent |
+| POST | `/api/v1/agents` | 注册新 Agent |
+| GET | `/api/v1/agents/:id` | 获取 Agent 详情 |
+| PUT | `/api/v1/agents/:id` | 更新 Agent 配置 |
+| DELETE | `/api/v1/agents/:id` | 注销 Agent |
+| POST | `/api/v1/agents/:id/policies` | 添加访问策略 |
+| GET | `/api/v1/agents/:id/policies` | 列出 Agent 的策略 |
+
+### Gateway (Agent MCP Proxy)
+
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/v1/gateway/request` | Agent 通过 API 请求凭据（HTTP fallback） |
+| GET | `/api/v1/gateway/services` | 列出 Agent 可访问的服务 |
+
+### Audit
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/audit` | 查询审计日志 |
+| GET | `/api/v1/audit/export` | 导出审计报告 |
+
+### Import
+
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/v1/import/1password` | 导入 1Password 导出文件 |
+| POST | `/api/v1/import/chrome` | 导入 Chrome 密码导出 |
+| POST | `/api/v1/import/bitwarden` | 导入 Bitwarden 导出文件 |
+
+### Health
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/health` | 健康检查 |
+| GET | `/ready` | 就绪检查（含 DB/Redis 探测） |
+
+## MCP Gateway
+
+### 连接方式
+
+```
+AI Agent  <--WebSocket-->  Chrome Extension (MCP Server)
+                               ws://localhost:19876/mcp
+                               JSON-RPC 2.0
+```
+
+### MCP Tools
+
+| Tool | 说明 | 策略管控 |
+|------|------|----------|
+| `get_credential` | 获取指定服务的凭据 | scope + rate_limit + time_window |
+| `proxy_authenticated_request` | 代理发起已认证的 HTTP 请求 | scope + approval |
+| `list_available_services` | 列出 Agent 可访问的服务列表 | read-only, rate_limit |
+
+### MCP 网关流程
 
 ```mermaid
-flowchart LR
-    A[Tool Call Request] --> B{Policy Engine OPA}
-    B -->|allow| C[Execute Tool]
-    B -->|deny| D[Reject with Reason]
-    B -->|step_up| E[Require User Confirmation]
-    C --> F[Audit Event]
-    D --> F
-    E --> F
+sequenceDiagram
+    participant Agent as AI Agent
+    participant MCP as MCP Server (Extension)
+    participant Policy as Policy Engine
+    participant Vault as Local Vault (Decrypted)
+    participant Audit as Audit Logger
+    participant API as Auth Box API
+
+    Agent->>MCP: get_credential("github.com")
+    MCP->>Policy: check_policy(agent_id, "github.com", "read")
+
+    alt Policy: Allow
+        Policy->>MCP: allow
+        MCP->>Vault: lookup("github.com")
+        Vault->>MCP: {username, password}
+        MCP->>Audit: log(agent_id, "get_credential", "github.com", "allow")
+        Audit->>API: POST /api/v1/audit (async)
+        MCP->>Agent: {username, password}
+    else Policy: Deny
+        Policy->>MCP: deny(reason)
+        MCP->>Audit: log(agent_id, "get_credential", "github.com", "deny")
+        MCP->>Agent: error("access denied: reason")
+    else Policy: Step Up
+        Policy->>MCP: step_up
+        MCP->>MCP: Show approval prompt to user
+        MCP->>Agent: pending_approval(request_id)
+    end
 ```
 
-## 数据流
-1. 管理员配置平台连接与策略。
-2. 接入者请求创建账号或授权。
-3. 系统创建账号并写入凭据，返回授权信息。
-4. AI 助手通过网关使用授权并记录审计日志。
+## Monorepo 结构
+
+```
+10-auth-box/
+  turbo.json                    # Turborepo 配置
+  pnpm-workspace.yaml           # pnpm workspace 定义
+  package.json                  # Root package (scripts, devDeps)
+  docker-compose.yml            # 本地开发环境
+  Makefile                      # 常用命令入口
+
+  packages/
+    crypto/                     # @authbox/crypto
+      src/
+        argon2.ts               # Argon2id 密钥派生
+        hkdf.ts                 # HKDF 密钥扩展
+        aes-gcm.ts              # AES-256-GCM 加解密
+        srp.ts                  # SRP-6a 客户端
+        vault-crypto.ts         # Vault 加解密高层 API
+        password-generator.ts   # 密码生成器
+      package.json
+      tsconfig.json
+
+    shared/                     # @authbox/shared
+      src/
+        types/                  # 共享类型定义
+        constants/              # 常量（加密参数、错误码）
+        utils/                  # 工具函数
+      package.json
+      tsconfig.json
+
+    mcp-protocol/               # @authbox/mcp-protocol
+      src/
+        types.ts                # MCP 消息类型
+        server.ts               # MCP Server 实现
+        tools.ts                # Tool 注册与路由
+      package.json
+      tsconfig.json
+
+  apps/
+    web/                        # Next.js 15 Web App
+      app/
+        (auth)/                 # 认证相关页面
+          register/
+          login/
+          unlock/
+        (dashboard)/            # 登录后主界面
+          vault/
+          agents/
+          connections/
+          audit/
+          settings/
+        api/                    # Next.js API Routes (BFF)
+      package.json
+
+    extension/                  # Chrome MV3 Extension
+      manifest.json
+      src/
+        background/             # Service Worker
+        popup/                  # Extension Popup
+        content/                # Content Scripts (autofill)
+        mcp/                    # MCP Server (WebSocket)
+      package.json
+
+  services/
+    api/                        # Go API Service
+      cmd/server/main.go
+      internal/
+        auth/                   # SRP 认证
+        vault/                  # Vault CRUD
+        agent/                  # Agent 管理
+        gateway/                # MCP Gateway HTTP fallback
+        audit/                  # 审计日志
+        policy/                 # 策略引擎
+        middleware/              # AuthN/AuthZ 中间件
+      migrations/               # 数据库迁移
+      go.mod
+      go.sum
+
+  doc/                          # 项目文档
+  CLAUDE.md
+  AGENTS.md
+```
 
 ## 系统边界
-- In-scope: 账号创建、授权管理、AI 接入、审计日志。
-- Out-of-scope: 外部平台权限系统的深度替换。
+
+- **In-scope**: 密码管理、OAuth 连接管理、AI Agent 凭据网关、审计日志
+- **Out-of-scope**: 企业级 IAM、通用 API 网关、联邦身份
 
 ## 技术栈
-- 后端：Go（REST + OpenAPI 3.1）
-- 前端：Next.js（控制台）
-- 数据库：PostgreSQL（核心主存储）
-- 缓存/队列：Redis
-- 审计归档：对象存储（S3 兼容）
-- 可观测性：OpenTelemetry
 
-## 数据与安全
-- 统一 AuthN/AuthZ：`/api/v1/*` 入口 middleware 强制 Bearer Token + RBAC。
-- Token Registry：`AUTH_BOX_AUTH_TOKENS`（`token:actor_id:role1|role2`）。
-- Token role 白名单：仅允许 `platform_admin/security_ops/compliance_auditor/policy_admin`；未知 role 启动期 fail-fast。
-- 调用来源透传：支持 `X-Auth-Source`，并写入审计字段 `audit.source`。
-- 高风险动作门禁：
-  - `CREDENTIAL_ROTATE` / `CREDENTIAL_REVOKE` -> `security_ops`
-  - `ASSISTANT_BIND` -> `security_ops`
-  - `AUDIT_EXPORT_CREATE` -> `compliance_auditor`
-- 凭据与敏感字段：信封加密存储（主密钥来自 KMS）
-- 审计日志：append-only + hash-chain（`event_hash` / `prev_event_hash`）+ 导出归档
-- 密钥轮换：按策略自动轮换与吊销
+| 组件 | 技术 |
+|------|------|
+| Monorepo | Turborepo + pnpm |
+| 后端 | Go 1.22+ (REST + OpenAPI 3.1) |
+| 前端 | Next.js 15 + React 19 |
+| 浏览器扩展 | Chrome MV3 (TypeScript) |
+| 加密 | WebCrypto API + @authbox/crypto |
+| 数据库 | PostgreSQL 16 |
+| 缓存 | Redis 7 |
+| MCP | WebSocket + JSON-RPC 2.0 |
 
-## 部署与运行
-- 本地：Docker Compose 最小链路
-- 生产：容器化部署，分层隔离 API/Worker/Console
+## 部署
 
-## 本地入口（当前 compose）
-- Console：`http://localhost:3010`
-- API Health：`http://localhost:4010/health`
-- API Base：`http://localhost:4010/api/v1`
+- **本地开发**: Docker Compose (API + Web + PostgreSQL + Redis)
+- **生产**: 容器化部署，API 与 Web 分层隔离
 
-## 入口与路由
-- Public 入口（已实现，2026-02-11）：
-  - `/`, `/product`, `/features/*`, `/use-cases/*`, `/compare/*`, `/docs`, `/blog`, `/changelog`, `/pricing`, `/security`, `/contact`
-  - `/sitemap.xml`, `/robots.txt`
-  - 实现文件：`apps/console/lib/marketing.ts`、`apps/console/components/marketing-page.tsx`、`apps/console/app/{product,features,use-cases,compare,pricing,security,docs,blog,changelog,contact}/`
-  - 构建验证：`outputs/multi-role-brainstorm/20260211T160722Z/logs/console_build_public_routes.log`
-- Web 控制台入口：`/`
-- 平台连接：`/platforms`, `/platforms/new`, `/platforms/:id`
-- 账号：`/accounts`, `/accounts/new`, `/accounts/:id`
-- 授权凭据：`/credentials`, `/credentials/:id`, `/credentials/:id/rotate`
-- AI 助手：`/assistants`, `/assistants/new`, `/assistants/:id`
-- 审计日志：`/audit`, `/audit/exports`
-- 漏斗看板：`/metrics/funnel`
-- 设置：`/settings`
+## 本地入口
 
-## Sitemap 与关键词路由策略（已实现）
-- 规范文档：`doc/00_project/initiative_10_auth_box/SITEMAP_KEYWORD_STRATEGY.md`
-- URL 分层：
-  - 核心能力：`/features/platform-account-provisioning`, `/features/credential-lifecycle`, `/features/ai-assistant-governance`, `/features/audit-hash-chain`
-  - 场景落地：`/use-cases/security-ops`, `/use-cases/compliance-audit`, `/use-cases/platform-admin`
-  - 对比页：`/compare/hashicorp-vault-alternative`, `/compare/doppler-alternative`, `/compare/kong-konnect-alternative`
-- 元数据端点：`/sitemap.xml`（`apps/console/app/sitemap.ts`）、`/robots.txt`（`apps/console/app/robots.ts`）
+| 服务 | URL |
+|------|-----|
+| Web App | `http://localhost:3010` |
+| API Health | `http://localhost:4010/health` |
+| API Base | `http://localhost:4010/api/v1` |
+| MCP Gateway | `ws://localhost:19876/mcp` |
 
-## API 面（当前能力）
-- Base：`/api/v1`
-- Health：`/health`（200）
-- 平台连接：`/api/v1/platforms`（已实现）
-- 账号：`/api/v1/accounts`（已实现）
-- 授权凭据：`/api/v1/credentials`（已实现：create/list/rotate/delete）
-- AI 助手：`/api/v1/assistants`（已实现：create/list/get/bind）
-- 审计：`/api/v1/audit`（已实现：list/export/create export/get export）
-- Console telemetry：
-  - `POST /api/telemetry/public-events`（Public 事件采集）
-  - `GET /api/telemetry/public-funnel`（SEO 漏斗 + 产品漏斗聚合视图）
-    - 支持查询参数：`window_minutes` / `bucket_minutes` / `recent_limit` / `source` / `persona` / `route` / `tenant_id`
-    - 返回增强：`top_tenants` / `alerts`
-    - 阈值配置：`AUTH_BOX_FUNNEL_MIN_CTA_CTR_PERCENT` / `AUTH_BOX_FUNNEL_MIN_COMPLETION_PERCENT` / `AUTH_BOX_FUNNEL_MIN_SEO_VIEWS_FOR_EVALUATION` / `AUTH_BOX_FUNNEL_MIN_ONBOARDING_FOR_EVALUATION`
-  - 持久化文件：`AUTH_BOX_CONSOLE_TELEMETRY_FILE`（默认 `outputs/telemetry/public-events.ndjson`）
-  - 重启持久化证据：`outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/funnel_before_restart.json`、`outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/funnel_after_restart.json`
-  - 过滤与趋势证据：`outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/funnel_beta_30m.json`、`outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/filter_trend_assertion.txt`
-  - 分租户告警证据：`outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/funnel_beta_180m.json`、`outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/tenant_alert_assertion.txt`
+## 实现状态
 
-## 架构圆桌结论（Council，2026-02-11）
-- Run：`outputs/architecture-council-adr/20260211T145910Z`
-- 角色：Architect / Security Lead / SRE Lead
-- 输出：
-  - ADR：`doc/00_project/initiative_10_auth_box/ARCHITECTURE_ADR.md`
-  - 风险清单：`doc/00_project/initiative_10_auth_box/ARCHITECTURE_RISK_REGISTER.md`
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| Phase 0 | Monorepo + Crypto + API 骨架 | DONE |
+| Phase 1 | Vault CRUD + Generator + Search + Audit | DONE |
+| Phase 2 | Agent CRUD + OAuth + Import | DONE |
+| Phase 3 | MCP Gateway + Extension | DONE |
+| Phase 4 | 2FA + Sessions + Rate Limiting | DONE |
+| UX Round 1 | 12/12 UI/UX fixes | DONE |
+| UX Round 2 | 7/7 Journey simulation PASS | DONE |
 
-### ADR 决议（Accepted）
-- ADR-001：MVP 阶段维持分层模块化单体，按 Platform/Account/Credential/Assistant/Audit 固化边界。
-- ADR-002：将安全基线前移到入口 middleware，统一认证鉴权与策略校验。
-- ADR-003：以 SLO 驱动可靠性与可观测性建设，分 MVP-1/MVP-2 逐步达成。
+---
 
-### 风险优先项（Top）
-| ID | 风险 | 当前状态 |
-|---|---|---|
-| ARC-SEC-01 | API 入口缺少统一 AuthN/AuthZ 守门 | Closed |
-| ARC-SEC-02 | 审计链路不可抵赖性不足 | Closed |
-| ARC-SRE-01 | 缺少 readiness 与依赖健康探测 | Open |
-| ARC-SRE-02 | 缺少 SLO/告警阈值治理 | Open |
-| ARC-ARCH-02 | 文档与实现可能再次漂移 | Open |
-
-完整风险与处置计划见：`doc/00_project/initiative_10_auth_box/ARCHITECTURE_RISK_REGISTER.md`。
-
-### SLO 与可观测性基线
-- MVP-1：Availability >= 99.5%，API p95 < 300ms，5xx < 1%。
-- MVP-2：Availability >= 99.9%，API p95 < 250ms，5xx < 0.5%。
-- 核心监控维度：request_count、request_latency、error_rate、saturation、queue_depth。
-- 告警阈值：
-  - p95 > 300ms 持续 10 分钟
-  - 5xx > 1% 持续 5 分钟
-  - audit export failure > 2% 持续 10 分钟
-
-## 一键全量交付验收架构检查（2026-02-12，已完成）
-- SOP 证据目录：`outputs/one-click-full-delivery/20260212T022828Z`
-- 本轮检查入口：
-  - Frontend：`/`, `/product`, `/compare/*`, `/platforms/new`, `/metrics/funnel`
-  - Backend：`/api/v1/*`, `/api/telemetry/public-events`, `/api/telemetry/public-funnel`
-- 检查维度：
-  - 入口一致性（路由/API/配置）
-  - API 契约与错误码一致性
-  - 可观测指标链路与告警口径一致性
-- 检查结果：
-  - `outputs/one-click-full-delivery/20260212T022828Z/reports/full_loop/reports/full_loop_summary.json` = `overall_pass=true`
-  - `outputs/one-click-full-delivery/20260212T022828Z/reports/backend_contract_entry_assertion.txt` = PASS
-
-## 回归夹具（Fixtures）与回放
-- 真实 API fixture 清单：`services/api/testdata/fixtures/real_api_core_flow/manifest.json`
-- 回归脚本：
-  - 采样：`services/api/scripts/real_api_core_flow.sh --mode capture --project-dir .`
-  - 回放：`services/api/scripts/replay_real_api_fixtures.sh --project-dir .`
-- 闭环总检：`scripts/full_loop_closure_check.sh`
-- 验收要求：最终验收使用真实 API，禁止 mock。
-
-## SOP 4.1 回归记录（2026-02-12）
-- Run：`outputs/project-regression/20260212T030804Z`
-- 架构闭环验证：
-  - 入口闭环（UI 路由/CLI/配置）PASS：
-    - `outputs/project-regression/20260212T030804Z/reports/full_loop_closure/reports/entrypoint_report.json`
-  - 系统闭环（frontend -> backend -> persistence -> echo）PASS：
-    - `outputs/project-regression/20260212T030804Z/reports/full_loop_closure/reports/system_loop_report.json`
-  - 契约闭环（错误码/权限模型/契约测试）PASS：
-    - `outputs/project-regression/20260212T030804Z/reports/full_loop_closure/logs/full_loop_steps.log`
-- 结论：本轮未发生系统边界或分层调整。
-
-## 一键全量交付复核（2026-02-12，Run 20260212T032220Z）
-- 复核入口：`/`、`/product`、`/compare/*`、`/platforms/new`、`/metrics/funnel` 与 `/api/v1/*`。
-- 复核目标：验证入口一致性、契约一致性、系统闭环（frontend -> backend -> persistence -> echo）与可观测证据链。
-- 当前状态：Step 4（UX Map Round 2）已通过，证据见 `outputs/one-click-full-delivery/20260212T032220Z/reports/uxmap_round2/uxmap_round2_assertion.txt`。
-- 最终状态：Step 6/7 已通过，`full_loop_summary.json` 为 `overall_pass=true`，backend assertion 全 PASS。
-- 架构结论：本轮未引入新的系统边界或分层变化。
-
-## SOP 4.1 回归记录（2026-02-12，Run 20260212T034924Z）
-- Run：`outputs/project-regression/20260212T034924Z`
-- 架构闭环验证：
-  - 入口闭环 PASS：`outputs/project-regression/20260212T034924Z/reports/full_loop_closure/reports/entrypoint_report.json`
-  - 系统闭环 PASS：`outputs/project-regression/20260212T034924Z/reports/full_loop_closure/reports/system_loop_report.json`
-  - 契约与验证闭环 PASS：`outputs/project-regression/20260212T034924Z/reports/full_loop_closure/reports/full_loop_summary.json`
-- 追踪修复：Step 3 telemetry 事件请求字段统一为 `event`，与 `public-events` API 契约保持一致。
-- 结论：本轮未发生系统边界、分层与接口面扩展变化。
+Maurice | maurice_wen@proton.me

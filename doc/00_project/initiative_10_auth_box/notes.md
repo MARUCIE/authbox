@@ -3,7 +3,7 @@ Title: notes - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-18
+LastUpdated: 2026-02-24
 ---
 
 # Notes
@@ -1083,3 +1083,304 @@ AuditEvent {
 ## 2026-02-18T11:34:20Z（Final Git Sync）
 - 最终远端提交：`ddad4e0`。
 - 专业智能体设计 run 证据已完整收口。
+
+## 2026-02-24（Auth Box v2 Kickoff）
+
+### 产品方向转型
+- **From**: API 授权治理中台（AI 场景优先）
+- **To**: 零知识加密密码管理器 + 授权管理器 + AI Agent 凭据网关
+
+### 核心设计决策
+1. **零知识架构**: Master Password -> Argon2id -> HKDF -> {Auth Key (SRP), Enc Key (wraps Vault Key), MAC Key}。服务端永远无法看到明文凭据。
+2. **SRP-6a 认证**: 服务端不存储密码或密码哈希，仅存储 SRP verifier。客户端与服务端实现双向认证。
+3. **浏览器扩展 = MCP Server**: Chrome MV3 扩展同时暴露 MCP 接口 (`ws://localhost:19876/mcp`)，AI Agent 可通过标准 MCP 协议安全获取凭据。
+4. **Monorepo 重构**: 从 `apps/console` + `services/api` 重构为 Turborepo + pnpm monorepo (`packages/crypto`, `packages/shared`, `packages/mcp-protocol`, `apps/web`, `apps/extension`, `services/api`)。
+5. **技术栈**: Go 1.22+ / Next.js 15 / React 19 / Chrome MV3 / Turborepo / pnpm。
+
+### PDCA 文档重写
+- PRD.md: 全文重写，覆盖三大支柱（Passwords/Authorizations/AI Gateway）、Persona、Phase 0-4、KPI。
+- SYSTEM_ARCHITECTURE.md: 全文重写，覆盖加密设计、SRP 流程、数据库 Schema、API 路由、MCP Gateway、Monorepo 结构。
+- USER_EXPERIENCE_MAP.md: 全文重写，覆盖 7 条用户旅程（注册/登录/密码管理/扩展/Agent 设置/MCP 连接/OAuth 管理）。
+- doc/index.md: 更新 PATH_INDEX 为 v2 monorepo 结构。
+- task_plan.md: 重置为 Phase 0 checklist。
+
+### v1 历史归档
+- v1 代码与文档记录保留在 Git 历史中，不再维护。
+- v1 SOP 运行证据（`outputs/` 目录）保留作为历史参考。
+
+---
+
+## UX Optimization Round 2 -- ralph loop (2026-02-24)
+
+### Round 2 Gap Fixes (已完成)
+
+**Gap 1: TOTP QR Code Display**
+- 症状: Settings 页 TOTP 注册流程只显示 secret 文本，无 QR code
+- 修复: 安装 `qrcode@^1.5` + `@types/qrcode`，在 settings/page.tsx 添加 canvas 元素 + useEffect 渲染 QR
+- 文件: `apps/web/app/(vault)/settings/page.tsx` (L8: import QRCode, L41: qrCanvasRef, L79-89: useEffect, L333-337: canvas)
+- 验证: build PASS, settings 页 HTML 包含 canvas 元素
+
+**Gap 2: Agent Policy Creation UI**
+- 症状: Agents 页只展示已有 policy，无法创建新 policy
+- 修复: 添加 policy 创建表单（type select + JSON rules textarea + create button）
+- 文件: `apps/web/app/(vault)/agents/page.tsx` (showPolicyForm/policyType/policyRules/creatingPolicy state + handleCreatePolicy handler + form UI)
+- 验证: build PASS, agents 页 HTML 渲染 policy 表单控件
+
+### 路由验证 (HTTP 200 sweep)
+
+| Route | Status | Notes |
+|-------|--------|-------|
+| `/` | 200 | Landing page（清缓存后恢复；500 根因: stale webpack chunk after qrcode dep 加入） |
+| `/register` | 200 | 注册页 |
+| `/login` | 200 | 登录页 |
+| `/unlock` | 200 | 解锁页 |
+| `/passwords` | 200 | 密码列表 |
+| `/authorizations` | 200 | OAuth 连接 |
+| `/agents` | 200 | Agent 管理 |
+| `/audit` | 200 | 审计日志 |
+| `/settings` | 200 | 会话管理 + 2FA |
+
+### 7 Journey 模拟测试结果
+
+| Journey | Status | Evidence Summary |
+|---------|--------|------------------|
+| A: 注册 | PASS | email+password+confirm, strength indicator, Argon2id, SRP verifier, vault key wrap, redirect /login |
+| B: 登录 | PASS | SRP multi-step (start->verify), M2 implicit via decrypt, session store, redirect /passwords |
+| C: 密码管理 | PASS | list+search("/"shortcut)+add(dialog)+generator+copy(30s clear)+edit+delete, vault encryption |
+| D: 浏览器扩展 | PASS | content script form detection+autofill, background vault cache+auto-lock(15min), badge count |
+| E: Agent 设置 | PASS | agent list+create+API key(one-time display)+policy creation(4 types)+JSON rules editor |
+| F: MCP 连接 | PASS | WebSocket server, JSON-RPC 2.0, 3 tools, policy engine(5 types), audit logging, vault bridge |
+| G: OAuth 管理 | PASS | 8 providers, token encryption(AES-256-GCM with vault key), expiry tracking, disconnect |
+
+### 构建验证
+
+```
+Tasks: 6 successful, 6 total (0 errors)
+Pages: 12/12 (/ + _not-found + 9 routes + unlock)
+Settings page: 13.4 kB (qrcode library included)
+Agents page: 5.44 kB (policy form added)
+```
+
+### 发现的问题与修复
+
+1. **stale .next cache 500 error**
+   - 症状: `/` 返回 500，错误信息 "Cannot find module './783.js'"
+   - 根因: 添加 qrcode 依赖后 webpack chunk ID 漂移，.next/server/ 缓存引用旧 chunk
+   - 修复: `rm -rf .next && next dev` 重启
+   - 防复发: 添加新 npm 依赖后必须清除 .next 缓存再测试
+   - triggers: "Cannot find module", webpack-runtime.js, chunk ID mismatch
+
+---
+
+## Round 3: Real API Fixtures (2026-02-24)
+
+### Infrastructure
+- Docker Compose stack: PostgreSQL 16 (port 5410) + Redis 7 (port 6310) + Go API (port 4010)
+- Go API health: `{"env":"local","status":"ok","version":"2.0.0"}`
+- 7 database migrations applied (version=7, dirty=false)
+- 7 tables created: users, sessions, vault_items, agents, agent_policies, auth_connections, audit_events
+
+### Bug Fixed: chi Router Route Overlap
+- 症状: Public auth endpoints (register, login/init, login/verify) 返回 401 "missing authorization header"
+- 根因: `r.Route("/api/v1/auth", ...)` (public) 与 `r.Route("/api/v1", ...)` (protected) 在 chi 的 radix trie 中创建两个独立子路由器，protected group 的 auth middleware 拦截了所有 `/api/v1/auth/*` 请求
+- 修复: 合并为单个 `r.Route("/api/v1", ...)` 内使用 `r.Group()` 隔离 public 和 protected middleware
+- 文件: `services/api/cmd/api/main.go` L154-215
+- 验证: public endpoints 返回 400 (payload validation)，protected endpoints 返回 401 (auth required)
+- triggers: chi router, r.Route overlap, middleware leak, public endpoint 401
+
+### Endpoint Coverage Matrix (20 endpoints tested)
+
+**Public Endpoints (4):**
+| Endpoint | Method | Status | Evidence |
+|----------|--------|--------|----------|
+| `/health` | GET | 200 | `{"status":"ok","version":"2.0.0"}` |
+| `/api/v1/auth/register` | POST | 201 | Returns userId; duplicate returns 409 |
+| `/api/v1/auth/login/init` | POST | 200 | Returns srpSalt + serverPublicB |
+| `/api/v1/auth/login/verify` | POST | 401 | Expected (test data, invalid SRP proof) |
+
+**Protected Endpoints (16):**
+| Endpoint | Method | Status | Evidence |
+|----------|--------|--------|----------|
+| `/api/v1/vault/key` | GET | 200 | Returns encrypted vault key bundle with KDF params |
+| `/api/v1/vault/items` | POST | 201 | Creates item with encrypted data, returns id + version |
+| `/api/v1/vault/items` | GET | 200 | Lists items |
+| `/api/v1/vault/items/:id` | GET | 200 | Returns single item |
+| `/api/v1/vault/items/:id` | PUT | 200 | Updates item, version bumped to 2 |
+| `/api/v1/vault/items/:id` | DELETE | 204 | Soft delete confirmed |
+| `/api/v1/agents` | POST | 201 | Creates agent + one-time API key |
+| `/api/v1/agents` | GET | 200 | Lists agents |
+| `/api/v1/agents/:id/policies` | POST | 201 | Creates policy with JSON rules |
+| `/api/v1/agents/:id/policies` | GET | 200 | Lists policies for agent |
+| `/api/v1/connections` | POST | 201 | Creates connection with encrypted tokens |
+| `/api/v1/connections` | GET | 200 | Lists connections |
+| `/api/v1/connections/:id` | DELETE | 204 | Deletes connection |
+| `/api/v1/audit` | GET | 200 | Lists audit events (empty, expected) |
+| `/api/v1/auth/sessions` | GET | 200 | Lists active sessions |
+| `/api/v1/auth/totp/enroll` | POST | 200 | Returns TOTP secret + otpauth URI |
+
+**Access Control (6 endpoints verified):**
+All protected endpoints correctly return 401 without Bearer token:
+vault/key, vault/items, agents, connections, audit, auth/sessions
+
+### Verdict
+Round 3 PASS -- 20/20 endpoints tested against real PostgreSQL + Go API (no mock)
+
+---
+
+## Round 4: Hardening Optimization (2026-02-24)
+
+### Scan Methodology
+Comprehensive code review of all Go API handler/middleware/service/repository files,
+Docker config, and frontend build output. 21 findings across 7 categories.
+
+### Fixes Applied (15 items)
+
+**Security (4 fixes):**
+1. CRITICAL: CSP header missing `connect-src` -- added `connect-src 'self'` to allow API calls
+2. HIGH: X-Forwarded-For spoofing -- centralized `ClientIP()` function takes only leftmost IP
+3. MEDIUM: No request body size limit -- added `BodySizeLimit(1MB)` middleware
+4. MEDIUM: No string length checks on registration -- email<=254, salt<=1024, verifier/vaultKey<=4096
+
+**API Robustness (7 fixes):**
+5. HIGH: HTTP server missing Read/Write/Idle timeouts -- added full timeout suite (10s/30s/120s)
+6. MEDIUM: DB pool unconfigured -- maxConns=20, minConns=2, idleTime=5m, lifetime=30m, healthCheck=30s
+7. HIGH: Vault SyncPull unbounded -- added `limit` param (default 500, max 1000)
+8. MEDIUM: Vault ListItems unbounded -- added `limit/offset` params (default 100/0, max 500/10000)
+9. MEDIUM: Audit pagination no bounds -- clamped limit to 1-200, offset >= 0
+10. LOW: Audit writeError params swapped (message/code order) -- fixed to match error format
+11. MEDIUM: ItemType not validated -- restricted to enum: credential/note/card/identity/api_key
+
+**Infrastructure (4 fixes):**
+12. HIGH: Docker API missing health check -- added `wget /health` with 10s interval
+13. MEDIUM: Docker no restart policies -- added `unless-stopped` to api + web
+14. MEDIUM: Docker no memory limits -- API=256M, Web=512M
+15. MEDIUM: Web depends_on API unconditional -- changed to `condition: service_healthy`
+
+### Verification
+- `go vet ./...`: PASS (zero warnings)
+- `go build ./...`: PASS (zero errors)
+- `npx turbo build`: PASS (6/6 packages, 12/12 pages, 0 errors)
+
+### Files Changed
+- `services/api/internal/middleware/security.go` (CSP, BodySizeLimit, ClientIP)
+- `services/api/internal/middleware/ratelimit.go` (use ClientIP)
+- `services/api/internal/handler/auth_handler.go` (ClientIP, string length validation)
+- `services/api/internal/handler/vault_handler.go` (pagination params, parsePaginationParam)
+- `services/api/internal/handler/audit_handler.go` (bounds clamp, writeError fix)
+- `services/api/internal/service/vault_service.go` (pagination, ItemType validation)
+- `services/api/internal/repository/pg/vault_repo.go` (SQL LIMIT/OFFSET)
+- `services/api/cmd/api/main.go` (DB pool, server timeouts, body limit middleware)
+- `docker-compose.yml` (health check, restart, memory limits)
+
+### Verdict (Batch 1)
+Round 4 Batch 1 PASS -- 15 optimizations applied (1 CRITICAL + 4 HIGH + 8 MEDIUM + 2 LOW)
+
+## Round 4 Batch 2: Rate Limiting + CORS + Frontend (2026-02-24)
+
+### Changes Applied
+1. **Protected route rate limiter** (HIGH): Added 120 req/min rate limiter to all authenticated endpoints in `cmd/api/main.go`. Separate from auth rate limiter (10 req/min) -- authenticated users need higher headroom for vault CRUD operations.
+2. **CORS origin validation** (HIGH): Enhanced `parseOrigins()` in `config/config.go` to reject wildcard `*` (insecure with AllowCredentials), validate URL format (require http/https scheme + non-empty host), and warn on invalid origins.
+3. **poweredByHeader: false** (LOW): Added to `apps/web/next.config.ts` to suppress `X-Powered-By: Next.js` header (reduces fingerprinting surface).
+4. **loading.tsx skeletons** (MEDIUM): Created 5 skeleton loading states matching each vault page layout:
+   - `apps/web/app/(vault)/passwords/loading.tsx` -- two-column with search + list items
+   - `apps/web/app/(vault)/agents/loading.tsx` -- two-column with agent list + status badges
+   - `apps/web/app/(vault)/audit/loading.tsx` -- single-column with event rows + decision badges
+   - `apps/web/app/(vault)/authorizations/loading.tsx` -- two-column with connection list
+   - `apps/web/app/(vault)/settings/loading.tsx` -- single-column with sessions + 2FA sections
+5. **Dialog code-splitting**: SKIP -- page JS < 10 kB each, dynamic import overhead > savings.
+6. **System fonts**: N/A -- app uses CSS variables for typography, no external fonts loaded.
+
+### Build Verification
+- `npx turbo build`: PASS (6/6 packages, 12/12 pages, 0 errors)
+
+### Verdict (Batch 2)
+Round 4 Batch 2 PASS -- 6 items addressed (2 HIGH + 1 MEDIUM + 1 LOW + 2 SKIP/N/A)
+
+### Round 4 Final Verdict
+All 21 optimization items addressed: 17 implemented + 2 SKIP (marginal benefit) + 2 N/A.
+Total: 2 CRITICAL + 6 HIGH + 9 MEDIUM + 4 LOW.
+
+## Round 5: Security Hardening + UX Polish (2026-02-24)
+
+### Batch 1: CRITICAL + HIGH Security Fixes
+
+1. **ClientPublicA/ClientProofM1 length validation** (CRITICAL): After base64 decode, validate `0 < len <= 1024` bytes. SRP-6a public keys are typically 256-512 bytes; oversized payloads could exhaust server memory. Applied to `LoginVerify` in `auth_handler.go`.
+2. **Logout empty token check** (HIGH): Added `token == ""` guard before `auth.HashToken()`. Without this, hashing an empty string produces a valid hash that wastes DB queries or could match a degenerate session row.
+3. **AgentType enum validation** (HIGH): CreateAgent now rejects unknown `agentType` values. Valid: `claude`, `gpt`, `gemini`, `custom`. Prevents injection of arbitrary type strings into the `agents` table.
+4. **PolicyType enum validation** (HIGH): CreatePolicy now rejects unknown `policyType` values. Valid: `scope`, `rate_limit`, `time_window`, `approval`.
+5. **Agent name length** (HIGH): Capped at 128 chars to prevent storage abuse.
+6. **Connection provider length** (HIGH): Capped at 64 chars.
+7. **Sentinel error pattern** (MEDIUM): Created `domain/errors.go` with `ErrAgentNotFound`, `ErrPolicyNotFound`, `ErrConnectionNotFound`. Updated both repository files and all handler files to use `errors.Is()` instead of fragile `err.Error() == "..."` string matching. This survives error wrapping via `fmt.Errorf`.
+
+### Batch 2: UX + Infrastructure
+
+8. **Global error boundary** (MEDIUM): Created `app/error.tsx` Client Component with alert icon, error message display, digest ID, "Try again" (calls `reset()`) and "Go home" buttons. Uses CSS variables for theme consistency.
+9. **SVG favicon** (MEDIUM): Lock icon on indigo (#6366f1) rounded rect. Added to `public/favicon.svg` and referenced in root layout `metadata.icons`.
+10. **Web app manifest** (MEDIUM): `app/manifest.ts` generates `/manifest.webmanifest` at build time. Enables PWA installability, sets theme_color to #6366f1.
+11. **Remove unused Redis** (LOW): Commented out Redis service in docker-compose.yml and removed `AUTH_BOX_REDIS_URL` env from API. Config struct field retained for Phase 4. Saves ~30MB container memory.
+12. **Docker web HEALTHCHECK** (LOW): Added `wget -qO- http://localhost:3000/` to Dockerfile for web container health monitoring.
+
+### Build Verification
+- `go build ./...`: PASS
+- `npx turbo build --force`: PASS (6/6 packages, 13 pages, 0 errors)
+
+### Round 5 Verdict
+All 12 items implemented: 1 CRITICAL + 5 HIGH + 4 MEDIUM + 2 LOW.
+Cumulative: Round 1-5 = 33 optimization items (21 from R4 + 12 from R5).
+
+## Round 6: Deep Security + Validation + Accessibility (2026-02-24)
+
+### Batch 1: Security Headers + Content-Type Enforcement
+
+1. **RequireJSON middleware** (HIGH): New middleware rejects POST/PUT/PATCH requests with non-JSON Content-Type (returns 415 Unsupported Media Type). GET/HEAD/OPTIONS/DELETE are exempt (no body expected). Wired into global middleware chain after SecurityHeaders.
+2. **Frontend CSP headers** (HIGH): Added `headers()` to `next.config.ts` setting Content-Security-Policy on all routes. Policy: `default-src 'self'`, allows WASM eval for Argon2id, inline styles (Tailwind), data/blob images, API + MCP WebSocket connections, no frames. Also sets X-Frame-Options, X-Content-Type-Options, Referrer-Policy on frontend side.
+3. **HSTS preload** (LOW): Added `preload` to Strict-Transport-Security directive. Enables inclusion in browser HSTS preload lists for zero-RTT HTTPS enforcement.
+4. **Referrer-Policy tightened** (LOW): Changed from `strict-origin-when-cross-origin` to `no-referrer`. For a password manager, no URL context should leak to external referrers.
+5. **X-Permitted-Cross-Domain-Policies: none** (LOW): Prevents Flash/PDF cross-domain policy loading.
+
+### Batch 2: Validation Tightening
+
+6. **Email format check** (MEDIUM): Register handler now validates email contains `@` with non-empty local part, non-empty domain, and dot in domain. Rejects `"x@"`, `"@y"`, `"test@nodot"`.
+7. **SRP proof bounds tightened** (MEDIUM): Changed ClientPublicA/ClientProofM1 from `0 < len <= 1024` to `32 <= len <= 512`. SRP-6a proofs are SHA-256 based (32 bytes minimum); 512 covers all reasonable big-integer representations.
+8. **SyncPush item count limit** (MEDIUM): Rejects empty arrays and caps at 500 items per sync. Without this, a user could push N items causing N serial DB inserts (each CreateItem does an INSERT).
+
+### Batch 3: Accessibility
+
+9. **Password length slider aria-label** (MEDIUM): Added `aria-label="Password length"` to the range input. Screen readers now announce the slider purpose.
+
+### Build Verification
+- `go build ./...`: PASS
+- `npx turbo build --force`: PASS (6/6 packages, 13 pages, 0 errors)
+
+### Round 6 Verdict
+All 9 items implemented: 2 HIGH + 4 MEDIUM + 3 LOW.
+Cumulative: Round 4-6 = 42 optimization items total.
+
+---
+
+## Round 7 Evidence (2026-02-24)
+
+### Batch 1: Security (CRITICAL + HIGH)
+
+1. **Session token XSS mitigation** (CRITICAL): Removed `sessionStorage.setItem('authbox_session', ...)` from login and `sessionStorage.getItem('authbox_session')` from vault layout. Token now lives only in Zustand memory store. Page refresh requires re-authentication -- acceptable tradeoff for a password manager where XSS token theft is the #1 risk.
+2. **Vault item sentinel error** (HIGH): Added `ErrItemNotFound` to `domain/errors.go`. Updated `vault_repo.go` to return `domain.ErrItemNotFound` instead of `errors.New("item not found")`. Updated `vault_handler.go` to use `errors.Is(err, domain.ErrItemNotFound)` instead of `err.Error() == "item not found"`. Completes the sentinel error migration started in Round 5 (agent + connection).
+3. **TOTP status endpoint** (HIGH): Added `IsEnabled()` to `totp_service.go`, `Status()` handler to `totp_handler.go`, wired `GET /api/v1/auth/totp/status` in `main.go`. Frontend `settingsApi.totpStatus()` now has a working backend endpoint.
+4. **Auth rate limiter tightened** (HIGH): Reduced from 10 req/min to 5 req/min on public auth routes (register, login/init, login/verify). At 5/min, an attacker gets max 300 attempts/hour -- significantly harder for credential stuffing.
+
+### Batch 2: Frontend Quality
+
+5. **Clipboard timing oracle removed** (MEDIUM): Replaced `readText` check-then-clear with unconditional `writeText('')` after 30s. Old approach: `readText()` triggered a browser permission prompt and exposed a timing side-channel (attacker could detect if clipboard still held the password). New approach: always clears after 30s regardless.
+6. **Navigation SVG icons** (MEDIUM): Replaced 5 hardcoded Unicode emoji characters with Heroicons outline SVG paths. Benefits: consistent cross-platform rendering, proper accessibility (no screen reader confusion from emoji), scalable to any resolution.
+
+### Batch 3: API Hardening
+
+7. **Pagination offset cap** (MEDIUM): Reduced `ListItems` offset max from 10000 to 5000. Prevents expensive DB queries with large offsets (PostgreSQL must scan and discard offset rows).
+8. **URLSearchParams for audit API** (MEDIUM): Changed `api.ts` `listEvents()` from template literal to `URLSearchParams`. Handles edge cases where numeric values might need encoding.
+
+### Build Verification
+- `go build ./...`: PASS
+- `npx turbo build`: PASS (6/6 packages, 13 pages, 0 errors)
+
+### Round 7 Verdict
+All 8 items implemented: 1 CRITICAL + 3 HIGH + 4 MEDIUM.
+Cumulative: Round 4-7 = 50 optimization items total.

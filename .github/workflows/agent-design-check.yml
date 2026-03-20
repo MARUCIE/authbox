@@ -1,0 +1,50 @@
+name: Agent Design Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  agent-design-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify toolchain
+        run: |
+          jq --version
+          bash --version
+
+      - name: Run agent design checks
+        id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="gh-${{ github.run_id }}-${{ github.run_attempt }}"
+          BASE_DIR="outputs/agent-design-check-ci/${RUN_ID}"
+          mkdir -p "$BASE_DIR/reports" "$BASE_DIR/logs"
+
+          scripts/agent_design_check.sh \
+            --output "$BASE_DIR/reports/agent_design_check.json" \
+            | tee "$BASE_DIR/logs/agent_design_check.log"
+
+          scripts/agent_router_decide.sh \
+            --text "新任务：专业智能体设计评审" \
+            --output "$BASE_DIR/reports/sample_route_decision.json" \
+            | tee "$BASE_DIR/logs/agent_route_sample.log"
+
+          echo "run_id=${RUN_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-design-check-${{ steps.check.outputs.run_id }}
+          path: outputs/agent-design-check-ci/${{ steps.check.outputs.run_id }}
+          if-no-files-found: warn

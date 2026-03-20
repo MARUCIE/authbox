@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS agent_policies;
+DROP TABLE IF EXISTS agents;

@@ -224,3 +224,142 @@ AuditEvent {
 ### 验证结果
 - Round 1 `ai check --no-sbom`：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1.log`）
 - Round 2 设计一致性断言：PASS（`outputs/professional-agent-design/20260218T112653Z/reports/round2_design_consistency_assertion.txt`）
+
+---
+
+## Auth Box v2 Hardening Round (2026-02-24)
+
+### Optimization Batch 1: Security + Infrastructure (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 1 | Security | CRITICAL | CSP `connect-src 'self'` added | `middleware/security.go` |
+| 2 | Security | HIGH | X-Forwarded-For: take only leftmost IP via centralized `ClientIP()` | `middleware/security.go`, `ratelimit.go`, `auth_handler.go` |
+| 3 | Security | MEDIUM | Request body size limit (1MB) middleware | `middleware/security.go`, `cmd/api/main.go` |
+| 4 | Security | MEDIUM | String length validation on registration fields | `handler/auth_handler.go` |
+| 5 | API | HIGH | HTTP server full timeout suite (Read/Write/Idle/MaxHeaderBytes) | `cmd/api/main.go` |
+| 6 | API | MEDIUM | DB connection pool config (max=20, min=2, idle=5m, lifetime=30m) | `cmd/api/main.go` |
+| 7 | API | HIGH | Vault SyncPull pagination (limit param, max 1000) | `vault_repo.go`, `vault_service.go`, `vault_handler.go` |
+| 8 | API | MEDIUM | Vault ListItems pagination (limit/offset, max 500) | same as #7 |
+| 9 | API | MEDIUM | Audit pagination bounds clamp (limit 1-200, offset >= 0) | `handler/audit_handler.go` |
+| 10 | API | LOW | Audit handler writeError params fixed (message/code order) | `handler/audit_handler.go` |
+| 11 | API | MEDIUM | ItemType enum validation (credential/note/card/identity/api_key) | `service/vault_service.go` |
+| 12 | Infra | HIGH | Docker API health check (wget /health) | `docker-compose.yml` |
+| 13 | Infra | MEDIUM | Docker restart policies (unless-stopped) | `docker-compose.yml` |
+| 14 | Infra | MEDIUM | Docker memory limits (API=256M, Web=512M) | `docker-compose.yml` |
+| 15 | Infra | MEDIUM | Web depends_on API health check | `docker-compose.yml` |
+
+### Optimization Batch 2: Rate Limiting + CORS + Frontend (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 16 | Security | HIGH | Protected route rate limiter (120 req/min) | `cmd/api/main.go` |
+| 17 | Security | HIGH | CORS origin validation (reject wildcard, require http/https scheme) | `config/config.go` |
+| 18 | Security | LOW | `poweredByHeader: false` in Next.js config | `next.config.ts` |
+| 19 | Frontend | MEDIUM | loading.tsx skeletons for 5 vault pages | `(vault)/*/loading.tsx` |
+| 20 | Frontend | LOW | Dialog code-splitting: SKIP (page JS < 10kB, marginal benefit) | N/A |
+| 21 | Frontend | LOW | System fonts only: N/A (app uses CSS vars, no Google Fonts loaded) | N/A |
+
+### Verification (Round 4)
+
+- `go vet ./...`: PASS (zero warnings)
+- `go build ./...`: PASS (zero errors)
+- `npx turbo build`: PASS (6/6 packages, 12/12 pages, 0 errors)
+- Build output confirms all loading.tsx files included (no build warnings)
+
+---
+
+## Round 5: Security Hardening + UX Polish (2026-02-24)
+
+### Batch 1: CRITICAL + HIGH Security Fixes (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 22 | Security | CRITICAL | ClientPublicA/ClientProofM1 decoded byte length validation (0 < len <= 1024) | `handler/auth_handler.go` |
+| 23 | Security | HIGH | Logout handler: reject empty bearer token before hashing | `handler/auth_handler.go` |
+| 24 | Security | HIGH | AgentType enum validation (claude/gpt/gemini/custom) | `handler/agent_handler.go` |
+| 25 | Security | HIGH | PolicyType enum validation (scope/rate_limit/time_window/approval) | `handler/agent_handler.go` |
+| 26 | Security | HIGH | Agent name length bound (max 128 chars) | `handler/agent_handler.go` |
+| 27 | Security | HIGH | Connection provider length bound (max 64 chars) | `handler/connection_handler.go` |
+| 28 | Code Quality | MEDIUM | Sentinel error pattern: domain/errors.go + errors.Is() in handlers | `domain/errors.go`, `pg/agent_repo.go`, `pg/connection_repo.go`, `handler/agent_handler.go`, `handler/connection_handler.go` |
+
+### Batch 2: UX + Infrastructure (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 29 | UX | MEDIUM | Global error boundary (app/error.tsx) with retry + home links | `apps/web/app/error.tsx` |
+| 30 | UX | MEDIUM | SVG favicon (lock icon, indigo #6366f1) | `apps/web/public/favicon.svg`, `apps/web/app/layout.tsx` |
+| 31 | UX | MEDIUM | Web app manifest (PWA-ready, theme color) | `apps/web/app/manifest.ts` |
+| 32 | Infra | LOW | Remove unused Redis service from docker-compose (deferred to Phase 4) | `docker-compose.yml` |
+| 33 | Infra | LOW | Docker web HEALTHCHECK (wget localhost:3000) | `apps/web/Dockerfile` |
+
+### Verification (Round 5)
+
+- `go build ./...`: PASS (zero errors)
+- `npx turbo build --force`: PASS (6/6 packages, 13 pages incl. manifest, 0 errors)
+- No unused imports, no string-based error matching remaining in agent/connection handlers
+
+---
+
+## Round 6: Deep Security + Validation + Accessibility (2026-02-24)
+
+### Batch 1: Security Headers + Content-Type Enforcement (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 34 | Security | HIGH | RequireJSON middleware (reject non-JSON Content-Type on POST/PUT/PATCH) | `middleware/security.go`, `cmd/api/main.go` |
+| 35 | Security | HIGH | Frontend CSP headers via next.config.ts (default-src self, script-src wasm, frame-ancestors none, connect-src API+MCP) | `apps/web/next.config.ts` |
+| 36 | Security | LOW | HSTS preload directive added | `middleware/security.go` |
+| 37 | Security | LOW | Referrer-Policy tightened to no-referrer (password manager = no URL leakage) | `middleware/security.go` |
+| 38 | Security | LOW | X-Permitted-Cross-Domain-Policies: none | `middleware/security.go` |
+
+### Batch 2: Validation Tightening (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 39 | Validation | MEDIUM | Email format check (require @ with non-empty local+domain, require dot in domain) | `handler/auth_handler.go` |
+| 40 | Validation | MEDIUM | SRP proof bounds tightened: 32-512 bytes (was 0-1024) | `handler/auth_handler.go` |
+| 41 | Validation | MEDIUM | SyncPush item count limit: 1-500 per request | `handler/vault_handler.go` |
+
+### Batch 3: Accessibility (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 42 | A11y | MEDIUM | aria-label="Password length" on range slider | `components/vault/password-form.tsx` |
+
+### Verification (Round 6)
+
+- `go build ./...`: PASS (zero errors)
+- `npx turbo build --force`: PASS (6/6 packages, 13 pages, 0 errors)
+
+---
+
+## Round 7: Deep Security + Frontend Quality + API Hardening
+
+### Batch 1: Security (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 43 | Security | CRITICAL | Session token moved from sessionStorage to Zustand memory-only (XSS mitigation) | `login/page.tsx`, `(vault)/layout.tsx` |
+| 44 | Security | HIGH | Vault item sentinel error (ErrItemNotFound) -- eliminates fragile string matching | `domain/errors.go`, `vault_repo.go`, `vault_handler.go` |
+| 45 | Security | HIGH | TOTP status endpoint (GET /auth/totp/status) -- was called by frontend but missing | `totp_handler.go`, `totp_service.go`, `main.go` |
+| 46 | Security | HIGH | Auth rate limiter tightened: 10 req/min to 5 req/min on register/login | `main.go` |
+
+### Batch 2: Frontend Quality (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 47 | Security | MEDIUM | Clipboard auto-clear simplified: unconditional write after 30s (removes readText timing oracle) | `password-detail.tsx` |
+| 48 | UX | MEDIUM | Navigation icons: replaced hardcoded emoji with Heroicons SVG paths (accessible, consistent rendering) | `(vault)/layout.tsx` |
+
+### Batch 3: API Hardening (DONE)
+
+| # | Category | Severity | Fix | File |
+|---|----------|----------|-----|------|
+| 49 | API | MEDIUM | Pagination offset cap reduced from 10000 to 5000 | `vault_handler.go` |
+| 50 | API | MEDIUM | Audit API: URLSearchParams for query string construction (prevents edge-case encoding bugs) | `api.ts` |
+
+### Verification (Round 7)
+
+- `go build ./...`: PASS (zero errors)
+- `npx turbo build`: PASS (6/6 packages, 13 pages, 0 errors)

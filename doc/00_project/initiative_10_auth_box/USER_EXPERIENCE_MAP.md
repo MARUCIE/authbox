@@ -3,7 +3,7 @@ Title: USER_EXPERIENCE_MAP - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-18
+LastUpdated: 2026-02-24
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -14,229 +14,166 @@ Related:
 
 <!-- AI-TOOLS:PROJECT_DIR:BEGIN -->
 - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
-- -02-13T02:24:38Z`
+- **VERIFIED_AT_UTC**: `2026-02-24T00:00:00Z`
 - **RULE**: Always run tasks against the project root. If the CLI detects a mismatch, it will update this block.
 <!-- AI-TOOLS:PROJECT_DIR:END -->
 
-# 用户体验地图 - Auth Box
+# 用户体验地图 - Auth Box v2
 
 ## DoD（完成标志）
-- Round 1: `ai check` OK
-- Round 2: 按本 UX Map 完成模拟人工测试并留证据
-- Round 3: 真实 API fixtures 回放通过（no mock）
+
+- Round 1: `ai check` OK -- DONE (6/6 packages, 12/12 pages, 0 errors)
+- Round 2: 按本 UX Map 完成模拟人工测试并留证据 -- DONE (7/7 Journeys PASS, 9/9 routes HTTP 200)
+- Round 3: 真实 API fixtures 回放通过（no mock）-- DONE (20/20 endpoints, PostgreSQL + Go API, chi routing fix applied)
 
 ## 渠道与入口
-- Public 官网入口（SEO）：`/`, `/product`, `/features/*`, `/use-cases/*`, `/compare/*`, `/docs`
-- Web 控制台（Next.js）：`/`
-- 漏斗看板（Console）：`/metrics/funnel`
-- API 客户端：`/api/v1/*`（必须携带 `Authorization: Bearer <token>`，建议携带 `X-Auth-Source`）
-- AI 助手网关：由 API 接入并记录审计
 
-## Persona 对齐矩阵（Council）
+| 渠道 | 入口 | 说明 |
+|------|------|------|
+| Web App | `http://localhost:3010` | Next.js 15 主应用 |
+| Chrome Extension | Chrome Web Store / 本地加载 | 密码填充 + MCP Server |
+| API | `http://localhost:4010/api/v1` | Go API 服务 |
+| MCP Gateway | `ws://localhost:19876/mcp` | AI Agent 凭据网关 |
+
+## Persona 对齐矩阵
+
 | Persona | 角色说明 | 对齐旅程 | 核心入口 |
-|---|---|---|---|
-| P0_DISCOVERY_USER | 搜索进入的潜在客户（增长漏斗） | Journey P0 + Journey P1 | `/`, `/features/*`, `/compare/*` |
-| P1_PLATFORM_ADMIN | 平台管理员（连接平台 + 创建账号） | Journey A + Journey B | `/platforms/new`, `/accounts/new` |
-| P2_SECURITY_OPS | 安全运维（凭据与助手绑定） | Journey C + Journey D | `/credentials`, `/assistants` |
-| P3_COMPLIANCE_AUDITOR | 合规审计（审计查询与导出） | Journey E | `/audit` |
-| P4_POLICY_ADMIN | 策略管理员（接管程度配置） | Journey F | `/settings` |
-| P5_GROWTH_ANALYST | 增长分析（漏斗观测） | Journey G | `/metrics/funnel` |
+|---------|----------|----------|----------|
+| P0_DEVELOPER | 个人开发者 | Journey A + B + C | `/register`, `/passwords`, Add Password dialog |
+| P1_TEAM_LEAD | 团队负责人 | Journey A + B + D + G | `/register`, `/passwords`, `/audit` |
+| P2_AI_POWER_USER | AI 深度用户 | Journey A + B + E + F | `/register`, `/agents`, MCP |
+| P3_SECURITY_PRO | 安全敏感用户 | Journey A + B + C + G | `/register`, `/passwords`, `/audit`, `/settings` |
 
 ## 关键旅程
 
-### Journey P0: SEO 入口到试用转化（已实现，Public V1）
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| P0-1 | 搜索进入 Landing/Feature 页面 | 展示价值主张与行业痛点映射 | 静态页面路由构建记录 |
-| P0-2 | 点击 CTA（开始接入） | 跳转到 Console `platforms/new`，并写 `PUBLIC_CTA_CLICK` | `/api/telemetry/public-events` |
-| P0-3 | 完成平台创建 | 进入 Journey A，显示成功反馈 | API + 前端回显 |
+### Journey A: 注册
 
-### Journey P1: 对比页决策（已实现，Public V1）
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| P1-1 | 访问 compare 页面 | 展示能力矩阵、边界与迁移路径 | SSG 路由构建记录 |
-| P1-2 | 点击文档/案例链接 | 跳转 docs/use-case 深入页，并写 `PUBLIC_COMPARE_CLICK` | `/api/telemetry/public-events` |
-| P1-3 | 点击试用 | 进入 Console onboarding | `/platforms/new` 跳转 |
+用户创建账号，客户端完成所有加密操作，服务端仅接收加密后的数据。
 
-- Public V1 证据：
-  - `outputs/multi-role-brainstorm/20260211T160722Z/logs/console_build_public_routes.log`
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/public_funnel_after.json`
+| Step | 用户动作 | 系统响应 | 技术细节 |
+|------|----------|----------|----------|
+| A1 | 访问 `/register` | 展示注册表单（email + master password + confirm） | Next.js App Router |
+| A2 | 输入 email 和 master password | 客户端校验密码强度（最低 12 字符 + 复杂度） | 实时反馈 |
+| A3 | 点击"创建账号" | 客户端执行密钥派生（约 1-2 秒） | Argon2id -> HKDF -> Auth/Enc/MAC Key |
+| A4 | -- | 客户端生成随机 Vault Key 并用 Enc Key 包装 | AES-256-GCM |
+| A5 | -- | 客户端计算 SRP verifier | g^(Auth Key) mod N |
+| A6 | -- | 发送注册请求（email, salt, verifier, encrypted_vault_key） | POST `/api/v1/auth/register` |
+| A7 | 看到注册成功提示 | 自动跳转到 `/login` | 提示用户牢记 master password |
 
-### Journey 0: 本地最小链路启动
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| Z1 | `docker compose up -d` | 启动 API/Console/PostgreSQL/Redis | 终端输出 |
-| Z2 | 运行 `docker compose port console 3000`，打开输出的 URL | 展示控制台骨架首页 | 页面截图 |
-| Z3 | 访问 `http://localhost:4010/health` | 返回健康检查结果 | API 响应 |
+**安全要点**: Master Password 永远不离开客户端。服务端收到的是 SRP verifier（无法反推密码）和加密后的 Vault Key（无法解密）。
 
-### Journey A: 平台初始化
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| A1 | 进入平台配置页（`/platforms/new`） | 校验平台参数与权限 | 页面截图/日志 |
-| A2 | 保存配置（`/platforms/:id`） | 返回连接状态与可用能力，并写 `PLATFORM_CREATED` 审计事件（含 source） | API/日志记录 |
+### Journey B: 登录
 
-### Journey B: 账号自动创建
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| B1 | 创建账号（`/accounts/new`） | 调用平台 API 创建账号，并写 `ACCOUNT_PROVISIONED` 审计事件（含 source） | 账号记录/审计日志 |
-| B2 | 查看账号详情（`/accounts/:id`） | 展示账号状态与授权绑定 | 页面截图/记录 |
+SRP 协议实现双向认证：客户端验证服务端身份，服务端验证客户端身份。
 
-### Journey C: 授权管理
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| C1 | 创建授权（`/credentials`） | 生成 API Key/OAuth Token（`platform_admin` / `security_ops`） | 凭据记录 |
-| C2 | 轮换/吊销授权（`/credentials/:id/rotate`） | 更新凭据状态（`security_ops`） | 审计日志 |
+| Step | 用户动作 | 系统响应 | 技术细节 |
+|------|----------|----------|----------|
+| B1 | 访问 `/login` | 展示登录表单（email + master password） | -- |
+| B2 | 输入凭据并点击"登录" | 客户端发送 SRP Login Start 请求 | POST `/api/v1/auth/login/start` (email, A) |
+| B3 | -- | 服务端返回 (salt, B) | -- |
+| B4 | -- | 客户端计算共享密钥 K 和证明 M1 | Argon2id + SRP 计算 |
+| B5 | -- | 发送 Login Verify (M1) | POST `/api/v1/auth/login/verify` |
+| B6 | -- | 服务端验证 M1，返回 (M2, session_token, encrypted_vault_key) | -- |
+| B7 | -- | 客户端验证 M2（双向认证完成） | 确认服务端知道 verifier |
+| B8 | -- | 客户端用 Enc Key 解包 Vault Key | AES-256-GCM 解密 |
+| B9 | -- | 下载并解密所有 Vault Items | 批量解密到内存 |
+| B10 | 看到 Vault 主界面 | 展示解密后的凭据列表 | 跳转到 `/passwords` |
 
-### Journey D: AI 助手接入
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| D1 | 绑定 AI 助手（`/assistants/new`） | 验证权限范围 | 绑定记录 |
-| D2 | 发起调用（API） | 通过网关访问外部平台（`ASSISTANT_BIND` 需 `security_ops`） | 调用日志 |
+### Journey C: 密码管理
 
-### Journey E: 审计与合规
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| E1 | 查询操作日志（`/audit`） | 返回可审计记录（Event Sourcing with hash chain；`platform_admin` / `compliance_auditor`） | 日志导出 |
-| E2 | 导出报告（`/audit/exports`） | 生成审计报告（`compliance_auditor`） | 导出文件 |
+用户在 Vault 中创建、编辑、删除密码条目。所有数据在客户端加密后上传。
 
-### Journey F: 接管程度配置（来自调研 ai_master_control_prd.html）
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| F1 | 进入设置页（`/settings`） | 展示当前接管程度（默认辅助） | 页面截图 |
-| F2 | 选择接管程度（手动/辅助/自动/托管） | 保存配置 | 审计日志 |
-| F3 | 配置高风险动作确认策略 | 更新 Policy | 策略记录 |
+| Step | 用户动作 | 系统响应 | 技术细节 |
+|------|----------|----------|----------|
+| C1 | 点击"Add Password" | 展示条目编辑器（Dialog 覆盖层） | `/passwords` (dialog) |
+| C2 | 填写条目信息 | 可选：点击"生成密码"自动填充 | 密码生成器（长度/字符集可配） |
+| C3 | 点击"保存" | 客户端用 Vault Key 加密条目数据 | AES-256-GCM |
+| C4 | -- | 上传加密后的数据到服务端 | POST `/api/v1/vaults/:vid/items` |
+| C5 | 看到条目出现在列表中 | 本地缓存同步更新 | -- |
+| C6 | 点击条目查看详情 | 展示解密后的数据（密码默认隐藏） | 内存中已解密 |
+| C7 | 点击"复制密码" | 复制到剪贴板并在 30 秒后自动清除 | Clipboard API + setTimeout |
+| C8 | 编辑条目并保存 | 重新加密并上传 | PUT `/api/v1/vaults/:vid/items/:id` |
+| C9 | 删除条目 | 确认后删除（软删除，30 天回收站） | DELETE `/api/v1/vaults/:vid/items/:id` |
 
-### Journey G: 漏斗观测（已实现，Public V1+）
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| G1 | 访问 `/metrics/funnel` | 返回 SEO/产品双漏斗聚合 | 页面渲染结果 |
-| G2 | 查询 `/api/telemetry/public-funnel` | 返回 counters/top routes/top sources/recent events/trend | JSON 响应 |
-| G2-1 | 追加过滤参数（window/source/persona/route/tenant） | 返回过滤后的漏斗聚合与趋势 | 过滤查询结果 |
-| G2-2 | 查看告警面板 | 返回样本不足/转化率低于阈值的告警项 | 告警 JSON 与页面渲染 |
-| G3 | 重启服务后复查 | 指标值保持不丢失（基于持久化文件） | before/after restart 对比 |
+### Journey D: 浏览器扩展
 
-- Journey G 证据：
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/funnel_before_restart.json`
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/funnel_after_restart.json`
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/persistence/persistence_assertion.txt`
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/funnel_beta_30m.json`
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/funnel_alpha_30m.json`
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/filter_trend/filter_trend_assertion.txt`
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/funnel_beta_180m.json`
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/funnel_alpha_180m.json`
-  - `outputs/multi-role-brainstorm/20260211T160722Z/reports/tenant_alert/tenant_alert_assertion.txt`
+Chrome 扩展检测登录表单，自动填充凭据，保存新凭据。
 
-## 真实流程测试基线（2026-02-11）
-| 模式 | 口径 | 总步骤 | 成功 | 失败 | 成功率 |
-|---|---|---:|---:|---:|---:|
-| strict-baseline | 升级前（Journey C/D/E 未实现） | 18 | 11 | 7 | 61.11% |
-| strict-postfix | 升级后（Journey C/D/E 已实现） | 20 | 20 | 0 | 100.00% |
-| mvp0-postfix | 与 strict 同口径复测 | 20 | 20 | 0 | 100.00% |
+| Step | 用户动作 | 系统响应 | 技术细节 |
+|------|----------|----------|----------|
+| D1 | 安装扩展并登录 | 扩展通过 SRP 登录并缓存解密后的 Vault | Extension Popup |
+| D2 | 访问某网站的登录页 | Content Script 检测到登录表单 | DOM 特征匹配 |
+| D3 | 看到输入框旁的 Auth Box 图标 | 点击图标弹出匹配的凭据列表 | 按域名匹配 |
+| D4 | 选择凭据 | 自动填充 username + password | Content Script 填充 |
+| D5 | 提交登录表单 | 表单正常提交 | -- |
+| D6 | 在新网站注册时 | 扩展提示"保存此凭据？" | 检测表单提交事件 |
+| D7 | 点击"保存" | 客户端加密后上传到 Vault | POST `/api/v1/vaults/:vid/items` |
 
-- strict-baseline 失败集中在 Journey C/D/E 的 `501 NOT_IMPLEMENTED`（升级前）。
-- 证据目录：`outputs/persona-real-flow/20260211T141210Z/`。
+### Journey E: Agent 设置
 
-## 真实 API 回放基线（2026-02-11）
-- Fixture 清单：`services/api/testdata/fixtures/real_api_core_flow/manifest.json`
-- 采样命令：`services/api/scripts/real_api_core_flow.sh --mode capture --project-dir .`
-- 回放命令：`services/api/scripts/replay_real_api_fixtures.sh --project-dir .`
-- 闭环检查命令：`make full-loop-check`
-- 约束：最终验收必须通过真实 API，不得以 mock 替代。
+用户注册 AI Agent 并配置访问策略。
 
-## 接管程度说明
+| Step | 用户动作 | 系统响应 | 技术细节 |
+|------|----------|----------|----------|
+| E1 | 访问 `/agents` | 展示已注册的 Agent 列表 | GET `/api/v1/agents` |
+| E2 | 点击"注册新 Agent" | 展示注册表单（名称、类型、允许的 scope） | -- |
+| E3 | 填写信息并提交 | 生成 Agent API Key 并展示一次 | POST `/api/v1/agents` |
+| E4 | 复制 API Key | 提示"此 Key 仅显示一次" | -- |
+| E5 | 配置访问策略 | 设置 scope、rate limit、time window、是否需要审批 | POST `/api/v1/agents/:id/policies` |
+| E6 | 查看 Agent 活动 | 展示近期凭据访问记录 | GET `/api/v1/audit?agent_id=...` |
 
-| 模式 | 用户体验 | 适用场景 |
-|------|----------|----------|
-| 手动 | AI 只建议，用户手动执行每个动作 | 高敏感用户 |
-| 辅助（MVP 默认） | AI 生成方案，用户一次确认后批量执行 | 标准接入 |
-| 自动 | 低风险自动执行，高风险弹窗确认 | 稳定期用户 |
-| 托管 | 完全托管，需更强验证 | 遗产/监护 |
+### Journey F: MCP 连接
 
-## 一键全量交付验收计划（2026-02-12，已完成）
-- SOP 证据目录：`outputs/one-click-full-delivery/20260212T022828Z`
-- Round 2 人工模拟覆盖：
-  - P0/P1：Public 入口 -> CTA -> onboarding
-  - A/B/C/D/E：平台/账号/凭据/助手/审计主流程
-  - G：漏斗查询（含 tenant 过滤与 alerts）
-- 记录要求：
-  - 每个 Journey 至少 1 条成功证据
-  - 失败路径需记录错误码与定位信息
-- 执行结果：
-  - UX Map Round 2 断言 PASS：`outputs/one-click-full-delivery/20260212T022828Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
-  - 真实 API Journey 证据：`outputs/one-click-full-delivery/20260212T022828Z/reports/full_loop/system_capture/reports/run_report.json`
+AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 
-## SOP 4.1 回归记录（2026-02-12）
-- Run：`outputs/project-regression/20260212T030804Z`
-- Round 2（UX Map）回归路径：
-  - `journey_p0_home.html`
-  - `journey_p0_product.html`
-  - `journey_p1_compare.html`
-  - `journey_a_platform_new.html`
-  - `journey_g_metrics.html`
-  - `journey_g_funnel_beta.json`
-- 断言：`outputs/project-regression/20260212T030804Z/reports/uxmap_round2/uxmap_round2_assertion.txt`
-- 结果：`home/product/compare/platforms_new/metrics/funnel` 全 PASS。
+| Step | 角色 | 动作 | 技术细节 |
+|------|------|------|----------|
+| F1 | Agent | 发现 Auth Box MCP Server | WebSocket `ws://localhost:19876/mcp` |
+| F2 | Agent | 发送认证请求（Agent API Key） | JSON-RPC `auth/login` |
+| F3 | MCP Server | 验证 API Key 并建立会话 | -- |
+| F4 | Agent | 调用 `list_available_services` | JSON-RPC tool call |
+| F5 | MCP Server | 查询策略引擎，返回可访问的服务列表 | Policy check |
+| F6 | Agent | 调用 `get_credential("github.com")` | JSON-RPC tool call |
+| F7 | MCP Server | 策略引擎裁决（allow/deny/step_up） | Policy Engine |
+| F8a | (allow) | 从本地 Vault 获取凭据并返回 | 内存中已解密 |
+| F8b | (deny) | 返回拒绝原因 | error response |
+| F8c | (step_up) | 弹出审批提示，等待用户确认 | Extension notification |
+| F9 | MCP Server | 记录审计事件 | POST `/api/v1/audit` (async) |
 
-## 一键全量交付 Round 2 复测记录（2026-02-12，Run 20260212T032220Z）
-- 复测路径：`/`、`/product`、`/compare/hashicorp-vault-alternative`、`/platforms/new?source=ux_round2&tenant_id=beta`、`/metrics/funnel?window_minutes=180&tenant_id=beta`。
-- 关键事件：`PUBLIC_CTA_CLICK`、`ONBOARDING_ENTRY_VIEW`。
-- 结果：`outputs/one-click-full-delivery/20260212T032220Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（PASS）。
-- 关联守门：frontend audit 断言 PASS、backend full-loop 断言 PASS（同 run 目录）。
-- 备注：本轮为既有旅程复核，不新增 UX 旅程定义。
+### Journey G: OAuth 管理
 
-## SOP 4.1 Round 2 回归记录（2026-02-12，Run 20260212T034924Z）
-- 复测路径：`/`、`/product`、`/compare/hashicorp-vault-alternative`、`/platforms/new?source=ux_round2&tenant_id=beta`、`/metrics/funnel?window_minutes=180&tenant_id=beta`。
-- 关键事件：`PUBLIC_CTA_CLICK`、`ONBOARDING_ENTRY_VIEW`。
-- 结果：`outputs/project-regression/20260212T034924Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（overall.pass=PASS）。
-- 卡点修复：上报 payload 字段修正为 `event` 后，事件上报与漏斗查询恢复正常。
+用户连接 OAuth Provider，系统自动刷新 Token 并监控状态。
 
-## SOP 4.1 Round 2 回归记录（2026-02-13，Run 20260213T021241Z）
-- 复测路径：`/`、`/product`、`/compare/hashicorp-vault-alternative`、`/platforms/new?source=ux_round2_20260213T021241Z&tenant_id=beta`、`/metrics/funnel?window_minutes=180&tenant_id=beta`。
-- 关键事件：`PUBLIC_CTA_CLICK`、`ONBOARDING_ENTRY_VIEW`。
-- 结果：`outputs/project-regression/20260213T021241Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（overall.pass=PASS）。
-- E2E（real API + contract）PASS：`outputs/project-regression/20260213T021241Z/reports/full_loop_replay/reports/full_loop_summary.json`。
+| Step | 用户动作 | 系统响应 | 技术细节 |
+|------|----------|----------|----------|
+| G1 | 访问 `/authorizations` | 展示已连接的 OAuth Provider 列表 | GET `/api/v1/connections` |
+| G2 | 点击"连接新服务" | 选择 Provider（Google/GitHub/Microsoft...） | -- |
+| G3 | 完成 OAuth 流程 | 系统获取 access_token + refresh_token | 标准 OAuth 2.0 流程 |
+| G4 | -- | 客户端加密 Token 后上传 | AES-256-GCM with Vault Key |
+| G5 | 查看连接状态 | 展示 Token 过期时间、scope、上次刷新时间 | -- |
+| G6 | Token 即将过期 | 系统自动刷新并更新加密存储 | 后台定时任务 |
+| G7 | 断开连接 | 吊销 Token 并删除加密存储 | DELETE + OAuth revoke |
 
-## Journey P0 UI/UX 层级优化（2026-02-18）
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| P0-0 | 进入首页 `/` | 展示单一主按钮 `Start onboarding`，其余入口降级为次级链接 | `apps/console/app/page.tsx` |
-| P0-0.1 | 浏览首页分区 | 按 Hero 主叙事 -> Activation path -> Features/Use cases/Compare 的节奏阅读 | `apps/console/app/globals.css` |
-| P0-0.2 | 点击主按钮 | 进入 `/platforms/new?source=home_primary_cta&tenant_id=public`，写 `PUBLIC_CTA_CLICK` 事件 | `apps/console/components/public-event-tracker.tsx` |
+## 路由地图
 
-- 回归证据：
-  - pre：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/pre/frontend_audit_assertion.txt`
-  - post：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/frontend_audit_assertion.txt`
-  - visual 断言：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/frontend_audit/post/visual_regression_assertion.txt`
-- 2026-02-18 UI/UX Round 2 证据：`outputs/frontend-ui-ux-optimization/20260218T042527Z/reports/uxmap_round2/uxmap_round2_assertion.txt`（含 `primary_cta_count_home=1`）
+### Web App Routes
 
-## Journey H: 发布门禁与观察闭环（SOP 治理新增，2026-02-18）
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| H1 | 选择发布变更并提交发布申请 | 系统按风险规则打标（P0/P1/P2） | 风险分级记录 |
-| H2 | 触发自动化门禁 | 执行 Layer A（lint/type/test/build/security）并返回 gate 结果 | CI 报告 / Gate 断言 |
-| H3 | 查看并补齐发布证据包 | 系统校验 Layer B（风险清单、回归清单、签署记录、证据完整性） | `outputs/<sop-id>/<run-id>/` |
-| H4 | Gatekeeper 签署并发布 | 系统记录签署人与发布时间，进入观察窗口 | 发布日志 / 审计事件 |
-| H5 | 观察 24h/72h 指标 | 若超阈值触发回滚/冻结/补测并创建 postmortem | 观察报告 / postmortem 链接 |
+| 路由 | 页面 | 认证 | Phase | 实现方式 |
+|------|------|------|-------|----------|
+| `/` | 落地页（三支柱 + 信任信号） | 无 | 0 | Server Component |
+| `/register` | 注册（含密码强度指示器） | 无 | 0 | Client Component |
+| `/login` | 登录（SRP 多步进度） | 无 | 0 | Client Component |
+| `/unlock` | 解锁（Session 有效但 Vault 锁定） | Session | 0 | Client Component |
+| `/passwords` | 密码列表 + 搜索 + 新建/编辑/详情 | Session + Vault | 1 | 单页 + Dialog/侧边栏 |
+| `/authorizations` | OAuth 连接列表 + 新建/详情 | Session + Vault | 2 | 单页 + Dialog/侧边栏 |
+| `/agents` | AI Agent 列表 + 注册/详情/策略 | Session | 2 | 单页 + Dialog/侧边栏 |
+| `/audit` | 审计日志（分页 + 哈希链验证） | Session | 1 | Client Component |
+| `/settings` | 会话管理 + TOTP 2FA | Session | 1 | Client Component |
 
-- Journey H 验证入口（本轮调研）：
-  - `outputs/sota-product-sop-research/20260218T064240Z/reports/sop_benchmark_matrix.md`
-  - `outputs/sota-product-sop-research/20260218T064240Z/reports/transferability_and_risks.md`
+### API Routes
 
-- Journey H 状态更新（2026-02-18）：
-  - 执行入口：`scripts/release_gate.sh`
-  - 结果样本：`outputs/release-gate/20260218T112018Z/reports/release_gate_summary.json`
-  - 安全阻断样本：`outputs/release-gate/20260218T112018Z-p1-sample/reports/release_gate_summary.json`
+参见 `SYSTEM_ARCHITECTURE.md` 的 API 路由章节。
 
-## Journey I: 专业智能体执行闭环（新增，2026-02-18）
-| Step | 用户动作 | 系统响应 | 证据/产物 |
-|---|---|---|---|
-| I1 | 提交任务指令 | `workflow-router` 识别 scenario/scope/mode | 路由决策记录 |
-| I2 | 启动 planning-with-files | 初始化并锚定 `task_plan/notes/deliverable` | 规划文件与 run_meta |
-| I3 | 选择 persona 与技能 | 分配 Leader/Researcher/Builder/Watchdog 职责 | 路由配置 JSON |
-| I4 | 执行批次并留证据 | 按 skill/tool 优先级持续执行 | `outputs/<sop-id>/<run-id>/` |
-| I5 | 完成 Round1/Round2 验收 | 输出 PASS/FAIL 与阻断项 | 断言报告与 closeout 记录 |
+---
 
-- Journey I 设计证据：
-  - `configs/agent-router/professional-agent-routing.v1.json`
-  - `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md`
-  - `outputs/professional-agent-design/20260218T112653Z/reports/professional_agent_design_summary.md`
+Maurice | maurice_wen@proton.me

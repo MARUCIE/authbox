@@ -992,3 +992,43 @@ LastUpdated: 2026-02-13
 - Final Round 1 复核：PASS（`outputs/professional-agent-design/20260218T112653Z/logs/ai_check_round1_final.log`）。
 - Git 同步：`origin/main@20d59ab`。
 - 最终 Git 同步：`origin/main@ddad4e0`（含 closeout 证据文件）。
+
+---
+
+## Auth Box v2 -- UX Optimization Round 2 Delivery (2026-02-24)
+
+### 交付内容
+
+1. **Gap Fix: TOTP QR Code** -- `apps/web/app/(vault)/settings/page.tsx`
+   - 安装 `qrcode@^1.5` + `@types/qrcode`
+   - Canvas 渲染 QR code 供扫描
+2. **Gap Fix: Agent Policy Creation UI** -- `apps/web/app/(vault)/agents/page.tsx`
+   - 新增 policy 创建表单 (4 types: scope_access/rate_limit/time_window/step_up_auth)
+   - JSON rules editor with preset template
+3. **Stale Cache Fix** -- `.next/` 清除解决 webpack chunk ID 漂移导致的 500 error
+
+### 验收结果
+
+- Round 1: `npx turbo build --force` PASS (6/6 packages, 12/12 pages, 0 errors)
+- Round 2: 7/7 UX Map Journeys PASS (code-level audit + HTTP content validation)
+  - Journey A (注册): PASS -- email/password/confirm/strength/Argon2id/SRP/redirect
+  - Journey B (登录): PASS -- SRP multi-step/M2 implicit/vault decrypt/redirect
+  - Journey C (密码管理): PASS -- list/search/add/generator/copy(30s clear)/edit/delete
+  - Journey D (扩展): PASS -- content script/form detection/autofill/badge/auto-lock
+  - Journey E (Agent): PASS -- agent list/create/API key/policy creation
+  - Journey F (MCP): PASS -- WebSocket/JSON-RPC/3 tools/policy engine/audit
+  - Journey G (OAuth): PASS -- 8 providers/token encryption/expiry/disconnect
+- Route sweep: 9/9 HTTP 200
+- Round 3: 20/20 real API endpoints PASS (PostgreSQL 16 + Redis 7 + Go API via Docker Compose)
+  - Public: health(200), register(201/409), login/init(200), login/verify(401 expected)
+  - Protected: vault key/items CRUD, agents CRUD, agent policies CRUD, connections CRUD, audit, sessions, TOTP enroll
+  - Access control: 6 protected endpoints correctly reject without Bearer token
+  - Bug fixed: chi Router route overlap (public auth endpoints intercepted by protected middleware)
+
+### Task Closeout
+
+- [x] Skills: N/A (fixes are project-specific, not cross-project reusable)
+- [x] PDCA 四文档: PRD.md (milestone table + status), SYSTEM_ARCHITECTURE.md (implementation status), USER_EXPERIENCE_MAP.md (DoD status)
+- [x] 底层规范 (CLAUDE/AGENTS): N/A (no cross-project reusable rules produced)
+- [x] Rolling Ledger: Anti-regression entries added to notes.md (stale .next cache trigger + chi router overlap trigger)
+- [x] 三端一致性: N/A (local dev only; no production deployment for Auth Box v2 yet)

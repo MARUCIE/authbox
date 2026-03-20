@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16
-    container_name: 10-auth-box-postgres
+    container_name: authbox-postgres
     environment:
       POSTGRES_DB: auth_box
       POSTGRES_USER: auth_box
@@ -10,42 +10,63 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5410:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_box"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
-  redis:
-    image: redis:7
-    container_name: 10-auth-box-redis
-    ports:
-      - "6310:6379"
+  # Redis will be enabled in Phase 4 (session store + rate limiting).
+  # redis:
+  #   image: redis:7
+  #   container_name: authbox-redis
+  #   ports:
+  #     - "6310:6379"
 
   api:
     build:
       context: ./services/api
-    container_name: 10-auth-box-api
+    container_name: authbox-api
+    restart: unless-stopped
     environment:
       AUTH_BOX_HTTP_ADDR: ":8080"
       AUTH_BOX_DB_DSN: "postgres://auth_box:auth_box_dev@postgres:5432/auth_box?sslmode=disable"
-      AUTH_BOX_REDIS_URL: "redis://redis:6379/0"
       AUTH_BOX_ENV: "local"
-      AUTH_BOX_VERSION: "0.1.0"
-      AUTH_BOX_AUTH_TOKENS: "local-admin-token:actor-platform-admin:platform_admin|security_ops|compliance_auditor|policy_admin,local-security-token:actor-security-ops:security_ops,local-auditor-token:actor-compliance-auditor:compliance_auditor"
+      AUTH_BOX_VERSION: "2.0.0"
+      AUTH_BOX_ALLOWED_ORIGINS: "http://localhost:3010,http://localhost:3000"
     ports:
       - "4010:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
 
-  console:
+  web:
     build:
-      context: ./apps/console
-    container_name: 10-auth-box-console
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: authbox-web
+    restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_BASE_URL: "http://localhost:4010"
-      AUTH_BOX_CONSOLE_API_TOKEN: "local-admin-token"
-      AUTH_BOX_CONSOLE_AUTH_SOURCE: "console"
     ports:
       - "3010:3000"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   postgres_data:
