@@ -39,10 +39,10 @@ const AGENT_TYPES = [
   { value: 'custom', label: 'Custom' },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  active: 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950',
-  suspended: 'text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950',
-  revoked: 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950',
+const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
+  active: { bg: 'var(--tertiary-container)', text: 'var(--tertiary)', dot: 'var(--tertiary)' },
+  suspended: { bg: 'rgba(255, 183, 125, 0.15)', text: 'var(--secondary)', dot: 'var(--secondary)' },
+  revoked: { bg: 'rgba(255, 180, 171, 0.15)', text: 'var(--destructive)', dot: 'var(--destructive)' },
 };
 
 export default function AgentsPage() {
@@ -184,14 +184,20 @@ export default function AgentsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold">AI Agents</h2>
-            <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
+            <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>AI Agents</h2>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
               {agents.length} agent{agents.length !== 1 ? 's' : ''} registered
             </p>
           </div>
-          <Button onClick={() => { setViewMode('create'); setRevealedApiKey(null); }}>
+          <button
+            onClick={() => { setViewMode('create'); setRevealedApiKey(null); }}
+            className="btn-gradient px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
             Register Agent
-          </Button>
+          </button>
         </div>
 
         {error && (
@@ -215,21 +221,32 @@ export default function AgentsPage() {
               <button
                 key={agent.id}
                 onClick={() => { setSelectedId(agent.id); setViewMode('detail'); setRevealedApiKey(null); }}
-                className={`w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
-                  agent.id === selectedId
-                    ? 'border-[var(--primary)] bg-[var(--accent)]'
-                    : 'border-[var(--border)] hover:bg-[var(--accent)]'
-                }`}
+                className="w-full flex items-center gap-3 rounded-lg p-3 text-left transition-all"
+                style={{
+                  background: agent.id === selectedId ? 'var(--surface-highest)' : 'transparent',
+                  border: agent.id === selectedId ? '1px solid var(--ghost-border)' : '1px solid transparent',
+                }}
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--muted)] text-sm font-medium shrink-0">
-                  {agent.agentType === 'claude' ? 'C' : agent.agentType === 'chatgpt' ? 'G' : agent.agentType === 'gemini' ? 'Ge' : 'A'}
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium shrink-0"
+                  style={{ background: 'var(--primary-container)', color: 'var(--primary)' }}
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                  </svg>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-sm truncate">{agent.name}</p>
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${STATUS_COLORS[agent.status] ?? ''}`}>
-                      {agent.status}
-                    </span>
+                    {(() => {
+                      const cfg = STATUS_CONFIG[agent.status];
+                      return cfg ? (
+                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md" style={{ background: cfg.bg, color: cfg.text }}>
+                          <span className="h-1.5 w-1.5 rounded-full" style={{ background: cfg.dot }} />
+                          {agent.status}
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                   <p className="text-xs text-[var(--muted-foreground)] truncate">
                     {agent.agentType} -- {agent.lastActiveAt ? `Active ${new Date(agent.lastActiveAt).toLocaleDateString()}` : 'Never active'}
@@ -243,7 +260,7 @@ export default function AgentsPage() {
 
       {/* Right: Detail panel */}
       {selectedAgent && viewMode === 'detail' && (
-        <aside className="w-96 shrink-0 border-l border-[var(--border)] pl-6 flex flex-col">
+        <aside className="w-96 shrink-0 pl-6 flex flex-col" style={{ borderLeft: '1px solid var(--ghost-border)' }}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
             <div>
               <h3 className="font-semibold">{selectedAgent.name}</h3>
@@ -260,11 +277,11 @@ export default function AgentsPage() {
 
           {/* API Key reveal (shown once after creation) */}
           {revealedApiKey && (
-            <div className="mt-4 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
-              <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+            <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(255, 183, 125, 0.15)', border: '1px solid var(--secondary-container)' }}>
+              <p className="text-xs font-medium mb-1" style={{ color: 'var(--secondary)' }}>
                 API Key (shown once -- copy now!)
               </p>
-              <code className="text-xs font-mono break-all text-yellow-900 dark:text-yellow-100 select-all">
+              <code className="text-xs font-mono break-all select-all" style={{ color: 'var(--secondary)' }}>
                 {revealedApiKey}
               </code>
             </div>
@@ -281,7 +298,15 @@ export default function AgentsPage() {
 
             <div className="flex justify-between text-xs text-[var(--muted-foreground)]">
               <span>Status</span>
-              <span className={`px-1.5 py-0.5 rounded ${STATUS_COLORS[selectedAgent.status] ?? ''}`}>{selectedAgent.status}</span>
+              {(() => {
+                const cfg = STATUS_CONFIG[selectedAgent.status];
+                return cfg ? (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs" style={{ background: cfg.bg, color: cfg.text }}>
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: cfg.dot }} />
+                    {selectedAgent.status}
+                  </span>
+                ) : <span>{selectedAgent.status}</span>;
+              })()}
             </div>
             <div className="flex justify-between text-xs text-[var(--muted-foreground)]">
               <span>Created</span>
@@ -372,9 +397,9 @@ export default function AgentsPage() {
             </div>
 
             {/* MCP config snippet */}
-            <div className="pt-4 border-t border-[var(--border)]">
-              <h4 className="text-sm font-medium mb-2">MCP Configuration</h4>
-              <pre className="text-xs bg-[var(--muted)] rounded-lg p-3 overflow-x-auto">
+            <div className="pt-4" style={{ borderTop: '1px solid var(--ghost-border)' }}>
+              <h4 className="text-sm font-medium mb-2" style={{ fontFamily: 'var(--font-heading)' }}>MCP Configuration</h4>
+              <pre className="text-xs rounded-lg p-3 overflow-x-auto hash-block">
 {`{
   "mcpServers": {
     "authbox-vault": {

@@ -2,25 +2,11 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
 import { unlockVault as unlockVaultCrypto } from '@/lib/auth';
 import { useVaultStore } from '@/lib/vault-store';
 import { vaultApi } from '@/lib/api';
 
-/**
- * Unlock page: for users who have an active session but a locked vault.
- * This happens after idle timeout or page refresh.
- * The session token is still valid, but the vault key needs to be
- * re-derived from the master password.
- */
 export default function UnlockPage() {
   const router = useRouter();
   const sessionToken = useVaultStore((s) => s.sessionToken);
@@ -43,10 +29,7 @@ export default function UnlockPage() {
         return;
       }
 
-      // Fetch encrypted vault key from server
       const vaultKeyData = await vaultApi.getVaultKey(token);
-
-      // Decrypt vault key locally using salt from the vault key endpoint
       const vaultKey = await unlockVaultCrypto(
         password,
         vaultKeyData.encryptedVaultKey,
@@ -75,50 +58,64 @@ export default function UnlockPage() {
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle>Vault Locked</CardTitle>
-        <CardDescription>
-          Your session is active but the vault is locked. Enter your master
-          password to decrypt.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Master Password
-            </label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Your master password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              autoFocus
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-[var(--destructive)]">{error}</p>
-          )}
-
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Decrypting...' : 'Unlock'}
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full text-[var(--muted-foreground)]"
+    <>
+      <div className="text-center mb-6">
+        <div className="flex justify-center mb-4">
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-2xl"
+            style={{ background: 'var(--surface-highest)' }}
           >
-            Sign out instead
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="var(--secondary)">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+          </div>
+        </div>
+        <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+          Vault Locked
+        </h2>
+        <p className="text-sm mt-2" style={{ color: 'var(--muted-foreground)' }}>
+          Your session is active but the vault is locked. Enter your master password to decrypt.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="password" className="text-sm font-medium">
+            Master Password
+          </label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Your master password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            autoFocus
+          />
+        </div>
+
+        {error && (
+          <p className="text-sm" style={{ color: 'var(--destructive)' }}>{error}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full btn-gradient py-3 rounded-lg font-medium text-sm disabled:opacity-50"
+        >
+          {loading ? 'Decrypting...' : 'Unlock Vault'}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full py-2.5 rounded-lg text-sm transition-colors"
+          style={{ color: 'var(--muted-foreground)' }}
+        >
+          Sign out instead
+        </button>
+      </form>
+    </>
   );
 }

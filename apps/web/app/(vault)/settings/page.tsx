@@ -182,8 +182,8 @@ export default function SettingsPage() {
     <div className="space-y-10">
       {/* Page header */}
       <div>
-        <h2 className="text-2xl font-bold">Settings</h2>
-        <p className="text-sm text-[var(--muted-foreground)] mt-1">
+        <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Security Settings</h2>
+        <p className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>
           Manage sessions, two-factor authentication, and account security.
         </p>
       </div>
@@ -192,7 +192,7 @@ export default function SettingsPage() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold">Active Sessions</h3>
+            <h3 className="text-lg font-semibold" style={{ fontFamily: 'var(--font-heading)' }}>Active Sessions</h3>
             <p className="text-sm text-[var(--muted-foreground)]">
               Devices and browsers that are currently signed in to your account.
             </p>
@@ -269,7 +269,7 @@ export default function SettingsPage() {
       {/* ── Two-Factor Authentication ── */}
       <section className="space-y-4">
         <div>
-          <h3 className="text-lg font-semibold">Two-Factor Authentication</h3>
+          <h3 className="text-lg font-semibold" style={{ fontFamily: 'var(--font-heading)' }}>Two-Factor Authentication</h3>
           <p className="text-sm text-[var(--muted-foreground)]">
             Add a second layer of security using a TOTP authenticator app.
           </p>
