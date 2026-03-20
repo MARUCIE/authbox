@@ -90,15 +90,18 @@ export default function PasswordsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold">Passwords</h2>
-            <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
+            <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Passwords</h2>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
               {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
-              {syncing ? ' -- syncing...' : ''}
+              {syncing && <span className="ml-2"><span className="pulse-secure inline-block" /> syncing</span>}
             </p>
           </div>
-          <Button onClick={() => setViewMode('create')}>
+          <button onClick={() => setViewMode('create')} className="btn-gradient px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
             Add Password
-          </Button>
+          </button>
         </div>
 
         {/* Search */}
@@ -241,13 +244,16 @@ function PasswordListItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
-        selected
-          ? 'border-[var(--primary)] bg-[var(--accent)]'
-          : 'border-[var(--border)] hover:bg-[var(--accent)]'
-      }`}
+      className="w-full flex items-center gap-3 rounded-lg p-3 text-left transition-all"
+      style={{
+        background: selected ? 'var(--surface-highest)' : 'transparent',
+        border: selected ? '1px solid var(--ghost-border)' : '1px solid transparent',
+      }}
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--muted)] text-sm font-medium shrink-0">
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium shrink-0"
+        style={{ background: 'var(--primary-container)', color: 'var(--primary)' }}
+      >
         {item.name.charAt(0).toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
