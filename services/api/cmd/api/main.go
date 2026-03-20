@@ -153,10 +153,15 @@ func main() {
 	r.Use(appmw.SecurityHeaders)
 	r.Use(appmw.RequireJSON)
 	r.Use(appmw.BodySizeLimit(1 << 20)) // 1 MB max request body
+
+	// CORS + Chrome Private Network Access (PNA)
+	// PNA middleware wraps the ResponseWriter so the header is present
+	// when go-chi/cors calls WriteHeader(200) on OPTIONS preflight.
+	r.Use(appmw.PrivateNetworkAccess)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "Access-Control-Request-Private-Network"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300,

@@ -5,7 +5,27 @@ import (
 	"strings"
 )
 
+// PrivateNetworkAccess handles Chrome 130+ PNA preflight.
+// Wraps ResponseWriter to inject the header just before WriteHeader is called,
+// ensuring it survives go-chi/cors's internal header manipulation on OPTIONS.
+func PrivateNetworkAccess(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(&pnaWriter{ResponseWriter: w}, r)
+	})
+}
+
+type pnaWriter struct {
+	http.ResponseWriter
+}
+
+func (pw *pnaWriter) WriteHeader(code int) {
+	pw.ResponseWriter.Header().Set("Access-Control-Allow-Private-Network", "true")
+	pw.ResponseWriter.WriteHeader(code)
+}
+
 // SecurityHeaders adds standard security headers to all responses.
+// Includes Access-Control-Allow-Private-Network for Chrome 130+ PNA policy
+// (required when localhost:3010 calls localhost:4010).
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy",
@@ -16,6 +36,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Permitted-Cross-Domain-Policies", "none")
+		w.Header().Set("Access-Control-Allow-Private-Network", "true")
 
 		next.ServeHTTP(w, r)
 	})
