@@ -147,17 +147,22 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | M3.5 | Hardening (2FA + Sessions + Rate Limiting) | DONE |
 | M3.6 | UX Optimization Round 1 (12/12 fixes) | DONE |
 | M3.7 | UX Optimization Round 2 (7 Journey simulation) | DONE |
+| M3.8 | Architecture Audit + Vault Onyx Design System | DONE |
 | M4 | Desktop + Mobile + 团队功能 | Post-MVP |
 
 ## 当前状态
 
-- Phase 0-4 + Gap Fixes + UX Round 1 + UX Round 2 + Round 3 + Round 4 Hardening 全部完成
-- 构建通过：6/6 packages, 13 pages (incl. manifest), 0 errors
+- Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-7 Hardening + M3.8 全部完成
+- 构建通过：13/13 Web pages + Console 全部 pages, 0 errors
 - 7 条用户旅程 (A-G) 全部 PASS
 - 9/9 Web App 路由 HTTP 200
 - 20/20 API endpoints tested against real PostgreSQL + Go API (no mock)
-- 50 项 hardening 优化已应用（21 Round 4 + 12 Round 5 + 9 Round 6 + 8 Round 7：安全/性能/基础设施/前端/代码质量/XSS防御）
-- DoD 七轮全部通过
+- SRP-6a 协议修复 (M1 K=H(S) 对齐) + 6 测试 PASS
+- TOTP 2FA 集成到登录流程 (totpRequired + LoginVerifyTOTP)
+- Repository 接口化 (6 interfaces in domain/repository.go)
+- 14/14 审计问题全部修复 (4 P0 + 4 P1 + 4 P2 + 2 P3)
+- Vault Onyx 设计系统统一 Web + Console 两个 App (Stitch 10 屏原型)
+- 9 commits pushed to GitHub (4c3b0b2 → 9acacf9)
 
 ---
 
