@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auth Box v5 -- System Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mckinsey-blue: #003A70;
+    --mckinsey-blue-light: #0057A8;
+    --mckinsey-blue-pale: #E8F0FE;
+    --mckinsey-blue-dark: #001F3F;
+    --accent-gold: #C5A55A;
+    --bg-white: #FFFFFF;
+    --bg-alt: #F5F7FA;
+    --text-primary: #1A1A1A;
+    --text-secondary: #4A4A4A;
+    --text-muted: #7A7A7A;
+    --border-light: #E2E6EA;
+    --code-bg: #1E293B;
+    --success: #059669;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --orange: #EA580C;
+    --red-dark: #991B1B;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    background: var(--bg-white);
+    line-height: 1.7;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* COVER */
+  .cover {
+    background: linear-gradient(135deg, var(--mckinsey-blue-dark) 0%, var(--mckinsey-blue) 40%, var(--mckinsey-blue-light) 100%);
+    color: white;
+    padding: 120px 40px 100px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.04) 0%, transparent 60%);
+  }
+  .cover-badge {
+    display: inline-block;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 6px 20px;
+    border-radius: 2px;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    font-weight: 500;
+    position: relative;
+  }
+  .cover h1 {
+    font-size: 48px;
+    font-weight: 900;
+    line-height: 1.15;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+    position: relative;
+  }
+  .cover .subtitle {
+    font-size: 20px;
+    font-weight: 300;
+    opacity: 0.85;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .cover .tagline {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    opacity: 0.6;
+    margin-top: 32px;
+    position: relative;
+    font-style: italic;
+  }
+  .cover .meta {
+    margin-top: 50px;
+    font-size: 13px;
+    opacity: 0.5;
+    position: relative;
+  }
+  .cover .meta span { margin: 0 16px; }
+
+  /* CONTENT */
+  .content { max-width: 1040px; margin: 0 auto; padding: 0 32px; }
+
+  /* SECTION */
+  section {
+    padding: 64px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  section:last-of-type { border-bottom: none; }
+  section.alt { background: var(--bg-alt); padding: 64px 0; margin: 0 -32px; padding-left: 32px; padding-right: 32px; }
+
+  .section-number {
+    display: inline-block;
+    background: var(--mckinsey-blue);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--mckinsey-blue);
+    margin-bottom: 24px;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+
+  h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--mckinsey-blue);
+    margin: 36px 0 16px;
+    line-height: 1.3;
+  }
+
+  h4 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 24px 0 12px;
+  }
+
+  p { margin-bottom: 16px; color: var(--text-secondary); }
+  p.lead { font-size: 18px; line-height: 1.8; color: var(--text-primary); font-weight: 400; }
+
+  ul, ol { margin: 0 0 20px 24px; color: var(--text-secondary); }
+  li { margin-bottom: 8px; }
+  li strong { color: var(--text-primary); }
+
+  /* TAKEAWAY BOX */
+  .takeaway {
+    border-left: 4px solid var(--mckinsey-blue);
+    background: var(--mckinsey-blue-pale);
+    padding: 20px 24px;
+    margin: 24px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .takeaway p { margin: 0; color: var(--mckinsey-blue); font-weight: 500; }
+  .takeaway p:last-child { margin-bottom: 0; }
+
+  /* TABLES */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+  }
+  thead th {
+    background: var(--mckinsey-blue);
+    color: white;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  tbody td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: var(--bg-alt); }
+  tbody tr:hover { background: #E8EDF2; }
+
+  /* CODE */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    background: #EEF1F5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--mckinsey-blue);
+  }
+  pre {
+    background: var(--code-bg);
+    color: #E2E8F0;
+    padding: 24px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    border-radius: 0;
+  }
+
+  /* ARCHITECTURE DIAGRAM BOXES */
+  .arch-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin: 32px 0;
+  }
+  .arch-layer {
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    padding: 24px;
+    position: relative;
+  }
+  .arch-layer.core { border-color: var(--mckinsey-blue); background: linear-gradient(135deg, rgba(0,58,112,0.03), rgba(0,87,168,0.06)); }
+  .arch-layer.sync { border-color: var(--mckinsey-blue-light); background: rgba(0,87,168,0.03); }
+  .arch-layer.convenience { border-color: var(--accent-gold); background: rgba(197,165,90,0.04); }
+  .arch-layer.external { border-color: #6B7280; border-style: dashed; background: rgba(107,114,128,0.03); }
+
+  .layer-label {
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    padding: 2px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-radius: 2px;
+    color: white;
+  }
+  .core .layer-label { background: var(--mckinsey-blue); }
+  .sync .layer-label { background: var(--mckinsey-blue-light); }
+  .convenience .layer-label { background: var(--accent-gold); color: var(--mckinsey-blue-dark); }
+  .external .layer-label { background: #6B7280; }
+
+  .arch-boxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .arch-box {
+    flex: 1;
+    min-width: 140px;
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 14px 16px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .arch-box small {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .arch-connector {
+    text-align: center;
+    padding: 4px 0;
+    color: var(--text-muted);
+    font-size: 20px;
+    letter-spacing: 4px;
+  }
+
+  /* FIVE PRIMITIVES CARDS */
+  .primitives-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin: 32px 0;
+  }
+  .primitive-card {
+    border-radius: 8px;
+    padding: 24px 16px;
+    text-align: center;
+    border: 2px solid;
+    position: relative;
+  }
+  .primitive-card .icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .primitive-card .name {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .primitive-card .desc {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+  .primitive-card.capability { border-color: var(--mckinsey-blue); background: rgba(0,58,112,0.04); }
+  .primitive-card.capability .name, .primitive-card.capability .icon { color: var(--mckinsey-blue); }
+  .primitive-card.intent { border-color: #7C3AED; background: rgba(124,58,237,0.04); }
+  .primitive-card.intent .name, .primitive-card.intent .icon { color: #7C3AED; }
+  .primitive-card.policy { border-color: var(--success); background: rgba(5,150,105,0.04); }
+  .primitive-card.policy .name, .primitive-card.policy .icon { color: var(--success); }
+  .primitive-card.effect { border-color: var(--warning); background: rgba(217,119,6,0.04); }
+  .primitive-card.effect .name, .primitive-card.effect .icon { color: var(--warning); }
+  .primitive-card.fact { border-color: var(--danger); background: rgba(220,38,38,0.04); }
+  .primitive-card.fact .name, .primitive-card.fact .icon { color: var(--danger); }
+
+  /* KEY DERIVATION TREE */
+  .key-tree {
+    margin: 24px 0;
+    padding: 32px;
+    background: var(--code-bg);
+    border-radius: 8px;
+    color: #E2E8F0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+  .key-tree .root {
+    color: var(--accent-gold);
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  .key-tree .branch {
+    padding-left: 24px;
+    border-left: 2px solid #374151;
+    margin: 8px 0 8px 12px;
+  }
+  .key-tree .leaf {
+    padding: 6px 12px;
+    margin: 6px 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .key-tree .leaf .path { color: #93C5FD; font-weight: 500; }
+  .key-tree .leaf .arrow { color: #6B7280; }
+  .key-tree .leaf .label { color: #FCD34D; }
+  .key-tree .leaf .algo { color: #6EE7B7; font-size: 12px; opacity: 0.7; }
+
+  /* DEGRADATION TABLE */
+  .degrade-table tbody tr:nth-child(1) td:first-child { background: #059669; color: white; font-weight: 700; text-align: center; }
+  .degrade-table tbody tr:nth-child(2) td:first-child { background: #65A30D; color: white; font-weight: 700; text-align: center; }
+  .degrade-table tbody tr:nth-child(3) td:first-child { background: #D97706; color: white; font-weight: 700; text-align: center; }
+  .degrade-table tbody tr:nth-child(4) td:first-child { background: #EA580C; color: white; font-weight: 700; text-align: center; }
+  .degrade-table tbody tr:nth-child(5) td:first-child { background: #991B1B; color: white; font-weight: 700; text-align: center; }
+
+  /* FLOW DIAGRAM */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 24px 0;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: var(--mckinsey-blue);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 120px;
+  }
+  .flow-step.alt { background: var(--mckinsey-blue-light); }
+  .flow-step.gold { background: var(--accent-gold); color: var(--mckinsey-blue-dark); }
+  .flow-arrow {
+    color: var(--text-muted);
+    font-size: 20px;
+    font-weight: 300;
+  }
+
+  /* STORAGE DIAGRAM */
+  .storage-diagram {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .storage-node {
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+  .storage-node.arweave { border-color: var(--mckinsey-blue); background: rgba(0,58,112,0.04); }
+  .storage-node.ipfs { border-color: #7C3AED; background: rgba(124,58,237,0.04); }
+  .storage-node.bitcoin { border-color: var(--warning); background: rgba(217,119,6,0.04); }
+  .storage-node .node-title { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+  .storage-node .node-desc { font-size: 12px; color: var(--text-muted); }
+  .storage-node .node-cost { font-size: 13px; font-weight: 600; margin-top: 8px; }
+
+  /* SECURITY GRID */
+  .security-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 24px 0;
+  }
+  .security-item {
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 24px;
+    background: white;
+  }
+  .security-item .sec-num {
+    display: inline-block;
+    background: var(--mckinsey-blue);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 28px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .security-item h4 { margin-top: 0; color: var(--mckinsey-blue); }
+
+  /* DEPLOY INFRA */
+  .infra-diagram {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .infra-box {
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .infra-box .infra-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .infra-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px solid #F0F0F0;
+  }
+  .infra-item:last-child { border-bottom: none; }
+  .infra-item .tech { font-weight: 600; color: var(--text-primary); }
+  .infra-item .target { color: var(--text-muted); }
+
+  /* TIMELINE */
+  .timeline {
+    position: relative;
+    padding-left: 40px;
+    margin: 32px 0;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--mckinsey-blue), var(--mckinsey-blue-light), var(--accent-gold));
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -33px;
+    top: 20px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--mckinsey-blue);
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px var(--mckinsey-blue);
+  }
+  .timeline-item.done::before { background: var(--success); box-shadow: 0 0 0 2px var(--success); }
+  .timeline-item.planned::before { background: var(--accent-gold); box-shadow: 0 0 0 2px var(--accent-gold); }
+  .timeline-item .version { font-weight: 900; color: var(--mckinsey-blue); font-size: 16px; }
+  .timeline-item .paradigm { font-weight: 600; color: var(--text-primary); margin-left: 8px; }
+  .timeline-item .capability-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .timeline-item .status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    float: right;
+  }
+  .timeline-item .status-badge.done { background: #D1FAE5; color: #065F46; }
+  .timeline-item .status-badge.planned { background: #FEF3C7; color: #92400E; }
+
+  /* SRP FLOW */
+  .srp-flow {
+    margin: 24px 0;
+    border: 2px solid var(--mckinsey-blue);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .srp-phase {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .srp-phase:last-child { border-bottom: none; }
+  .srp-phase .actor {
+    min-width: 80px;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding-top: 2px;
+  }
+  .srp-phase .actor.client { color: var(--mckinsey-blue); }
+  .srp-phase .actor.server { color: var(--success); }
+  .srp-phase .action {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  /* ER TABLE */
+  .er-entity {
+    margin: 20px 0;
+    border: 2px solid var(--mckinsey-blue);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .er-entity-header {
+    background: var(--mckinsey-blue);
+    color: white;
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+  }
+  .er-entity table { margin: 0; }
+  .er-entity thead th { background: #E8F0FE; color: var(--mckinsey-blue); font-size: 12px; }
+  .er-entity tbody td { font-size: 13px; padding: 8px 16px; }
+  .er-entity tbody td:first-child { font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  .er-entity tbody td code { font-size: 12px; }
+
+  /* VISION ROADMAP */
+  .roadmap-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 24px 0;
+  }
+  .roadmap-card {
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .roadmap-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+  }
+  .roadmap-card.v4::before { background: var(--mckinsey-blue); }
+  .roadmap-card.v5::before { background: var(--accent-gold); }
+  .roadmap-card .version-tag {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .roadmap-card.v4 .version-tag { color: var(--mckinsey-blue); }
+  .roadmap-card.v5 .version-tag { color: var(--accent-gold); }
+  .roadmap-card h4 { margin-top: 0; font-size: 18px; }
+  .roadmap-card ul { font-size: 13px; margin-bottom: 0; }
+
+  /* TOC */
+  .toc {
+    background: var(--bg-alt);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 32px;
+    margin: 48px 0;
+  }
+  .toc h3 { margin-top: 0; font-size: 16px; letter-spacing: 1px; }
+  .toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 2;
+    column-gap: 40px;
+  }
+  .toc li {
+    padding: 6px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border-light);
+    break-inside: avoid;
+  }
+  .toc li a {
+    color: var(--mckinsey-blue);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .toc li a:hover { text-decoration: underline; }
+  .toc .toc-num { font-weight: 700; margin-right: 8px; color: var(--text-muted); }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 60px 20px 40px;
+    color: #9B9B9D;
+    font-size: 13px;
+    line-height: 2.2;
+  }
+
+  /* PRINT */
+  @media print {
+    .cover { padding: 80px 40px 60px; }
+    section { padding: 40px 0; break-inside: avoid; }
+    pre { font-size: 11px; }
+    .primitives-row { grid-template-columns: repeat(5, 1fr); }
+  }
+
+  @media (max-width: 768px) {
+    .cover h1 { font-size: 32px; }
+    .primitives-row { grid-template-columns: repeat(2, 1fr); }
+    .primitives-row .primitive-card:last-child { grid-column: span 2; }
+    .security-grid, .infra-diagram, .roadmap-grid { grid-template-columns: 1fr; }
+    .storage-diagram { grid-template-columns: 1fr; }
+    .toc ol { columns: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-badge">SYSTEM ARCHITECTURE v5.0</div>
+  <h1>Auth Box v5<br>不可阻挡的数字主权架构</h1>
+  <div class="subtitle">三层架构 &times; 五原语引擎 &times; 永久存储 &times; AGI 身份</div>
+  <div class="tagline">"Your Keys. Your Identity. Unstoppable."</div>
+  <div class="meta">
+    <span>2026-03-21</span>
+    <span>|</span>
+    <span>Auth Box Engineering</span>
+    <span>|</span>
+    <span>Confidential</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>CONTENTS</h3>
+    <ol>
+      <li><a href="#s1"><span class="toc-num">S1</span>概览 -- 核心原则</a></li>
+      <li><a href="#s2"><span class="toc-num">S2</span>架构演进 (v1 - v5)</a></li>
+      <li><a href="#s3"><span class="toc-num">S3</span>三层架构</a></li>
+      <li><a href="#s4"><span class="toc-num">S4</span>密钥派生体系</a></li>
+      <li><a href="#s5"><span class="toc-num">S5</span>五原语架构</a></li>
+      <li><a href="#s6"><span class="toc-num">S6</span>永久存储</a></li>
+      <li><a href="#s7"><span class="toc-num">S7</span>优雅降级</a></li>
+      <li><a href="#s8"><span class="toc-num">S8</span>SRP-6a 认证</a></li>
+      <li><a href="#s9"><span class="toc-num">S9</span>数据库 Schema</a></li>
+      <li><a href="#s10"><span class="toc-num">S10</span>API 路由</a></li>
+      <li><a href="#s11"><span class="toc-num">S11</span>安全模型</a></li>
+      <li><a href="#s12"><span class="toc-num">S12</span>部署架构</a></li>
+      <li><a href="#s13"><span class="toc-num">S13</span>AGI 身份愿景</a></li>
+    </ol>
+  </div>
+
+  <!-- S1: 概览 -->
+  <section id="s1">
+    <span class="section-number">S1</span>
+    <h2>概览 -- 核心原则</h2>
+    <p class="lead">Auth Box v5 在零知识架构基础上演进为<strong>不可阻挡架构</strong>：即使公司倒闭、服务器下线、设备丢失，用户仅凭一张纸上的 24 个助记词即可恢复全部凭据。</p>
+
+    <div class="takeaway">
+      <p>设计哲学：没有任何单点故障可以让用户失去凭据。种子词 = 数字主权。</p>
+    </div>
+
+    <ul>
+      <li><strong>零知识架构</strong> -- 加密/解密全部在客户端完成，服务端永远无法解密任何凭据</li>
+      <li><strong>种子词主权</strong> -- BIP-39 助记词（24 词）是唯一恢复机制，取代 Master Password 的单点依赖</li>
+      <li><strong>本地优先</strong> -- Vault 离线可用，服务器仅为可选同步层</li>
+      <li><strong>永久存储</strong> -- Arweave 存储加密 Vault Blob（一次付费、永久保存），Bitcoin/ETH 锚定哈希（防篡改证明）</li>
+      <li><strong>五原语架构</strong> -- Capability / Intent / Policy / Effect / Fact，构建 Agent 凭据治理的最小完备模型</li>
+    </ul>
+  </section>
+
+  <!-- S2: 架构演进 -->
+  <section id="s2" class="alt">
+    <span class="section-number">S2</span>
+    <h2>架构演进 (v1 - v5)</h2>
+    <p>每个版本向下兼容前一版本的数据，但不维护兼容代码层。升级即迁移，迁移即单向。</p>
+
+    <div class="timeline">
+      <div class="timeline-item done">
+        <span class="status-badge done">DONE</span>
+        <span class="version">v1</span>
+        <span class="paradigm">Flat CRUD</span>
+        <div class="capability-desc">基础密码管理，服务端加密</div>
+      </div>
+      <div class="timeline-item done">
+        <span class="status-badge done">DONE</span>
+        <span class="version">v2</span>
+        <span class="paradigm">DDD + Zero-Knowledge + MCP Gateway</span>
+        <div class="capability-desc">客户端加密、SRP-6a 认证、AI Agent 凭据网关</div>
+      </div>
+      <div class="timeline-item planned">
+        <span class="status-badge planned">PLANNED</span>
+        <span class="version">v3</span>
+        <span class="paradigm">Seed Phrase Sovereignty</span>
+        <div class="capability-desc">BIP-39 助记词、HD 密钥派生、确定性密码生成</div>
+      </div>
+      <div class="timeline-item planned">
+        <span class="status-badge planned">PLANNED</span>
+        <span class="version">v4</span>
+        <span class="paradigm">Cryptographic Identity</span>
+        <div class="capability-desc">Passkeys (WebAuthn) + DID 去中心化身份</div>
+      </div>
+      <div class="timeline-item planned">
+        <span class="status-badge planned">PLANNED</span>
+        <span class="version">v5</span>
+        <span class="paradigm">Permanent Decentralized Storage</span>
+        <div class="capability-desc">Arweave 永久存储 + Bitcoin 哈希锚定 + 五原语引擎</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3: 三层架构 -->
+  <section id="s3">
+    <span class="section-number">S3</span>
+    <h2>三层架构</h2>
+    <p class="lead">从外向内逐层剥离，核心层零依赖。每一层都可以独立倒下，用户永远不会丢失凭据。</p>
+
+    <div class="arch-diagram">
+      <!-- Layer 3 -->
+      <div class="arch-layer convenience">
+        <span class="layer-label">Layer 3: CONVENIENCE (可选)</span>
+        <div class="arch-boxes">
+          <div class="arch-box">Auth Box Cloud<small>Go API + PG + Redis</small></div>
+          <div class="arch-box">authbox.io<small>CF Pages + Next.js 15</small></div>
+          <div class="arch-box">Chrome Extension<small>MV3</small></div>
+          <div class="arch-box">Desktop App<small>Tauri</small></div>
+          <div class="arch-box">Mobile App<small>React Native</small></div>
+        </div>
+      </div>
+
+      <div class="arch-connector">&#9660; &#9660; &#9660;</div>
+
+      <!-- Layer 2 -->
+      <div class="arch-layer sync">
+        <span class="layer-label">Layer 2: SYNC (可选, 可替换)</span>
+        <div class="arch-boxes">
+          <div class="arch-box">CRDT Merge Engine<small>冲突解决</small></div>
+          <div class="arch-box">Cloud Relay<small>云端中继</small></div>
+          <div class="arch-box">P2P Transport<small>点对点传输</small></div>
+          <div class="arch-box">WebDAV<small>自托管同步</small></div>
+          <div class="arch-box">Manual Export<small>手动导入导出</small></div>
+        </div>
+      </div>
+
+      <div class="arch-connector">&#9660; &#9660; &#9660;</div>
+
+      <!-- Layer 1 -->
+      <div class="arch-layer core">
+        <span class="layer-label">Layer 1: CORE (不可阻挡)</span>
+        <div class="arch-boxes">
+          <div class="arch-box">Local Encrypted Vault<small>seed phrase &rarr; HD key derivation</small></div>
+          <div class="arch-box">Deterministic Password<small>seed + site &rarr; password</small></div>
+          <div class="arch-box">Arweave Storage<small>加密 blob, 一次付费</small></div>
+          <div class="arch-box">Bitcoin Anchoring<small>OP_RETURN 防篡改</small></div>
+        </div>
+      </div>
+
+      <div class="arch-connector" style="margin-top: 8px;">&#8943; &#8943; &#8943;</div>
+
+      <!-- External -->
+      <div class="arch-layer external">
+        <span class="layer-label">EXTERNAL</span>
+        <div class="arch-boxes">
+          <div class="arch-box">AI Agent<small>Claude / GPT</small></div>
+          <div class="arch-box">MCP Gateway<small>ws://localhost:19876</small></div>
+          <div class="arch-box">Policy Engine<small>五原语架构</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p>Layer 3 倒了 &rarr; Layer 1+2 继续工作（本地 + P2P/WebDAV 同步）</p>
+      <p>Layer 2 倒了 &rarr; Layer 1 继续工作（纯本地 + 手动导出）</p>
+      <p>Layer 1 设备丢了 &rarr; 助记词 + Arweave = 完整恢复</p>
+    </div>
+  </section>
+
+  <!-- S4: 密钥派生体系 -->
+  <section id="s4" class="alt">
+    <span class="section-number">S4</span>
+    <h2>密钥派生体系</h2>
+    <p>v5 将密钥派生从 Master Password 迁移到 BIP-39 助记词，采用 HD (Hierarchical Deterministic) 分层确定性派生。</p>
+
+    <div class="key-tree">
+      <div class="root">seed phrase (BIP-39, 24 words)</div>
+      <div class="branch">
+        <div class="leaf">
+          <span class="arrow">&rarr;</span>
+          <span class="label">master key</span>
+          <span class="algo">(PBKDF2-HMAC-SHA512, 2048 iterations)</span>
+        </div>
+        <div class="branch">
+          <div class="leaf">
+            <span class="path">m/ABX'/vault'/0'</span>
+            <span class="arrow">&rarr;</span>
+            <span class="label">vault encryption key</span>
+            <span class="algo">AES-256-GCM</span>
+          </div>
+          <div class="leaf">
+            <span class="path">m/ABX'/sync'/0'</span>
+            <span class="arrow">&rarr;</span>
+            <span class="label">sync encryption key</span>
+            <span class="algo">AES-256-GCM</span>
+          </div>
+          <div class="leaf">
+            <span class="path">m/ABX'/auth'/0'</span>
+            <span class="arrow">&rarr;</span>
+            <span class="label">authentication signing key</span>
+            <span class="algo">Ed25519</span>
+          </div>
+          <div class="leaf">
+            <span class="path">m/ABX'/agent'/n'</span>
+            <span class="arrow">&rarr;</span>
+            <span class="label">per-agent delegation key (revocable)</span>
+            <span class="algo">Ed25519</span>
+          </div>
+          <div class="leaf">
+            <span class="path">m/ABX'/derive'/n'</span>
+            <span class="arrow">&rarr;</span>
+            <span class="label">deterministic password derivation</span>
+            <span class="algo">HKDF-SHA256</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>派生路径详解</h3>
+    <table>
+      <thead>
+        <tr><th>路径</th><th>用途</th><th>算法</th><th>轮换策略</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>m/ABX'/vault'/0'</code></td><td>加密本地 Vault 和 Arweave Blob</td><td>AES-256-GCM</td><td>不轮换（助记词不变）</td></tr>
+        <tr><td><code>m/ABX'/sync'/0'</code></td><td>加密同步传输数据</td><td>AES-256-GCM</td><td>按需轮换（index 递增）</td></tr>
+        <tr><td><code>m/ABX'/auth'/0'</code></td><td>签名认证请求（替代 SRP-6a）</td><td>Ed25519</td><td>不轮换</td></tr>
+        <tr><td><code>m/ABX'/agent'/n'</code></td><td>为每个 AI Agent 派生独立密钥</td><td>Ed25519</td><td>可单独撤销</td></tr>
+        <tr><td><code>m/ABX'/derive'/n'</code></td><td>确定性密码生成</td><td>HKDF-SHA256</td><td>index = 密码版本号</td></tr>
+      </tbody>
+    </table>
+
+    <h3>确定性密码生成</h3>
+    <pre><code>derive_key = HKDF(master_key, "derive")
+password = Base62(HMAC-SHA256(derive_key, domain + ":" + username + ":" + version))[:length]</code></pre>
+
+    <div class="takeaway">
+      <p>无需存储密码本体。只要记住助记词 + 知道域名，即可在任何设备上重新推导出密码。</p>
+    </div>
+
+    <h3>Master Password 迁移路径</h3>
+    <ol>
+      <li>用 Master Password 解锁现有 Vault</li>
+      <li>生成新的 BIP-39 助记词（或用户自带）</li>
+      <li>用新助记词派生的 vault key 重新加密全部 Vault Items</li>
+      <li>废弃 Master Password 相关密钥（Auth Key / Encryption Key / MAC Key）</li>
+    </ol>
+  </section>
+
+  <!-- S5: 五原语架构 -->
+  <section id="s5">
+    <span class="section-number">S5</span>
+    <h2>五原语架构 (Hickey Model)</h2>
+    <p class="lead">受 Rich Hickey "values, not places" 思想启发，Agent 凭据治理抽象为五个正交原语。</p>
+
+    <div class="primitives-row">
+      <div class="primitive-card capability">
+        <span class="icon">&#9919;</span>
+        <div class="name">Capability</div>
+        <div class="desc">权限令牌<br>Agent 持有的是 token，不是凭据本身</div>
+      </div>
+      <div class="primitive-card intent">
+        <span class="icon">&#9881;</span>
+        <div class="name">Intent</div>
+        <div class="desc">意图声明<br>纯数据，不可变，不含执行逻辑</div>
+      </div>
+      <div class="primitive-card policy">
+        <span class="icon">&#9878;</span>
+        <div class="name">Policy</div>
+        <div class="desc">策略规则<br>不可变、版本化的匹配 + 效果</div>
+      </div>
+      <div class="primitive-card effect">
+        <span class="icon">&#9889;</span>
+        <div class="name">Effect</div>
+        <div class="desc">副作用执行<br>唯一与外部世界交互的位置</div>
+      </div>
+      <div class="primitive-card fact">
+        <span class="icon">&#9830;</span>
+        <div class="name">Fact</div>
+        <div class="desc">事实日志<br>追加式、哈希链、Bitcoin 锚定</div>
+      </div>
+    </div>
+
+    <div class="flow-diagram">
+      <div class="flow-step" style="background:#7C3AED;">INTENT</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step" style="background:#059669;">POLICY</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">CAPABILITY</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step" style="background:#D97706;">EFFECT</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step" style="background:#DC2626;">FACT</div>
+    </div>
+
+    <h3>5.1 CAPABILITY -- 能力令牌</h3>
+    <p>Agent 持有的是权限令牌（capability token），而非凭据本身。Vault 持有凭据。</p>
+    <pre><code>interface Capability {
+  agent_id: string;        // per-agent delegation key 签发
+  resource: string;        // e.g. "github.com/api"
+  actions: string[];       // ["read", "write"]
+  constraints: {
+    ttl_seconds: number;   // 令牌有效期
+    max_uses: number;      // 最大使用次数
+    ip_allowlist?: string[];
+  };
+  signature: string;       // Ed25519 签名（auth key）
+}</code></pre>
+
+    <h3>5.2 INTENT -- 意图声明</h3>
+    <p>纯数据，不可变。AI Agent 声明它想做什么，不包含任何执行逻辑。</p>
+    <pre><code>interface Intent {
+  id: string;
+  agent_id: string;
+  action: "get_credential" | "proxy_request" | "rotate_password";
+  resource: string;
+  context: Record&lt;string, unknown&gt;;
+  timestamp: string;       // ISO 8601
+}</code></pre>
+
+    <h3>5.3 POLICY -- 策略规则</h3>
+    <p>不可变、版本化的规则集。匹配条件 + 要求 + 效果。信任层级自然涌现。</p>
+    <pre><code>interface Policy {
+  id: string;
+  version: number;
+  match: {
+    agent_type?: string;
+    resource_pattern: string;   // glob pattern
+    action: string;
+  };
+  require: {
+    trust_tier: "T0" | "T1" | "T2" | "T3";
+    mfa?: boolean;
+    human_approval?: boolean;
+  };
+  effect: "allow" | "deny" | "step_up";
+}</code></pre>
+
+    <h4>信任层级</h4>
+    <table>
+      <thead>
+        <tr><th>层级</th><th>名称</th><th>操作类型</th><th>示例</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>T0</strong></td><td>Read</td><td>只读访问</td><td>列出可用服务</td></tr>
+        <tr><td><strong>T1</strong></td><td>Reversible</td><td>可逆操作</td><td>获取凭据、代理请求</td></tr>
+        <tr><td><strong>T2</strong></td><td>Irreversible</td><td>不可逆操作</td><td>删除凭据、修改密码</td></tr>
+        <tr><td><strong>T3</strong></td><td>Deny</td><td>始终拒绝</td><td>导出全部 Vault、修改策略</td></tr>
+      </tbody>
+    </table>
+
+    <h3>5.4 EFFECT -- 副作用执行</h3>
+    <p>唯一与外部世界交互的位置。Vault 解密 &rarr; 调用 API &rarr; 擦除内存。</p>
+    <div class="flow-diagram">
+      <div class="flow-step" style="font-size:12px;">Intent</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step alt" style="font-size:12px;">Policy check</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step" style="font-size:12px;">Capability issued</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step gold" style="font-size:12px;">Effect executed</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step" style="font-size:12px; background:#DC2626;">Memory wiped</div>
+    </div>
+    <ul>
+      <li>凭据在内存中的生存时间 &lt; 30 秒</li>
+      <li>执行完毕后 <code>crypto.subtle.digest</code> 覆写内存</li>
+      <li>不可被日志、trace、debugger 捕获</li>
+    </ul>
+
+    <h3>5.5 FACT -- 事实日志</h3>
+    <p>追加式事件溯源日志。哈希链式结构。锚定到 Bitcoin。</p>
+    <pre><code>interface Fact {
+  id: string;
+  sequence: number;
+  event_type: string;
+  agent_id?: string;
+  resource: string;
+  action: string;
+  decision: "allow" | "deny" | "step_up";
+  metadata: Record&lt;string, unknown&gt;;
+  hash: string;            // SHA-256(序列化的 Fact)
+  prev_hash: string;       // 前一条 Fact 的 hash（链式）
+  timestamp: string;
+  btc_anchor_tx?: string;  // Bitcoin OP_RETURN 锚定交易 ID
+}</code></pre>
+  </section>
+
+  <!-- S6: 永久存储 -->
+  <section id="s6" class="alt">
+    <span class="section-number">S6</span>
+    <h2>永久存储架构 (Arweave + Bitcoin)</h2>
+    <p class="lead">核心问题：如果 Auth Box 公司倒闭、服务器关停，用户如何恢复？</p>
+
+    <div class="storage-diagram">
+      <div class="storage-node arweave">
+        <div class="node-title" style="color:var(--mckinsey-blue);">Arweave</div>
+        <div class="node-desc">永久存储加密 Vault Blob<br>一次付费，200+ 年设计目标</div>
+        <div class="node-cost" style="color:var(--mckinsey-blue);">~$0.005/KB</div>
+      </div>
+      <div class="storage-node ipfs">
+        <div class="node-title" style="color:#7C3AED;">IPFS</div>
+        <div class="node-desc">备份存储<br>web3.storage pin 服务</div>
+        <div class="node-cost" style="color:#7C3AED;">变动</div>
+      </div>
+      <div class="storage-node bitcoin">
+        <div class="node-title" style="color:var(--warning);">Bitcoin</div>
+        <div class="node-desc">OP_RETURN 哈希锚定<br>防篡改存在性证明</div>
+        <div class="node-cost" style="color:var(--warning);">~$0.50/tx</div>
+      </div>
+    </div>
+
+    <h3>存储流程</h3>
+    <div class="flow-diagram" style="flex-wrap: wrap; gap: 12px;">
+      <div class="flow-step" style="font-size:12px;">Vault 变更触发</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step alt" style="font-size:12px;">AES-256-GCM 加密</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step" style="font-size:12px;">SHA-256 哈希</div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step gold" style="font-size:12px;">并行上传</div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>目标</th><th>操作</th><th>返回</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Arweave</strong></td><td>上传加密 vault_blob</td><td>arweave_tx_id</td></tr>
+        <tr><td><strong>IPFS</strong></td><td>Pin vault_blob</td><td>ipfs_cid</td></tr>
+        <tr><td><strong>Bitcoin</strong></td><td>OP_RETURN(blob_hash)</td><td>btc_tx_id</td></tr>
+      </tbody>
+    </table>
+
+    <h3>恢复流程</h3>
+    <pre><code>seed phrase (24 words, paper backup)
+  &rarr; derive vault_key (m/ABX'/vault'/0')
+  &rarr; fetch encrypted blob from Arweave (by arweave_tx_id)
+    OR scan Arweave for blobs tagged with auth_key public key
+  &rarr; decrypt locally
+  &rarr; full vault restored</code></pre>
+
+    <h3>四层冗余</h3>
+    <table>
+      <thead>
+        <tr><th>层级</th><th>存储</th><th>持久性</th><th>成本</th><th>恢复方式</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>L0</strong></td><td>Local device</td><td>设备生命周期</td><td>免费</td><td>直接读取</td></tr>
+        <tr><td><strong>L1</strong></td><td>Arweave</td><td>永久（200+ 年）</td><td>~$0.005/KB</td><td>arweave_tx_id 或标签扫描</td></tr>
+        <tr><td><strong>L2</strong></td><td>IPFS</td><td>取决于 pin 服务</td><td>变动</td><td>ipfs_cid</td></tr>
+        <tr><td><strong>L3</strong></td><td>Bitcoin hash</td><td>永久</td><td>~$0.50/tx</td><td>仅验证完整性</td></tr>
+      </tbody>
+    </table>
+
+    <div class="takeaway">
+      <p>Arweave 隐私保证：上传的是 AES-256-GCM 加密密文。没有助记词 = 无法解密 = 数据等同于随机噪声。</p>
+    </div>
+  </section>
+
+  <!-- S7: 优雅降级 -->
+  <section id="s7">
+    <span class="section-number">S7</span>
+    <h2>优雅降级谱系</h2>
+    <p class="lead">每一层都可以独立倒下，但用户永远不会丢失凭据。</p>
+
+    <table class="degrade-table">
+      <thead>
+        <tr><th style="width:100px;">降级等级</th><th>场景</th><th>可用功能</th><th>用户操作</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Level 0</td>
+          <td>全部在线</td>
+          <td>所有功能：Web UI + 同步 + Agent 网关 + 审计</td>
+          <td>正常使用</td>
+        </tr>
+        <tr>
+          <td>Level 1</td>
+          <td>服务器下线</td>
+          <td>本地 Vault + 确定性密码 + Chrome 扩展</td>
+          <td>离线使用，无同步</td>
+        </tr>
+        <tr>
+          <td>Level 2</td>
+          <td>公司倒闭</td>
+          <td>从 Arweave 获取加密 Vault + 助记词解密</td>
+          <td>运行恢复脚本</td>
+        </tr>
+        <tr>
+          <td>Level 3</td>
+          <td>设备丢失</td>
+          <td>助记词 + Arweave &rarr; 新设备完整恢复</td>
+          <td>新设备 + 助记词 + 恢复脚本</td>
+        </tr>
+        <tr>
+          <td>Level 4</td>
+          <td>一切都没了</td>
+          <td>助记词 &rarr; 确定性密码（无需任何存储）</td>
+          <td>纸上 24 词 &rarr; 推导常用密码</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="takeaway">
+      <p>Level 4 是终极保底：只要记住助记词和域名，就能在任何计算器上重新推导出密码。不需要任何服务器、任何存储、任何网络。</p>
+    </div>
+  </section>
+
+  <!-- S8: SRP-6a 认证 -->
+  <section id="s8" class="alt">
+    <span class="section-number">S8</span>
+    <h2>SRP-6a 认证 + Ed25519 签名</h2>
+
+    <h3>SRP-6a 认证流程 (v2, 保留兼容)</h3>
+
+    <div class="srp-flow">
+      <div class="srp-phase" style="background: var(--mckinsey-blue); color: white; font-weight: 700; font-size: 14px; padding: 12px 24px;">
+        注册阶段
+      </div>
+      <div class="srp-phase">
+        <span class="actor client">CLIENT</span>
+        <span class="action">salt = random(32)</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor client">CLIENT</span>
+        <span class="action">x = Argon2id(password, email)</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor client">CLIENT</span>
+        <span class="action">Auth Key = HKDF(x, "auth")</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor client">CLIENT</span>
+        <span class="action">verifier = g^(Auth Key) mod N</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor client">CLIENT &rarr;</span>
+        <span class="action">Register(email, salt, verifier)</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor server">SERVER</span>
+        <span class="action">Store(email, salt, verifier)</span>
+      </div>
+      <div class="srp-phase" style="background: var(--mckinsey-blue); color: white; font-weight: 700; font-size: 14px; padding: 12px 24px;">
+        登录阶段
+      </div>
+      <div class="srp-phase">
+        <span class="actor client">CLIENT &rarr;</span>
+        <span class="action">Login Start(email, A = g^a mod N)</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor server">SERVER</span>
+        <span class="action">b = random, B = k*v + g^b mod N</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor server">SERVER &rarr;</span>
+        <span class="action">return (salt, B)</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor client">CLIENT</span>
+        <span class="action">S_client = (B - k*g^x)^(a + u*x) mod N &rarr; K = H(S) &rarr; M1 = H(A, B, K)</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor client">CLIENT &rarr;</span>
+        <span class="action">Login Verify(M1)</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor server">SERVER</span>
+        <span class="action">Verify M1 &rarr; M2 = H(A, M1, K) &rarr; return (M2, session_token, encrypted_vault_key)</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor client">CLIENT</span>
+        <span class="action">Verify M2 (mutual authentication complete)</span>
+      </div>
+    </div>
+
+    <h3>Ed25519 签名认证 (v3+, 主要方式)</h3>
+    <pre><code>Client: sign(challenge, auth_key) &rarr; signature
+Server: verify(challenge, signature, public_key) &rarr; authenticated</code></pre>
+    <div class="takeaway">
+      <p>无密码传输、无密码存储、防重放（challenge 含时间戳 + nonce）。</p>
+    </div>
+  </section>
+
+  <!-- S9: 数据库 Schema -->
+  <section id="s9">
+    <span class="section-number">S9</span>
+    <h2>数据库 Schema</h2>
+    <p>8 张核心表，覆盖用户、会话、保险库、条目、Agent、策略、OAuth 连接、审计事件。</p>
+
+    <!-- USERS -->
+    <div class="er-entity">
+      <div class="er-entity-header">USERS</div>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>UUID PK</td><td>主键</td></tr>
+          <tr><td>email</td><td>STRING UK</td><td>唯一邮箱</td></tr>
+          <tr><td>srp_salt</td><td>BYTES</td><td>SRP 盐值</td></tr>
+          <tr><td>srp_verifier</td><td>BYTES</td><td>SRP 验证器</td></tr>
+          <tr><td>encrypted_vault_key</td><td>BYTES</td><td>加密的 vault key</td></tr>
+          <tr><td>vault_key_nonce</td><td>BYTES</td><td>vault key nonce</td></tr>
+          <tr><td>seed_public_key</td><td>BYTES</td><td>v3+ Ed25519 auth public key</td></tr>
+          <tr><td>mfa_secret</td><td>STRING</td><td>MFA 密钥</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SESSIONS -->
+    <div class="er-entity">
+      <div class="er-entity-header">SESSIONS</div>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>UUID PK</td><td>主键</td></tr>
+          <tr><td>user_id</td><td>UUID FK</td><td>&rarr; USERS</td></tr>
+          <tr><td>session_key_hash</td><td>BYTES</td><td>会话密钥哈希</td></tr>
+          <tr><td>device_info</td><td>STRING</td><td>设备信息</td></tr>
+          <tr><td>ip_address</td><td>INET</td><td>IP 地址</td></tr>
+          <tr><td>expires_at</td><td>TIMESTAMP</td><td>过期时间</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- VAULTS -->
+    <div class="er-entity">
+      <div class="er-entity-header">VAULTS</div>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>UUID PK</td><td>主键</td></tr>
+          <tr><td>user_id</td><td>UUID FK</td><td>&rarr; USERS</td></tr>
+          <tr><td>name</td><td>STRING</td><td>保险库名称</td></tr>
+          <tr><td>vault_type</td><td>STRING</td><td>保险库类型</td></tr>
+          <tr><td>arweave_tx_id</td><td>STRING</td><td>v5 Arweave 永久存储 TX</td></tr>
+          <tr><td>ipfs_cid</td><td>STRING</td><td>v5 IPFS 备份 CID</td></tr>
+          <tr><td>btc_anchor_tx</td><td>STRING</td><td>v5 Bitcoin 锚定 TX</td></tr>
+          <tr><td>vault_blob_hash</td><td>BYTES</td><td>v5 加密 blob SHA-256</td></tr>
+          <tr><td>last_anchored_at</td><td>TIMESTAMP</td><td>v5 上次锚定时间</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- VAULT_ITEMS -->
+    <div class="er-entity">
+      <div class="er-entity-header">VAULT_ITEMS</div>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>UUID PK</td><td>主键</td></tr>
+          <tr><td>vault_id</td><td>UUID FK</td><td>&rarr; VAULTS</td></tr>
+          <tr><td>item_type</td><td>STRING</td><td>条目类型</td></tr>
+          <tr><td>encrypted_data</td><td>BYTES</td><td>加密数据</td></tr>
+          <tr><td>nonce</td><td>BYTES</td><td>加密 nonce</td></tr>
+          <tr><td>folder</td><td>STRING</td><td>文件夹</td></tr>
+          <tr><td>tags</td><td>STRING[]</td><td>标签</td></tr>
+          <tr><td>derive_index</td><td>INT</td><td>v3+ 确定性密码版本</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- AGENTS -->
+    <div class="er-entity">
+      <div class="er-entity-header">AGENTS</div>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>UUID PK</td><td>主键</td></tr>
+          <tr><td>user_id</td><td>UUID FK</td><td>&rarr; USERS</td></tr>
+          <tr><td>name</td><td>STRING</td><td>Agent 名称</td></tr>
+          <tr><td>agent_type</td><td>STRING</td><td>Agent 类型</td></tr>
+          <tr><td>api_key_hash</td><td>BYTES</td><td>API 密钥哈希</td></tr>
+          <tr><td>delegation_public_key</td><td>BYTES</td><td>v3+ Ed25519 公钥</td></tr>
+          <tr><td>delegation_key_index</td><td>INT</td><td>v3+ HD 派生索引</td></tr>
+          <tr><td>allowed_scopes</td><td>STRING[]</td><td>允许的作用域</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- AGENT_POLICIES -->
+    <div class="er-entity">
+      <div class="er-entity-header">AGENT_POLICIES</div>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>UUID PK</td><td>主键</td></tr>
+          <tr><td>agent_id</td><td>UUID FK</td><td>&rarr; AGENTS</td></tr>
+          <tr><td>resource_pattern</td><td>STRING</td><td>资源匹配模式</td></tr>
+          <tr><td>allowed_actions</td><td>STRING[]</td><td>允许的操作</td></tr>
+          <tr><td>trust_tier</td><td>STRING</td><td>v5 T0/T1/T2/T3</td></tr>
+          <tr><td>rate_limit_per_min</td><td>INT</td><td>速率限制</td></tr>
+          <tr><td>require_approval</td><td>BOOL</td><td>是否需要人工审批</td></tr>
+          <tr><td>policy_version</td><td>INT</td><td>v5 不可变版本号</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- AUTH_CONNECTIONS -->
+    <div class="er-entity">
+      <div class="er-entity-header">AUTH_CONNECTIONS</div>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>UUID PK</td><td>主键</td></tr>
+          <tr><td>user_id</td><td>UUID FK</td><td>&rarr; USERS</td></tr>
+          <tr><td>provider</td><td>STRING</td><td>OAuth 提供商</td></tr>
+          <tr><td>encrypted_access_token</td><td>BYTES</td><td>加密的 access token</td></tr>
+          <tr><td>encrypted_refresh_token</td><td>BYTES</td><td>加密的 refresh token</td></tr>
+          <tr><td>scopes</td><td>STRING[]</td><td>OAuth scopes</td></tr>
+          <tr><td>token_expires_at</td><td>TIMESTAMP</td><td>Token 过期时间</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- AUDIT_EVENTS -->
+    <div class="er-entity">
+      <div class="er-entity-header">AUDIT_EVENTS</div>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>UUID PK</td><td>主键</td></tr>
+          <tr><td>user_id</td><td>UUID FK</td><td>&rarr; USERS</td></tr>
+          <tr><td>agent_id</td><td>UUID FK</td><td>&rarr; AGENTS (nullable)</td></tr>
+          <tr><td>event_type</td><td>STRING</td><td>事件类型</td></tr>
+          <tr><td>action</td><td>STRING</td><td>操作</td></tr>
+          <tr><td>decision</td><td>STRING</td><td>决定 (allow/deny)</td></tr>
+          <tr><td>event_hash</td><td>STRING</td><td>SHA-256 哈希</td></tr>
+          <tr><td>prev_event_hash</td><td>STRING</td><td>链式前一哈希</td></tr>
+          <tr><td>btc_anchor_tx</td><td>STRING</td><td>v5 Bitcoin 锚定 TX</td></tr>
+          <tr><td>sequence_number</td><td>INT</td><td>v5 链序号</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- S10: API 路由 -->
+  <section id="s10" class="alt">
+    <span class="section-number">S10</span>
+    <h2>API 路由</h2>
+    <p>RESTful API，共 8 个域名空间，覆盖认证、保险库、Agent、网关、审计、导入、确定性密码和健康检查。</p>
+
+    <h3>Auth (SRP + Seed Auth)</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/auth/register</code></td><td>SRP 注册</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/auth/register/seed</code></td><td>v3+ 种子词注册</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/auth/login/start</code></td><td>SRP 登录第一步</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/auth/login/verify</code></td><td>SRP 登录第二步</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/auth/login/sign</code></td><td>v3+ Ed25519 签名登录</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/auth/logout</code></td><td>注销</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/auth/sessions</code></td><td>列出活跃会话</td></tr>
+        <tr><td><strong>DELETE</strong></td><td><code>/api/v1/auth/sessions/:id</code></td><td>撤销会话</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Vault</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/vaults</code></td><td>列出 Vault</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/vaults</code></td><td>创建 Vault</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/vaults/:id</code></td><td>Vault 详情</td></tr>
+        <tr><td><strong>PUT</strong></td><td><code>/api/v1/vaults/:id</code></td><td>更新 Vault</td></tr>
+        <tr><td><strong>DELETE</strong></td><td><code>/api/v1/vaults/:id</code></td><td>删除 Vault</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Vault Items</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/vaults/:vid/items</code></td><td>列出条目（加密数据）</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/vaults/:vid/items</code></td><td>创建条目</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/vaults/:vid/items/:id</code></td><td>获取条目</td></tr>
+        <tr><td><strong>PUT</strong></td><td><code>/api/v1/vaults/:vid/items/:id</code></td><td>更新条目</td></tr>
+        <tr><td><strong>DELETE</strong></td><td><code>/api/v1/vaults/:vid/items/:id</code></td><td>删除条目</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Permanent Storage (v5)</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/vaults/:id/archive</code></td><td>上传加密 Vault blob 到 Arweave</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/vaults/:id/archive</code></td><td>查询 Arweave 存储状态</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/vaults/:id/anchor</code></td><td>Bitcoin 哈希锚定</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/vaults/:id/anchor</code></td><td>查询锚定状态</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/recovery/arweave</code></td><td>从 Arweave 恢复 Vault</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Agents</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/agents</code></td><td>列出 Agent</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/agents</code></td><td>注册 Agent</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/agents/:id</code></td><td>Agent 详情</td></tr>
+        <tr><td><strong>PUT</strong></td><td><code>/api/v1/agents/:id</code></td><td>更新 Agent</td></tr>
+        <tr><td><strong>DELETE</strong></td><td><code>/api/v1/agents/:id</code></td><td>注销 Agent</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/agents/:id/policies</code></td><td>添加策略</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/agents/:id/policies</code></td><td>列出策略</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/agents/:id/capability</code></td><td>v5 签发 Capability</td></tr>
+        <tr><td><strong>DELETE</strong></td><td><code>/api/v1/agents/:id/capability/:cap_id</code></td><td>v5 撤销 Capability</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Gateway (Agent MCP Proxy)</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/gateway/request</code></td><td>Agent 请求凭据（HTTP fallback）</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/gateway/services</code></td><td>列出 Agent 可访问的服务</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Audit</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/audit</code></td><td>查询审计日志</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/audit/export</code></td><td>导出审计报告</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/audit/verify</code></td><td>v5 验证哈希链完整性</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/audit/anchor/:tx_id</code></td><td>v5 Bitcoin 锚定验证</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Import + Derive + Health</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/import/1password</code></td><td>导入 1Password</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/import/chrome</code></td><td>导入 Chrome 密码</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/import/bitwarden</code></td><td>导入 Bitwarden</td></tr>
+        <tr><td><strong>POST</strong></td><td><code>/api/v1/derive/preview</code></td><td>预览确定性密码</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/api/v1/derive/domains</code></td><td>列出域名派生配置</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/health</code></td><td>健康检查</td></tr>
+        <tr><td><strong>GET</strong></td><td><code>/ready</code></td><td>就绪检查</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- S11: 安全模型 -->
+  <section id="s11">
+    <span class="section-number">S11</span>
+    <h2>安全模型</h2>
+    <p class="lead">六个维度构建纵深防御体系。</p>
+
+    <div class="security-grid">
+      <div class="security-item">
+        <div class="sec-num">1</div>
+        <h4>SRP-6a + Ed25519 认证</h4>
+        <p>SRP-6a 零知识密码证明（v2 兼容）。v3+ 采用 Ed25519 签名认证：无密码传输、无密码存储、challenge 含时间戳 + nonce 防重放。</p>
+      </div>
+      <div class="security-item">
+        <div class="sec-num">2</div>
+        <h4>种子词安全</h4>
+        <p>24 词 BIP-39 = 256 位熵，暴力破解 2^256 种可能。客户端显示时禁止截屏（Tauri/RN API），30 秒自动清除。纸质备份、保险箱存放。</p>
+      </div>
+      <div class="security-item">
+        <div class="sec-num">3</div>
+        <h4>Arweave 隐私</h4>
+        <p>AES-256-GCM 加密后上传。Arweave 节点看到的只是不可读密文 blob。元数据标签仅含 auth_key 公钥哈希（不可逆推身份）。</p>
+      </div>
+      <div class="security-item">
+        <div class="sec-num">4</div>
+        <h4>Bitcoin 锚定</h4>
+        <p>OP_RETURN 写入 Vault blob 的 SHA-256 哈希。防篡改存在性证明。不存储实际数据，仅 32 字节哈希。任何人可独立验证。</p>
+      </div>
+      <div class="security-item">
+        <div class="sec-num">5</div>
+        <h4>策略引擎信任层级</h4>
+        <p>T0 只读 &rarr; T1 可逆 &rarr; T2 不可逆（需人工审批）&rarr; T3 始终拒绝。Capability 令牌有 TTL、最大使用次数、IP 白名单约束。</p>
+      </div>
+      <div class="security-item">
+        <div class="sec-num">6</div>
+        <h4>MCP 网关五原语流程</h4>
+        <p>Intent &rarr; Policy check &rarr; Capability issued &rarr; Effect executed &rarr; Fact logged。凭据内存生存 &lt; 30s，执行后 crypto 覆写擦除。</p>
+      </div>
+    </div>
+
+    <h3>MCP 网关完整流程 (v5 五原语版)</h3>
+    <div class="srp-flow">
+      <div class="srp-phase" style="background: var(--mckinsey-blue); color: white; font-weight: 700; font-size: 14px; padding: 12px 24px;">
+        INTENT &rarr; POLICY &rarr; CAPABILITY &rarr; EFFECT &rarr; FACT
+      </div>
+      <div class="srp-phase">
+        <span class="actor" style="color:#7C3AED; min-width:100px;">AGENT</span>
+        <span class="action">get_credential("github.com") &rarr; Create Intent</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor" style="color:var(--success); min-width:100px;">POLICY</span>
+        <span class="action">evaluate(Intent, Agent Policies) &rarr; allow / deny / step_up</span>
+      </div>
+      <div class="srp-phase" style="background: #F0FDF4;">
+        <span class="actor" style="color:var(--mckinsey-blue); min-width:100px;">ALLOW</span>
+        <span class="action">Issue Capability token (scoped, time-limited) &rarr; lookup Vault &rarr; return credential &rarr; wipe memory</span>
+      </div>
+      <div class="srp-phase" style="background: #FEF2F2;">
+        <span class="actor" style="color:var(--danger); min-width:100px;">DENY</span>
+        <span class="action">append(deny, ...) to Fact log &rarr; error("access denied")</span>
+      </div>
+      <div class="srp-phase" style="background: #FFFBEB;">
+        <span class="actor" style="color:var(--warning); min-width:100px;">STEP UP</span>
+        <span class="action">Show approval prompt to user &rarr; pending_approval(request_id)</span>
+      </div>
+      <div class="srp-phase">
+        <span class="actor" style="color:var(--danger); min-width:100px;">FACT</span>
+        <span class="action">append event &rarr; hash chain update &rarr; periodic Bitcoin anchor (batch)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- S12: 部署架构 -->
+  <section id="s12" class="alt">
+    <span class="section-number">S12</span>
+    <h2>部署架构</h2>
+
+    <div class="infra-diagram">
+      <div class="infra-box">
+        <div class="infra-label">Frontend + CDN</div>
+        <div class="infra-item"><span class="tech">Next.js 15 + React 19 (SSG)</span><span class="target">CF Pages</span></div>
+        <div class="infra-item"><span class="tech">Cloudflare CDN</span><span class="target">全球边缘</span></div>
+        <div class="infra-item"><span class="tech">Chrome Extension MV3</span><span class="target">Chrome Web Store</span></div>
+      </div>
+      <div class="infra-box">
+        <div class="infra-label">API + Data</div>
+        <div class="infra-item"><span class="tech">Go 1.22+ (REST + OpenAPI 3.1)</span><span class="target">VPS Docker :4010</span></div>
+        <div class="infra-item"><span class="tech">PostgreSQL 16</span><span class="target">VPS Docker</span></div>
+        <div class="infra-item"><span class="tech">Redis 7</span><span class="target">VPS Docker</span></div>
+      </div>
+      <div class="infra-box">
+        <div class="infra-label">永久存储层</div>
+        <div class="infra-item"><span class="tech">Arweave (bundlr.network)</span><span class="target">去中心化网络</span></div>
+        <div class="infra-item"><span class="tech">IPFS (web3.storage)</span><span class="target">去中心化网络</span></div>
+        <div class="infra-item"><span class="tech">Bitcoin OP_RETURN</span><span class="target">Bitcoin 主网</span></div>
+      </div>
+      <div class="infra-box">
+        <div class="infra-label">客户端 + 工具</div>
+        <div class="infra-item"><span class="tech">Desktop App</span><span class="target">Tauri</span></div>
+        <div class="infra-item"><span class="tech">Mobile App</span><span class="target">React Native</span></div>
+        <div class="infra-item"><span class="tech">MCP Gateway</span><span class="target">ws://localhost:19876</span></div>
+        <div class="infra-item"><span class="tech">加密库</span><span class="target">WebCrypto + @authbox/crypto</span></div>
+        <div class="infra-item"><span class="tech">Monorepo</span><span class="target">Turborepo + pnpm</span></div>
+      </div>
+    </div>
+
+    <h3>本地入口</h3>
+    <table>
+      <thead><tr><th>服务</th><th>URL</th></tr></thead>
+      <tbody>
+        <tr><td>Web App</td><td><code>http://localhost:3010</code></td></tr>
+        <tr><td>API Health</td><td><code>http://localhost:4010/health</code></td></tr>
+        <tr><td>API Base</td><td><code>http://localhost:4010/api/v1</code></td></tr>
+        <tr><td>MCP Gateway</td><td><code>ws://localhost:19876/mcp</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>实现状态</h3>
+    <table>
+      <thead><tr><th>阶段</th><th>内容</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td>Phase 0</td><td>Monorepo + Crypto + API 骨架</td><td style="color:var(--success); font-weight:700;">DONE</td></tr>
+        <tr><td>Phase 1</td><td>Vault CRUD + Generator + Search + Audit</td><td style="color:var(--success); font-weight:700;">DONE</td></tr>
+        <tr><td>Phase 2</td><td>Agent CRUD + OAuth + Import</td><td style="color:var(--success); font-weight:700;">DONE</td></tr>
+        <tr><td>Phase 3</td><td>MCP Gateway + Extension</td><td style="color:var(--success); font-weight:700;">DONE</td></tr>
+        <tr><td>Phase 4</td><td>2FA + Sessions + Rate Limiting</td><td style="color:var(--success); font-weight:700;">DONE</td></tr>
+        <tr><td>UX Round 1</td><td>12/12 UI/UX fixes</td><td style="color:var(--success); font-weight:700;">DONE</td></tr>
+        <tr><td>UX Round 2</td><td>7/7 Journey simulation PASS</td><td style="color:var(--success); font-weight:700;">DONE</td></tr>
+        <tr><td>Phase 5</td><td>BIP-39 Seed Phrase + HD Key Derivation</td><td style="color:var(--warning); font-weight:700;">PLANNED</td></tr>
+        <tr><td>Phase 6</td><td>Ed25519 Auth + Passkeys (WebAuthn)</td><td style="color:var(--warning); font-weight:700;">PLANNED</td></tr>
+        <tr><td>Phase 7</td><td>Arweave Permanent Storage + IPFS</td><td style="color:var(--warning); font-weight:700;">PLANNED</td></tr>
+        <tr><td>Phase 8</td><td>Bitcoin Hash Anchoring + Fact Chain</td><td style="color:var(--warning); font-weight:700;">PLANNED</td></tr>
+        <tr><td>Phase 9</td><td>Five Primitives Policy Engine</td><td style="color:var(--warning); font-weight:700;">PLANNED</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- S13: AGI 身份愿景 -->
+  <section id="s13">
+    <span class="section-number">S13</span>
+    <h2>AGI 身份愿景</h2>
+    <p class="lead">从密码管理器到数字主权平台。v4-v5 开辟 Cryptographic Identity 和 Permanent Decentralized Storage 两条路径，为 AGI 时代的身份治理奠基。</p>
+
+    <div class="roadmap-grid">
+      <div class="roadmap-card v4">
+        <div class="version-tag">V4 -- CRYPTOGRAPHIC IDENTITY</div>
+        <h4>去中心化身份</h4>
+        <ul>
+          <li><strong>Passkeys (WebAuthn)</strong> -- 无密码登录，生物识别绑定设备</li>
+          <li><strong>DID (Decentralized Identifier)</strong> -- 用户拥有自己的身份标识符，不依赖任何中心化服务</li>
+          <li><strong>Verifiable Credentials</strong> -- 可验证声明，零知识证明（选择性披露）</li>
+          <li><strong>Agent Trust Chain</strong> -- 基于 HD 派生的 Agent 信任链，每个 Agent 独立密钥，可单独撤销</li>
+        </ul>
+      </div>
+      <div class="roadmap-card v5">
+        <div class="version-tag">V5 -- PERMANENT STORAGE</div>
+        <h4>永久去中心化存储</h4>
+        <ul>
+          <li><strong>Arweave</strong> -- 加密 Vault Blob 永久存储，一次付费，200+ 年设计目标</li>
+          <li><strong>Bitcoin Anchoring</strong> -- OP_RETURN 哈希锚定，防篡改存在性证明</li>
+          <li><strong>Five Primitives Engine</strong> -- Capability / Intent / Policy / Effect / Fact 五原语治理</li>
+          <li><strong>Fact Chain</strong> -- 追加式哈希链审计日志，可独立验证完整性</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p>Auth Box 的终极愿景：在 AGI 时代，每个人（和每个 Agent）都拥有不可剥夺的数字主权。你的密钥，你的身份，不可阻挡。</p>
+    </div>
+
+    <h3>系统边界</h3>
+    <table>
+      <thead><tr><th>范围</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td><strong>In-scope</strong></td><td>密码管理、种子词主权、确定性密码、OAuth 连接管理、AI Agent 凭据网关（五原语）、永久去中心化存储、审计日志（哈希链 + Bitcoin 锚定）</td></tr>
+        <tr><td><strong>Out-of-scope</strong></td><td>企业级 IAM、通用 API 网关、联邦身份、加密货币钱包功能</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+
+<footer>
+  <p>Auth Box v5.0 -- System Architecture</p>
+  <p>Maurice | maurice_wen@proton.me</p>
+  <p style="font-size:12px; margin-top:8px;">Generated 2026-03-21 | Source: SYSTEM_ARCHITECTURE.md</p>
+</footer>
+
+</body>
+</html>
