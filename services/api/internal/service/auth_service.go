@@ -217,6 +217,10 @@ func (s *AuthService) ValidateSession(ctx context.Context, tokenHash []byte) (uu
 	return s.sessionRepo.ValidateSession(ctx, tokenHash)
 }
 
+func (s *AuthService) TouchSession(ctx context.Context, tokenHash []byte) error {
+	return s.sessionRepo.TouchSession(ctx, tokenHash)
+}
+
 // issueSession creates a session and returns the full login response.
 func (s *AuthService) issueSession(ctx context.Context, user *domain.User, m2 []byte, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
 	token, tokenHash, err := auth.GenerateSessionToken()

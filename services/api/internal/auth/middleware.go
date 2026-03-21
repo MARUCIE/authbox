@@ -11,6 +11,7 @@ import (
 type contextKey string
 
 const userIDKey contextKey = "userID"
+const tokenHashKey contextKey = "tokenHash"
 
 // UserIDFromContext extracts the authenticated user's ID from the request context.
 func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
@@ -22,6 +23,13 @@ func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 // if the session is valid (exists and not expired).
 type SessionValidator interface {
 	ValidateSession(ctx context.Context, tokenHash []byte) (uuid.UUID, error)
+	TouchSession(ctx context.Context, tokenHash []byte) error
+}
+
+// TokenHashFromContext extracts the token hash from the request context.
+func TokenHashFromContext(ctx context.Context) ([]byte, bool) {
+	hash, ok := ctx.Value(tokenHashKey).([]byte)
+	return hash, ok
 }
 
 // Middleware returns an HTTP middleware that extracts a Bearer token from
@@ -54,7 +62,11 @@ func Middleware(validator SessionValidator) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Update session last_active_at (fire-and-forget, non-blocking)
+			go validator.TouchSession(context.Background(), tokenHash)
+
 			ctx := context.WithValue(r.Context(), userIDKey, userID)
+			ctx = context.WithValue(ctx, tokenHashKey, tokenHash)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

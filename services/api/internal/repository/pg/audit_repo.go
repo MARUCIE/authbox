@@ -90,9 +90,10 @@ func (r *AuditRepository) ListEvents(ctx context.Context, userID uuid.UUID, limi
 }
 
 func (r *AuditRepository) VerifyChain(ctx context.Context, userID uuid.UUID) (bool, int, error) {
+	// Limit to most recent 10,000 events to prevent OOM on large audit trails
 	query := `SELECT actor_type, actor_id, action, resource_type, resource_id,
 		decision, event_hash, prev_event_hash, created_at
-		FROM audit_events WHERE user_id = $1 ORDER BY created_at ASC`
+		FROM audit_events WHERE user_id = $1 ORDER BY created_at ASC LIMIT 10000`
 
 	rows, err := r.pool.Query(ctx, query, userID)
 	if err != nil {

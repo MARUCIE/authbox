@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/mail"
 	"strings"
+	"sync"
+	"time"
 
 	"auth-box-api/internal/auth"
 	appmw "auth-box-api/internal/middleware"
@@ -19,6 +21,35 @@ import (
 
 type AuthHandler struct {
 	authService *service.AuthService
+	emailLimiter emailRateLimit
+}
+
+// emailRateLimit prevents email enumeration via registration/login brute-force.
+// 3 attempts per email per 5 minutes.
+type emailRateLimit struct {
+	mu      sync.Mutex
+	entries map[string]emailEntry
+}
+
+type emailEntry struct {
+	count int
+	start time.Time
+}
+
+func (rl *emailRateLimit) allow(email string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	if rl.entries == nil {
+		rl.entries = make(map[string]emailEntry)
+	}
+	e, ok := rl.entries[email]
+	if !ok || time.Since(e.start) > 5*time.Minute {
+		rl.entries[email] = emailEntry{count: 1, start: time.Now()}
+		return true
+	}
+	e.count++
+	rl.entries[email] = e
+	return e.count <= 3
 }
 
 func NewAuthHandler(authService *service.AuthService) *AuthHandler {
@@ -39,6 +70,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// RFC 5321 email format validation via net/mail.
 	if _, err := mail.ParseAddress(req.Email); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid email format", "BAD_REQUEST")
+		return
+	}
+	// Per-email rate limit to prevent enumeration
+	if !h.emailLimiter.allow(strings.ToLower(req.Email)) {
+		writeError(w, http.StatusTooManyRequests, "too many attempts for this email", "RATE_LIMITED")
 		return
 	}
 
@@ -78,6 +114,12 @@ func (h *AuthHandler) LoginInit(w http.ResponseWriter, r *http.Request) {
 
 	if req.Email == "" || req.ClientPublicA == "" {
 		writeError(w, http.StatusBadRequest, "missing required fields", "BAD_REQUEST")
+		return
+	}
+
+	// Per-email rate limit to prevent enumeration
+	if !h.emailLimiter.allow(strings.ToLower(req.Email)) {
+		writeError(w, http.StatusTooManyRequests, "too many attempts for this email", "RATE_LIMITED")
 		return
 	}
 
