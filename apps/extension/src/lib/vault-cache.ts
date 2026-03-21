@@ -10,10 +10,7 @@
 
 import { deriveKeys, decryptVaultKey, decryptVaultItem } from '@authbox/crypto';
 import type { LoginItem, VaultItem, EncryptedVaultItem, ItemType } from '@authbox/shared';
-
-// ── Configuration ───────────────────────────────────────────────────────────
-
-const API_BASE = 'https://underground-alcohol-insulin-bit.trycloudflare.com';
+import { API_BASE } from './config';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GenericResponse, SearchResponse, StatusResponse } from '@/lib/messages';
+import { API_BASE, VAULT_URL } from '@/lib/config';
 
 const SEARCH_DEBOUNCE_MS = 200;
-const VAULT_URL = 'http://localhost:3010';
-const API_BASE = 'https://underground-alcohol-insulin-bit.trycloudflare.com';
 
 type SearchResult = SearchResponse['results'][number];
 
