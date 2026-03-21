@@ -16,6 +16,12 @@ import {
   getProvider,
   getCategory,
 } from '@authbox/shared';
+import {
+  checkCredentialHealth,
+  hasHealthCheck,
+  type HealthCheckResult,
+  type HealthStatus,
+} from '@/lib/credential-health';
 
 type ViewMode = 'browse' | 'import-upload' | 'import-preview' | 'import-progress' | 'import-done';
 
@@ -31,6 +37,8 @@ export default function ApiKeysPage() {
   const [importResult, setImportResult] = useState<EnvImportResult | null>(null);
   const [selectedProviders, setSelectedProviders] = useState<Set<string>>(new Set());
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0, errors: 0 });
+  const [healthResults, setHealthResults] = useState<Map<string, HealthCheckResult>>(new Map());
+  const [checkingHealth, setCheckingHealth] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
@@ -151,6 +159,38 @@ export default function ApiKeysPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
     syncVault();
   }, []);
+
+  // ── Health Check ───────────────────────────────────────────────────────
+
+  const runHealthCheck = useCallback(async (item: DecryptedVaultItem) => {
+    const data = item.data as Record<string, string>;
+    const providerId = data?.providerId;
+    if (!providerId || !hasHealthCheck(providerId)) return;
+
+    setCheckingHealth((prev) => new Set(prev).add(item.id));
+
+    const fields = data?.credentials
+      ? (typeof data.credentials === 'string' ? JSON.parse(data.credentials) : data.credentials)
+      : { api_key: data?.keyValue, ...data };
+
+    const result = await checkCredentialHealth(providerId, fields as Record<string, string>);
+    setHealthResults((prev) => new Map(prev).set(item.id, result));
+    setCheckingHealth((prev) => {
+      const next = new Set(prev);
+      next.delete(item.id);
+      return next;
+    });
+  }, []);
+
+  const statusColor = (s: HealthStatus): string => {
+    switch (s) {
+      case 'valid': return 'var(--primary)';
+      case 'invalid': return 'var(--destructive)';
+      case 'expired': return 'var(--secondary)';
+      case 'quota_exceeded': return 'var(--secondary)';
+      default: return 'var(--muted-foreground)';
+    }
+  };
 
   // ── Toggle Provider Selection ─────────────────────────────────────────
 
@@ -422,6 +462,31 @@ export default function ApiKeysPage() {
                             {data?.keyName ?? data?.service ?? ''}
                           </p>
                         </div>
+                        {/* Health check */}
+                        {data?.providerId && hasHealthCheck(data.providerId) && (
+                          checkingHealth.has(item.id) ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full animate-pulse" style={{ background: 'var(--surface-highest)' }}>
+                              checking...
+                            </span>
+                          ) : healthResults.has(item.id) ? (
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full cursor-pointer"
+                              style={{ color: statusColor(healthResults.get(item.id)!.status), background: 'var(--surface-highest)' }}
+                              title={`${healthResults.get(item.id)!.message} (${healthResults.get(item.id)!.latencyMs}ms)`}
+                              onClick={() => runHealthCheck(item)}
+                            >
+                              {healthResults.get(item.id)!.status} {healthResults.get(item.id)!.latencyMs}ms
+                            </span>
+                          ) : (
+                            <button
+                              className="text-xs px-2 py-0.5 rounded-full transition-colors hover:bg-[var(--surface-highest)]"
+                              style={{ color: 'var(--muted-foreground)' }}
+                              onClick={() => runHealthCheck(item)}
+                            >
+                              verify
+                            </button>
+                          )
+                        )}
                         <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--surface-highest)' }}>
                           {(data?.keyValue ?? '').slice(0, 8)}...
                         </span>
