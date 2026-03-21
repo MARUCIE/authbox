@@ -151,10 +151,12 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | M3.9 | v3 Unstoppable Layer (Seed Phrase + HD Keys + Deterministic Passwords) | DONE |
 | M4.0 | Production Deploy (CF Pages + authbox.io + E2E Test + Security Headers) | DONE |
 | M4.1 | Launch Kit (Remotion Video + PH/HN/Twitter Copy + MIT + README) | DONE |
-| M5.0 | Go API VPS Deploy (PG + Redis + Docker, full CRUD online) | PLANNED (P0) |
-| M5.1 | Market Validation (Show HN + 10 paying users) | PLANNED (P0) |
-| M5.2 | Five Primitives Engine (Capability/Intent/Policy/Effect/Fact) | PLANNED (P1, after user validation) |
-| M6.0 | Permanent Storage EXPERIMENTAL (Arweave vault blobs + Bitcoin anchoring) | EXPERIMENTAL (10-user pilot) |
+| M5.0 | Unstoppable Core: Arweave permanent vault + Go API deploy | PLANNED (P0) |
+| M5.1 | Unstoppable Core: Bitcoin hash anchoring + Fact chain | PLANNED (P0) |
+| M5.2 | Market Launch (Show HN + authbox.io full-stack live) | PLANNED (P0) |
+| M5.3 | Five Primitives Engine (Capability/Intent/Policy/Effect/Fact) | PLANNED (P1) |
+| M6.0 | AGI Digital Identity: DID:ethr + Verifiable Credentials + Passkey derivation | PLANNED (v4 vision) |
+| M6.1 | AGI Digital Identity: Agent-to-Agent trust protocol + delegation chain | PLANNED (v5 vision) |
 | M6 | Desktop + Mobile + 团队功能 | Post-MVP |
 
 ## 当前状态
