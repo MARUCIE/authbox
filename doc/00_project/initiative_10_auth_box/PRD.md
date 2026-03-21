@@ -151,32 +151,34 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | M3.9 | v3 Unstoppable Layer (Seed Phrase + HD Keys + Deterministic Passwords) | DONE |
 | M4.0 | Production Deploy (CF Pages + authbox.io + E2E Test + Security Headers) | DONE |
 | M4.1 | Launch Kit (Remotion Video + PH/HN/Twitter Copy + MIT + README) | DONE |
-| M5.0 | Unstoppable Core: Arweave permanent vault + Go API deploy | PLANNED (P0) |
-| M5.1 | Unstoppable Core: Bitcoin hash anchoring + Fact chain | PLANNED (P0) |
-| M5.2 | Market Launch (Show HN + authbox.io full-stack live) | PLANNED (P0) |
-| M5.3 | Five Primitives Engine (Capability/Intent/Policy/Effect/Fact) | PLANNED (P1) |
-| M6.0 | AGI Digital Identity: DID:ethr + Verifiable Credentials + Passkey derivation | PLANNED (v4 vision) |
-| M6.1 | AGI Digital Identity: Agent-to-Agent trust protocol + delegation chain | PLANNED (v5 vision) |
-| M6 | Desktop + Mobile + 团队功能 | Post-MVP |
+| M5.0 | Arweave permanent vault (client lib + E2E tests) | DONE |
+| M5.1 | AI 基建凭据目录 (70+ providers / 15 categories / .env 导入) | DONE |
+| M5.2 | 凭据健康检查 (20 provider verifiers) | DONE |
+| M5.3 | 蜂群安全审计 (9/9 FIXED) + 性能审计 (8/8 FIXED) | DONE |
+| M5.4 | Market Launch (Show HN + authbox.io full-stack live) | PLANNED (P0) |
+| M5.5 | Five Primitives Engine (Capability/Intent/Policy/Effect/Fact) | PLANNED (P1) |
+| M6.0 | Bitcoin hash anchoring + Fact chain | PLANNED |
+| M6.1 | AGI Digital Identity: DID:ethr + Verifiable Credentials + Passkeys | PLANNED (v4 vision) |
+| M6.2 | AGI Digital Identity: Agent-to-Agent trust + delegation chain | PLANNED (v5 vision) |
+| M7 | Desktop + Mobile + 团队功能 | Post-MVP |
 
 ## 当前状态
 
-- Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-7 Hardening + M3.8 全部完成
-- 构建通过：13/13 Web pages + Console 全部 pages, 0 errors
-- 7 条用户旅程 (A-G) 全部 PASS
-- 9/9 Web App 路由 HTTP 200
-- 20/20 API endpoints tested against real PostgreSQL + Go API (no mock)
-- SRP-6a 协议修复 (M1 K=H(S) 对齐) + 6 测试 PASS
-- TOTP 2FA 集成到登录流程 (totpRequired + LoginVerifyTOTP)
-- Repository 接口化 (6 interfaces in domain/repository.go)
-- 14/14 审计问题全部修复 (4 P0 + 4 P1 + 4 P2 + 2 P3)
-- Vault Onyx 设计系统统一 Web + Console 两个 App (Stitch 10 屏原型)
-- v3 Unstoppable Layer: BIP-39 种子词 + HD 密钥派生 (21 tests PASS)
-- 确定性密码派生: seed + site → password (无需存储)
-- 新增 /create (种子词 onboarding) + /restore (种子词恢复) 页面
-- 13 源密码导入器 (Apple/Google/Chrome/Edge/Firefox/1Password/Bitwarden/LastPass/Dashlane/KeePass/Samsung/NordPass/Enpass)
-- 2 轮蜂群战略思考 (10 位顾问): AGI 战略 + Unstoppable 学习
-- 22 commits pushed to GitHub (4c3b0b2 → 5aacf59)
+- Phase 0-4 + UX Round 1-2 + Round 3-13 全部完成
+- 构建通过：7/7 packages, 16/16 pages, 0 errors
+- 131 自动化测试 ALL PASS (Go 25 + Crypto 53 + E2E 53)
+- 8 条用户旅程 (A-H) 全部 PASS, 52/52 验证点
+- 28/28 API 端点 HTTP status codes 正确
+- VPS 部署: CF Pages → Cloudflare Tunnel → VPS:4010 (Go API) → PG:5410 (migration v8)
+- SRP-6a 零知识登录 + TOTP 2FA (srpVerified 门卫防绕过)
+- 13 源密码导入器 + .env 自动分类 (100+ env var patterns)
+- 70+ AI 基建 Provider 凭据模板 (15 categories)
+- 20 provider 凭据健康检查 (OpenAI/Anthropic/AWS/GitHub...)
+- 蜂群安全审计: 9/9 findings FIXED (HIGH TOTP bypass + 8 MEDIUM/LOW)
+- 蜂群性能审计: 8/8 findings FIXED (indexes + cache + parallel fetch)
+- Arweave unstoppable recovery flow verified (seed → key → encrypt → decrypt)
+- Chrome MV3 Extension: build PASS, config 单一来源 (lib/config.ts)
+- 35 commits pushed to GitHub
 
 ---
 

@@ -755,21 +755,82 @@ graph TD
 |------|------|------|
 | Phase 0 | Monorepo + Crypto + API 骨架 | DONE |
 | Phase 1 | Vault CRUD + Generator + Search + Audit | DONE |
-| Phase 2 | Agent CRUD + OAuth + Import | DONE |
-| Phase 3 | MCP Gateway + Extension | DONE |
-| Phase 4 | 2FA + Sessions + Rate Limiting | DONE |
-| UX Round 1 | 12/12 UI/UX fixes | DONE |
-| UX Round 2 | 7/7 Journey simulation PASS | DONE |
-| Phase 5 | BIP-39 Seed Phrase + HD Key Derivation + Deterministic Passwords | PLANNED |
+| Phase 2 | Agent CRUD + OAuth + Import (13 格式) | DONE |
+| Phase 3 | MCP Gateway + Extension (Chrome MV3) | DONE |
+| Phase 4 | 2FA (TOTP) + Sessions + Rate Limiting | DONE |
+| UX Round 1-2 | 12/12 fixes + 7/7 Journey PASS | DONE |
+| Round 3 | 20/20 real API endpoints tested (no mock) | DONE |
+| Round 4-7 | 50 security/performance optimizations | DONE |
+| Phase 5 | BIP-39 Seed + HD Key Derivation (packages/crypto/seed.ts) | DONE |
+| Phase 7 | Arweave Permanent Storage (arweave-vault.ts) | DONE (client lib) |
+| Round 8 | Fixed-window rate limiter + Arweave E2E tests | DONE |
+| Round 9 | Go middleware test suite (19 tests) | DONE |
+| Round 10 | Full-stack SRP E2E rewrite (53 tests, real crypto) | DONE |
+| Phase 10 | AI 基建凭据目录 (70+ providers / 15 categories) | DONE |
+| Phase 11 | .env 导入 + API Keys 页面 + 健康检查 (20 providers) | DONE |
+| Round 11 | UX Map 全量模拟测试 (8/8 journeys, 52/52 验证点) | DONE |
+| Round 12 | 蜂群安全审计 (9/9 findings FIXED) | DONE |
+| Round 13 | 蜂群性能审计 (8/8 quick wins FIXED) | DONE |
 | Phase 6 | Ed25519 Auth + Passkeys (WebAuthn) | PLANNED |
-| Phase 7 | Arweave Permanent Storage + IPFS Backup | PLANNED |
 | Phase 8 | Bitcoin Hash Anchoring + Fact Chain | PLANNED |
-| Phase 9 | Five Primitives Policy Engine | PLANNED |
+| Phase 9 | Five Primitives Policy Engine (full) | PLANNED |
 
-## 13. 系统边界
+### 测试覆盖
 
-- **In-scope**: 密码管理、种子词主权、确定性密码、OAuth 连接管理、AI Agent 凭据网关（五原语）、永久去中心化存储、审计日志（哈希链 + Bitcoin 锚定）
-- **Out-of-scope**: 企业级 IAM、通用 API 网关、联邦身份、加密货币钱包功能
+| 层 | 数量 | 覆盖内容 |
+|----|------|----------|
+| Go unit | 25 | SRP (6) + rate limiter (8) + security middleware (11) |
+| TS crypto | 53 | AES-GCM (22) + BIP-39/HD (21) + Arweave vault (10) |
+| E2E API | 53 | Real SRP login + vault/agent/audit/session CRUD + security headers |
+| **Total** | **131** | **ALL PASS** |
+
+### 安全加固 (2026-03-21 蜂群审计)
+
+| 修复 | 级别 |
+|------|------|
+| TOTP 绕过 SRP 门卫 (srpVerified flag) | HIGH |
+| TOTP 时序攻击 (subtle.ConstantTimeCompare) | MEDIUM |
+| Session TTL 外化 (AUTH_BOX_SESSION_TTL_HOURS) | MEDIUM |
+| Logout 跨会话防护 (DeleteByTokenHashAndUser) | MEDIUM |
+| Production CORS 误配检测 | MEDIUM |
+| AES-GCM nonce/tag 长度校验 | LOW |
+| Per-email rate limit (3/5min) | MEDIUM |
+| Session activity tracking (TouchSession) | MEDIUM |
+| Audit chain 分页 (LIMIT 10K) | LOW |
+
+### 性能优化 (2026-03-21)
+
+| 优化 | 效果 |
+|------|------|
+| 5 composite indexes (user_id, created_at DESC) | 20x query speedup |
+| ListAgents/Connections LIMIT 200 | 防无界查询 OOM |
+| Extension vault cache 10K cap | 防内存溢出 |
+| Extension parallel fetch (Promise.all) | Unlock ~40% faster |
+| .dockerignore | ~35% smaller image |
+
+## 13. AI 基建凭据目录
+
+Auth Box 不仅管理密码，还是 **AI Agent 基建凭据中枢**：
+
+| 分类 | Providers | 代表 |
+|------|-----------|------|
+| LLM | 15 | OpenAI, Anthropic, Google AI, xAI, DeepSeek, Qwen, Mistral... |
+| Image/Video | 10 | Stability, Replicate, RunwayML, HeyGen, ElevenLabs, Kling... |
+| Embedding/Vector | 7 | Pinecone, Weaviate, Qdrant, Voyage, Jina... |
+| Search/Web | 7 | Brave, SerpAPI, Tavily, Exa, Perplexity... |
+| Cloud | 9 | AWS, GCP, Azure, Cloudflare, Vercel, Railway... |
+| Code/Dev | 7 | GitHub, GitLab, Supabase, Neon, Turso, Upstash... |
+| Communication | 7 | Telegram, Discord, Slack, SendGrid, Twilio... |
+| Observability | 8 | Sentry, Datadog, Helicone, LangSmith, Langfuse... |
+| Other | 18 | Payment, Auth, Storage, Analytics, Workflow, Container... |
+
+**导入方式**: 拖拽 .env 文件 → 100+ env var 模式自动分类 → 勾选 → 批量加密入库
+**健康检查**: 20 个 provider 一键验证 Key 有效性 (valid/invalid/expired/quota_exceeded)
+
+## 14. 系统边界
+
+- **In-scope**: 密码管理、种子词主权、AI 基建凭据中枢（70+ providers）、OAuth 连接管理、AI Agent 凭据网关（MCP + 五原语）、永久去中心化存储（Arweave）、审计日志（哈希链）、.env 自动导入
+- **Out-of-scope**: 企业级 IAM、通用 API 网关、联邦身份、加密货币钱包功能、Bitcoin 锚定（Phase 8）
 
 ---
 
