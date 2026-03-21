@@ -13,6 +13,8 @@ Every password manager asks you to trust them. Auth Box asks you to trust **math
 - **Passwords Without Storage** -- Derive passwords deterministically from your seed + site name. Your vault can literally be empty.
 - **AI Agent Gateway** -- Give AI assistants controlled access to credentials via MCP protocol, with policy-gated, auditable delegation.
 - **Import Everything** -- Migrate from 13 sources: Apple, Google, Chrome, Edge, Firefox, 1Password, Bitwarden, LastPass, Dashlane, KeePass, Samsung Pass, NordPass, Enpass.
+- **AI Infrastructure Hub** -- Manage API keys for 70+ providers (OpenAI, Anthropic, AWS, Stripe...). Drag-drop .env files to auto-import. One-click health checks verify keys are valid.
+- **Arweave Permanent Storage** -- Archive your encrypted vault to Arweave for permanent, decentralized backup. Recovery works even without Auth Box servers.
 
 ## The Unstoppable Promise
 
@@ -100,8 +102,9 @@ services/
 | `make dev-full` | Start everything |
 | `make build` | Build all packages |
 | `make test` | Run all tests |
-| `make test-api` | Run Go API tests (6 SRP tests) |
-| `make test-crypto` | Run crypto tests (21 seed tests) |
+| `make test-api` | Run Go API tests (25 tests) |
+| `make test-crypto` | Run crypto tests (53 tests) |
+| `npx tsx scripts/e2e-test.mjs` | Run E2E tests against live API (53 tests) |
 
 ## Design System
 
@@ -117,10 +120,15 @@ services/
 ## Tests
 
 ```
-Go API:    6/6  SRP-6a protocol tests (handshake, wrong password, zero A/verifier)
-Crypto:   21/21 BIP-39 + HD derivation + deterministic passwords
-Build:    15/15 Web pages, 34/34 Console pages, 0 errors
+Go API:     25/25  SRP auth (6) + rate limiter (8) + security middleware (11)
+Crypto:     53/53  AES-GCM (22) + BIP-39/HD (21) + Arweave vault (10)
+E2E:        53/53  Real SRP login + vault/agent/audit/session CRUD + security
+Build:      16/16  Web pages, 0 errors
+Total:     131/131  ALL PASS
 ```
+
+Security audit: 9 findings fixed (TOTP bypass, timing attack, session scoping...)
+Performance audit: 8 optimizations applied (composite indexes, cache limits, parallel fetch...)
 
 ## Comparison
 
@@ -131,7 +139,8 @@ Build:    15/15 Web pages, 34/34 Console pages, 0 errors
 | Deterministic passwords | No | No | No | **Yes** |
 | AI Agent gateway | Unified Access | No | No | **MCP + Policies** |
 | Open source client | No | Yes | No | **Yes (MIT)** |
-| Import sources | Few | 8 | Apple only | **13** |
+| Import sources | Few | 8 | Apple only | **13 + .env auto-import** |
+| AI API key management | No | No | No | **70+ providers, health checks** |
 | Company disappears | Data at risk | Self-host option | Locked | **24 words = recovery** |
 
 ## Contributing
@@ -146,6 +155,6 @@ Auth Box is MIT licensed. PRs welcome.
 
 ---
 
-**Auth Box v3** -- Zero Knowledge Identity Gateway
+**Auth Box v5** -- Zero Knowledge Identity Gateway + AI Credential Hub
 
 Maurice | maurice_wen@proton.me
