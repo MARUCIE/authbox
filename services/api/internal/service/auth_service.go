@@ -53,9 +53,10 @@ type LoginVerifyResponse struct {
 
 // pendingLogin holds ephemeral server-side SRP state between init and verify.
 type pendingLogin struct {
-	srp       *auth.SRPServer
-	user      *domain.User
-	createdAt time.Time
+	srp         *auth.SRPServer
+	user        *domain.User
+	createdAt   time.Time
+	srpVerified bool // set to true after SRP proof succeeds (guards TOTP bypass)
 }
 
 type AuthService struct {
@@ -189,8 +190,10 @@ func (s *AuthService) LoginVerify(ctx context.Context, email string, clientA, cl
 		return nil, errors.New("invalid credentials")
 	}
 
-	// Check if TOTP 2FA is enabled — if so, require TOTP before issuing session
+	// Check if TOTP 2FA is enabled — if so, require TOTP before issuing session.
+	// Mark SRP as verified so LoginVerifyTOTP can confirm proof was completed.
 	if pl.user.TOTPEnabled {
+		pl.srpVerified = true
 		return &LoginVerifyResponse{
 			ServerProofM2: base64.StdEncoding.EncodeToString(m2),
 			TOTPRequired:  true,
@@ -221,7 +224,7 @@ func (s *AuthService) issueSession(ctx context.Context, user *domain.User, m2 []
 		DeviceName: deviceFromUA(userAgent),
 		IPAddress:  ipAddress,
 		UserAgent:  userAgent,
-		ExpiresAt:  time.Now().Add(7 * 24 * time.Hour),
+		ExpiresAt:  time.Now().Add(s.sessionTTL),
 	}
 
 	if err := s.sessionRepo.Create(ctx, session); err != nil {
@@ -240,14 +243,21 @@ func (s *AuthService) issueSession(ctx context.Context, user *domain.User, m2 []
 
 // LoginVerifyTOTP completes login when TOTP 2FA is required.
 // Called after LoginVerify returns totpRequired=true.
+//
+// Security: requires that SRP proof was completed first (srpVerified=true).
+// Without this check, an attacker with email + TOTP seed could bypass the
+// master password entirely.
 func (s *AuthService) LoginVerifyTOTP(ctx context.Context, email, totpCode, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
-	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		return nil, err
+	// Verify SRP proof was completed before allowing TOTP
+	s.mu.Lock()
+	pl, exists := s.pending[email]
+	s.mu.Unlock()
+
+	if !exists || !pl.srpVerified {
+		return nil, errors.New("SRP authentication required before TOTP verification")
 	}
-	if user == nil {
-		return nil, errors.New("invalid credentials")
-	}
+
+	user := pl.user
 	if !user.TOTPEnabled {
 		return nil, errors.New("TOTP not enabled for this account")
 	}
@@ -259,6 +269,11 @@ func (s *AuthService) LoginVerifyTOTP(ctx context.Context, email, totpCode, ipAd
 	if !valid {
 		return nil, errors.New("invalid TOTP code")
 	}
+
+	// Clean up pending state now that login is fully complete
+	s.mu.Lock()
+	delete(s.pending, email)
+	s.mu.Unlock()
 
 	// TOTP verified — issue session (m2 already sent in prior response)
 	return s.issueSession(ctx, user, nil, ipAddress, userAgent)

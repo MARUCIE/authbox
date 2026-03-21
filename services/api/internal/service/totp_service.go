@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/subtle"
 	"encoding/base32"
 	"encoding/binary"
 	"fmt"
@@ -123,14 +124,15 @@ func (s *TOTPService) Check(ctx context.Context, userID uuid.UUID, code string) 
 }
 
 func validateTOTP(secret []byte, code string, now time.Time) bool {
-	// Allow 1 step window (30s before, current, 30s after)
+	// Allow 1 step window (30s before, current, 30s after).
+	// Uses constant-time comparison to prevent timing attacks.
 	counter := now.Unix() / 30
+	match := 0
 	for i := int64(-1); i <= 1; i++ {
-		if generateTOTP(secret, counter+i) == code {
-			return true
-		}
+		expected := generateTOTP(secret, counter+i)
+		match |= subtle.ConstantTimeCompare([]byte(expected), []byte(code))
 	}
-	return false
+	return match == 1
 }
 
 func generateTOTP(secret []byte, counter int64) string {

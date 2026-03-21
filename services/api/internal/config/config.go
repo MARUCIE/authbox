@@ -21,13 +21,14 @@ type Config struct {
 }
 
 func Load() Config {
+	sessionHours := getEnvInt("AUTH_BOX_SESSION_TTL_HOURS", 168) // default 7 days
 	return Config{
 		HTTPAddr:       getEnv("AUTH_BOX_HTTP_ADDR", ":8080"),
 		DBDSN:          getEnv("AUTH_BOX_DB_DSN", ""),
 		RedisURL:       getEnv("AUTH_BOX_REDIS_URL", ""),
 		Environment:    getEnv("AUTH_BOX_ENV", "local"),
 		Version:        getEnv("AUTH_BOX_VERSION", "0.1.0"),
-		SessionTTL:     7 * 24 * time.Hour,
+		SessionTTL:     time.Duration(sessionHours) * time.Hour,
 		AllowedOrigins: parseOrigins(getEnv("AUTH_BOX_ALLOWED_ORIGINS", "http://localhost:3000")),
 		AuthRateLimit:  getEnvInt("AUTH_BOX_AUTH_RATE_LIMIT", 5),
 	}
