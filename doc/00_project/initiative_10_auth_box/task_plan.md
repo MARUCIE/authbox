@@ -168,15 +168,35 @@ LastUpdated: 2026-02-24
 - [x] Full crypto test suite: 53/53 PASS (22 crypto + 21 seed + 10 arweave)
 - [x] Build: 7/7 turbo packages PASS
 
+## Round 9: Go Middleware Test Suite (DONE)
+
+- [x] Rate limiter tests (8): within-limit, over-limit, Retry-After accuracy, per-IP isolation, window reset, rejected-requests-dont-extend (regression guard), XFF, response body
+- [x] Security middleware tests (11): SecurityHeaders, RequireJSON, PNA, ClientIP, BodySizeLimit
+- [x] Go test suite: 25/25 PASS (6 SRP + 8 rate limiter + 11 security)
+
+## Round 10: Full-Stack E2E Rewrite (DONE)
+
+- [x] Real SRP-6a authentication: srpGenerateVerifier + srpClientInit + srpClientVerify (TypeScript crypto)
+- [x] Vault CRUD lifecycle: create(credential) → list → get → update → delete → verify 404
+- [x] Agent CRUD lifecycle: create → list → get → update → delete
+- [x] Audit trail: list events + chain integrity verification
+- [x] Session management: list active sessions
+- [x] TOTP status: check disabled for new user
+- [x] Logout + token invalidation: logout → verify token rejected
+- [x] Security: unauthenticated rejection (5 endpoints), fake token, content-type, headers
+- [x] E2E: 53/53 ALL PASS (12 test groups, real SRP login)
+
 ## 当前状态
 
-- 所有 MVP 功能阶段已完成（Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-8）
+- 所有 MVP 功能阶段已完成（Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-10）
 - 构建通过：7/7 packages (incl. video), 13 pages, 0 errors
-- E2E: 21/21 API tests PASS, 53/53 crypto tests PASS
+- Test suite: Go 25 + Crypto 53 + E2E 53 = **131 tests ALL PASS**
 - 7/7 UX Map Journeys PASS, 9/9 routes HTTP 200
 - Round 3: 20/20 real API endpoints tested (PostgreSQL + Go API, no mock)
 - Round 4-7: 50 security/performance optimizations
-- Round 8: Rate limiter bug fix + Arweave test suite + VPS redeployed
+- Round 8: Fixed-window rate limiter + Arweave test suite + VPS redeployed
+- Round 9: Go middleware test suite (rate limiter + security)
+- Round 10: Full-stack SRP E2E rewrite (vault + agent + audit + session + TOTP + logout)
 - VPS topology: CF Pages → Cloudflare Tunnel → VPS:4010 (Go API) → PG:5410
 - Repository 接口化: DONE (domain/repository.go, 6 interfaces, DDD pattern)
 - TOTP 前后端对接: DONE (4 endpoints + Settings UI)
@@ -191,6 +211,7 @@ LastUpdated: 2026-02-24
 - 2026-02-24: Phase 0-4 全部完成，进入 UX 优化阶段。
 - 2026-02-24: UX Round 1 完成 12/12 fixes，进入 Round 2 ralph loop。
 - 2026-03-21: Rate limiter 从滑动窗口改为固定窗口 (fixed-window)。原设计在拒绝请求时也刷新窗口，导致 429 无法自然恢复。
+- 2026-03-21: E2E 重写为真实 SRP 登录 + 全栈 CRUD。测试总量从 70 → 131 (+87%)。
 
 ---
 
