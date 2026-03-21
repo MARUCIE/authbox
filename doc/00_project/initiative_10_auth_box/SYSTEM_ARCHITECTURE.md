@@ -3,7 +3,7 @@ Title: SYSTEM_ARCHITECTURE - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-24
+LastUpdated: 2026-03-21
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -18,115 +18,557 @@ Related:
 - **RULE**: Always run tasks against the project root. If the CLI detects a mismatch, it will update this block.
 <!-- AI-TOOLS:PROJECT_DIR:END -->
 
-# 系统架构 - Auth Box v2
+# 系统架构 - Auth Box v5 (Unstoppable Edition)
 
-## 概览
+## 1. 概览
 
-Auth Box v2 采用零知识架构：**客户端持有解密后的 Vault，服务端仅存储加密后的 Blob**。Master Password 永不离开客户端，服务端无法解密任何凭据。
+Auth Box v5 在零知识架构基础上演进为 **不可阻挡架构**：即使公司倒闭、服务器下线、设备丢失，用户仅凭一张纸上的 24 个助记词即可恢复全部凭据。
 
 核心原则：
-- 加密/解密全部在客户端完成
-- 服务端仅做加密数据的 CRUD 与访问控制
-- AI Agent 通过 MCP 网关获取凭据，受策略引擎管控
 
-## 高层架构
+- **零知识架构**：加密/解密全部在客户端完成，服务端永远无法解密任何凭据
+- **种子词主权**：BIP-39 助记词（24 词）是唯一恢复机制，取代 Master Password 的单点依赖
+- **本地优先**：Vault 离线可用，服务器仅为可选同步层
+- **永久存储**：Arweave 存储加密 Vault Blob（一次付费、永久保存），Bitcoin/ETH 锚定哈希（防篡改证明）
+- **五原语架构**：Capability / Intent / Policy / Effect / Fact，构建 Agent 凭据治理的最小完备模型
+
+## 2. 架构演进 (v1 -> v5)
+
+| 版本 | 架构范式 | 核心能力 | 状态 |
+|------|---------|---------|------|
+| v1 | Flat CRUD | 基础密码管理，服务端加密 | DONE |
+| v2 | DDD + Zero-Knowledge + MCP Gateway | 客户端加密、SRP-6a 认证、AI Agent 凭据网关 | DONE |
+| v3 | Seed Phrase Sovereignty + Deterministic Passwords | BIP-39 助记词、HD 密钥派生、确定性密码生成 | PLANNED |
+| v4 | Cryptographic Identity | Passkeys (WebAuthn) + DID 去中心化身份 | PLANNED |
+| v5 | Permanent Decentralized Storage | Arweave 永久存储 + Bitcoin 哈希锚定 | PLANNED |
+
+每个版本向下兼容前一版本的数据，但不维护兼容代码层。升级即迁移，迁移即单向。
+
+## 3. 高层架构
 
 ```mermaid
 graph TD
-    subgraph Client Layer
-        WEB[Web App - Next.js 15]
-        EXT[Chrome Extension - MV3]
+    subgraph "Layer 3: CONVENIENCE (可选)"
+        CLOUD[Auth Box Cloud<br/>Go API + PG + Redis]
+        WEB[authbox.io<br/>CF Pages + Next.js 15]
+        EXT[Chrome Extension MV3]
         DESK[Desktop App - Tauri]
         MOBILE[Mobile App - RN]
     end
 
-    subgraph MCP Gateway
-        MCP_SRV[MCP Server ws://localhost:19876]
+    subgraph "Layer 2: SYNC (可选, 可替换)"
+        CRDT[CRDT Merge Engine]
+        RELAY[Cloud Relay Transport]
+        P2P[P2P Transport]
+        WEBDAV[WebDAV Transport]
+        EXPORT[Manual Export/Import]
     end
 
-    subgraph Server Layer
-        API[Go API Service]
-        POLICY[Policy Engine]
-        AUDIT[Audit Logger]
+    subgraph "Layer 1: CORE (不可阻挡)"
+        VAULT[Local Encrypted Vault<br/>seed phrase → HD key derivation]
+        DERIVE[Deterministic Password Derivation<br/>seed + site → password]
+        ARWEAVE[Arweave Permanent Storage<br/>encrypted blob, one-time payment]
+        ANCHOR[Bitcoin/ETH Hash Anchoring<br/>tamper-proof proof of existence]
     end
 
-    subgraph Storage Layer
-        DB[(PostgreSQL 16)]
-        CACHE[(Redis 7)]
-    end
-
-    subgraph External
+    subgraph "External"
         AGENT[AI Agent / Claude / GPT]
-        OAUTH[OAuth Providers]
+        MCP_SRV[MCP Gateway<br/>ws://localhost:19876]
+        POLICY[Policy Engine<br/>五原语架构]
     end
 
-    WEB --> API
-    EXT --> API
-    EXT --> MCP_SRV
-    DESK --> API
-    MOBILE --> API
+    WEB --> CLOUD
+    EXT --> CLOUD
+    DESK --> CLOUD
+    MOBILE --> CLOUD
+
+    CLOUD --> CRDT
+    CRDT --> RELAY
+    CRDT --> P2P
+    CRDT --> WEBDAV
+    CRDT --> EXPORT
+
+    RELAY --> VAULT
+    P2P --> VAULT
+    WEBDAV --> VAULT
+    EXPORT --> VAULT
+
+    VAULT --> DERIVE
+    VAULT --> ARWEAVE
+    VAULT --> ANCHOR
+    ARWEAVE -.->|recovery| VAULT
 
     AGENT --> MCP_SRV
-    MCP_SRV --> EXT
     MCP_SRV --> POLICY
-    MCP_SRV --> AUDIT
-
-    API --> DB
-    API --> CACHE
-    API --> AUDIT
-    API --> POLICY
-    API --> OAUTH
-
-    AUDIT --> DB
+    POLICY --> VAULT
 ```
 
-## 加密设计
+三层设计的关键洞察：**从外向内逐层剥离，核心层零依赖**。
 
-### 密钥派生流程
+- Layer 3 倒了 → Layer 1+2 继续工作（本地 + P2P/WebDAV 同步）
+- Layer 2 倒了 → Layer 1 继续工作（纯本地 + 手动导出）
+- Layer 1 设备丢了 → 助记词 + Arweave = 完整恢复
+
+## 4. 密钥派生体系
+
+v5 将密钥派生从 Master Password 迁移到 BIP-39 助记词，采用 HD (Hierarchical Deterministic) 分层确定性派生：
 
 ```
-Master Password
-       |
-       v
-  Argon2id(password, email_as_salt, m=64MB, t=3, p=4)
-       |
-       v
-  Master Key (32 bytes)
-       |
-       +---> HKDF("auth")   ---> Auth Key     (用于 SRP-6a 认证)
-       |
-       +---> HKDF("enc")    ---> Encryption Key (用于包装 Vault Key)
-       |
-       +---> HKDF("mac")    ---> MAC Key       (用于完整性验证)
+seed phrase (BIP-39, 24 words)
+  → master key (PBKDF2-HMAC-SHA512, 2048 iterations)
+    → m/ABX'/vault'/0'    → vault encryption key (AES-256-GCM)
+    → m/ABX'/sync'/0'     → sync encryption key
+    → m/ABX'/auth'/0'     → authentication signing key (Ed25519)
+    → m/ABX'/agent'/n'    → per-agent delegation key (revocable)
+    → m/ABX'/derive'/n'   → deterministic password derivation
 ```
 
-### Vault Key 管理
+### 派生路径说明
+
+| 路径 | 用途 | 算法 | 轮换策略 |
+|------|------|------|---------|
+| `m/ABX'/vault'/0'` | 加密本地 Vault 和 Arweave Blob | AES-256-GCM | 不轮换（助记词不变） |
+| `m/ABX'/sync'/0'` | 加密同步传输数据 | AES-256-GCM | 按需轮换（index 递增） |
+| `m/ABX'/auth'/0'` | 签名认证请求（替代 SRP-6a） | Ed25519 | 不轮换 |
+| `m/ABX'/agent'/n'` | 为每个 AI Agent 派生独立密钥 | Ed25519 | 可单独撤销（标记 index 为废弃） |
+| `m/ABX'/derive'/n'` | 确定性密码生成（seed + domain → password） | HKDF-SHA256 | index = 密码版本号 |
+
+### 确定性密码生成
+
+```
+derive_key = HKDF(master_key, "derive")
+password = Base62(HMAC-SHA256(derive_key, domain + ":" + username + ":" + version))[:length]
+```
+
+优势：无需存储密码本体。只要记住助记词 + 知道域名，即可在任何设备上重新推导出密码。
+
+### 向后兼容：Master Password 迁移路径
+
+v2 用户升级到 v3+ 时：
+1. 用 Master Password 解锁现有 Vault
+2. 生成新的 BIP-39 助记词（或用户自带）
+3. 用新助记词派生的 vault key 重新加密全部 Vault Items
+4. 废弃 Master Password 相关密钥（Auth Key / Encryption Key / MAC Key）
+
+## 5. 五原语架构 (Hickey Model)
+
+受 Rich Hickey "values, not places" 思想启发，Agent 凭据治理抽象为五个正交原语：
 
 ```mermaid
-flowchart TD
-    A[注册时] --> B[客户端生成随机 Vault Key 256-bit]
-    B --> C[用 Encryption Key 包装 Vault Key]
-    C --> D[AES-256-GCM 加密]
-    D --> E[上传 Encrypted Vault Key 到服务端]
+flowchart LR
+    subgraph "Pure Data (不可变)"
+        INTENT[INTENT<br/>Agent 声明意图]
+        POLICY[POLICY<br/>不可变规则集]
+        FACT[FACT<br/>追加式事件日志]
+    end
 
-    F[登录时] --> G[下载 Encrypted Vault Key]
-    G --> H[用 Encryption Key 解包]
-    H --> I[得到 Vault Key]
-    I --> J[解密 Vault Items]
+    subgraph "Active (有副作用)"
+        CAP[CAPABILITY<br/>权限令牌]
+        EFFECT[EFFECT<br/>外部世界交互]
+    end
+
+    INTENT --> POLICY
+    POLICY -->|allow| CAP
+    CAP --> EFFECT
+    EFFECT --> FACT
+    POLICY -->|deny| FACT
 ```
 
-### 加密层级
+### 5.1 CAPABILITY（能力令牌）
 
-| 层级 | 密钥 | 算法 | 用途 |
-|------|------|------|------|
-| L0 | Master Password | 用户记忆 | 唯一入口 |
-| L1 | Master Key | Argon2id | 派生中间密钥 |
-| L2 | Auth Key | HKDF | SRP-6a 注册与登录 |
-| L2 | Encryption Key | HKDF | 包装/解包 Vault Key |
-| L2 | MAC Key | HKDF | 数据完整性 |
-| L3 | Vault Key | Random 256-bit | 加解密所有 Vault Items |
+Agent 持有的是权限令牌（capability token），而非凭据本身。Vault 持有凭据。
 
-## SRP-6a 认证流程
+```typescript
+interface Capability {
+  agent_id: string;        // per-agent delegation key 签发
+  resource: string;        // e.g. "github.com/api"
+  actions: string[];       // ["read", "write"]
+  constraints: {
+    ttl_seconds: number;   // 令牌有效期
+    max_uses: number;      // 最大使用次数
+    ip_allowlist?: string[];
+  };
+  signature: string;       // Ed25519 签名（auth key）
+}
+```
+
+### 5.2 INTENT（意图声明）
+
+纯数据，不可变。AI Agent 声明它想做什么，不包含任何执行逻辑。
+
+```typescript
+interface Intent {
+  id: string;
+  agent_id: string;
+  action: "get_credential" | "proxy_request" | "rotate_password";
+  resource: string;
+  context: Record<string, unknown>;  // Agent 提供的上下文
+  timestamp: string;       // ISO 8601
+}
+```
+
+### 5.3 POLICY（策略规则）
+
+不可变、版本化的规则集。匹配条件 + 要求 + 效果。信任层级自然涌现。
+
+```typescript
+interface Policy {
+  id: string;
+  version: number;
+  match: {
+    agent_type?: string;
+    resource_pattern: string;   // glob pattern
+    action: string;
+  };
+  require: {
+    trust_tier: "T0" | "T1" | "T2" | "T3";
+    mfa?: boolean;
+    human_approval?: boolean;
+  };
+  effect: "allow" | "deny" | "step_up";
+}
+```
+
+信任层级：
+
+| 层级 | 名称 | 操作类型 | 示例 |
+|------|------|---------|------|
+| T0 | Read | 只读访问 | 列出可用服务 |
+| T1 | Reversible | 可逆操作 | 获取凭据、代理请求 |
+| T2 | Irreversible | 不可逆操作 | 删除凭据、修改密码 |
+| T3 | Deny | 始终拒绝 | 导出全部 Vault、修改策略 |
+
+### 5.4 EFFECT（副作用执行）
+
+唯一与外部世界交互的位置。Vault 解密 → 调用 API → 擦除内存。
+
+```
+Intent → Policy check → Capability issued → Effect executed → Memory wiped
+```
+
+Effect 执行规则：
+- 凭据在内存中的生存时间 < 30 秒
+- 执行完毕后 `crypto.subtle.digest` 覆写内存
+- 不可被日志、trace、debugger 捕获
+
+### 5.5 FACT（事实日志）
+
+追加式事件溯源日志。哈希链式结构。锚定到 Bitcoin。
+
+```typescript
+interface Fact {
+  id: string;
+  sequence: number;
+  event_type: string;
+  agent_id?: string;
+  resource: string;
+  action: string;
+  decision: "allow" | "deny" | "step_up";
+  metadata: Record<string, unknown>;
+  hash: string;            // SHA-256(序列化的 Fact)
+  prev_hash: string;       // 前一条 Fact 的 hash（链式）
+  timestamp: string;
+  btc_anchor_tx?: string;  // Bitcoin OP_RETURN 锚定交易 ID
+}
+```
+
+## 6. 永久存储架构 (Arweave + Bitcoin)
+
+核心问题：如果 Auth Box 公司倒闭、服务器关停，用户如何恢复？
+
+### 存储流程
+
+```mermaid
+sequenceDiagram
+    participant U as User Device
+    participant AR as Arweave Network
+    participant BTC as Bitcoin Network
+    participant IPFS as IPFS Network
+
+    Note over U: Vault 变更触发存储
+    U->>U: vault_blob = AES-256-GCM(vault_data, vault_key)
+    U->>U: blob_hash = SHA-256(vault_blob)
+
+    par Permanent Storage
+        U->>AR: Upload vault_blob<br/>~$0.005/KB, one-time payment
+        AR->>U: arweave_tx_id
+    and Backup Storage
+        U->>IPFS: Pin vault_blob
+        IPFS->>U: ipfs_cid
+    and Hash Anchoring
+        U->>BTC: OP_RETURN(blob_hash)<br/>~$0.50/tx
+        BTC->>U: btc_tx_id
+    end
+
+    U->>U: Store(arweave_tx_id, ipfs_cid, btc_tx_id) in vault metadata
+```
+
+### 恢复流程
+
+```
+seed phrase (24 words, paper backup)
+  → derive vault_key (m/ABX'/vault'/0')
+  → fetch encrypted blob from Arweave (by arweave_tx_id, stored in last known metadata)
+    OR scan Arweave for blobs tagged with auth_key public key
+  → decrypt locally
+  → full vault restored
+```
+
+### 四层冗余
+
+| 层级 | 存储 | 持久性 | 成本 | 恢复方式 |
+|------|------|--------|------|---------|
+| L0 | Local device | 设备生命周期 | 免费 | 直接读取 |
+| L1 | Arweave | 永久（200+ 年设计目标） | ~$0.005/KB（一次性） | arweave_tx_id 或标签扫描 |
+| L2 | IPFS | 取决于 pin 服务 | 变动 | ipfs_cid |
+| L3 | Bitcoin hash | 永久（与 Bitcoin 网络共存亡） | ~$0.50/tx | 仅验证完整性，不存储数据 |
+
+### Arweave 隐私保证
+
+- 上传到 Arweave 的数据是 AES-256-GCM 加密后的密文
+- 没有助记词 → 无法派生 vault_key → 无法解密
+- Arweave 节点看到的只是不可读的 blob
+- 元数据标签仅包含 auth_key 公钥（不泄露身份信息）
+
+## 7. 优雅降级谱系
+
+Auth Box v5 的设计目标：**每一层都可以独立倒下，但用户永远不会丢失凭据**。
+
+| 降级等级 | 场景 | 可用功能 | 用户操作 |
+|---------|------|---------|---------|
+| Level 0 | 全部在线 | 所有功能：Web UI + 同步 + Agent 网关 + 审计 | 正常使用 |
+| Level 1 | 服务器下线 | 本地 Vault + 确定性密码 + Chrome 扩展 | 离线使用，无同步 |
+| Level 2 | 公司倒闭 | 从 Arweave 获取加密 Vault + 助记词解密 | 运行恢复脚本 |
+| Level 3 | 设备丢失 | 助记词 + Arweave → 新设备完整恢复 | 新设备 + 助记词 + 恢复脚本 |
+| Level 4 | 一切都没了 | 助记词 → 确定性密码（无需任何存储） | 纸上 24 词 → 推导出常用密码 |
+
+Level 4 是终极保底：只要记住助记词和域名，就能在任何计算器上重新推导出密码。不需要任何服务器、任何存储、任何网络。
+
+## 8. 数据库 Schema
+
+```mermaid
+erDiagram
+    USERS ||--o{ SESSIONS : "has"
+    USERS ||--o{ VAULTS : "owns"
+    VAULTS ||--o{ VAULT_ITEMS : "contains"
+    USERS ||--o{ AGENTS : "registers"
+    AGENTS ||--o{ AGENT_POLICIES : "governed_by"
+    USERS ||--o{ AUTH_CONNECTIONS : "connects"
+    USERS ||--o{ AUDIT_EVENTS : "produces"
+    AGENTS ||--o{ AUDIT_EVENTS : "produces"
+
+    USERS {
+        uuid id PK
+        string email UK
+        bytes srp_salt
+        bytes srp_verifier
+        bytes encrypted_vault_key
+        bytes vault_key_nonce
+        bytes seed_public_key "v3+ Ed25519 auth public key"
+        string mfa_secret
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    SESSIONS {
+        uuid id PK
+        uuid user_id FK
+        bytes session_key_hash
+        string device_info
+        inet ip_address
+        timestamp expires_at
+        timestamp created_at
+    }
+
+    VAULTS {
+        uuid id PK
+        uuid user_id FK
+        string name
+        string vault_type
+        string arweave_tx_id "v5 Arweave permanent storage TX"
+        string ipfs_cid "v5 IPFS backup CID"
+        string btc_anchor_tx "v5 Bitcoin hash anchoring TX"
+        bytes vault_blob_hash "v5 SHA-256 of encrypted blob"
+        timestamp last_anchored_at "v5 last Bitcoin anchoring time"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    VAULT_ITEMS {
+        uuid id PK
+        uuid vault_id FK
+        string item_type
+        bytes encrypted_data
+        bytes nonce
+        string folder
+        string[] tags
+        int sort_order
+        bool favorite
+        int derive_index "v3+ deterministic password version"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    AGENTS {
+        uuid id PK
+        uuid user_id FK
+        string name
+        string agent_type
+        bytes api_key_hash
+        bytes delegation_public_key "v3+ per-agent Ed25519 public key"
+        int delegation_key_index "v3+ HD derivation index"
+        string[] allowed_scopes
+        bool active
+        timestamp last_used_at
+        timestamp created_at
+    }
+
+    AGENT_POLICIES {
+        uuid id PK
+        uuid agent_id FK
+        string resource_pattern
+        string[] allowed_actions
+        string trust_tier "v5 T0/T1/T2/T3"
+        int rate_limit_per_min
+        string time_window_cron
+        bool require_approval
+        int policy_version "v5 immutable versioning"
+        timestamp created_at
+    }
+
+    AUTH_CONNECTIONS {
+        uuid id PK
+        uuid user_id FK
+        string provider
+        bytes encrypted_access_token
+        bytes encrypted_refresh_token
+        bytes token_nonce
+        string[] scopes
+        timestamp token_expires_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    AUDIT_EVENTS {
+        uuid id PK
+        uuid user_id FK
+        uuid agent_id FK
+        string event_type
+        string resource_type
+        uuid resource_id
+        string action
+        string decision
+        jsonb metadata
+        string event_hash
+        string prev_event_hash
+        string btc_anchor_tx "v5 Bitcoin anchoring TX"
+        int sequence_number "v5 chain sequence"
+        timestamp created_at
+    }
+```
+
+## 9. API 路由
+
+### Auth (SRP + Seed Auth)
+
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/v1/auth/register` | SRP 注册（email, salt, verifier, encrypted_vault_key） |
+| POST | `/api/v1/auth/register/seed` | v3+ 种子词注册（email, public_key, encrypted_vault_key） |
+| POST | `/api/v1/auth/login/start` | SRP 登录第一步（email, A） |
+| POST | `/api/v1/auth/login/verify` | SRP 登录第二步（M1） |
+| POST | `/api/v1/auth/login/sign` | v3+ Ed25519 签名登录（email, challenge_response） |
+| POST | `/api/v1/auth/logout` | 注销当前会话 |
+| POST | `/api/v1/auth/sessions` | 列出活跃会话 |
+| DELETE | `/api/v1/auth/sessions/:id` | 撤销指定会话 |
+
+### Vault
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/vaults` | 列出用户的 Vault |
+| POST | `/api/v1/vaults` | 创建 Vault |
+| GET | `/api/v1/vaults/:id` | 获取 Vault 详情 |
+| PUT | `/api/v1/vaults/:id` | 更新 Vault |
+| DELETE | `/api/v1/vaults/:id` | 删除 Vault |
+
+### Vault Items
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/vaults/:vid/items` | 列出 Vault 中的条目（返回加密数据） |
+| POST | `/api/v1/vaults/:vid/items` | 创建条目（客户端加密后上传） |
+| GET | `/api/v1/vaults/:vid/items/:id` | 获取单个条目 |
+| PUT | `/api/v1/vaults/:vid/items/:id` | 更新条目 |
+| DELETE | `/api/v1/vaults/:vid/items/:id` | 删除条目 |
+
+### Permanent Storage (v5)
+
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/v1/vaults/:id/archive` | 加密 Vault blob 上传到 Arweave |
+| GET | `/api/v1/vaults/:id/archive` | 查询 Arweave 存储状态 |
+| POST | `/api/v1/vaults/:id/anchor` | 将 Vault hash 锚定到 Bitcoin |
+| GET | `/api/v1/vaults/:id/anchor` | 查询 Bitcoin 锚定状态 |
+| POST | `/api/v1/recovery/arweave` | 从 Arweave 恢复 Vault（需签名验证） |
+
+### Agents
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/agents` | 列出已注册的 Agent |
+| POST | `/api/v1/agents` | 注册新 Agent |
+| GET | `/api/v1/agents/:id` | 获取 Agent 详情 |
+| PUT | `/api/v1/agents/:id` | 更新 Agent 配置 |
+| DELETE | `/api/v1/agents/:id` | 注销 Agent |
+| POST | `/api/v1/agents/:id/policies` | 添加访问策略 |
+| GET | `/api/v1/agents/:id/policies` | 列出 Agent 的策略 |
+| POST | `/api/v1/agents/:id/capability` | v5 签发 Capability 令牌 |
+| DELETE | `/api/v1/agents/:id/capability/:cap_id` | v5 撤销 Capability 令牌 |
+
+### Gateway (Agent MCP Proxy)
+
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/v1/gateway/request` | Agent 通过 API 请求凭据（HTTP fallback） |
+| GET | `/api/v1/gateway/services` | 列出 Agent 可访问的服务 |
+
+### Audit
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/v1/audit` | 查询审计日志 |
+| GET | `/api/v1/audit/export` | 导出审计报告 |
+| GET | `/api/v1/audit/verify` | v5 验证哈希链完整性 |
+| GET | `/api/v1/audit/anchor/:tx_id` | v5 查询 Bitcoin 锚定验证 |
+
+### Import
+
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/v1/import/1password` | 导入 1Password 导出文件 |
+| POST | `/api/v1/import/chrome` | 导入 Chrome 密码导出 |
+| POST | `/api/v1/import/bitwarden` | 导入 Bitwarden 导出文件 |
+
+### Deterministic Passwords (v3+)
+
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/v1/derive/preview` | 预览确定性密码（客户端计算，仅返回元数据） |
+| GET | `/api/v1/derive/domains` | 列出已注册的域名派生配置 |
+
+### Health
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/health` | 健康检查 |
+| GET | `/ready` | 就绪检查（含 DB/Redis 探测） |
+
+## 10. 安全模型
+
+### 10.1 认证
+
+**SRP-6a（v2，保留兼容）**
 
 ```mermaid
 sequenceDiagram
@@ -159,347 +601,146 @@ sequenceDiagram
     C->>C: Verify M2 (mutual auth)
 ```
 
-## 数据库 Schema
-
-```mermaid
-erDiagram
-    USERS ||--o{ SESSIONS : "has"
-    USERS ||--o{ VAULTS : "owns"
-    VAULTS ||--o{ VAULT_ITEMS : "contains"
-    USERS ||--o{ AGENTS : "registers"
-    AGENTS ||--o{ AGENT_POLICIES : "governed_by"
-    USERS ||--o{ AUTH_CONNECTIONS : "connects"
-    USERS ||--o{ AUDIT_EVENTS : "produces"
-    AGENTS ||--o{ AUDIT_EVENTS : "produces"
-
-    USERS {
-        uuid id PK
-        string email UK
-        bytes srp_salt
-        bytes srp_verifier
-        bytes encrypted_vault_key
-        bytes vault_key_nonce
-        string mfa_secret
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    SESSIONS {
-        uuid id PK
-        uuid user_id FK
-        bytes session_key_hash
-        string device_info
-        inet ip_address
-        timestamp expires_at
-        timestamp created_at
-    }
-
-    VAULTS {
-        uuid id PK
-        uuid user_id FK
-        string name
-        string vault_type
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    VAULT_ITEMS {
-        uuid id PK
-        uuid vault_id FK
-        string item_type
-        bytes encrypted_data
-        bytes nonce
-        string folder
-        string[] tags
-        int sort_order
-        bool favorite
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    AGENTS {
-        uuid id PK
-        uuid user_id FK
-        string name
-        string agent_type
-        bytes api_key_hash
-        string[] allowed_scopes
-        bool active
-        timestamp last_used_at
-        timestamp created_at
-    }
-
-    AGENT_POLICIES {
-        uuid id PK
-        uuid agent_id FK
-        string resource_pattern
-        string[] allowed_actions
-        int rate_limit_per_min
-        string time_window_cron
-        bool require_approval
-        timestamp created_at
-    }
-
-    AUTH_CONNECTIONS {
-        uuid id PK
-        uuid user_id FK
-        string provider
-        bytes encrypted_access_token
-        bytes encrypted_refresh_token
-        bytes token_nonce
-        string[] scopes
-        timestamp token_expires_at
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    AUDIT_EVENTS {
-        uuid id PK
-        uuid user_id FK
-        uuid agent_id FK
-        string event_type
-        string resource_type
-        uuid resource_id
-        string action
-        string decision
-        jsonb metadata
-        string event_hash
-        string prev_event_hash
-        timestamp created_at
-    }
-```
-
-## API 路由
-
-### Auth (SRP)
-
-| Method | Path | 说明 |
-|--------|------|------|
-| POST | `/api/v1/auth/register` | SRP 注册（email, salt, verifier, encrypted_vault_key） |
-| POST | `/api/v1/auth/login/start` | SRP 登录第一步（email, A） |
-| POST | `/api/v1/auth/login/verify` | SRP 登录第二步（M1） |
-| POST | `/api/v1/auth/logout` | 注销当前会话 |
-| POST | `/api/v1/auth/sessions` | 列出活跃会话 |
-| DELETE | `/api/v1/auth/sessions/:id` | 撤销指定会话 |
-
-### Vault
-
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/api/v1/vaults` | 列出用户的 Vault |
-| POST | `/api/v1/vaults` | 创建 Vault |
-| GET | `/api/v1/vaults/:id` | 获取 Vault 详情 |
-| PUT | `/api/v1/vaults/:id` | 更新 Vault |
-| DELETE | `/api/v1/vaults/:id` | 删除 Vault |
-
-### Vault Items
-
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/api/v1/vaults/:vid/items` | 列出 Vault 中的条目（返回加密数据） |
-| POST | `/api/v1/vaults/:vid/items` | 创建条目（客户端加密后上传） |
-| GET | `/api/v1/vaults/:vid/items/:id` | 获取单个条目 |
-| PUT | `/api/v1/vaults/:vid/items/:id` | 更新条目 |
-| DELETE | `/api/v1/vaults/:vid/items/:id` | 删除条目 |
-
-### Agents
-
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/api/v1/agents` | 列出已注册的 Agent |
-| POST | `/api/v1/agents` | 注册新 Agent |
-| GET | `/api/v1/agents/:id` | 获取 Agent 详情 |
-| PUT | `/api/v1/agents/:id` | 更新 Agent 配置 |
-| DELETE | `/api/v1/agents/:id` | 注销 Agent |
-| POST | `/api/v1/agents/:id/policies` | 添加访问策略 |
-| GET | `/api/v1/agents/:id/policies` | 列出 Agent 的策略 |
-
-### Gateway (Agent MCP Proxy)
-
-| Method | Path | 说明 |
-|--------|------|------|
-| POST | `/api/v1/gateway/request` | Agent 通过 API 请求凭据（HTTP fallback） |
-| GET | `/api/v1/gateway/services` | 列出 Agent 可访问的服务 |
-
-### Audit
-
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/api/v1/audit` | 查询审计日志 |
-| GET | `/api/v1/audit/export` | 导出审计报告 |
-
-### Import
-
-| Method | Path | 说明 |
-|--------|------|------|
-| POST | `/api/v1/import/1password` | 导入 1Password 导出文件 |
-| POST | `/api/v1/import/chrome` | 导入 Chrome 密码导出 |
-| POST | `/api/v1/import/bitwarden` | 导入 Bitwarden 导出文件 |
-
-### Health
-
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/health` | 健康检查 |
-| GET | `/ready` | 就绪检查（含 DB/Redis 探测） |
-
-## MCP Gateway
-
-### 连接方式
+**Ed25519 签名认证（v3+，主要方式）**
 
 ```
-AI Agent  <--WebSocket-->  Chrome Extension (MCP Server)
-                               ws://localhost:19876/mcp
-                               JSON-RPC 2.0
+Client: sign(challenge, auth_key) → signature
+Server: verify(challenge, signature, public_key) → authenticated
 ```
 
-### MCP Tools
+优势：无密码传输、无密码存储、防重放（challenge 含时间戳 + nonce）。
 
-| Tool | 说明 | 策略管控 |
-|------|------|----------|
-| `get_credential` | 获取指定服务的凭据 | scope + rate_limit + time_window |
-| `proxy_authenticated_request` | 代理发起已认证的 HTTP 请求 | scope + approval |
-| `list_available_services` | 列出 Agent 可访问的服务列表 | read-only, rate_limit |
+### 10.2 种子词安全
 
-### MCP 网关流程
+- 24 词 BIP-39 助记词 = 256 位熵
+- 暴力破解：2^256 种可能，当前计算力无法破解
+- 用户责任：纸质备份、保险箱存放、不可截图/拍照/云存储
+- 客户端显示助记词时：禁止截屏（Tauri/RN API）、30 秒自动清除
+
+### 10.3 Arweave 隐私
+
+- 所有数据在上传前经 AES-256-GCM 加密
+- Arweave 网络看到的只是不可读的密文 blob
+- 元数据标签仅包含 auth_key 公钥的哈希（不可逆推身份）
+- 无助记词 = 无法解密 = 数据等同于随机噪声
+
+### 10.4 Bitcoin 锚定
+
+- 使用 OP_RETURN 写入 Vault blob 的 SHA-256 哈希
+- 作用：防篡改证明（proof of existence at timestamp）
+- 不存储任何实际数据，仅存储 32 字节哈希
+- 验证：任何人可独立验证 Vault blob 在某时刻存在且未被篡改
+
+### 10.5 策略引擎信任层级
+
+| 层级 | 操作 | 要求 | 示例 |
+|------|------|------|------|
+| T0 Read | 只读访问 | Capability 令牌 | list_available_services |
+| T1 Reversible | 可逆操作 | Capability + rate_limit | get_credential |
+| T2 Irreversible | 不可逆操作 | Capability + human_approval | delete_credential, rotate_password |
+| T3 Deny | 始终拒绝 | N/A | export_all_vault, modify_policy |
+
+### 10.6 MCP 网关流程（v5 五原语版）
 
 ```mermaid
 sequenceDiagram
     participant Agent as AI Agent
     participant MCP as MCP Server (Extension)
-    participant Policy as Policy Engine
-    participant Vault as Local Vault (Decrypted)
-    participant Audit as Audit Logger
-    participant API as Auth Box API
+    participant P as Policy Engine
+    participant V as Local Vault (Decrypted)
+    participant F as Fact Logger
+    participant AR as Arweave
+    participant BTC as Bitcoin
 
+    Note over Agent: INTENT
     Agent->>MCP: get_credential("github.com")
-    MCP->>Policy: check_policy(agent_id, "github.com", "read")
+    MCP->>MCP: Create Intent(agent_id, "get_credential", "github.com")
 
-    alt Policy: Allow
-        Policy->>MCP: allow
-        MCP->>Vault: lookup("github.com")
-        Vault->>MCP: {username, password}
-        MCP->>Audit: log(agent_id, "get_credential", "github.com", "allow")
-        Audit->>API: POST /api/v1/audit (async)
+    Note over P: POLICY
+    MCP->>P: evaluate(Intent, Agent Policies)
+
+    alt POLICY: Allow (T0/T1)
+        Note over MCP: CAPABILITY
+        P->>MCP: issue Capability token (scoped, time-limited)
+
+        Note over V: EFFECT
+        MCP->>V: lookup("github.com") with Capability
+        V->>MCP: {username, password}
         MCP->>Agent: {username, password}
-    else Policy: Deny
-        Policy->>MCP: deny(reason)
-        MCP->>Audit: log(agent_id, "get_credential", "github.com", "deny")
-        MCP->>Agent: error("access denied: reason")
-    else Policy: Step Up
-        Policy->>MCP: step_up
+        MCP->>MCP: wipe credential from memory
+
+        Note over F: FACT
+        MCP->>F: append(allow, "get_credential", "github.com")
+        F->>F: hash chain update
+        F-->>BTC: periodic anchor (batch)
+    else POLICY: Deny (T3)
+        MCP->>F: append(deny, "get_credential", "github.com")
+        MCP->>Agent: error("access denied")
+    else POLICY: Step Up (T2)
         MCP->>MCP: Show approval prompt to user
         MCP->>Agent: pending_approval(request_id)
     end
 ```
 
-## Monorepo 结构
+## 11. 部署架构
 
-```
-10-auth-box/
-  turbo.json                    # Turborepo 配置
-  pnpm-workspace.yaml           # pnpm workspace 定义
-  package.json                  # Root package (scripts, devDeps)
-  docker-compose.yml            # 本地开发环境
-  Makefile                      # 常用命令入口
+```mermaid
+graph TD
+    subgraph "CDN Layer"
+        CF[Cloudflare Global CDN]
+    end
 
-  packages/
-    crypto/                     # @authbox/crypto
-      src/
-        argon2.ts               # Argon2id 密钥派生
-        hkdf.ts                 # HKDF 密钥扩展
-        aes-gcm.ts              # AES-256-GCM 加解密
-        srp.ts                  # SRP-6a 客户端
-        vault-crypto.ts         # Vault 加解密高层 API
-        password-generator.ts   # 密码生成器
-      package.json
-      tsconfig.json
+    subgraph "Frontend"
+        PAGES[CF Pages<br/>authbox.io<br/>Next.js 15 SSG]
+    end
 
-    shared/                     # @authbox/shared
-      src/
-        types/                  # 共享类型定义
-        constants/              # 常量（加密参数、错误码）
-        utils/                  # 工具函数
-      package.json
-      tsconfig.json
+    subgraph "API Layer (VPS Docker)"
+        API[Go API Service<br/>:4010]
+        PG[(PostgreSQL 16)]
+        REDIS[(Redis 7)]
+    end
 
-    mcp-protocol/               # @authbox/mcp-protocol
-      src/
-        types.ts                # MCP 消息类型
-        server.ts               # MCP Server 实现
-        tools.ts                # Tool 注册与路由
-      package.json
-      tsconfig.json
+    subgraph "Permanent Storage"
+        AR[Arweave Network<br/>encrypted vault blobs]
+        IPFS[IPFS<br/>backup pins]
+        BTC[Bitcoin Network<br/>OP_RETURN hash anchoring]
+    end
 
-  apps/
-    web/                        # Next.js 15 Web App
-      app/
-        (auth)/                 # 认证相关页面
-          register/
-          login/
-          unlock/
-        (dashboard)/            # 登录后主界面
-          vault/
-          agents/
-          connections/
-          audit/
-          settings/
-        api/                    # Next.js API Routes (BFF)
-      package.json
+    subgraph "Client Layer"
+        WEB[Web App]
+        EXT[Chrome Extension MV3]
+        DESK[Desktop - Tauri]
+        MOBILE[Mobile - RN]
+    end
 
-    extension/                  # Chrome MV3 Extension
-      manifest.json
-      src/
-        background/             # Service Worker
-        popup/                  # Extension Popup
-        content/                # Content Scripts (autofill)
-        mcp/                    # MCP Server (WebSocket)
-      package.json
-
-  services/
-    api/                        # Go API Service
-      cmd/server/main.go
-      internal/
-        auth/                   # SRP 认证
-        vault/                  # Vault CRUD
-        agent/                  # Agent 管理
-        gateway/                # MCP Gateway HTTP fallback
-        audit/                  # 审计日志
-        policy/                 # 策略引擎
-        middleware/              # AuthN/AuthZ 中间件
-      migrations/               # 数据库迁移
-      go.mod
-      go.sum
-
-  doc/                          # 项目文档
-  CLAUDE.md
-  AGENTS.md
+    CF --> PAGES
+    WEB --> CF
+    EXT --> API
+    DESK --> API
+    MOBILE --> API
+    API --> PG
+    API --> REDIS
+    API --> AR
+    API --> IPFS
+    API --> BTC
 ```
 
-## 系统边界
+| 组件 | 技术 | 部署位置 |
+|------|------|---------|
+| 前端 | Next.js 15 + React 19 (SSG) | CF Pages (authbox.io) |
+| API | Go 1.22+ (REST + OpenAPI 3.1) | VPS Docker |
+| 数据库 | PostgreSQL 16 | VPS Docker |
+| 缓存 | Redis 7 | VPS Docker |
+| 永久存储 | Arweave (bundlr.network SDK) | 去中心化网络 |
+| 备份存储 | IPFS (web3.storage) | 去中心化网络 |
+| 哈希锚定 | Bitcoin OP_RETURN | Bitcoin 主网 |
+| CDN | Cloudflare | 全球边缘 |
+| MCP Gateway | WebSocket + JSON-RPC 2.0 | 客户端本地 (ws://localhost:19876) |
+| Monorepo | Turborepo + pnpm | -- |
+| 加密 | WebCrypto API + @authbox/crypto | 客户端 |
+| 浏览器扩展 | Chrome MV3 (TypeScript) | Chrome Web Store |
 
-- **In-scope**: 密码管理、OAuth 连接管理、AI Agent 凭据网关、审计日志
-- **Out-of-scope**: 企业级 IAM、通用 API 网关、联邦身份
-
-## 技术栈
-
-| 组件 | 技术 |
-|------|------|
-| Monorepo | Turborepo + pnpm |
-| 后端 | Go 1.22+ (REST + OpenAPI 3.1) |
-| 前端 | Next.js 15 + React 19 |
-| 浏览器扩展 | Chrome MV3 (TypeScript) |
-| 加密 | WebCrypto API + @authbox/crypto |
-| 数据库 | PostgreSQL 16 |
-| 缓存 | Redis 7 |
-| MCP | WebSocket + JSON-RPC 2.0 |
-
-## 部署
-
-- **本地开发**: Docker Compose (API + Web + PostgreSQL + Redis)
-- **生产**: 容器化部署，API 与 Web 分层隔离
-
-## 本地入口
+### 本地入口
 
 | 服务 | URL |
 |------|-----|
@@ -508,7 +749,7 @@ sequenceDiagram
 | API Base | `http://localhost:4010/api/v1` |
 | MCP Gateway | `ws://localhost:19876/mcp` |
 
-## 实现状态
+## 12. 实现状态
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
@@ -519,6 +760,16 @@ sequenceDiagram
 | Phase 4 | 2FA + Sessions + Rate Limiting | DONE |
 | UX Round 1 | 12/12 UI/UX fixes | DONE |
 | UX Round 2 | 7/7 Journey simulation PASS | DONE |
+| Phase 5 | BIP-39 Seed Phrase + HD Key Derivation + Deterministic Passwords | PLANNED |
+| Phase 6 | Ed25519 Auth + Passkeys (WebAuthn) | PLANNED |
+| Phase 7 | Arweave Permanent Storage + IPFS Backup | PLANNED |
+| Phase 8 | Bitcoin Hash Anchoring + Fact Chain | PLANNED |
+| Phase 9 | Five Primitives Policy Engine | PLANNED |
+
+## 13. 系统边界
+
+- **In-scope**: 密码管理、种子词主权、确定性密码、OAuth 连接管理、AI Agent 凭据网关（五原语）、永久去中心化存储、审计日志（哈希链 + Bitcoin 锚定）
+- **Out-of-scope**: 企业级 IAM、通用 API 网关、联邦身份、加密货币钱包功能
 
 ---
 

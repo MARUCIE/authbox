@@ -149,7 +149,12 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | M3.7 | UX Optimization Round 2 (7 Journey simulation) | DONE |
 | M3.8 | Architecture Audit + Vault Onyx Design System | DONE |
 | M3.9 | v3 Unstoppable Layer (Seed Phrase + HD Keys + Deterministic Passwords) | DONE |
-| M4 | Desktop + Mobile + 团队功能 | Post-MVP |
+| M4.0 | Production Deploy (CF Pages + authbox.io + E2E Test + Security Headers) | DONE |
+| M4.1 | Launch Kit (Remotion Video + PH/HN/Twitter Copy + MIT + README) | DONE |
+| M5.0 | v5 Permanent Storage (Arweave vault blobs + Bitcoin hash anchoring) | PLANNED |
+| M5.1 | Go API VPS Deploy (PG + Redis + Docker, full CRUD online) | PLANNED |
+| M5.2 | Five Primitives Engine (Capability/Intent/Policy/Effect/Fact) | PLANNED |
+| M6 | Desktop + Mobile + 团队功能 | Post-MVP |
 
 ## 当前状态
 
