@@ -141,7 +141,7 @@ func main() {
 	healthHandler := handler.NewHealthHandler(cfg)
 
 	// Rate limiters
-	authLimiter := appmw.NewRateLimiter(5, 1*time.Minute)
+	authLimiter := appmw.NewRateLimiter(cfg.AuthRateLimit, 1*time.Minute)
 	protectedLimiter := appmw.NewRateLimiter(120, 1*time.Minute)
 
 	// Router

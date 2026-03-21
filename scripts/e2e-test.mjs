@@ -35,18 +35,28 @@ function assert(condition, label) {
   }
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function apiCall(method, path, body, token) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${API}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const opts = { method, headers, body: body ? JSON.stringify(body) : undefined };
 
-  const data = await res.json().catch(() => ({}));
-  return { status: res.status, data };
+  // Retry once on 429 (rate limited), respecting Retry-After header
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(`${API}${path}`, opts);
+    if (res.status === 429 && attempt === 0) {
+      const retryAfter = parseInt(res.headers.get('Retry-After') || '60', 10);
+      console.log(`    [429] Rate limited on ${path}, waiting ${retryAfter}s for window reset...`);
+      await sleep(retryAfter * 1000);
+      continue;
+    }
+    const data = await res.json().catch(() => ({}));
+    return { status: res.status, data };
+  }
 }
 
 // ─── Test 1: Health Check ─────────────────────────────────────

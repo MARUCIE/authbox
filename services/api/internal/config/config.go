@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -16,6 +17,7 @@ type Config struct {
 	Version        string
 	SessionTTL     time.Duration
 	AllowedOrigins []string
+	AuthRateLimit  int
 }
 
 func Load() Config {
@@ -27,6 +29,7 @@ func Load() Config {
 		Version:        getEnv("AUTH_BOX_VERSION", "0.1.0"),
 		SessionTTL:     7 * 24 * time.Hour,
 		AllowedOrigins: parseOrigins(getEnv("AUTH_BOX_ALLOWED_ORIGINS", "http://localhost:3000")),
+		AuthRateLimit:  getEnvInt("AUTH_BOX_AUTH_RATE_LIMIT", 5),
 	}
 }
 
@@ -58,6 +61,15 @@ func parseOrigins(s string) []string {
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if value, ok := os.LookupEnv(key); ok {
+		if n, err := strconv.Atoi(value); err == nil && n > 0 {
+			return n
+		}
 	}
 	return fallback
 }

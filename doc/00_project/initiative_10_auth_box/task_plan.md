@@ -156,14 +156,31 @@ LastUpdated: 2026-02-24
 - [x] Audit writeError params order fixed (LOW)
 - [x] Build verification: go vet + go build + turbo build PASS
 
+## Round 8: Rate Limiter Fix + Arweave E2E Tests (DONE)
+
+- [x] Fixed-window rate limiter: replaced sliding-window (rejected requests extended window) with fixed-window (window expires naturally)
+- [x] Config: AUTH_BOX_AUTH_RATE_LIMIT env var (defaults to 5, configurable for E2E)
+- [x] Retry-After header: returns actual seconds remaining in window (not fixed 60s)
+- [x] E2E test: 429-aware retry logic (waits for window reset, then retries once)
+- [x] VPS API redeployed with fixed-window rate limiter
+- [x] E2E tests: 21/21 ALL PASS
+- [x] Arweave vault test suite: 10 tests (identity hash, encrypt/decrypt roundtrip, unstoppable recovery flow, Arweave API)
+- [x] Full crypto test suite: 53/53 PASS (22 crypto + 21 seed + 10 arweave)
+- [x] Build: 7/7 turbo packages PASS
+
 ## 当前状态
 
-- 所有 MVP 功能阶段已完成（Phase 0-4 + Gap Fixes + UX Round 1 + UX Round 2 + Round 3 API + Round 4 Hardening）
-- 构建通过：6/6 packages, 12/12 pages, 0 errors
+- 所有 MVP 功能阶段已完成（Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-8）
+- 构建通过：7/7 packages (incl. video), 13 pages, 0 errors
+- E2E: 21/21 API tests PASS, 53/53 crypto tests PASS
 - 7/7 UX Map Journeys PASS, 9/9 routes HTTP 200
 - Round 3: 20/20 real API endpoints tested (PostgreSQL + Go API, no mock)
-- Round 4: 15 optimizations applied (1 CRITICAL + 4 HIGH + 8 MEDIUM + 2 LOW)
-- DoD 四轮全部通过：Round 1 (build) + Round 2 (UX simulation) + Round 3 (real API) + Round 4 (hardening)
+- Round 4-7: 50 security/performance optimizations
+- Round 8: Rate limiter bug fix + Arweave test suite + VPS redeployed
+- VPS topology: CF Pages → Cloudflare Tunnel → VPS:4010 (Go API) → PG:5410
+- Repository 接口化: DONE (domain/repository.go, 6 interfaces, DDD pattern)
+- TOTP 前后端对接: DONE (4 endpoints + Settings UI)
+- Unstoppable recovery: VERIFIED (seed → vault key → encrypt → decrypt roundtrip)
 
 ## 决策记录
 
@@ -173,6 +190,7 @@ LastUpdated: 2026-02-24
 - 2026-02-24: MCP Gateway 方案确定：浏览器扩展内嵌 MCP Server (ws://localhost:19876/mcp)。
 - 2026-02-24: Phase 0-4 全部完成，进入 UX 优化阶段。
 - 2026-02-24: UX Round 1 完成 12/12 fixes，进入 Round 2 ralph loop。
+- 2026-03-21: Rate limiter 从滑动窗口改为固定窗口 (fixed-window)。原设计在拒绝请求时也刷新窗口，导致 429 无法自然恢复。
 
 ---
 
