@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4010';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://underground-alcohol-insulin-bit.trycloudflare.com';
 
 interface ApiOptions extends RequestInit {
   token?: string;

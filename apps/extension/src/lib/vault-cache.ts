@@ -13,7 +13,7 @@ import type { LoginItem, VaultItem, EncryptedVaultItem, ItemType } from '@authbo
 
 // ── Configuration ───────────────────────────────────────────────────────────
 
-const API_BASE = 'http://localhost:4010';
+const API_BASE = 'https://underground-alcohol-insulin-bit.trycloudflare.com';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

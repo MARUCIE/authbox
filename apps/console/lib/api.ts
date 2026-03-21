@@ -1,4 +1,4 @@
-const apiBaseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4010";
+const apiBaseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://underground-alcohol-insulin-bit.trycloudflare.com";
 const apiToken =
   process.env.AUTH_BOX_CONSOLE_API_TOKEN ||
   process.env.NEXT_PUBLIC_API_TOKEN ||

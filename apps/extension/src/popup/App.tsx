@@ -3,7 +3,7 @@ import type { GenericResponse, SearchResponse, StatusResponse } from '@/lib/mess
 
 const SEARCH_DEBOUNCE_MS = 200;
 const VAULT_URL = 'http://localhost:3010';
-const API_BASE = 'http://localhost:4010';
+const API_BASE = 'https://underground-alcohol-insulin-bit.trycloudflare.com';
 
 type SearchResult = SearchResponse['results'][number];
 
