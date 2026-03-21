@@ -53,7 +53,7 @@ func (r *AgentRepository) GetAgent(ctx context.Context, id, userID uuid.UUID) (*
 func (r *AgentRepository) ListAgents(ctx context.Context, userID uuid.UUID) ([]domain.Agent, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, name, description, agent_type, api_key_hash, status, last_active_at, created_at, updated_at
-		 FROM agents WHERE user_id = $1 ORDER BY created_at DESC`,
+		 FROM agents WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200`,
 		userID,
 	)
 	if err != nil {

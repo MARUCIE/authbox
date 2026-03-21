@@ -63,7 +63,7 @@ func (r *ConnectionRepository) ListConnections(ctx context.Context, userID uuid.
 		  access_token_enc, access_token_nonce, access_token_tag,
 		  refresh_token_enc, refresh_token_nonce, refresh_token_tag,
 		  token_expires_at, scopes, status, metadata, created_at, updated_at
-		 FROM auth_connections WHERE user_id = $1 ORDER BY created_at DESC`,
+		 FROM auth_connections WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200`,
 		userID,
 	)
 	if err != nil {

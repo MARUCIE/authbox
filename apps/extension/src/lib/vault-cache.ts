@@ -31,6 +31,8 @@ export interface VaultCacheState {
   sessionToken: string | null;
 }
 
+const MAX_CACHE_ITEMS = 10000;
+
 let state: VaultCacheState = {
   locked: true,
   items: [],
@@ -113,8 +115,11 @@ export async function unlock(password: string): Promise<boolean> {
       return false;
     }
 
-    // Fetch encrypted vault key + salt from server
-    const vaultKeyData = await fetchVaultKey(token);
+    // Fetch vault key + items in parallel (items don't depend on key data)
+    const [vaultKeyData, encryptedItems] = await Promise.all([
+      fetchVaultKey(token),
+      fetchVaultItems(token),
+    ]);
 
     // Derive keys from password + salt
     const salt = fromBase64(vaultKeyData.srpSalt);
@@ -127,11 +132,8 @@ export async function unlock(password: string): Promise<boolean> {
       tag: fromBase64(vaultKeyData.vaultKeyTag),
     });
 
-    // Fetch all encrypted items
-    const encryptedItems = await fetchVaultItems(token);
-
     // Decrypt each item
-    const decryptedItems: VaultItem[] = [];
+    let decryptedItems: VaultItem[] = [];
     for (const item of encryptedItems) {
       try {
         const plaintext = await decryptVaultItem(vaultKey, {
@@ -151,6 +153,12 @@ export async function unlock(password: string): Promise<boolean> {
         // Skip items that fail to decrypt (corrupted or wrong key)
         console.warn(`[vault-cache] Failed to decrypt item ${item.id}`);
       }
+    }
+
+    // Cap cache to prevent memory exhaustion on large vaults
+    if (decryptedItems.length > MAX_CACHE_ITEMS) {
+      console.warn(`[vault-cache] Truncated cache from ${decryptedItems.length} to ${MAX_CACHE_ITEMS} items`);
+      decryptedItems = decryptedItems.slice(0, MAX_CACHE_ITEMS);
     }
 
     state = {
