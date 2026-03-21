@@ -207,6 +207,12 @@ func (s *AuthService) Logout(ctx context.Context, tokenHash []byte) error {
 	return s.sessionRepo.DeleteByTokenHash(ctx, tokenHash)
 }
 
+// LogoutScoped deletes a session only if it belongs to the specified user.
+// Prevents cross-user session revocation via token manipulation.
+func (s *AuthService) LogoutScoped(ctx context.Context, tokenHash []byte, userID uuid.UUID) error {
+	return s.sessionRepo.DeleteByTokenHashAndUser(ctx, tokenHash, userID)
+}
+
 func (s *AuthService) ValidateSession(ctx context.Context, tokenHash []byte) (uuid.UUID, error) {
 	return s.sessionRepo.ValidateSession(ctx, tokenHash)
 }

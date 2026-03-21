@@ -76,6 +76,12 @@ export async function decryptAES256GCM(
   payload: EncryptedPayload,
   additionalData?: Uint8Array,
 ): Promise<Uint8Array> {
+  if (payload.nonce.length !== AES_GCM_NONCE_LENGTH) {
+    throw new Error(`Invalid nonce length: expected ${AES_GCM_NONCE_LENGTH}, got ${payload.nonce.length}`);
+  }
+  if (payload.tag.length !== AES_GCM_TAG_LENGTH) {
+    throw new Error(`Invalid tag length: expected ${AES_GCM_TAG_LENGTH}, got ${payload.tag.length}`);
+  }
   const cryptoKey = await importKey(key);
 
   // WebCrypto expects ciphertext || tag as a single buffer

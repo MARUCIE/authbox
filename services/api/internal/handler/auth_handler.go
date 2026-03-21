@@ -137,6 +137,12 @@ func (h *AuthHandler) LoginVerify(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
+
 	header := r.Header.Get("Authorization")
 	token, _ := strings.CutPrefix(header, "Bearer ")
 	if token == "" {
@@ -150,7 +156,8 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.authService.Logout(r.Context(), tokenHash); err != nil {
+	// Scope deletion to the authenticated user to prevent cross-session logout
+	if err := h.authService.LogoutScoped(r.Context(), tokenHash, userID); err != nil {
 		slog.Error("logout failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "logout failed", "INTERNAL_ERROR")
 		return

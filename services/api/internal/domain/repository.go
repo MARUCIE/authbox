@@ -21,6 +21,7 @@ type SessionRepository interface {
 	Create(ctx context.Context, s *Session) error
 	ValidateSession(ctx context.Context, tokenHash []byte) (uuid.UUID, error)
 	DeleteByTokenHash(ctx context.Context, tokenHash []byte) error
+	DeleteByTokenHashAndUser(ctx context.Context, tokenHash []byte, userID uuid.UUID) error
 	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
 	ListByUserID(ctx context.Context, userID uuid.UUID) ([]Session, error)
 	DeleteByID(ctx context.Context, sessionID uuid.UUID, userID uuid.UUID) error

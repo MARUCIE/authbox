@@ -22,14 +22,26 @@ type Config struct {
 
 func Load() Config {
 	sessionHours := getEnvInt("AUTH_BOX_SESSION_TTL_HOURS", 168) // default 7 days
+	env := getEnv("AUTH_BOX_ENV", "local")
+	origins := parseOrigins(getEnv("AUTH_BOX_ALLOWED_ORIGINS", "http://localhost:3000"))
+
+	// Production safety: warn if localhost origins are configured
+	if env == "production" {
+		for _, o := range origins {
+			if strings.Contains(o, "localhost") || strings.Contains(o, "127.0.0.1") {
+				slog.Error("SECURITY: localhost CORS origin in production mode", "origin", o, "env", env)
+			}
+		}
+	}
+
 	return Config{
 		HTTPAddr:       getEnv("AUTH_BOX_HTTP_ADDR", ":8080"),
 		DBDSN:          getEnv("AUTH_BOX_DB_DSN", ""),
 		RedisURL:       getEnv("AUTH_BOX_REDIS_URL", ""),
-		Environment:    getEnv("AUTH_BOX_ENV", "local"),
+		Environment:    env,
 		Version:        getEnv("AUTH_BOX_VERSION", "0.1.0"),
 		SessionTTL:     time.Duration(sessionHours) * time.Hour,
-		AllowedOrigins: parseOrigins(getEnv("AUTH_BOX_ALLOWED_ORIGINS", "http://localhost:3000")),
+		AllowedOrigins: origins,
 		AuthRateLimit:  getEnvInt("AUTH_BOX_AUTH_RATE_LIMIT", 5),
 	}
 }

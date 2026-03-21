@@ -52,6 +52,14 @@ func (r *SessionRepository) DeleteByTokenHash(ctx context.Context, tokenHash []b
 	return err
 }
 
+func (r *SessionRepository) DeleteByTokenHashAndUser(ctx context.Context, tokenHash []byte, userID uuid.UUID) error {
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM sessions WHERE token_hash = $1 AND user_id = $2`,
+		tokenHash, userID,
+	)
+	return err
+}
+
 func (r *SessionRepository) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {
 	_, err := r.pool.Exec(ctx,
 		`DELETE FROM sessions WHERE user_id = $1`,
