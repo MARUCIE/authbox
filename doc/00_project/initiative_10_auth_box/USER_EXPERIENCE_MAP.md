@@ -25,6 +25,11 @@ Related:
 - Round 1: `ai check` OK -- DONE (6/6 packages, 12/12 pages, 0 errors)
 - Round 2: 按本 UX Map 完成模拟人工测试并留证据 -- DONE (7/7 Journeys PASS, 9/9 routes HTTP 200)
 - Round 3: 真实 API fixtures 回放通过（no mock）-- DONE (20/20 endpoints, PostgreSQL + Go API, chi routing fix applied)
+- Round 4-7: 安全/性能优化 50 项 -- DONE
+- Round 8: Fixed-window rate limiter + Arweave E2E -- DONE
+- Round 9: Go middleware test suite 19 tests -- DONE
+- Round 10: Full-stack SRP E2E rewrite 53 tests -- DONE
+- Round 11: 全量 UX Map 模拟测试 -- DONE (8/8 Journeys, 52/52 验证点, 28/28 routes, 131 tests, 16 pages)
 
 ## 渠道与入口
 
@@ -41,8 +46,9 @@ Related:
 |---------|----------|----------|----------|
 | P0_DEVELOPER | 个人开发者 | Journey A + B + C | `/register`, `/passwords`, Add Password dialog |
 | P1_TEAM_LEAD | 团队负责人 | Journey A + B + D + G | `/register`, `/passwords`, `/audit` |
-| P2_AI_POWER_USER | AI 深度用户 | Journey A + B + E + F | `/register`, `/agents`, MCP |
+| P2_AI_POWER_USER | AI 深度用户 | Journey A + B + E + F + H | `/register`, `/agents`, `/api-keys`, MCP |
 | P3_SECURITY_PRO | 安全敏感用户 | Journey A + B + C + G | `/register`, `/passwords`, `/audit`, `/settings` |
+| P4_DEVOPS | DevOps/平台工程师 | Journey A + B + H + E | `/register`, `/api-keys`, `/agents` |
 
 ## 关键旅程
 
@@ -154,6 +160,23 @@ AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 | G6 | Token 即将过期 | 系统自动刷新并更新加密存储 | 后台定时任务 |
 | G7 | 断开连接 | 吊销 Token 并删除加密存储 | DELETE + OAuth revoke |
 
+### Journey H: API Keys 与 .env 导入
+
+用户导入项目 .env 文件，系统自动识别 70+ AI 基建 Provider 凭据，加密存储到 Vault。
+
+| Step | 用户动作 | 系统响应 | 技术细节 |
+|------|----------|----------|----------|
+| H1 | 访问 `/api-keys` | 展示已存储的 API Key 列表（按分类分组） | GET `/api/v1/vault/items` (type=api_key) |
+| H2 | 点击"Import .env"，拖入 .env 文件 | 客户端解析文件，提取 KEY=VALUE 对 | parseEnvFile() / parseJsonConfig() |
+| H3 | -- | 自动匹配 100+ env var 模式，分类到 15 个 Provider 类别 | matchEnvVar() + ENV_PATTERNS |
+| H4 | 预览分类结果，勾选要导入的 Provider | 按 Category 分组展示，显示字段数 | GroupedCredential |
+| H5 | 点击"Import N credentials" | 逐个加密并上传，显示进度条 | AES-256-GCM + POST vault/items |
+| H6 | 看到导入完成提示 | 自动同步 Vault | syncVault() |
+| H7 | 在列表中点击"verify" | 客户端 ping Provider API 验证 Key 有效性 | checkCredentialHealth() |
+| H8 | 看到 valid/invalid/expired 状态 | 显示状态 + 延迟 | 20 provider verifiers |
+
+**安全要点**: .env 文件在浏览器本地解析，明文 Key 直接用 Vault Key 加密后上传。Health check 直接从浏览器调用 Provider API（如 api.openai.com），不经过 Auth Box 服务端。
+
 ## 路由地图
 
 ### Web App Routes
@@ -164,7 +187,10 @@ AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 | `/register` | 注册（含密码强度指示器） | 无 | 0 | Client Component |
 | `/login` | 登录（SRP 多步进度） | 无 | 0 | Client Component |
 | `/unlock` | 解锁（Session 有效但 Vault 锁定） | Session | 0 | Client Component |
+| `/create` | 助记词创建 | 无 | 0 | Client Component |
+| `/restore` | 助记词恢复 | 无 | 0 | Client Component |
 | `/passwords` | 密码列表 + 搜索 + 新建/编辑/详情 | Session + Vault | 1 | 单页 + Dialog/侧边栏 |
+| `/api-keys` | API Key 管理 + .env 导入 + 健康检查 | Session + Vault | 3 | 单页 + 多步导入流 |
 | `/authorizations` | OAuth 连接列表 + 新建/详情 | Session + Vault | 2 | 单页 + Dialog/侧边栏 |
 | `/agents` | AI Agent 列表 + 注册/详情/策略 | Session | 2 | 单页 + Dialog/侧边栏 |
 | `/audit` | 审计日志（分页 + 哈希链验证） | Session | 1 | Client Component |

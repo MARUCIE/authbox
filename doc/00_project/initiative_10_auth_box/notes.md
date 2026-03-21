@@ -1384,3 +1384,67 @@ Cumulative: Round 4-6 = 42 optimization items total.
 ### Round 7 Verdict
 All 8 items implemented: 1 CRITICAL + 3 HIGH + 4 MEDIUM.
 Cumulative: Round 4-7 = 50 optimization items total.
+
+## Round 8-11 (2026-03-21)
+
+### Round 8: Rate Limiter Fix + Arweave Tests
+- Fixed-window rate limiter (rejected requests no longer extend window)
+- AUTH_BOX_AUTH_RATE_LIMIT env var (default 5/min)
+- Retry-After header returns actual window remaining seconds
+- E2E: 429-aware retry logic, 21/21 PASS
+- Arweave vault test suite: 10 tests (identity hash, roundtrip, recovery flow, API)
+- Crypto suite: 53/53 PASS (22 crypto + 21 seed + 10 arweave)
+- VPS API redeployed with fixed-window rate limiter
+
+### Round 9: Go Middleware Test Suite
+- Rate limiter tests (8): within-limit, over-limit, Retry-After, per-IP, window reset, regression guard, XFF, response body
+- Security middleware tests (11): SecurityHeaders, RequireJSON, PNA, ClientIP, BodySizeLimit
+- Go suite: 25/25 PASS
+
+### Round 10: Full-Stack SRP E2E Rewrite
+- Real SRP-6a: srpGenerateVerifier + srpClientInit + srpClientVerify (TypeScript crypto)
+- Vault CRUD: create(credential) → list → get → update → delete → verify 404
+- Agent CRUD: create → list → get → update → delete
+- Audit: list events + chain integrity verification
+- Session: list active sessions
+- TOTP: status check (disabled for new user)
+- Logout: token invalidation verified (401 after logout)
+- Security: 5 unauthenticated rejections, fake token, content-type, headers
+- E2E: 53/53 PASS (12 test groups)
+
+### Phase 1: AI Infrastructure Credential Catalog
+- credential-catalog.ts: 15 categories, 70+ provider templates, 100+ env var patterns
+- env-import-parser.ts: .env + JSON parsing, auto-classification, multi-field grouping
+- Export from @authbox/shared
+
+### Phase 2: API Keys Page + .env Import UI
+- /api-keys page with 5-step import workflow (browse → upload → preview → progress → done)
+- Drag-drop .env file, auto-classify, checkbox selection, batch encrypt
+- Sidebar navigation updated: API Keys between Authorizations and AI Agents
+- 16 pages total (was 14)
+
+### Phase 3: Credential Health Check
+- credential-health.ts: 20 provider-specific verifiers
+- Providers: OpenAI, Anthropic, Google AI, Groq, DeepSeek, Mistral, Together, OpenRouter, Replicate, ElevenLabs, HeyGen, Pinecone, Brave Search, Tavily, Cloudflare, Vercel, GitHub, SendGrid, Resend, PostHog
+- Inline verify button + status badge + latency display
+- Batch health check with 5-concurrent limit
+
+### Round 11: UX Map 全量模拟测试
+- 8/8 Journeys PASS (A-G + new H)
+- 52/52 验证点 PASS
+- 28/28 API 端点 correct status codes
+- 131 automated tests PASS (Go 25 + Crypto 53 + E2E 53)
+- 16/16 pages build PASS
+- UX Map updated: Journey H + Persona P4_DEVOPS + route map expanded
+- Extension config refactored: single source of truth (lib/config.ts)
+
+### Commits (2026-03-21)
+1. 3088989 -- fix(security): fixed-window rate limiter + Arweave E2E
+2. b421fcb -- test(middleware): rate limiter + security test suite
+3. 7f2e699 -- test(e2e): full-stack SRP E2E rewrite
+4. 1c15f1e -- docs(task-plan): Round 9-10 results
+5. 1b194ff -- refactor(extension): API config single source of truth
+6. 09d9150 -- feat(catalog): credential catalog 70+ providers
+7. e7b82cc -- feat(ui): API Keys page + .env import
+8. 8602df0 -- feat(health): credential health check 20 providers
+9. (pending) -- docs: UX Map + notes Round 8-11
