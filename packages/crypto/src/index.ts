@@ -27,6 +27,16 @@ export {
 } from './seed';
 export { ENGLISH_WORDLIST } from './wordlist-en';
 export {
+  archiveVault,
+  retrieveVault,
+  findVaultArchives,
+  estimateArchiveCost,
+  deriveIdentityHash,
+  setArweaveGateway,
+  type VaultArchiveResult,
+  type VaultArchiveMetadata,
+} from './arweave-vault';
+export {
   generateVaultKey,
   encryptVaultKey,
   decryptVaultKey,
