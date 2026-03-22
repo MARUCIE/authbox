@@ -16,14 +16,21 @@
  * Usage: node scripts/e2e-test.mjs [API_URL]
  */
 
+import crypto from 'node:crypto';
 import {
   srpGenerateVerifier,
   srpClientInit,
   srpClientVerify,
+} from '../packages/crypto/dist/srp.js';
+import {
   generateRandomBytes,
-} from '../packages/crypto/src/index.ts';
+} from '../packages/crypto/dist/aes-gcm.js';
 
-const API = process.argv[2] || 'https://underground-alcohol-insulin-bit.trycloudflare.com';
+const API =
+  process.argv[2] ||
+  process.env.AUTH_BOX_E2E_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  'http://localhost:4010';
 const TEST_EMAIL = `e2e-${Date.now()}@authbox.io`;
 const TEST_PASSWORD = 'E2E-SuperSecure!Test#2026';
 
@@ -75,6 +82,33 @@ function toBase64(bytes) {
 
 function fromBase64(str) {
   return new Uint8Array(Buffer.from(str, 'base64'));
+}
+
+function fromBase32(str) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const normalized = str.replace(/=+$/g, '').toUpperCase();
+  let bits = '';
+  for (const char of normalized) {
+    const value = alphabet.indexOf(char);
+    if (value === -1) throw new Error(`Invalid base32 character: ${char}`);
+    bits += value.toString(2).padStart(5, '0');
+  }
+  const bytes = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  }
+  return Buffer.from(bytes);
+}
+
+function generateTOTP(secretBase32, now = Date.now()) {
+  const secret = fromBase32(secretBase32);
+  const counter = Math.floor(now / 1000 / 30);
+  const buffer = Buffer.alloc(8);
+  buffer.writeBigUInt64BE(BigInt(counter));
+  const digest = crypto.createHmac('sha1', secret).update(buffer).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const code = (digest.readUInt32BE(offset) & 0x7fffffff) % 1000000;
+  return String(code).padStart(6, '0');
 }
 
 // ─── Test 1: Health Check ─────────────────────────────────────
@@ -326,8 +360,63 @@ if (sessionToken) {
   console.log('  [SKIP] No session token');
 }
 
-// ─── Test 10: API Security ───────────────────────────────────
-console.log('\n--- Test 10: API Security ---');
+// ─── Test 10: TOTP Enrollment + Login Verification ───────────
+console.log('\n--- Test 10: TOTP Enrollment + Login Verification ---');
+if (sessionToken) {
+  try {
+    const { status: enrollStatus, data: enrollData } = await apiCall('POST', '/api/v1/auth/totp/enroll', {}, sessionToken);
+    assert(enrollStatus === 200, `TOTP enroll → 200 (got ${enrollStatus})`);
+    assert(enrollData.secret, 'TOTP secret returned');
+
+    const currentCode = generateTOTP(enrollData.secret);
+    const { status: verifyStatus } = await apiCall('POST', '/api/v1/auth/totp/verify', {
+      code: currentCode,
+    }, sessionToken);
+    assert(verifyStatus === 200, `TOTP enable verify → 200 (got ${verifyStatus})`);
+
+    const { status: enabledStatus, data: enabledData } = await apiCall('GET', '/api/v1/auth/totp/status', null, sessionToken);
+    assert(enabledStatus === 200, `TOTP enabled status → 200 (got ${enabledStatus})`);
+    assert(enabledData.enabled === true, `TOTP enabled after enrollment: ${enabledData.enabled}`);
+
+    const secondClientState = await srpClientInit();
+    const { status: initStatus, data: initData } = await apiCall('POST', '/api/v1/auth/login/init', {
+      email: TEST_EMAIL,
+      clientPublicA: toBase64(secondClientState.ephemeralPublic),
+    });
+    assert(initStatus === 200, `TOTP login init → 200 (got ${initStatus})`);
+
+    const secondServerB = fromBase64(initData.serverPublicB);
+    const secondSalt = fromBase64(initData.srpSalt);
+    const { clientProof: secondProof } = await srpClientVerify(
+      secondClientState, TEST_EMAIL, TEST_PASSWORD, secondSalt, secondServerB,
+    );
+
+    const { status: verifyLoginStatus, data: verifyLoginData } = await apiCall('POST', '/api/v1/auth/login/verify', {
+      email: TEST_EMAIL,
+      clientPublicA: toBase64(secondClientState.ephemeralPublic),
+      clientProofM1: toBase64(secondProof),
+    });
+    assert(verifyLoginStatus === 200, `TOTP login verify → 200 (got ${verifyLoginStatus})`);
+    assert(verifyLoginData.totpRequired === true, `TOTP required on password phase: ${verifyLoginData.totpRequired}`);
+    assert(Boolean(verifyLoginData.serverProofM2), 'Server proof M2 returned before TOTP step');
+
+    const loginCode = generateTOTP(enrollData.secret);
+    const { status: completeStatus, data: completeData } = await apiCall('POST', '/api/v1/auth/login/totp/verify', {
+      email: TEST_EMAIL,
+      code: loginCode,
+    });
+    assert(completeStatus === 200, `TOTP login complete → 200 (got ${completeStatus})`);
+    assert(Boolean(completeData.sessionToken), 'Session token returned after TOTP login');
+    assert(Boolean(completeData.encryptedVaultKey), 'Vault key bundle returned after TOTP login');
+  } catch (err) {
+    assert(false, `TOTP enrollment/login failed: ${err.message}`);
+  }
+} else {
+  console.log('  [SKIP] No session token');
+}
+
+// ─── Test 11: API Security ───────────────────────────────────
+console.log('\n--- Test 11: API Security ---');
 try {
   const { status: s1 } = await apiCall('GET', '/api/v1/vault/key');
   assert(s1 === 401, `Vault without auth → 401 (got ${s1})`);
@@ -350,8 +439,8 @@ try {
   assert(false, `Security test failed: ${err.message}`);
 }
 
-// ─── Test 11: Security Headers ───────────────────────────────
-console.log('\n--- Test 11: Security Headers ---');
+// ─── Test 12: Security Headers ───────────────────────────────
+console.log('\n--- Test 12: Security Headers ---');
 try {
   const res = await fetch(`${API}/health`);
   const h = Object.fromEntries(res.headers.entries());

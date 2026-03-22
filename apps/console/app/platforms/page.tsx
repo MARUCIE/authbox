@@ -48,6 +48,7 @@ export default async function PlatformsPage({ searchParams }: PlatformsPageProps
             <p className="muted">
               {entry.baseURL} | token configured: {entry.hasToken ? "yes" : "no"} | auth source: {entry.authSource}
             </p>
+            {entry.configError ? <p className="muted">{entry.configError}</p> : null}
           </div>
           <Link href="/platforms/new">Add platform</Link>
         </div>

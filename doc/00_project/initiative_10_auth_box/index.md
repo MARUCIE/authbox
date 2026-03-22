@@ -3,7 +3,7 @@ Title: initiative_10_auth_box 索引
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-18
+LastUpdated: 2026-03-22
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -43,3 +43,6 @@ Related:
 - 2026-02-11: API 契约与鉴权同步（role 白名单、source 透传、契约测试补齐）。（原因：api-contract-auth-sync SOP）
 - 2026-02-11: 新增架构圆桌 ADR 与风险清单。（原因：architecture council SOP）
 - 2026-01-29: 初始化。（原因：新项目启动）
+
+## Changelog
+- 2026-03-22: 索引回写发布就绪性检查入口，补齐项目级 `ai check` changelog 门禁要求。（原因：release readiness hardening）

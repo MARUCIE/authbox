@@ -87,14 +87,21 @@ export async function register(
 }
 
 export interface LoginResult {
+  kind: 'complete';
   sessionToken: string;
   vaultKey: Uint8Array;
+}
+
+export interface PendingTOTPLogin {
+  kind: 'totp_required';
+  email: string;
+  encKey: Uint8Array;
 }
 
 export async function login(
   email: string,
   password: string,
-): Promise<LoginResult> {
+): Promise<LoginResult | PendingTOTPLogin> {
   // 1. SRP client init
   const clientState = await srpClientInit();
 
@@ -121,8 +128,21 @@ export async function login(
   // 5. Send proof to server
   const verifyResponse = await authApi.loginVerify({
     email,
+    clientPublicA: toBase64(clientState.ephemeralPublic),
     clientProofM1: toBase64(clientProof),
   });
+
+  if (verifyResponse.totpRequired) {
+    return {
+      kind: 'totp_required',
+      email,
+      encKey: keys.encKey,
+    };
+  }
+
+  if (!verifyResponse.sessionToken || !verifyResponse.encryptedVaultKey || !verifyResponse.vaultKeyNonce || !verifyResponse.vaultKeyTag) {
+    throw new Error('Login response missing vault credentials');
+  }
 
   // 6. Decrypt vault key
   const vaultKey = await decryptVaultKey(keys.encKey, {
@@ -132,6 +152,29 @@ export async function login(
   });
 
   return {
+    kind: 'complete',
+    sessionToken: verifyResponse.sessionToken,
+    vaultKey,
+  };
+}
+
+export async function verifyLoginTOTP(
+  pending: PendingTOTPLogin,
+  code: string,
+): Promise<LoginResult> {
+  const verifyResponse = await authApi.loginVerifyTOTP({
+    email: pending.email,
+    code,
+  });
+
+  const vaultKey = await decryptVaultKey(pending.encKey, {
+    encryptedVaultKey: fromBase64(verifyResponse.encryptedVaultKey),
+    nonce: fromBase64(verifyResponse.vaultKeyNonce),
+    tag: fromBase64(verifyResponse.vaultKeyTag),
+  });
+
+  return {
+    kind: 'complete',
     sessionToken: verifyResponse.sessionToken,
     vaultKey,
   };

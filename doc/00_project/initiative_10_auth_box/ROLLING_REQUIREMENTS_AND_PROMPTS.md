@@ -3,7 +3,7 @@ Title: ROLLING_REQUIREMENTS_AND_PROMPTS - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-13
+LastUpdated: 2026-03-22
 ---
 
 # 滚动需求与提示词
@@ -35,6 +35,7 @@ LastUpdated: 2026-02-13
 | REQ-20260212-021 | 2026-02-12 | 一键全量交付复跑：在最新代码基线复核 Round1/Round2 与前后端专项门禁 | 已完成 | one-click-full-delivery Run `20260212T032220Z` |
 | REQ-20260212-022 | 2026-02-12 | 队列执行规范固化（底层规范） | 已完成 | 将“队列执行/继续/go”写入 AGENTS/CLAUDE/CODEX/GEMINI；并复跑 full-loop-check（run_id=20260212T112402Z）留证据 |
 | REQ-20260213-023 | 2026-02-13 | SOP 4.1 项目级全链路回归复跑：在当前基线复核 UX Map Round 2 + real API replay + contract loop + ai check | 已完成 | project-regression Run `outputs/project-regression/20260213T021241Z` |
+| REQ-20260322-024 | 2026-03-22 | 全面审查 Auth Box，修复认证/审计/配置层 bug，并提升本地与静态发布 SLA | 已完成 | TOTP login + audit chain + config fail-fast + static headers + 65/65 E2E |
 
 ## 提示词台账
 
@@ -50,8 +51,10 @@ LastUpdated: 2026-02-13
 | PROMPT-20260212-008 | 2026-02-12 | SOP：一键全量交付（长任务），要求 planning-with-files + ralph loop + ai check + UX Map + Task Closeout | 任务验收 | 来自用户指令 |
 | PROMPT-20260212-009 | 2026-02-12 | SOP：一键全量交付（长任务）再次执行，要求 planning-with-files + ralph-loop + ai check + UX Map + Task Closeout | 任务验收 | 来自用户“继续/一键全量交付”指令 |
 | PROMPT-20260213-010 | 2026-02-13 | 继续/go（队列执行）：SOP 4.1 项目级全链路回归复跑（UX Map + E2E + ai check） | 任务验收 | 来自用户“继续/go/队列执行”指令 |
+| PROMPT-20260213-011 | 2026-02-13 | 继续（队列执行）：SOP 5.2 发布治理 + SOP 5.3 postmortem 守门（含本地 gate） | 发布守门 | 来自用户“继续”指令 |
+| PROMPT-20260322-012 | 2026-03-22 | 全面审查，修复 bug，提升 SLA；要求直接落地代码、补回归验证、同步 PDCA 文档 | 稳定性整改 | 来自用户指令 |
 
-| PROMPT-20260213-011 | 2026-02-13 | 继续（队列执行）：SOP 5.2 发布治理 + SOP 5.3 postmortem 守门（含本地 gate） | 发布守门 | 来自用户“继续”指令 |## 防回归 Q&A
+## 防回归 Q&A
 
 | 编号 | 日期 | 问题 | 根因 | 修复 | 预防 | 引用 |
 |---|---|---|---|---|---|---|
@@ -72,6 +75,12 @@ LastUpdated: 2026-02-13
 | QA-20260212-015 | 2026-02-12 | 如何避免前端自动化审计把 Next.js 预取中止请求误判为 network fail？ | Playwright 会捕获 `_rsc` 预取在导航切换时产生的 `net::ERR_ABORTED` | 审计脚本将 `_rsc` + `ERR_ABORTED` 归类为可忽略请求，并单独记录 `failed_requests_ignored` | network fail 仅统计非 `_rsc` 请求；同时保留 ignored 列表供审计追踪 | `outputs/one-click-full-delivery/20260212T022828Z/reports/frontend_audit/frontend_audit_report.json` |
 | QA-20260212-016 | 2026-02-12 | 如何在不新增功能的情况下确认“当前开发基线”仍满足一键交付门禁？ | 连续多轮改动后，旧验收证据可能失效或不可代表当前基线 | 复跑 SOP 1.1 并重新留存 Round1/Round2 + 前后端专项证据 | 每次“继续/复跑”都生成独立 run 目录并回写 PDCA + deliverable | `outputs/one-click-full-delivery/20260212T032220Z` |
 | QA-20260212-017 | 2026-02-12 | 为什么要支持连续命令队列模式（队列执行/继续/go）？ | 反复确认/人为停顿会打断 SOP pipeline，导致上下文漂移与证据不连贯 | 将队列规则写入底层规范，并要求每批命令结果落盘到 task_plan.md/notes.md | 规范门禁：grep 命中队列规则；流程门禁：task_plan/notes 必须写入批次命令与证据路径 | AGENTS.md / CLAUDE.md / CODEX.md / GEMINI.md |
+| QA-20260322-018 | 2026-03-22 | 为什么启用 TOTP 后登录仍可能不触发 step-up，随后 `/auth/login/totp/verify` 又返回 401？ | 登录阶段使用的 `FindByEmail()` 未加载 TOTP 字段，且 service 复用了 init 时的旧用户快照 | repository 补齐 `totp_secret/totp_enabled/totp_verified_at`，service 在 SRP 成功后和 TOTP 校验前按 `userID` 刷新用户状态 | 与二次认证相关的决策不要依赖 init 阶段缓存快照；新增回归测试覆盖“init 后状态变化”场景 | `services/api/internal/repository/pg/user_repo.go` / `services/api/internal/service/auth_service.go` / `services/api/internal/service/auth_service_test.go` |
+| QA-20260322-019 | 2026-03-22 | 为什么静态导出的前端会“看起来配置了安全头”，但构建仍警告且线上不生效？ | `output: 'export'` 的 Next.js 产物不会应用 `next.config.ts headers()` | 将 CSP/XFO/XCTO/Referrer 等安全头迁移到静态 host 支持的 `public/_headers` | 静态站点安全头必须通过宿主产物交付，不要把 `headers()` 当作导出态安全基线 | `apps/web/public/_headers` / `apps/web/next.config.ts` |
+| QA-20260322-020 | 2026-03-22 | 为什么临时 tunnel 域名不能作为 web/console/extension/E2E 的默认 API base？ | 临时域名会过期，失败时表现为随机网络故障而不是显式配置错误 | 开发态默认 `localhost`，非本地运行态要求显式 env 配置；E2E 同步采用同一策略 | 把“默认值”限制在稳定本地开发拓扑；生产/预发一律显式注入 base URL | `apps/web/lib/api.ts` / `apps/console/lib/api.ts` / `apps/extension/src/lib/config.ts` / `scripts/e2e-test.mjs` |
+| REQ-20260322-025 | 2026-03-22 | 在公开市场发布前，必须补齐发布就绪性检查：项目内 `ai check`、本地/GitHub/VPS commit 收敛、以及公共 API health 证据 | `doc/00_project/initiative_10_auth_box/*`, release gate workflow, deployment runbook | in_progress | `doc/00_project/initiative_10_auth_box/notes.md`（Release Readiness Checkpoint） |
+| PROMPT-20260322-013 | 2026-03-22 | "执行发布就绪性检查：核对本地/GitHub/VPS 版本一致性，验证 authbox.io 公共路由与公共 API health，并只用项目目录内的新鲜证据判断是否可公开发布" | 适用于上线前最后一轮 go/no-go 审查 |
+| QA-20260322-021 | 2026-03-22 | 为什么 `authbox.io` 页面路由全是 200，仍然不能直接宣布可公开发布？ | 页面可达只证明 Pages 前端在线，不证明当前修复已提交、GitHub/VPS 同步、或公共 API 健康可用 | 发布门禁必须同时验证：项目目录 `ai check`、本地/GitHub/VPS commit 一致、公共 API health、以及核心用户旅程 smoke | 把“主页 200”降级为前端可达性信号，不得替代 release go/no-go 决策 | `doc/00_project/initiative_10_auth_box/notes.md` / `doc/00_project/initiative_10_auth_box/deliverable.md` |
 
 ## 2026-02-18 · REQ（UI/UX 优化）
 | id | requirement | scope | status | evidence |
@@ -140,3 +149,6 @@ LastUpdated: 2026-02-13
 | 症状：执行链路有流程但无法稳定复用 | 根因：缺少机器可读 trigger/router 规则与 persona 边界定义 |
 | 修复与验证方法 | 引入 `configs/agent-router/professional-agent-routing.v1.json`，并校验 PRD/UXMap/设计文档一致性 |
 | 防复发触发器 | 若缺少 routing config 或 Round2 断言失败，则任务不得标记完成 |
+
+## Changelog
+- 2026-03-22: 新增发布就绪性检查的 REQ/PROMPT/QA，并补齐 changelog 区块以满足项目级文档门禁。（原因：release readiness hardening）

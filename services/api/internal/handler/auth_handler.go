@@ -25,10 +25,12 @@ type AuthHandler struct {
 }
 
 // emailRateLimit prevents email enumeration via registration/login brute-force.
-// 3 attempts per email per 5 minutes.
+// The per-email threshold is configurable so E2E and production can use the
+// same code path with different envelopes.
 type emailRateLimit struct {
-	mu      sync.Mutex
-	entries map[string]emailEntry
+	mu          sync.Mutex
+	entries     map[string]emailEntry
+	maxAttempts int
 }
 
 type emailEntry struct {
@@ -37,23 +39,38 @@ type emailEntry struct {
 }
 
 func (rl *emailRateLimit) allow(email string) bool {
+	now := time.Now()
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 	if rl.entries == nil {
 		rl.entries = make(map[string]emailEntry)
 	}
+	maxAttempts := rl.maxAttempts
+	if maxAttempts <= 0 {
+		maxAttempts = 5
+	}
+	for key, entry := range rl.entries {
+		if now.Sub(entry.start) > 5*time.Minute {
+			delete(rl.entries, key)
+		}
+	}
 	e, ok := rl.entries[email]
-	if !ok || time.Since(e.start) > 5*time.Minute {
-		rl.entries[email] = emailEntry{count: 1, start: time.Now()}
+	if !ok || now.Sub(e.start) > 5*time.Minute {
+		rl.entries[email] = emailEntry{count: 1, start: now}
 		return true
 	}
 	e.count++
 	rl.entries[email] = e
-	return e.count <= 3
+	return e.count <= maxAttempts
 }
 
-func NewAuthHandler(authService *service.AuthService) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(authService *service.AuthService, maxEmailAttempts int) *AuthHandler {
+	return &AuthHandler{
+		authService: authService,
+		emailLimiter: emailRateLimit{
+			maxAttempts: maxEmailAttempts,
+		},
+	}
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -172,6 +189,33 @@ func (h *AuthHandler) LoginVerify(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.authService.LoginVerify(r.Context(), req.Email, clientA, clientM1, ipAddress, userAgent)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "invalid credentials", "INVALID_CREDENTIALS")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *AuthHandler) LoginVerifyTOTP(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email"`
+		Code  string `json:"code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+		return
+	}
+
+	if req.Email == "" || req.Code == "" {
+		writeError(w, http.StatusBadRequest, "missing required fields", "BAD_REQUEST")
+		return
+	}
+
+	ipAddress := appmw.ClientIP(r)
+	userAgent := r.UserAgent()
+
+	resp, err := h.authService.LoginVerifyTOTP(r.Context(), req.Email, req.Code, ipAddress, userAgent)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error(), "INVALID_CREDENTIALS")
 		return
 	}
 

@@ -3,7 +3,7 @@ Title: PLATFORM_OPTIMIZATION_PLAN - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-13
+LastUpdated: 2026-03-22
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -308,7 +308,7 @@ AuditEvent {
 | # | Category | Severity | Fix | File |
 |---|----------|----------|-----|------|
 | 34 | Security | HIGH | RequireJSON middleware (reject non-JSON Content-Type on POST/PUT/PATCH) | `middleware/security.go`, `cmd/api/main.go` |
-| 35 | Security | HIGH | Frontend CSP headers via next.config.ts (default-src self, script-src wasm, frame-ancestors none, connect-src API+MCP) | `apps/web/next.config.ts` |
+| 35 | Security | HIGH | Frontend CSP/security headers shipped through static host `_headers` (static export compatible) | `apps/web/public/_headers` |
 | 36 | Security | LOW | HSTS preload directive added | `middleware/security.go` |
 | 37 | Security | LOW | Referrer-Policy tightened to no-referrer (password manager = no URL leakage) | `middleware/security.go` |
 | 38 | Security | LOW | X-Permitted-Cross-Domain-Policies: none | `middleware/security.go` |
@@ -363,3 +363,6 @@ AuditEvent {
 
 - `go build ./...`: PASS (zero errors)
 - `npx turbo build`: PASS (6/6 packages, 13 pages, 0 errors)
+
+## Changelog
+- 2026-03-22: 回写静态安全头、API base 显式配置与发布就绪性检查结论，并补齐 changelog 区块。（原因：auth reliability + release readiness）

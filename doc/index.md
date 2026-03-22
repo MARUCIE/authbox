@@ -3,7 +3,7 @@ Title: 文档索引
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-24
+LastUpdated: 2026-03-22
 Related:
   - /doc/00_project/index.md
   - /doc/10_features/
@@ -58,6 +58,9 @@ Related:
 - 2026-02-24: v2 重写，更新 monorepo 结构映射（Turborepo + pnpm, packages/crypto, packages/shared, apps/web, services/api）。（原因：Auth Box v2 产品方向转型）
 - 2026-02-18: 新增专业智能体设计文档索引与路径映射。
 - 2026-02-11: 新增 sitemap 与关键词策略文档并回写索引。
+
+## Changelog
+- 2026-03-22: 补齐项目级 `ai check` 文档门禁兼容项，新增标准 `## Changelog` 段并同步 path index 基线。（原因：release readiness hardening）
 - 2026-02-11: 增量更新 API 契约与鉴权同步文档。
 - 2026-02-11: 文档索引新增架构 ADR 与风险清单路径。
 - 2026-01-29: 初始化。

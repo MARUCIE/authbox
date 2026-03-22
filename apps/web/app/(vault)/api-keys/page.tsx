@@ -15,7 +15,7 @@ import {
   PROVIDER_TEMPLATES,
   getProvider,
   getCategory,
-} from '@authbox/shared';
+} from '@authbox/shared/types/credential-catalog';
 import {
   checkCredentialHealth,
   hasHealthCheck,

@@ -132,7 +132,7 @@ func main() {
 	auditService := service.NewAuditService(auditRepo)
 
 	// Handlers
-	authHandler := handler.NewAuthHandler(authService)
+	authHandler := handler.NewAuthHandler(authService, cfg.AuthRateLimit)
 	totpHandler := handler.NewTOTPHandler(totpService)
 	vaultHandler := handler.NewVaultHandler(vaultService)
 	agentHandler := handler.NewAgentHandler(agentService)
@@ -178,6 +178,7 @@ func main() {
 			r.Post("/auth/register", authHandler.Register)
 			r.Post("/auth/login/init", authHandler.LoginInit)
 			r.Post("/auth/login/verify", authHandler.LoginVerify)
+			r.Post("/auth/login/totp/verify", authHandler.LoginVerifyTOTP)
 		})
 
 		// Protected routes (require valid session + rate limit)

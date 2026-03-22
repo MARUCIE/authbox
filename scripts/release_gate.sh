@@ -186,7 +186,7 @@ if [[ "$TOUCHES_CONSOLE" == "true" || "$RISK_LEVEL" == "P0" ]]; then
 fi
 
 if command -v ai >/dev/null 2>&1; then
-  run_check "ai_check" ai check --no-sbom
+  run_check "ai_check" ai check --no-sbom --base-dir "$PROJECT_DIR"
 else
   append_result "ai_check" "SKIP" 0 "" "ai_command_not_found"
 fi

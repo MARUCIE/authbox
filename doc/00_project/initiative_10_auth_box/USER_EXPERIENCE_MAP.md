@@ -3,7 +3,7 @@ Title: USER_EXPERIENCE_MAP - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-24
+LastUpdated: 2026-03-22
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -29,7 +29,7 @@ Related:
 - Round 8: Fixed-window rate limiter + Arweave E2E -- DONE
 - Round 9: Go middleware test suite 19 tests -- DONE
 - Round 10: Full-stack SRP E2E rewrite 53 tests -- DONE
-- Round 11: 全量 UX Map 模拟测试 -- DONE (8/8 Journeys, 52/52 验证点, 28/28 routes, 131 tests, 16 pages)
+- Round 11: 全量 UX Map 模拟测试 -- DONE (8/8 Journeys, 52/52 验证点, 28/28 routes, latest regression baseline: `make test-api` PASS + crypto gate PASS (51 deterministic + 2 live skipped) + E2E 65/65 PASS, 16 pages)
 
 ## 渠道与入口
 
@@ -75,13 +75,13 @@ SRP 协议实现双向认证：客户端验证服务端身份，服务端验证�
 | Step | 用户动作 | 系统响应 | 技术细节 |
 |------|----------|----------|----------|
 | B1 | 访问 `/login` | 展示登录表单（email + master password） | -- |
-| B2 | 输入凭据并点击"登录" | 客户端发送 SRP Login Start 请求 | POST `/api/v1/auth/login/start` (email, A) |
+| B2 | 输入凭据并点击"登录" | 客户端发送 SRP Login Init 请求 | POST `/api/v1/auth/login/init` (email, A) |
 | B3 | -- | 服务端返回 (salt, B) | -- |
 | B4 | -- | 客户端计算共享密钥 K 和证明 M1 | Argon2id + SRP 计算 |
 | B5 | -- | 发送 Login Verify (M1) | POST `/api/v1/auth/login/verify` |
-| B6 | -- | 服务端验证 M1，返回 (M2, session_token, encrypted_vault_key) | -- |
-| B7 | -- | 客户端验证 M2（双向认证完成） | 确认服务端知道 verifier |
-| B8 | -- | 客户端用 Enc Key 解包 Vault Key | AES-256-GCM 解密 |
+| B6 | -- | 服务端验证 M1，返回 `(M2 + vault bundle)` 或 `totpRequired=true + M2` | SRP 完成后再决定是否 step-up |
+| B7 | 若启用 TOTP，输入 6 位验证码 | 客户端发送第二步校验 | POST `/api/v1/auth/login/totp/verify` |
+| B8 | -- | 客户端验证 M2 / 获取 session token / 解包 Vault Key | SRP + TOTP 完整闭环 |
 | B9 | -- | 下载并解密所有 Vault Items | 批量解密到内存 |
 | B10 | 看到 Vault 主界面 | 展示解密后的凭据列表 | 跳转到 `/passwords` |
 
@@ -203,3 +203,6 @@ AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 ---
 
 Maurice | maurice_wen@proton.me
+
+## Changelog
+- 2026-03-22: 同步 TOTP step-up 登录与发布就绪性检查现状，补齐 `## Changelog` 以满足项目级文档门禁。（原因：auth reliability + release readiness）

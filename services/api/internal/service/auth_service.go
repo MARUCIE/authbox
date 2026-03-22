@@ -176,9 +176,6 @@ func (s *AuthService) LoginInit(ctx context.Context, req LoginInitRequest) (*Log
 func (s *AuthService) LoginVerify(ctx context.Context, email string, clientA, clientM1 []byte, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
 	s.mu.Lock()
 	pl, ok := s.pending[email]
-	if ok {
-		delete(s.pending, email)
-	}
 	s.mu.Unlock()
 
 	if !ok {
@@ -187,20 +184,37 @@ func (s *AuthService) LoginVerify(ctx context.Context, email string, clientA, cl
 
 	m2, err := pl.srp.VerifyProof(clientA, clientM1)
 	if err != nil {
+		s.mu.Lock()
+		delete(s.pending, email)
+		s.mu.Unlock()
 		return nil, errors.New("invalid credentials")
 	}
 
+	currentUser, err := s.userRepo.FindByID(ctx, pl.user.ID)
+	if err != nil || currentUser == nil {
+		s.mu.Lock()
+		delete(s.pending, email)
+		s.mu.Unlock()
+		return nil, errors.New("invalid credentials")
+	}
+	pl.user = currentUser
+
 	// Check if TOTP 2FA is enabled — if so, require TOTP before issuing session.
 	// Mark SRP as verified so LoginVerifyTOTP can confirm proof was completed.
-	if pl.user.TOTPEnabled {
+	if currentUser.TOTPEnabled {
 		pl.srpVerified = true
+		pl.createdAt = time.Now()
 		return &LoginVerifyResponse{
 			ServerProofM2: base64.StdEncoding.EncodeToString(m2),
 			TOTPRequired:  true,
 		}, nil
 	}
 
-	return s.issueSession(ctx, pl.user, m2, ipAddress, userAgent)
+	s.mu.Lock()
+	delete(s.pending, email)
+	s.mu.Unlock()
+
+	return s.issueSession(ctx, currentUser, m2, ipAddress, userAgent)
 }
 
 func (s *AuthService) Logout(ctx context.Context, tokenHash []byte) error {
@@ -267,7 +281,12 @@ func (s *AuthService) LoginVerifyTOTP(ctx context.Context, email, totpCode, ipAd
 		return nil, errors.New("SRP authentication required before TOTP verification")
 	}
 
-	user := pl.user
+	user, err := s.userRepo.FindByID(ctx, pl.user.ID)
+	if err != nil || user == nil {
+		return nil, errors.New("invalid credentials")
+	}
+	pl.user = user
+
 	if !user.TOTPEnabled {
 		return nil, errors.New("TOTP not enabled for this account")
 	}

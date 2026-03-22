@@ -3,7 +3,7 @@ Title: deliverable - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-13
+LastUpdated: 2026-03-22
 ---
 
 # 交付物
@@ -1032,3 +1032,90 @@ LastUpdated: 2026-02-13
 - [x] 底层规范 (CLAUDE/AGENTS): N/A (no cross-project reusable rules produced)
 - [x] Rolling Ledger: Anti-regression entries added to notes.md (stale .next cache trigger + chi router overlap trigger)
 - [x] 三端一致性: N/A (local dev only; no production deployment for Auth Box v2 yet)
+
+## 2026-03-22 · 全面审查 / 修复 bug / 提升 SLA
+
+### 交付内容
+
+1. 认证链路修复
+   - 修复 SRP → TOTP 的两阶段登录闭环；新增 `/api/v1/auth/login/totp/verify` 前后端联调路径。
+   - 修复登录阶段的 TOTP 状态陈旧读取：repository 补齐字段，service 在 step-up 前按 `userID` 刷新用户状态。
+   - 修复 web / extension 的 `/auth/login/verify` 请求缺少 `clientPublicA`。
+2. 审计与限流修复
+   - 修复 audit chain 只校验最旧 10k 事件的问题，改为按“最近 10k → 再升序校验”。
+   - 修复 per-email limiter 不清理过期项、且硬编码为 3 次的实现，统一接入 `AUTH_BOX_AUTH_RATE_LIMIT`。
+3. 配置与静态发布可靠性修复
+   - 将 `apps/web` 的安全头从无效的 `next.config.ts headers()` 迁移到 `apps/web/public/_headers`。
+   - 去除 web / console / extension / E2E 对临时 `trycloudflare` 域名的硬编码依赖，改为 localhost dev 默认 + 非本地显式配置。
+   - 修复 `scripts/e2e-test.mjs` 的 Node 运行兼容性与默认 API 目标。
+   - Follow-up 收口：README / UX 文档当前基线已同步到 2026-03-22 的真实验证结果，CSP `connect-src` 不再遗留 `*.trycloudflare.com`。
+
+### 验收结果
+
+- Round 1 自动化验证：
+  - `make test-api` PASS
+  - `pnpm build` PASS
+  - `pnpm --filter @authbox/web build` PASS（follow-up cleanup 后再次验证，16/16 static pages）
+- Round 2 模拟真实链路：
+  - `make migrate` PASS
+  - 本地 Go API (`:8080`, `AUTH_BOX_AUTH_RATE_LIMIT=100`) + PostgreSQL 实例联调 PASS
+  - `node scripts/e2e-test.mjs http://localhost:8080` PASS（65/65）
+- 说明：
+  - 从 `/Users/mauricewen/00-AI-Fleet` 误触发的一次 `ai check` 已判定为无效，不纳入本项目验收。
+- 重点闭环：
+  - TOTP enroll → enable → fresh SRP login → `totpRequired=true` → `/auth/login/totp/verify` → session issuance：PASS
+  - audit verify recent-segment chain: PASS
+  - static export build warnings about `headers()` on `output: 'export'`: removed
+
+### Task Closeout
+
+- [x] Skills: N/A（本轮为项目内认证/配置修复，未抽取跨项目 skill）
+- [x] PDCA 四文档：已同步 `PRD.md` / `USER_EXPERIENCE_MAP.md` / `SYSTEM_ARCHITECTURE.md` / `PLATFORM_OPTIMIZATION_PLAN.md`
+- [x] 底层规范（CLAUDE/AGENTS）：N/A
+- [x] Rolling Ledger：已追加本轮 REQ / PROMPT / Anti-Regression Q&A
+- [x] 三端一致性：N/A（本轮验证覆盖本地代码与本地运行态；GitHub/VPS 未执行发布）
+
+## 2026-03-22 · 发布就绪性检查 / Release Readiness Checkpoint
+
+### 交付内容
+
+1. 发布门禁复核
+   - 复核本地已提交 HEAD、GitHub `origin/main` 与 `vps-prod:/root/10-auth-box` 的版本一致性。
+   - 复核 `authbox.io` 公共路由、Pages 响应头、VPS 本机 API health、以及远端运行态存在性。
+2. 发布阻塞项明确化
+   - 明确 `release-gate`/`risk-classify` 仅覆盖已提交 ref range，当前未提交修复不能被它们代表。
+   - 明确“网站页面可打开”不能替代“公共 API 健康 + 三端版本一致 + 项目目录 `ai check` PASS”。
+
+### 验收结果
+
+- GitHub 一致性：
+  - 本地已提交 HEAD = `97336bf21839350d4c04e6de010df03c21a5020f`
+  - `origin/main` = `97336bf21839350d4c04e6de010df03c21a5020f`
+- VPS 一致性：
+  - `vps-prod:/root/10-auth-box` = `850c226bd0ffc4f13d678528780c34050f559b22`
+  - VPS worktree 不干净：`?? docker-compose.vps-local.yml`
+- 公共站点 smoke：
+  - `https://authbox.io`, `/login`, `/register`, `/create`, `/unlock`, `/settings`, `/manifest.webmanifest` 均返回 `HTTP 200`
+  - 公共路由响应头包含 HSTS / XFO / Referrer-Policy / XCTO
+- 公共 API / VPS runtime：
+  - `https://authbox.io/health` = `404`
+  - `https://api.authbox.io/health` = DNS unresolved
+  - `vps-prod` 上 `localhost:4010/health` = connection refused
+  - `vps-prod` `docker ps` 未见运行容器
+- 其他：
+  - `make postmortem-scan` PASS
+  - `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box` PASS（`outputs/check/20260322-021252-a7b35035`）
+  - `make release-gate BASE=97336bf21839350d4c04e6de010df03c21a5020f HEAD=HEAD` PASS（`outputs/release-gate/20260322T021557Z/reports/release_gate_summary.json`）
+  - `make test-crypto` PASS（51 deterministic tests passed，2 live Arweave probes skipped by default）
+
+### 结论
+
+- 允许：继续做内测、灰度、发布前准备、提交/同步/部署修复
+- 不允许：立刻做公开市场发布或大规模推广
+- 阻塞项：
+  - 当前修复尚未提交到 Git
+  - GitHub 与 VPS 版本不一致
+  - 公共 API health 未恢复
+
+## Changelog
+- 2026-03-22: 追加发布就绪性检查交付，并补齐 changelog 区块以满足项目级文档门禁。（原因：release readiness hardening）

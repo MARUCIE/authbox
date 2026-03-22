@@ -1448,3 +1448,88 @@ Cumulative: Round 4-7 = 50 optimization items total.
 7. e7b82cc -- feat(ui): API Keys page + .env import
 8. 8602df0 -- feat(health): credential health check 20 providers
 9. (pending) -- docs: UX Map + notes Round 8-11
+
+## Round 12: Auth Reliability + SLA Hardening (2026-03-22)
+
+### Core findings
+
+1. **TOTP continuation broken** (HIGH): `LoginVerify` cleared pending SRP state too early, making `/auth/login/totp/verify` impossible to complete after the password step.
+2. **TOTP state stale on login** (HIGH): `FindByEmail()` did not hydrate `totp_secret/totp_enabled/totp_verified_at`, so login could miss step-up and then reject the follow-up TOTP verification with a stale user snapshot.
+3. **Audit verification window wrong** (HIGH): `VerifyChain` claimed to verify the latest 10k events but actually loaded the oldest 10k in ascending order, making recent-window verification misleading.
+4. **Client/backend contract drift** (HIGH): web login and extension login omitted `clientPublicA` on `/api/v1/auth/login/verify` despite the backend requiring it.
+5. **Per-email limiter too brittle** (MEDIUM): hardcoded `3 attempts / 5 min` caused legitimate register → login → TOTP flows to self-rate-limit; it also ignored `AUTH_BOX_AUTH_RATE_LIMIT`.
+6. **Static export security headers ineffective** (MEDIUM): `apps/web` used `output: 'export'`, so `next.config.ts headers()` never applied in exported output. Security headers had to live in `public/_headers`.
+7. **Hardcoded tunnel endpoints** (MEDIUM): web/console/extension/E2E defaulted to a temporary `trycloudflare` URL, turning expired infra into hidden runtime failure instead of explicit config error.
+
+### Implemented fixes
+
+- `auth_service.go`: keep pending SRP state until TOTP completes; refresh latest user state by `userID` before deciding step-up and before TOTP completion.
+- `user_repo.go`: `FindByEmail()` now hydrates TOTP fields.
+- `auth_handler.go` + `main.go`: per-email limiter now prunes stale entries and uses configurable max attempts via `cfg.AuthRateLimit`.
+- `audit_repo.go`: verify the most recent 10k audit rows in chronological order via helper-backed chain verification.
+- `apps/web`, `apps/extension`: login verify now always sends `clientPublicA`; TOTP login UI/flow is wired end to end.
+- `apps/web/public/_headers`: CSP/XFO/Referrer/XCTO now shipped through static host headers; ineffective `next.config.ts headers()` removed.
+- `apps/web/lib/api.ts`, `apps/console/lib/api.ts`, `apps/extension/src/lib/config.ts`, `scripts/e2e-test.mjs`: local defaults stay on localhost; non-local runtime now requires explicit API base configuration instead of falling back to a dead tunnel.
+
+### Verification
+
+- `go test ./internal/handler ./internal/service ./internal/repository/pg`: PASS
+- `make test-api`: PASS
+- `pnpm --filter @authbox/web build`: PASS (static export warnings removed)
+- `pnpm --filter @authbox/extension build`: PASS
+- `pnpm --filter auth-box-console build`: PASS
+- `pnpm build`: PASS
+- `make migrate`: PASS
+- `node scripts/e2e-test.mjs http://localhost:8080`: PASS (65/65, includes TOTP enroll + TOTP login completion)
+
+## Round 12 Follow-up Closure (2026-03-22)
+
+### Drift cleanup
+
+- `README.md`: replaced brittle hardcoded test totals with "latest verified baseline (2026-03-22)" wording.
+- `USER_EXPERIENCE_MAP.md`: top-level current baseline now references `make test-api` PASS + crypto 53/53 PASS + E2E 65/65 PASS.
+- `apps/web/public/_headers`: removed stale `https://*.trycloudflare.com` from CSP `connect-src` to match the runtime config hardening completed in Round 12.
+
+### Validation
+
+- `rg -n "trycloudflare" apps services scripts .env.example docker-compose.yml README.md doc -g '!outputs/**'`: no runtime/config references left; only historical notes/task plan/deliverable entries remain.
+- `pnpm --filter @authbox/web build`: PASS (16/16 static pages exported after CSP/README cleanup).
+- `ai check`: one run was incorrectly launched from `/Users/mauricewen/00-AI-Fleet` and ignored; a second run from `PROJECT_DIR` produced no result within this turn, so it was not used as release evidence.
+
+## Release Readiness Checkpoint (2026-03-22)
+
+### Local / GitHub / VPS consistency
+
+- Local committed HEAD: `97336bf21839350d4c04e6de010df03c21a5020f`
+- `origin/main`: `97336bf21839350d4c04e6de010df03c21a5020f`
+- Local worktree: dirty, with unreleased auth/SLA fixes still uncommitted
+- `vps-prod:/root/10-auth-box`: `850c226bd0ffc4f13d678528780c34050f559b22`
+- `vps-prod` worktree: dirty (`?? docker-compose.vps-local.yml`)
+
+### Public surface probe
+
+- `https://authbox.io`: HTTP 200
+- `https://authbox.io/login`: HTTP 200
+- `https://authbox.io/register`: HTTP 200
+- `https://authbox.io/create`: HTTP 200
+- `https://authbox.io/unlock`: HTTP 200
+- `https://authbox.io/settings`: HTTP 200
+- `https://authbox.io/manifest.webmanifest`: HTTP 200
+- Response headers observed on public routes: `Strict-Transport-Security`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`
+
+### API / runtime probe
+
+- `https://authbox.io/health`: HTTP 404 (site reachable, but no public health route on the current Pages surface)
+- `https://api.authbox.io/health`: DNS resolution failed
+- `ssh vps-prod ... curl http://localhost:4010/health`: connection refused
+- `ssh vps-prod ... docker ps`: no running containers listed
+
+### Gate status
+
+- `make postmortem-scan ...`: PASS
+- `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box`: PASS
+  - run_dir: `outputs/check/20260322-021252-a7b35035`
+- `make release-gate BASE=97336bf21839350d4c04e6de010df03c21a5020f HEAD=HEAD`: PASS
+  - summary: `outputs/release-gate/20260322T021557Z/reports/release_gate_summary.json`
+- `packages/crypto` live Arweave probes are now opt-in (`AUTHBOX_LIVE_ARWEAVE=1`); default gate is deterministic (`51 passed, 2 skipped`) instead of depending on third-party TLS/network state.
+- Conclusion: internal/local product flow and project-scoped Round 1 gate are green, but public release/promotion gate remains BLOCKED until code is committed, GitHub/VPS are re-synced, and public API health is recovered.

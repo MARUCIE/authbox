@@ -4,7 +4,7 @@ import { Suspense, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
-import { login } from '@/lib/auth';
+import { login, verifyLoginTOTP, type PendingTOTPLogin } from '@/lib/auth';
 import { useVaultStore } from '@/lib/vault-store';
 
 const SRP_STEPS = [
@@ -27,17 +27,33 @@ function LoginForm() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(-1); // -1 = form visible
+  const [pendingTOTP, setPendingTOTP] = useState<PendingTOTPLogin | null>(null);
+
+  async function completeLogin(sessionToken: string, vaultKey: Uint8Array) {
+    setSession(sessionToken, '');
+    unlockVault(vaultKey);
+    await new Promise((r) => setTimeout(r, 400));
+    router.push('/passwords');
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    setActiveStep(0);
 
     try {
+      if (pendingTOTP) {
+        const result = await verifyLoginTOTP(pendingTOTP, totpCode.trim());
+        await completeLogin(result.sessionToken, result.vaultKey);
+        return;
+      }
+
+      setActiveStep(0);
+
       // Simulate step progression (actual SRP happens inside login())
       const stepTimer = setInterval(() => {
         setActiveStep((prev) => (prev < SRP_STEPS.length - 2 ? prev + 1 : prev));
@@ -46,14 +62,15 @@ function LoginForm() {
       const result = await login(email, password);
 
       clearInterval(stepTimer);
+      if (result.kind === 'totp_required') {
+        setPendingTOTP(result);
+        setTotpCode('');
+        setActiveStep(-1);
+        return;
+      }
+
       setActiveStep(SRP_STEPS.length - 1); // final step
-
-      setSession(result.sessionToken, '');
-      unlockVault(result.vaultKey);
-
-      // Brief pause to show completion
-      await new Promise((r) => setTimeout(r, 400));
-      router.push('/passwords');
+      await completeLogin(result.sessionToken, result.vaultKey);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Login failed. Check your credentials.',
@@ -127,6 +144,43 @@ function LoginForm() {
             );
           })}
         </div>
+      ) : pendingTOTP ? (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div
+            className="rounded-lg p-3 text-sm"
+            style={{ background: 'var(--surface-low)', color: 'var(--muted-foreground)' }}
+          >
+            Master password verified. Enter your 6-digit authenticator code to finish sign-in.
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="totp" className="text-sm font-medium">
+              Authenticator Code
+            </label>
+            <Input
+              id="totp"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="123456"
+              value={totpCode}
+              onChange={(e) => setTotpCode(e.target.value)}
+              required
+              autoComplete="one-time-code"
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm" style={{ color: 'var(--destructive)' }}>{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full btn-gradient py-3 rounded-lg font-medium text-sm disabled:opacity-50"
+          >
+            Complete Sign-In
+          </button>
+        </form>
       ) : (
         /* Login Form */
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

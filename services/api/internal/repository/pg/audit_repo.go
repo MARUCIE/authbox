@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"time"
 
 	"auth-box-api/internal/domain"
 
@@ -14,6 +15,18 @@ import (
 
 type AuditRepository struct {
 	pool *pgxpool.Pool
+}
+
+type auditChainRow struct {
+	ActorType     string
+	ActorID       string
+	Action        string
+	ResourceType  string
+	ResourceID    string
+	Decision      string
+	EventHash     string
+	PrevEventHash string
+	CreatedAt     time.Time
 }
 
 func NewAuditRepository(pool *pgxpool.Pool) *AuditRepository {
@@ -90,10 +103,20 @@ func (r *AuditRepository) ListEvents(ctx context.Context, userID uuid.UUID, limi
 }
 
 func (r *AuditRepository) VerifyChain(ctx context.Context, userID uuid.UUID) (bool, int, error) {
-	// Limit to most recent 10,000 events to prevent OOM on large audit trails
-	query := `SELECT actor_type, actor_id, action, resource_type, resource_id,
-		decision, event_hash, prev_event_hash, created_at
-		FROM audit_events WHERE user_id = $1 ORDER BY created_at ASC LIMIT 10000`
+	// Limit to the most recent 10,000 events to prevent OOM on large audit trails,
+	// then restore chronological order for hash-chain verification.
+	query := `WITH recent AS (
+			SELECT actor_type, actor_id, action, resource_type, resource_id,
+				decision, event_hash, prev_event_hash, created_at
+			FROM audit_events
+			WHERE user_id = $1
+			ORDER BY created_at DESC
+			LIMIT 10000
+		)
+		SELECT actor_type, actor_id, action, resource_type, resource_id,
+			decision, event_hash, prev_event_hash, created_at
+		FROM recent
+		ORDER BY created_at ASC`
 
 	rows, err := r.pool.Query(ctx, query, userID)
 	if err != nil {
@@ -101,37 +124,46 @@ func (r *AuditRepository) VerifyChain(ctx context.Context, userID uuid.UUID) (bo
 	}
 	defer rows.Close()
 
-	var prevHash string
-	verified := 0
+	var chainRows []auditChainRow
 
 	for rows.Next() {
-		var (
-			actorType, actorID, action, resType, resID string
-			decision, eventHash, prevEventHash         string
-			createdAt                                  interface{}
-		)
-		if err := rows.Scan(&actorType, &actorID, &action, &resType, &resID,
-			&decision, &eventHash, &prevEventHash, &createdAt); err != nil {
-			return false, verified, err
+		var row auditChainRow
+		if err := rows.Scan(&row.ActorType, &row.ActorID, &row.Action, &row.ResourceType, &row.ResourceID,
+			&row.Decision, &row.EventHash, &row.PrevEventHash, &row.CreatedAt); err != nil {
+			return false, len(chainRows), err
 		}
+		chainRows = append(chainRows, row)
+	}
 
-		if prevEventHash != prevHash {
-			return false, verified, nil
+	valid, verified := verifyChainRows(chainRows)
+	return valid, verified, nil
+}
+
+func verifyChainRows(rows []auditChainRow) (bool, int) {
+	if len(rows) == 0 {
+		return true, 0
+	}
+
+	prevHash := rows[0].PrevEventHash
+	verified := 0
+
+	for _, row := range rows {
+		if row.PrevEventHash != prevHash {
+			return false, verified
 		}
 
 		hashInput := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s",
-			prevEventHash, actorType, actorID, action, resType, resID,
-			decision, fmt.Sprintf("%v", createdAt))
+			row.PrevEventHash, row.ActorType, row.ActorID, row.Action,
+			row.ResourceType, row.ResourceID, row.Decision,
+			row.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"))
 		computed := sha256.Sum256([]byte(hashInput))
-		computedHex := fmt.Sprintf("%x", computed)
-
-		if computedHex != eventHash {
-			return false, verified, nil
+		if fmt.Sprintf("%x", computed) != row.EventHash {
+			return false, verified
 		}
 
-		prevHash = eventHash
+		prevHash = row.EventHash
 		verified++
 	}
 
-	return true, verified, nil
+	return true, verified
 }

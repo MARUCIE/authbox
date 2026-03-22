@@ -102,9 +102,9 @@ services/
 | `make dev-full` | Start everything |
 | `make build` | Build all packages |
 | `make test` | Run all tests |
-| `make test-api` | Run Go API tests (25 tests) |
-| `make test-crypto` | Run crypto tests (53 tests) |
-| `npx tsx scripts/e2e-test.mjs` | Run E2E tests against live API (53 tests) |
+| `make test-api` | Run the current Go API test suite |
+| `make test-crypto` | Run the crypto package test suite |
+| `npx tsx scripts/e2e-test.mjs [api-base]` | Run the live E2E suite against a real API |
 
 ## Design System
 
@@ -119,12 +119,13 @@ services/
 
 ## Tests
 
-```
-Go API:     25/25  SRP auth (6) + rate limiter (8) + security middleware (11)
-Crypto:     53/53  AES-GCM (22) + BIP-39/HD (21) + Arweave vault (10)
-E2E:        53/53  Real SRP login + vault/agent/audit/session CRUD + security
-Build:      16/16  Web pages, 0 errors
-Total:     131/131  ALL PASS
+Latest verified baseline (2026-03-22):
+
+```text
+Go API:     PASS   Current backend suite, including SRP/TOTP, rate limiter, security, audit chain
+Crypto:     PASS   51 deterministic tests passed; 2 live Arweave probes are opt-in and skipped by default
+E2E:        65/65  Real SRP/TOTP login + vault/agent/audit/session CRUD + security
+Build:      PASS   pnpm build
 ```
 
 Security audit: 9 findings fixed (TOTP bypass, timing attack, session scoping...)

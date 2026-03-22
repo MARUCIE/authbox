@@ -39,10 +39,12 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*domain
 	var kdfJSON []byte
 
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, email, srp_salt, srp_verifier, encrypted_vault_key, vault_key_nonce, vault_key_tag, kdf_params, public_key, created_at, updated_at
+		`SELECT id, email, srp_salt, srp_verifier, encrypted_vault_key, vault_key_nonce, vault_key_tag,
+		        kdf_params, public_key, totp_secret, totp_enabled, totp_verified_at, created_at, updated_at
 		 FROM users WHERE email = $1`,
 		email,
-	).Scan(&u.ID, &u.Email, &u.SRPSalt, &u.SRPVerifier, &u.EncryptedVaultKey, &u.VaultKeyNonce, &u.VaultKeyTag, &kdfJSON, &u.PublicKey, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Email, &u.SRPSalt, &u.SRPVerifier, &u.EncryptedVaultKey, &u.VaultKeyNonce, &u.VaultKeyTag,
+		&kdfJSON, &u.PublicKey, &u.TOTPSecret, &u.TOTPEnabled, &u.TOTPVerifiedAt, &u.CreatedAt, &u.UpdatedAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil

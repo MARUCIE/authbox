@@ -1,4 +1,25 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://underground-alcohol-insulin-bit.trycloudflare.com';
+const LOCAL_API_BASE = 'http://localhost:4010';
+
+function normalizeBaseURL(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
+function resolveApiBase(): string {
+  const configuredBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  if (configuredBase) {
+    return normalizeBaseURL(configuredBase);
+  }
+
+  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    return LOCAL_API_BASE;
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    return LOCAL_API_BASE;
+  }
+
+  throw new Error('Missing NEXT_PUBLIC_API_BASE_URL for non-local Auth Box web runtime');
+}
 
 interface ApiOptions extends RequestInit {
   token?: string;
@@ -17,6 +38,7 @@ class ApiError extends Error {
 
 async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const { token, ...fetchOptions } = options;
+  const apiBase = resolveApiBase();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -27,7 +49,7 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${apiBase}${path}`, {
     ...fetchOptions,
     headers,
   });
@@ -74,7 +96,28 @@ export const authApi = {
     });
   },
 
-  loginVerify(body: { email: string; clientProofM1: string }) {
+  loginVerify(body: { email: string; clientPublicA: string; clientProofM1: string }) {
+    return request<{
+      sessionToken?: string;
+      serverProofM2: string;
+      encryptedVaultKey?: string;
+      vaultKeyNonce?: string;
+      vaultKeyTag?: string;
+      kdfParams?: {
+        algorithm: string;
+        memory: number;
+        iterations: number;
+        parallelism: number;
+        keyLength: number;
+      };
+      totpRequired?: boolean;
+    }>('/api/v1/auth/login/verify', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  loginVerifyTOTP(body: { email: string; code: string }) {
     return request<{
       sessionToken: string;
       serverProofM2: string;
@@ -88,7 +131,7 @@ export const authApi = {
         parallelism: number;
         keyLength: number;
       };
-    }>('/api/v1/auth/login/verify', {
+    }>('/api/v1/auth/login/totp/verify', {
       method: 'POST',
       body: JSON.stringify(body),
     });

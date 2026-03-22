@@ -1,4 +1,27 @@
-const apiBaseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://underground-alcohol-insulin-bit.trycloudflare.com";
+const LOCAL_API_BASE = "http://localhost:4010";
+
+function normalizeBaseURL(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
+function getAPIBaseURL(): string {
+  const configured =
+    process.env.AUTH_BOX_CONSOLE_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  if (configured?.trim()) {
+    return normalizeBaseURL(configured.trim());
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return LOCAL_API_BASE;
+  }
+
+  throw new Error(
+    "Missing AUTH_BOX_CONSOLE_API_BASE_URL or NEXT_PUBLIC_API_BASE_URL for console runtime"
+  );
+}
+
 const apiToken =
   process.env.AUTH_BOX_CONSOLE_API_TOKEN ||
   process.env.NEXT_PUBLIC_API_TOKEN ||
@@ -60,7 +83,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   headers.set("Authorization", `Bearer ${apiToken}`);
   headers.set("X-Auth-Source", apiAuthSource);
 
-  const res = await fetch(`${apiBaseURL}${path}`, {
+  const res = await fetch(`${getAPIBaseURL()}${path}`, {
     ...init,
     headers,
     cache: "no-store"
@@ -91,9 +114,19 @@ export async function createPlatform(input: {
 }
 
 export function apiEntry() {
-  return {
-    baseURL: apiBaseURL,
-    hasToken: Boolean(apiToken),
-    authSource: apiAuthSource
-  };
+  try {
+    return {
+      baseURL: getAPIBaseURL(),
+      hasToken: Boolean(apiToken),
+      authSource: apiAuthSource
+    };
+  } catch (error) {
+    return {
+      baseURL: "UNCONFIGURED",
+      hasToken: Boolean(apiToken),
+      authSource: apiAuthSource,
+      configError:
+        error instanceof Error ? error.message : "missing API base configuration"
+    };
+  }
 }

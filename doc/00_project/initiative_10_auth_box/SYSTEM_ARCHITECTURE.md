@@ -3,7 +3,7 @@ Title: SYSTEM_ARCHITECTURE - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-03-21
+LastUpdated: 2026-03-22
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -475,12 +475,13 @@ erDiagram
 |--------|------|------|
 | POST | `/api/v1/auth/register` | SRP 注册（email, salt, verifier, encrypted_vault_key） |
 | POST | `/api/v1/auth/register/seed` | v3+ 种子词注册（email, public_key, encrypted_vault_key） |
-| POST | `/api/v1/auth/login/start` | SRP 登录第一步（email, A） |
+| POST | `/api/v1/auth/login/init` | SRP 登录第一步（email, A） |
 | POST | `/api/v1/auth/login/verify` | SRP 登录第二步（M1） |
+| POST | `/api/v1/auth/login/totp/verify` | SRP 通过后的 TOTP 二次校验 |
 | POST | `/api/v1/auth/login/sign` | v3+ Ed25519 签名登录（email, challenge_response） |
 | POST | `/api/v1/auth/logout` | 注销当前会话 |
-| POST | `/api/v1/auth/sessions` | 列出活跃会话 |
-| DELETE | `/api/v1/auth/sessions/:id` | 撤销指定会话 |
+| GET | `/api/v1/auth/sessions` | 列出活跃会话 |
+| DELETE | `/api/v1/auth/sessions/{sessionId}` | 撤销指定会话 |
 
 ### Vault
 
@@ -835,3 +836,6 @@ Auth Box 不仅管理密码，还是 **AI Agent 基建凭据中枢**：
 ---
 
 Maurice | maurice_wen@proton.me
+
+## Changelog
+- 2026-03-22: 架构文档继续回写发布就绪性检查结果，并补齐项目级 `ai check` 所需 changelog 区块。（原因：release readiness hardening）

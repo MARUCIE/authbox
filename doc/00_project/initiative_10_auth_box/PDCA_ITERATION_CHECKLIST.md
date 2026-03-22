@@ -3,7 +3,7 @@ Title: PDCA_ITERATION_CHECKLIST - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-01-29
+LastUpdated: 2026-03-22
 Related:
   - /doc/00_project/initiative_10_auth_box/index.md
 ---
@@ -44,3 +44,6 @@ Related:
   - Z1: docker compose up - 所有容器启动成功
   - Z2: Console 页面 - 加载成功
   - Z3: API /health - 返回 200 OK
+
+## Changelog
+- 2026-03-22: 补齐 changelog 区块，并将项目级 `ai check` 与 release readiness 复核纳入当前巡检背景。（原因：release readiness hardening）

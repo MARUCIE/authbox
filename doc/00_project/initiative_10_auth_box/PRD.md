@@ -3,7 +3,7 @@ Title: PRD - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-24
+LastUpdated: 2026-03-22
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -155,7 +155,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | M5.1 | AI 基建凭据目录 (70+ providers / 15 categories / .env 导入) | DONE |
 | M5.2 | 凭据健康检查 (20 provider verifiers) | DONE |
 | M5.3 | 蜂群安全审计 (9/9 FIXED) + 性能审计 (8/8 FIXED) | DONE |
-| M5.4 | Market Launch (Show HN + authbox.io full-stack live) | PLANNED (P0) |
+| M5.4 | Market Launch (Show HN + authbox.io full-stack live) | BLOCKED (release gate; 2026-03-22 checkpoint) |
 | M5.5 | Five Primitives Engine (Capability/Intent/Policy/Effect/Fact) | PLANNED (P1) |
 | M6.0 | Bitcoin hash anchoring + Fact chain | PLANNED |
 | M6.1 | AGI Digital Identity: DID:ethr + Verifiable Credentials + Passkeys | PLANNED (v4 vision) |
@@ -166,11 +166,12 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 
 - Phase 0-4 + UX Round 1-2 + Round 3-13 全部完成
 - 构建通过：7/7 packages, 16/16 pages, 0 errors
-- 131 自动化测试 ALL PASS (Go 25 + Crypto 53 + E2E 53)
+- 最新回归基线：`make test-api` PASS，`make test-crypto` PASS（51 deterministic + 2 live Arweave skipped by default），`scripts/e2e-test.mjs http://localhost:8080` 65/65 PASS
 - 8 条用户旅程 (A-H) 全部 PASS, 52/52 验证点
 - 28/28 API 端点 HTTP status codes 正确
 - VPS 部署: CF Pages → Cloudflare Tunnel → VPS:4010 (Go API) → PG:5410 (migration v8)
 - SRP-6a 零知识登录 + TOTP 2FA (srpVerified 门卫防绕过)
+- 2026-03-22：认证可靠性修复完成（TOTP step-up、邮箱级限流、静态导出安全头、显式 API base 配置）
 - 13 源密码导入器 + .env 自动分类 (100+ env var patterns)
 - 70+ AI 基建 Provider 凭据模板 (15 categories)
 - 20 provider 凭据健康检查 (OpenAI/Anthropic/AWS/GitHub...)
@@ -179,7 +180,12 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 - Arweave unstoppable recovery flow verified (seed → key → encrypt → decrypt)
 - Chrome MV3 Extension: build PASS, config 单一来源 (lib/config.ts)
 - 35 commits pushed to GitHub
+- 2026-03-22 发布就绪性检查：Auth Box 本地修复尚未提交；`origin/main`=`97336bf`，但 `vps-prod:/root/10-auth-box`=`850c226` 且 worktree 不干净；`authbox.io` 页面路由可达，但 `https://authbox.io/health` 返回 404、`api.authbox.io` 未解析、VPS `localhost:4010/health` 连接失败
+- 发布门禁现状：项目级 `ai check --base-dir /Users/mauricewen/Projects/10-auth-box` 已 PASS（run_dir=`outputs/check/20260322-021252-a7b35035`），但公开发布仍缺本地/GitHub/VPS 版本收敛 + 线上 API 健康证明
 
 ---
 
 Maurice | maurice_wen@proton.me
+
+## Changelog
+- 2026-03-22: 将 M5.4 状态调整为 release gate blocked，并记录本地/GitHub/VPS/API health 现状。（原因：release readiness checkpoint）

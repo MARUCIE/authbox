@@ -3,7 +3,7 @@ Title: task_plan - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-24
+LastUpdated: 2026-03-22
 ---
 
 # 任务计划 - Auth Box v2
@@ -186,11 +186,29 @@ LastUpdated: 2026-02-24
 - [x] Security: unauthenticated rejection (5 endpoints), fake token, content-type, headers
 - [x] E2E: 53/53 ALL PASS (12 test groups, real SRP login)
 
+## Round 11: Auth Reliability + SLA Hardening (DONE)
+
+- [x] Fixed TOTP login continuation: SRP pending state now survives until `/auth/login/totp/verify`
+- [x] Fixed audit chain verification window: verifies the most recent 10k events in chronological order
+- [x] Fixed client contract drift: web + extension now send `clientPublicA` on `/auth/login/verify`
+- [x] Fixed stale TOTP reads: login flow refreshes user state by `userID` before step-up decision and TOTP completion
+- [x] Fixed `FindByEmail` TOTP field hydration in PostgreSQL repository
+- [x] Fixed hardcoded per-email limiter: now uses configurable threshold (`AUTH_BOX_AUTH_RATE_LIMIT`)
+- [x] Added regression tests: auth service TOTP continuation + refreshed user state, email limiter pruning/configured max, audit chain recent-segment verification
+- [x] Static-export security headers moved from ineffective `next.config.ts headers()` to `apps/web/public/_headers`
+- [x] Removed hardcoded `trycloudflare` API defaults from web/console/extension/E2E; local defaults remain `localhost`, non-local now requires explicit env
+- [x] Real API validation: local PostgreSQL + Go API on `:8080` + `scripts/e2e-test.mjs` 65/65 PASS
+
 ## 当前状态
 
-- 所有 MVP 功能阶段已完成（Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-10）
-- 构建通过：7/7 packages (incl. video), 13 pages, 0 errors
-- Test suite: Go 25 + Crypto 53 + E2E 53 = **131 tests ALL PASS**
+- 所有 MVP 功能阶段已完成（Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-11）
+- 构建通过：7/7 packages (incl. video), 16 pages, 0 errors
+- 最新验证基线：`make test-api` PASS + `make test-crypto` PASS（51 deterministic + 2 live skipped） + `scripts/e2e-test.mjs http://localhost:8080` 65/65 PASS
+- Follow-up drift cleanup: README / UX baseline synced to 2026-03-22 reality, `_headers` no longer allows `*.trycloudflare.com`, runtime scan shows no temporary tunnel dependency outside historical docs
+- Release readiness checkpoint (2026-03-22): `authbox.io` public routes (`/`, `/login`, `/register`, `/create`, `/unlock`, `/settings`, `/manifest.webmanifest`) return 200 with security headers, but public API health is not proven (`/health` on authbox.io = 404; `api.authbox.io` unresolved)
+- Project gate checkpoint (2026-03-22): `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box` PASS (`outputs/check/20260322-021252-a7b35035`); patched `scripts/release_gate.sh` now reuses the same project-scoped gate and passes on current worktree (`outputs/release-gate/20260322T021557Z/`)
+- Three-end consistency is currently BLOCKED: local committed HEAD and `origin/main` both at `97336bf`, while `vps-prod:/root/10-auth-box` is `850c226` and dirty (`?? docker-compose.vps-local.yml`); VPS `localhost:4010/health` refused connection
+- Release gate cannot represent the current fixes until they are committed; existing `release-gate` / `risk-classify` scripts only evaluate committed ref ranges
 - 7/7 UX Map Journeys PASS, 9/9 routes HTTP 200
 - Round 3: 20/20 real API endpoints tested (PostgreSQL + Go API, no mock)
 - Round 4-7: 50 security/performance optimizations
@@ -212,7 +230,13 @@ LastUpdated: 2026-02-24
 - 2026-02-24: UX Round 1 完成 12/12 fixes，进入 Round 2 ralph loop。
 - 2026-03-21: Rate limiter 从滑动窗口改为固定窗口 (fixed-window)。原设计在拒绝请求时也刷新窗口，导致 429 无法自然恢复。
 - 2026-03-21: E2E 重写为真实 SRP 登录 + 全栈 CRUD。测试总量从 70 → 131 (+87%)。
+- 2026-03-22: 认证链路硬化：TOTP step-up 登录、邮箱级限流和静态导出安全头全部按真实运行路径校正，验证基线切换为 local API 65/65 E2E。
+- 2026-03-22: 验收命令必须在 `PROJECT_DIR` 执行；从 `/Users/mauricewen/00-AI-Fleet` 触发的 `ai check` 结果视为无效，不纳入 Auth Box 项目验收。
+- 2026-03-22: 公共站点可达不等于可公开发版；发布前必须同时满足本地/GitHub/VPS commit 收敛、线上 API health 可证、以及项目目录内 `ai check` 有效结果。
 
 ---
 
 Maurice | maurice_wen@proton.me
+
+## Changelog
+- 2026-03-22: 新增 release readiness checkpoint、三端一致性阻塞项与项目级 `ai check` 兼容收口任务。（原因：release readiness hardening）

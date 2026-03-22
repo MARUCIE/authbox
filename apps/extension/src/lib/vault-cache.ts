@@ -10,7 +10,7 @@
 
 import { deriveKeys, decryptVaultKey, decryptVaultItem } from '@authbox/crypto';
 import type { LoginItem, VaultItem, EncryptedVaultItem, ItemType } from '@authbox/shared';
-import { API_BASE } from './config';
+import { getApiBase } from './config';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -56,7 +56,7 @@ interface VaultKeyData {
 }
 
 async function fetchVaultKey(token: string): Promise<VaultKeyData> {
-  const res = await fetch(`${API_BASE}/api/v1/vault/key`, {
+  const res = await fetch(`${getApiBase()}/api/v1/vault/key`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`Failed to fetch vault key: ${res.status}`);
@@ -64,7 +64,7 @@ async function fetchVaultKey(token: string): Promise<VaultKeyData> {
 }
 
 async function fetchVaultItems(token: string): Promise<EncryptedVaultItem[]> {
-  const res = await fetch(`${API_BASE}/api/v1/vault/items`, {
+  const res = await fetch(`${getApiBase()}/api/v1/vault/items`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`Failed to fetch vault items: ${res.status}`);

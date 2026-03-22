@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GenericResponse, SearchResponse, StatusResponse } from '@/lib/messages';
-import { API_BASE, VAULT_URL } from '@/lib/config';
+import { VAULT_URL, getApiBase } from '@/lib/config';
 
 const SEARCH_DEBOUNCE_MS = 200;
 
@@ -78,6 +78,8 @@ interface LoginViewProps {
 function LoginView({ onLogin }: LoginViewProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const [pendingTOTPEmail, setPendingTOTPEmail] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -88,21 +90,49 @@ function LoginView({ onLogin }: LoginViewProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
+    if (pendingTOTPEmail) {
+      if (!totpCode.trim()) return;
+    } else if (!email.trim() || !password.trim()) {
+      return;
+    }
 
     setSubmitting(true);
     setError('');
 
     try {
+      const apiBase = getApiBase();
+
+      if (pendingTOTPEmail) {
+        const verifyTOTPRes = await fetch(`${apiBase}/api/v1/auth/login/totp/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: pendingTOTPEmail,
+            code: totpCode.trim(),
+          }),
+        });
+        if (!verifyTOTPRes.ok) {
+          const body = await verifyTOTPRes.json().catch(() => ({ error: 'TOTP verification failed' }));
+          throw new Error(body.error ?? 'TOTP verification failed');
+        }
+        const verifyTOTPData = await verifyTOTPRes.json();
+        await chrome.runtime.sendMessage({
+          type: 'SET_SESSION',
+          payload: { token: verifyTOTPData.sessionToken },
+        });
+        onLogin();
+        return;
+      }
+
       // Import crypto functions dynamically to keep initial load fast
-      const { deriveKeys, srpClientInit, srpClientVerify, decryptVaultKey } =
+      const { deriveKeys, srpClientInit, srpClientVerify } =
         await import('@authbox/crypto');
 
       // 1. SRP client init
       const clientState = await srpClientInit();
 
       // 2. Send A to server
-      const initRes = await fetch(`${API_BASE}/api/v1/auth/login/init`, {
+      const initRes = await fetch(`${apiBase}/api/v1/auth/login/init`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -131,11 +161,12 @@ function LoginView({ onLogin }: LoginViewProps) {
       );
 
       // 5. Send proof to server
-      const verifyRes = await fetch(`${API_BASE}/api/v1/auth/login/verify`, {
+      const verifyRes = await fetch(`${apiBase}/api/v1/auth/login/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
+          clientPublicA: toBase64(clientState.ephemeralPublic),
           clientProofM1: toBase64(clientProof),
         }),
       });
@@ -144,6 +175,12 @@ function LoginView({ onLogin }: LoginViewProps) {
         throw new Error(body.error ?? 'Verification failed');
       }
       const verifyData = await verifyRes.json();
+
+      if (verifyData.totpRequired) {
+        setPendingTOTPEmail(email.trim());
+        setTotpCode('');
+        return;
+      }
 
       // 6. Store session token in background service worker
       await chrome.runtime.sendMessage({
@@ -167,35 +204,56 @@ function LoginView({ onLogin }: LoginViewProps) {
       </header>
 
       <form className="form" onSubmit={handleSubmit}>
-        <label htmlFor="email" className="label">
-          Email
-        </label>
-        <input
-          ref={emailRef}
-          id="email"
-          type="email"
-          className="input"
-          placeholder="you@example.com"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        {pendingTOTPEmail ? (
+          <>
+            <p className="subtitle">Master password verified. Enter your authenticator code.</p>
+            <label htmlFor="totp-code" className="label">
+              Authenticator Code
+            </label>
+            <input
+              id="totp-code"
+              type="text"
+              inputMode="numeric"
+              className="input"
+              placeholder="123456"
+              autoComplete="one-time-code"
+              value={totpCode}
+              onChange={(e) => setTotpCode(e.target.value)}
+            />
+          </>
+        ) : (
+          <>
+            <label htmlFor="email" className="label">
+              Email
+            </label>
+            <input
+              ref={emailRef}
+              id="email"
+              type="email"
+              className="input"
+              placeholder="you@example.com"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
-        <label htmlFor="login-password" className="label">
-          Master Password
-        </label>
-        <input
-          id="login-password"
-          type="password"
-          className="input"
-          placeholder="Enter master password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+            <label htmlFor="login-password" className="label">
+              Master Password
+            </label>
+            <input
+              id="login-password"
+              type="password"
+              className="input"
+              placeholder="Enter master password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </>
+        )}
 
         <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? 'Signing in...' : 'Sign In'}
+          {submitting ? 'Signing in...' : pendingTOTPEmail ? 'Verify Code' : 'Sign In'}
         </button>
         {error && <p className="error">{error}</p>}
       </form>

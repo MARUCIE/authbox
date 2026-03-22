@@ -30,6 +30,8 @@ import { ENGLISH_WORDLIST } from './wordlist-en';
 // Initialize BIP-39 wordlist
 setWordlist(ENGLISH_WORDLIST);
 
+const liveArweaveEnabled = process.env.AUTHBOX_LIVE_ARWEAVE === '1';
+
 // ─── Test 1: Identity Hash Derivation ─────────────────────────────────────
 
 describe('deriveIdentityHash', () => {
@@ -208,7 +210,9 @@ describe('unstoppable recovery flow', () => {
 
 // ─── Test 4: Arweave Read-Only API ────────────────────────────────────────
 
-describe('arweave read-only API', () => {
+const describeArweaveLive = liveArweaveEnabled ? describe : describe.skip;
+
+describeArweaveLive('arweave read-only API', () => {
   it('should estimate archive cost for 1KB vault', async () => {
     const cost = await estimateArchiveCost(1024);
     expect(cost).toBeDefined();

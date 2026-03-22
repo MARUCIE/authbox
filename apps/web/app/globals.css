@@ -1,12 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 
 /* ============================================================
    Vault Onyx Design System — "The Fortified Interface"
    Auth Box v2 Unified Design Tokens (Tailwind v4 CSS-native)
    ============================================================ */
-
-/* --- Fonts: Space Grotesk (headlines) + IBM Plex Sans (body) --- */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
 @theme {
   /* --- Typography --- */
