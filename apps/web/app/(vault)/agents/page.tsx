@@ -156,7 +156,31 @@ export default function AgentsPage() {
     setCreatingPolicy(true);
     setError(null);
     try {
-      const rules = JSON.parse(policyRules);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(policyRules);
+      } catch {
+        setError('Invalid JSON syntax in policy rules');
+        return;
+      }
+      // Schema validation: rules must be an object with expected fields
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        setError('Policy rules must be a JSON object');
+        return;
+      }
+      const rules = parsed as Record<string, unknown>;
+      if (rules.allowed_types && !Array.isArray(rules.allowed_types)) {
+        setError('allowed_types must be an array');
+        return;
+      }
+      if (rules.actions && !Array.isArray(rules.actions)) {
+        setError('actions must be an array');
+        return;
+      }
       await agentApi.createPolicy(sessionToken, selectedId, {
         policyType,
         rules,
@@ -166,7 +190,7 @@ export default function AgentsPage() {
       setPolicyRules('{\n  "allowed_types": ["login"],\n  "actions": ["read"]\n}');
       await fetchPolicies(selectedId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid JSON or failed to create policy');
+      setError(err instanceof Error ? err.message : 'Failed to create policy');
     } finally {
       setCreatingPolicy(false);
     }

@@ -83,4 +83,4 @@ MIT licensed. No vendor lock-in. No subscription trap.
 
 Your keys. Your identity. Unstoppable.
 
-GitHub: github.com/MARUCIE/10-auth-box
+GitHub: github.com/MARUCIE/authbox

@@ -20,17 +20,20 @@ import (
 )
 
 type AuthHandler struct {
-	authService *service.AuthService
-	emailLimiter emailRateLimit
+	authService  *service.AuthService
+	emailLimiter *emailRateLimit
 }
 
 // emailRateLimit prevents email enumeration via registration/login brute-force.
 // The per-email threshold is configurable so E2E and production can use the
 // same code path with different envelopes.
+// Background cleanup runs every 60s; memory capped at maxEntries.
 type emailRateLimit struct {
 	mu          sync.Mutex
 	entries     map[string]emailEntry
 	maxAttempts int
+	maxEntries  int
+	window      time.Duration
 }
 
 type emailEntry struct {
@@ -38,24 +41,50 @@ type emailEntry struct {
 	start time.Time
 }
 
+func newEmailRateLimit(maxAttempts int) *emailRateLimit {
+	rl := &emailRateLimit{
+		entries:     make(map[string]emailEntry),
+		maxAttempts: maxAttempts,
+		maxEntries:  10000,
+		window:      5 * time.Minute,
+	}
+	go rl.cleanup()
+	return rl
+}
+
+func (rl *emailRateLimit) cleanup() {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		now := time.Now()
+		rl.mu.Lock()
+		for key, entry := range rl.entries {
+			if now.Sub(entry.start) > rl.window {
+				delete(rl.entries, key)
+			}
+		}
+		rl.mu.Unlock()
+	}
+}
+
 func (rl *emailRateLimit) allow(email string) bool {
 	now := time.Now()
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
-	if rl.entries == nil {
-		rl.entries = make(map[string]emailEntry)
-	}
 	maxAttempts := rl.maxAttempts
 	if maxAttempts <= 0 {
 		maxAttempts = 5
 	}
-	for key, entry := range rl.entries {
-		if now.Sub(entry.start) > 5*time.Minute {
-			delete(rl.entries, key)
-		}
-	}
+	// Memory cap: reject new entries if at capacity
 	e, ok := rl.entries[email]
-	if !ok || now.Sub(e.start) > 5*time.Minute {
+	if !ok {
+		if len(rl.entries) >= rl.maxEntries {
+			return false // shed load when map is full
+		}
+		rl.entries[email] = emailEntry{count: 1, start: now}
+		return true
+	}
+	if now.Sub(e.start) > rl.window {
 		rl.entries[email] = emailEntry{count: 1, start: now}
 		return true
 	}
@@ -66,12 +95,11 @@ func (rl *emailRateLimit) allow(email string) bool {
 
 func NewAuthHandler(authService *service.AuthService, maxEmailAttempts int) *AuthHandler {
 	return &AuthHandler{
-		authService: authService,
-		emailLimiter: emailRateLimit{
-			maxAttempts: maxEmailAttempts,
-		},
+		authService:  authService,
+		emailLimiter: newEmailRateLimit(maxEmailAttempts),
 	}
 }
+
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req service.RegisterRequest

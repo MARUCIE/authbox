@@ -73,7 +73,12 @@ export interface VaultArchiveMetadata {
 export function deriveIdentityHash(vaultKey: Uint8Array): string {
   const firstHash = sha256(vaultKey);
   const doubleHash = sha256(firstHash);
-  return bytesToHex(doubleHash);
+  const hex = bytesToHex(doubleHash);
+  // Validate hex format before use in GraphQL queries
+  if (!/^[0-9a-f]{64}$/i.test(hex)) {
+    throw new Error('Identity hash derivation produced invalid hex');
+  }
+  return hex;
 }
 
 /**

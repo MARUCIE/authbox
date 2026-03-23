@@ -1,6 +1,21 @@
-# Auth Box
+<p align="center">
+  <img src="outputs/launch-kit/01-hero.png" alt="Auth Box" width="720" />
+</p>
 
-**Your Keys. Your Identity. Unstoppable.**
+<p align="center">
+  <strong>Your Keys. Your Identity. Unstoppable.</strong>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
+  <img src="https://img.shields.io/badge/tests-131%20passing-brightgreen" alt="Tests" />
+  <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build" />
+  <img src="https://img.shields.io/badge/Go-1.22-00ADD8?logo=go" alt="Go" />
+  <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React" />
+</p>
+
+---
 
 The password manager that works even if we disappear. 24 words = all your passwords. No email, no account, no server dependency.
 
@@ -34,6 +49,17 @@ seed phrase (24 words)
 ```
 
 If you have your seed phrase, you have everything. No server. No company. No dependency.
+
+## Screenshots
+
+<p align="center">
+  <img src="outputs/launch-kit/02-create-vault.png" alt="Create Vault" width="360" />
+  <img src="outputs/launch-kit/03-login-srp.png" alt="SRP Login" width="360" />
+</p>
+
+<p align="center">
+  <img src="outputs/launch-kit/04-restore.png" alt="Restore from Seed" width="360" />
+</p>
 
 ## Quick Start
 
@@ -93,6 +119,34 @@ services/
 | Auth | SRP-6a | Mutual authentication (optional server) |
 | Passwords | Deterministic derivation | seed + site = password (no storage) |
 
+## Comparison
+
+| Feature | 1Password | Bitwarden | LessPass | Apple Keychain | **Auth Box** |
+|---------|-----------|-----------|----------|----------------|-------------|
+| Self-sovereign (seed phrase) | No | No | No | No | **Yes** |
+| Works without server | No | Self-host only | Yes | Apple only | **Yes** |
+| Deterministic passwords | No | No | Yes | No | **Yes** |
+| Full vault + deterministic hybrid | No | No | No | No | **Yes** |
+| AI Agent gateway (MCP) | No | No | No | No | **Yes** |
+| Open source client | No | Yes | Yes | No | **Yes (MIT)** |
+| Import sources | Few | 8 | 0 | Apple only | **13 + .env auto-import** |
+| AI API key management | No | No | No | No | **70+ providers** |
+| Company disappears | Data at risk | Self-host option | OK (stateless) | Locked | **24 words = recovery** |
+
+## Tests
+
+Latest verified baseline (2026-03-23):
+
+```text
+Go API:     PASS   28 tests (SRP/TOTP, rate limiter, security middleware, audit chain)
+Crypto:     PASS   51 deterministic tests; 2 live Arweave probes opt-in
+E2E:        65/65  Real SRP/TOTP login + vault/agent/audit/session CRUD + security
+Build:      PASS   7/7 turbo packages, 0 errors
+```
+
+Security audit: 12 findings fixed (TOTP bypass, timing attack, session scoping, CORS hardening...)
+Performance audit: 11 optimizations applied (composite indexes, cache limits, rate limiter refactor...)
+
 ## Key Commands
 
 | Command | Description |
@@ -102,47 +156,9 @@ services/
 | `make dev-full` | Start everything |
 | `make build` | Build all packages |
 | `make test` | Run all tests |
-| `make test-api` | Run the current Go API test suite |
+| `make test-api` | Run the Go API test suite |
 | `make test-crypto` | Run the crypto package test suite |
-| `npx tsx scripts/e2e-test.mjs [api-base]` | Run the live E2E suite against a real API |
-
-## Design System
-
-**Vault Onyx** -- "The Fortified Interface"
-
-- Primary: Deep Indigo (#3730A3)
-- Success: Emerald (#059669)
-- Warning: Amber (#D97706)
-- Surface: 6-tier tonal layering
-- Typography: Space Grotesk (headlines) + IBM Plex Sans (body)
-- Principles: No-Line Rule, Ghost Border, Tonal Layering, Security Ceremony
-
-## Tests
-
-Latest verified baseline (2026-03-22):
-
-```text
-Go API:     PASS   Current backend suite, including SRP/TOTP, rate limiter, security, audit chain
-Crypto:     PASS   51 deterministic tests passed; 2 live Arweave probes are opt-in and skipped by default
-E2E:        65/65  Real SRP/TOTP login + vault/agent/audit/session CRUD + security
-Build:      PASS   pnpm build
-```
-
-Security audit: 9 findings fixed (TOTP bypass, timing attack, session scoping...)
-Performance audit: 8 optimizations applied (composite indexes, cache limits, parallel fetch...)
-
-## Comparison
-
-| Feature | 1Password | Bitwarden | Apple Keychain | **Auth Box** |
-|---------|-----------|-----------|----------------|-------------|
-| Self-sovereign (seed phrase) | No | No | No | **Yes** |
-| Works without server | No | Self-host only | Apple only | **Yes** |
-| Deterministic passwords | No | No | No | **Yes** |
-| AI Agent gateway | Unified Access | No | No | **MCP + Policies** |
-| Open source client | No | Yes | No | **Yes (MIT)** |
-| Import sources | Few | 8 | Apple only | **13 + .env auto-import** |
-| AI API key management | No | No | No | **70+ providers, health checks** |
-| Company disappears | Data at risk | Self-host option | Locked | **24 words = recovery** |
+| `npx tsx scripts/e2e-test.mjs [api-base]` | Run E2E suite against a real API |
 
 ## Contributing
 
@@ -155,7 +171,5 @@ Auth Box is MIT licensed. PRs welcome.
 [MIT](LICENSE) -- Use it, fork it, build on it.
 
 ---
-
-**Auth Box v5** -- Zero Knowledge Identity Gateway + AI Credential Hub
 
 Maurice | maurice_wen@proton.me

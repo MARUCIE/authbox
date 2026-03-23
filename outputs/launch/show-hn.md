@@ -2,7 +2,7 @@
 
 **Title**: Show HN: Auth Box -- Zero-knowledge password manager with AI credential gateway (24 words = all your passwords)
 
-**URL**: https://github.com/MARUCIE/10-auth-box
+**URL**: https://github.com/MARUCIE/authbox
 
 ---
 
@@ -26,9 +26,9 @@ I built Auth Box because every password manager asks you to trust them. Auth Box
 
 5. **Zero-knowledge SRP-6a auth** -- Your master password never leaves your device. The server stores an SRP verifier (can't be reversed) and encrypted blobs (can't be decrypted). Even if the database leaks, attackers get nothing usable.
 
-**Tech stack**: Go API + Next.js 15 + React 19 + Chrome MV3 Extension + Turborepo monorepo. 131 automated tests. Full-stack deployed on VPS via Cloudflare Tunnel.
+**Tech stack**: Go API + Next.js 15 + React 19 + Chrome MV3 Extension + Turborepo monorepo. 144 automated tests (28 Go + 51 crypto + 65 E2E). Full-stack deployed on VPS via Cloudflare Tunnel.
 
-**Security**: Passed a security audit (9 findings fixed including a TOTP bypass) and performance audit (composite indexes, cache limits). Per-email rate limiting, constant-time TOTP comparison, fixed-window rate limiter.
+**Security**: Passed two security audits (12 findings fixed including a TOTP bypass, CORS hardening, timing attacks) and performance audit (11 optimizations: composite indexes, session caching, rate limiter refactor). Per-email rate limiting with memory cap, constant-time comparisons, fixed-window rate limiter.
 
 MIT licensed. Would love feedback from the HN security crowd on the threat model.
 

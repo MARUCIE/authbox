@@ -25,13 +25,17 @@ func Load() Config {
 	env := getEnv("AUTH_BOX_ENV", "local")
 	origins := parseOrigins(getEnv("AUTH_BOX_ALLOWED_ORIGINS", "http://localhost:3000"))
 
-	// Production safety: warn if localhost origins are configured
+	// Production safety: reject localhost origins (not just warn)
 	if env == "production" {
+		filtered := make([]string, 0, len(origins))
 		for _, o := range origins {
 			if strings.Contains(o, "localhost") || strings.Contains(o, "127.0.0.1") {
-				slog.Error("SECURITY: localhost CORS origin in production mode", "origin", o, "env", env)
+				slog.Error("SECURITY: rejecting localhost CORS origin in production", "origin", o, "env", env)
+				continue
 			}
+			filtered = append(filtered, o)
 		}
+		origins = filtered
 	}
 
 	return Config{
