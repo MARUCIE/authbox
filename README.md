@@ -19,6 +19,8 @@
 
 The password manager that works even if we disappear. 24 words = all your passwords. No email, no account, no server dependency.
 
+[![authbox MCP server](https://glama.ai/mcp/servers/MARUCIE/authbox/badges/card.svg)](https://glama.ai/mcp/servers/MARUCIE/authbox)
+
 ## Why Auth Box
 
 Every password manager asks you to trust them. Auth Box asks you to trust **math**.
