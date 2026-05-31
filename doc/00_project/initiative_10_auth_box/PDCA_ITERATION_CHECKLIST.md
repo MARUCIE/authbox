@@ -92,7 +92,7 @@ Release status:
 - Tooling gap: `pnpm lint` is blocked by existing interactive Next ESLint setup.
 
 ## 2026-06-01 Public API health blocker triage
-- [x] Local/GitHub commit convergence verified: `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
+- [x] Local/GitHub commit convergence verified at diagnostic baseline; production repair must sync to the latest pushed `origin/main` SHA after CI passes, not a hardcoded document value.
 - [x] GitHub Release Gate and Agent Design Check verified PASS on latest main.
 - [x] Local API route map verified: Go API has `GET /health`.
 - [x] Public frontend verified reachable: `https://authbox.io/` HTTP 200.

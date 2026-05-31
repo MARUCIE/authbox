@@ -361,8 +361,8 @@ Closeout update:
 目标：把剩余线上发布阻塞拆成可执行项，优先只读验证 public DNS/TLS/HTTP、GitHub workflow、VPS alias 与本地部署拓扑；不执行生产变更、DNS 写入、VPS 重启或 Cloudflare deploy。
 
 证据：
-- Local/GitHub commit convergence: local `HEAD` and `origin/main` both `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
-- GitHub workflows on latest main: Release Gate run `26717442428` PASS; Agent Design Check run `26717442434` PASS.
+- Local/GitHub commit convergence: verified at diagnostic baseline before the WP-019 guardrail commit; production repair must sync to the latest pushed `origin/main` SHA after CI passes, not a hardcoded document value.
+- GitHub workflows: Release Gate and Agent Design Check were green at the diagnostic baseline and must be re-read after each pushed guardrail commit.
 - Local code route: Go API registers `GET /health`; Docker API healthcheck calls `http://localhost:8080/health`.
 - Public site: `https://authbox.io/` returns HTTP 200 with Cloudflare headers.
 - Public API DNS: `dig @1.1.1.1 api.authbox.io` returns NXDOMAIN; `dig @8.8.8.8 +short api.authbox.io` returns no record.
@@ -375,7 +375,7 @@ Decision:
 - Public release remains BLOCKED until the owning Cloudflare zone has `api.authbox.io` configured and VPS/Tunnel runtime health returns 200.
 
 Next production change set, not executed in this local session:
-1. Sync `/root/10-auth-box` to `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
+1. Sync `/root/10-auth-box` to the latest pushed `origin/main` SHA after Release Gate and Agent Design Check pass.
 2. Provide server-local `AUTH_BOX_POSTGRES_PASSWORD`, `AUTH_BOX_DB_DSN`, and `AUTH_BOX_TOTP_SECRET_KEY`.
 3. Start `docker compose -f docker-compose.vps.yml up -d --build` and verify `curl http://127.0.0.1:4010/health`.
 4. In the Cloudflare account that owns `authbox.io`, create/route `api.authbox.io` through Cloudflare Tunnel to `http://127.0.0.1:4010`.

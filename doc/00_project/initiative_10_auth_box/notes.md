@@ -1769,8 +1769,8 @@ Cumulative: Round 4-7 = 50 optimization items total.
 
 ### Root Cause Evidence
 
-- Local/GitHub convergence is now green for source control: `HEAD` = `origin/main` = `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
-- GitHub latest checks are green: Release Gate `26717442428` PASS; Agent Design Check `26717442434` PASS.
+- Local/GitHub convergence was green at the diagnostic baseline; use the latest pushed `origin/main` SHA after CI passes as the production repair target.
+- GitHub Release Gate and Agent Design Check were green at the diagnostic baseline and must be re-read after every pushed guardrail commit.
 - The Go API itself is not missing the health route: `services/api/cmd/api/main.go` registers `GET /health`, and `HealthHandler` returns `status/version/env`.
 - `https://authbox.io/` returns HTTP 200 via Cloudflare, but `https://authbox.io/health` returns 404 because Pages is the frontend surface, not the API.
 - `dig @1.1.1.1 api.authbox.io` returns NXDOMAIN and `dig @8.8.8.8 +short api.authbox.io` returns no record.

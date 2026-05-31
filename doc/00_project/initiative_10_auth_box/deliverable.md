@@ -1293,8 +1293,8 @@ LastUpdated: 2026-05-31
 ### 交付内容
 
 - Completed read-only public DNS/TLS/HTTP triage for the remaining API health blocker.
-- Confirmed local source and `origin/main` are converged at `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
-- Confirmed latest GitHub checks are green: Release Gate `26717442428`, Agent Design Check `26717442434`.
+- Confirmed local source and `origin/main` were converged at the diagnostic baseline; final production repair must use the latest pushed `origin/main` SHA after CI passes.
+- Confirmed GitHub Release Gate and Agent Design Check were green at the diagnostic baseline; final report records the latest post-push run IDs.
 - Added `docker-compose.vps.yml` as a VPS-safe runtime entrypoint with API/PostgreSQL bound to loopback only.
 - Updated API runbook with the exact VPS startup, local health, Cloudflare Tunnel, and public DNS acceptance steps.
 

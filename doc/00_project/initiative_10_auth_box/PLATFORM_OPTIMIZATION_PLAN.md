@@ -446,7 +446,7 @@ AuditEvent {
 
 | Area | Result | Evidence |
 |---|---|---|
-| GitHub convergence | PASS | local `HEAD` and `origin/main` both `175e3317bedd79474368a867b80b8f1df9c3a5ab`; latest Release Gate and Agent Design Check PASS |
+| GitHub convergence | PASS at diagnostic baseline | re-read `git rev-parse HEAD`, `git ls-remote origin refs/heads/main`, Release Gate, and Agent Design Check after every pushed guardrail commit |
 | Public API DNS | BLOCKED | `api.authbox.io` is NXDOMAIN via `@1.1.1.1`; `@8.8.8.8` returns no answer |
 | VPS runtime access | BLOCKED | `ssh vps-prod` closes on `198.18.3.63:22` |
 | Cloudflare authority | BLOCKED | current Cloudflare API account cannot view the owning `authbox.io` zone and cannot list Pages projects |

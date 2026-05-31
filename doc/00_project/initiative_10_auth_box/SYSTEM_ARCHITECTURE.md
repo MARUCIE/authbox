@@ -864,7 +864,7 @@ graph TD
 |---|---|---|
 | VPS runtime entrypoint | Production VPS must use `docker-compose.vps.yml`, not local `docker-compose.yml` | loopback-only API/PostgreSQL port bindings |
 | API ingress | Public `api.authbox.io` must be a Cloudflare-owned DNS/Tunnel route to `http://127.0.0.1:4010` | currently BLOCKED: `dig @1.1.1.1 api.authbox.io` NXDOMAIN |
-| Source control | Local and GitHub main are converged before production repair | `175e3317bedd79474368a867b80b8f1df9c3a5ab` |
+| Source control | Local and GitHub main must be converged before production repair | verify with `git rev-parse HEAD` and `git ls-remote origin refs/heads/main` at repair time |
 | Production boundary | No DNS/VPS/Cloudflare mutation in this diagnostic round | VPS alias closes on `198.18.3.63:22`; current Cloudflare API account cannot view the owning zone |
 
 ## 13. AI 基建凭据目录
