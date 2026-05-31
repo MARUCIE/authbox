@@ -356,9 +356,35 @@ Closeout update:
 - Three-end consistency: N/A for this local-only run; no GitHub/VPS/production action authorized or executed.
 - Final state: local SOP delivery PASS, public release BLOCKED pending security backlog + GitHub/VPS/production consistency.
 
+## 2026-06-01: Public API Health Blocker Triage (WP-019)
+
+目标：把剩余线上发布阻塞拆成可执行项，优先只读验证 public DNS/TLS/HTTP、GitHub workflow、VPS alias 与本地部署拓扑；不执行生产变更、DNS 写入、VPS 重启或 Cloudflare deploy。
+
+证据：
+- Local/GitHub commit convergence: local `HEAD` and `origin/main` both `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
+- GitHub workflows on latest main: Release Gate run `26717442428` PASS; Agent Design Check run `26717442434` PASS.
+- Local code route: Go API registers `GET /health`; Docker API healthcheck calls `http://localhost:8080/health`.
+- Public site: `https://authbox.io/` returns HTTP 200 with Cloudflare headers.
+- Public API DNS: `dig @1.1.1.1 api.authbox.io` returns NXDOMAIN; `dig @8.8.8.8 +short api.authbox.io` returns no record.
+- Public API HTTP/TLS: local resolver returns a proxy-range `198.18.3.60`, but `curl -vk https://api.authbox.io/health` fails at TLS with `SSL_ERROR_SYSCALL`; `http://api.authbox.io/health` returns empty reply.
+- Cloudflare API: current account does not expose the `authbox.io` zone; Pages project listing fails with authentication error, so DNS/Pages repair cannot be performed from this credential.
+- VPS alias: `ssh vps-prod ...` closes on `198.18.3.63:22`, so current session cannot prove VPS repo/runtime state.
+
+Decision:
+- Added `docker-compose.vps.yml` as the production-safe VPS runtime entrypoint with API/Postgres bound to `127.0.0.1` only.
+- Public release remains BLOCKED until the owning Cloudflare zone has `api.authbox.io` configured and VPS/Tunnel runtime health returns 200.
+
+Next production change set, not executed in this local session:
+1. Sync `/root/10-auth-box` to `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
+2. Provide server-local `AUTH_BOX_POSTGRES_PASSWORD`, `AUTH_BOX_DB_DSN`, and `AUTH_BOX_TOTP_SECRET_KEY`.
+3. Start `docker compose -f docker-compose.vps.yml up -d --build` and verify `curl http://127.0.0.1:4010/health`.
+4. In the Cloudflare account that owns `authbox.io`, create/route `api.authbox.io` through Cloudflare Tunnel to `http://127.0.0.1:4010`.
+5. Verify `dig @1.1.1.1 api.authbox.io` and `curl -fsS https://api.authbox.io/health`.
+
 ---
 
 Maurice | maurice_wen@proton.me
 
 ## Changelog
 - 2026-03-22: 新增 release readiness checkpoint、三端一致性阻塞项与项目级 `ai check` 兼容收口任务。（原因：release readiness hardening）
+- 2026-06-01: 追加 WP-019 public API health blocker triage，记录权威 DNS NXDOMAIN、VPS alias 不可读、GitHub checks PASS，并给出生产恢复 change set。（原因：release convergence continuation）

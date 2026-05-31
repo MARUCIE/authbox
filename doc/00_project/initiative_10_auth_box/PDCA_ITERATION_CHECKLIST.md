@@ -91,6 +91,21 @@ Release status:
 - Public release: BLOCKED until GitHub/VPS/production commit consistency and public API health are proven.
 - Tooling gap: `pnpm lint` is blocked by existing interactive Next ESLint setup.
 
+## 2026-06-01 Public API health blocker triage
+- [x] Local/GitHub commit convergence verified: `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
+- [x] GitHub Release Gate and Agent Design Check verified PASS on latest main.
+- [x] Local API route map verified: Go API has `GET /health`.
+- [x] Public frontend verified reachable: `https://authbox.io/` HTTP 200.
+- [x] Public API DNS verified BLOCKED: `api.authbox.io` NXDOMAIN via `@1.1.1.1`.
+- [x] VPS read-only probe attempted: `ssh vps-prod` closes on `198.18.3.63:22`.
+- [x] Runtime guardrail added: `docker-compose.vps.yml` loopback-only VPS compose.
+- [x] API runbook updated with VPS startup and DNS/Tunnel acceptance criteria.
+- [x] Rolling Ledger updated.
+
+Release status:
+- Local + GitHub gates: PASS.
+- Public release: BLOCKED until owning Cloudflare account creates/routes `api.authbox.io` and VPS health returns 200.
+
 ## 测试结果
 - UX Map Journey 0: PASS
   - Z1: docker compose up - 所有容器启动成功
@@ -102,3 +117,4 @@ Release status:
 - 2026-05-31: 新增 iOS baseline cleanup 巡查项与 local-only release boundary。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 收口 SOP one-click delivery continuation：CodeGraph、DNA、Round 1、Round 2、attacker review 与 postmortem gate 均有新鲜证据；公开发布仍按安全/三端一致性阻塞处理。（原因：WP-015 local delivery closeout）
 - 2026-05-31: 收口 WP-016 本地 release-blocker reduction；公开发布 blocker 收敛为三端一致性与 public API health。（原因：local release-blocker hardening）
+- 2026-06-01: 收口 WP-019 public API health blocker triage；GitHub 已绿，但 DNS/Tunnel/VPS runtime 仍阻塞公开 API health。（原因：release convergence continuation）

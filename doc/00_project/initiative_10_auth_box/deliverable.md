@@ -1288,8 +1288,45 @@ LastUpdated: 2026-05-31
 
 - `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-final.json`: PASS.
 
+## 2026-06-01 · Public API Health Blocker Triage / WP-019
+
+### 交付内容
+
+- Completed read-only public DNS/TLS/HTTP triage for the remaining API health blocker.
+- Confirmed local source and `origin/main` are converged at `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
+- Confirmed latest GitHub checks are green: Release Gate `26717442428`, Agent Design Check `26717442434`.
+- Added `docker-compose.vps.yml` as a VPS-safe runtime entrypoint with API/PostgreSQL bound to loopback only.
+- Updated API runbook with the exact VPS startup, local health, Cloudflare Tunnel, and public DNS acceptance steps.
+
+### 验收结果
+
+- `dig @1.1.1.1 authbox.io`: NOERROR, Cloudflare A records present.
+- `curl -sS -D - -o /dev/null https://authbox.io/`: HTTP 200.
+- `curl -sS -D - -o /dev/null https://authbox.io/health`: HTTP 404, expected for the Pages frontend surface.
+- `dig @1.1.1.1 api.authbox.io`: NXDOMAIN.
+- `dig @8.8.8.8 +short api.authbox.io`: no answer.
+- `curl -vk https://api.authbox.io/health`: local resolver/proxy address reached, TLS failed with `SSL_ERROR_SYSCALL`.
+- Cloudflare API: current account cannot view the owning `authbox.io` zone and cannot list Pages projects.
+- `ssh vps-prod`: connection closed on `198.18.3.63:22`; VPS runtime not proven.
+- `docker compose -f docker-compose.vps.yml config`: PASS with placeholder local config-check env; rendered ports bind to `127.0.0.1`.
+
+### Task Closeout
+
+- [x] Skills: N/A（本轮沉淀为项目 runbook/compose guardrail，未抽取跨项目 skill）。
+- [x] PDCA 四文档：PRD / SYSTEM_ARCHITECTURE / USER_EXPERIENCE_MAP / PLATFORM_OPTIMIZATION_PLAN 已同步 public API health 诊断状态。
+- [x] 底层规范（CLAUDE/AGENTS）：N/A（未新增跨项目底层规则）。
+- [x] Rolling Ledger：REQ/PROMPT/QA 已更新。
+- [x] 技术债收口：历史 VPS 启动因公开端口绑定回滚；本轮新增 loopback-only `docker-compose.vps.yml` 防止复发。
+- [x] 三端一致性：local + GitHub PASS；VPS/production BLOCKED by SSH alias closure and missing public API DNS/Tunnel record.
+
+### 结论
+
+- Public production promotion remains BLOCKED.
+- Next required authority is production DNS/Tunnel + VPS runtime repair in the Cloudflare account and host that own `authbox.io`.
+
 ## Changelog
 - 2026-03-22: 追加发布就绪性检查交付，并补齐 changelog 区块以满足项目级文档门禁。（原因：release readiness hardening）
 - 2026-05-31: 追加 WP-015 一键交付续跑交付与 Task Closeout；结论限定为 local PASS / public release BLOCKED。（原因：SOP one-click delivery closeout）
 - 2026-05-31: 追加 WP-017 release gate dependency security convergence；结论限定为 local gate PASS / production promotion pending。（原因：console audit blocker closeout）
 - 2026-05-31: 追加 WP-018 GitHub Agent Design Check convergence；恢复 PRD/UX Map 中 CI 需要的专业智能体设计锚点。（原因：GitHub check convergence）
+- 2026-06-01: 追加 WP-019 public API health blocker triage；新增 VPS-safe compose/runbook 并记录 DNS NXDOMAIN 与 VPS alias blocker。（原因：release convergence continuation）

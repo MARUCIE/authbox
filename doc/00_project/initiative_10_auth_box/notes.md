@@ -1764,3 +1764,27 @@ Cumulative: Round 4-7 = 50 optimization items total.
 ### Verification
 
 - `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-final.json`: PASS.
+
+## WP-019 Public API Health Blocker Triage (2026-06-01)
+
+### Root Cause Evidence
+
+- Local/GitHub convergence is now green for source control: `HEAD` = `origin/main` = `175e3317bedd79474368a867b80b8f1df9c3a5ab`.
+- GitHub latest checks are green: Release Gate `26717442428` PASS; Agent Design Check `26717442434` PASS.
+- The Go API itself is not missing the health route: `services/api/cmd/api/main.go` registers `GET /health`, and `HealthHandler` returns `status/version/env`.
+- `https://authbox.io/` returns HTTP 200 via Cloudflare, but `https://authbox.io/health` returns 404 because Pages is the frontend surface, not the API.
+- `dig @1.1.1.1 api.authbox.io` returns NXDOMAIN and `dig @8.8.8.8 +short api.authbox.io` returns no record.
+- Local resolver/proxy returns `198.18.3.60` for `api.authbox.io`, but HTTPS fails with `SSL_ERROR_SYSCALL`; this is not usable public DNS evidence.
+- Cloudflare API credentials available in this session cannot view the owning zone (`/zones?name=authbox.io` empty) and cannot list Pages projects (authentication error).
+- `ssh vps-prod` closes on `198.18.3.63:22`, so VPS repo/runtime state cannot be revalidated from this session.
+
+### Implemented Local Guardrail
+
+- Added `docker-compose.vps.yml`, a production-safe VPS compose entrypoint that binds PostgreSQL and API ports to `127.0.0.1` only.
+- Updated `doc/20_components/auth-box-api/runbook.md` with the VPS recovery sequence, required env vars, and public DNS/Tunnel acceptance checks.
+
+### Release Status
+
+- Source control + GitHub workflows: PASS.
+- Public API health: BLOCKED by missing public `api.authbox.io` DNS/Tunnel route and unverified VPS runtime.
+- Production mutation: not executed in this session.

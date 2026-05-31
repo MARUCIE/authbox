@@ -858,6 +858,15 @@ graph TD
 | Release gate | P0 local gate requires explicit gatekeeper and critical/high console audit closure | `outputs/release-gate/20260531T154354Z/reports/release_gate_summary.json` PASS |
 | Production boundary | No Cloudflare/VPS/production mutation in this round | Public API health remains separate release evidence |
 
+### WP-019 Public API Health Runtime Boundary (2026-06-01)
+
+| Surface | Architecture Decision | Verification |
+|---|---|---|
+| VPS runtime entrypoint | Production VPS must use `docker-compose.vps.yml`, not local `docker-compose.yml` | loopback-only API/PostgreSQL port bindings |
+| API ingress | Public `api.authbox.io` must be a Cloudflare-owned DNS/Tunnel route to `http://127.0.0.1:4010` | currently BLOCKED: `dig @1.1.1.1 api.authbox.io` NXDOMAIN |
+| Source control | Local and GitHub main are converged before production repair | `175e3317bedd79474368a867b80b8f1df9c3a5ab` |
+| Production boundary | No DNS/VPS/Cloudflare mutation in this diagnostic round | VPS alias closes on `198.18.3.63:22`; current Cloudflare API account cannot view the owning zone |
+
 ## 13. AI 基建凭据目录
 
 Auth Box 不仅管理密码，还是 **AI Agent 基建凭据中枢**：
@@ -892,3 +901,4 @@ Maurice | maurice_wen@proton.me
 - 2026-05-31: 回写 WP-015 本地交付架构状态、MCP policy critical fix 与 migration 009 fix；公开发布仍保持 blocked。（原因：SOP one-click delivery closeout）
 - 2026-05-31: 回写 WP-016 本地 release-blocker architecture decisions；公开发布 blocker 收敛为三端一致性与 public API health。（原因：local release-blocker hardening）
 - 2026-05-31: 回写 WP-017 console dependency and App Router compatibility decision；本地 release gate 通过但 production health 仍需单独证明。（原因：release gate convergence）
+- 2026-06-01: 回写 WP-019 public API health runtime boundary；新增 VPS-safe compose 入口并记录 `api.authbox.io` DNS/Tunnel 阻塞。（原因：release convergence continuation）

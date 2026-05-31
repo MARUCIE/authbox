@@ -442,9 +442,22 @@ AuditEvent {
 
 优化结论：本地发布门禁的 console critical/high audit blocker 已关闭；公开生产推广仍需远端 workflow、VPS/production 与 public API health 证据。
 
+## WP-019 Public API Health Recovery Guardrail (2026-06-01)
+
+| Area | Result | Evidence |
+|---|---|---|
+| GitHub convergence | PASS | local `HEAD` and `origin/main` both `175e3317bedd79474368a867b80b8f1df9c3a5ab`; latest Release Gate and Agent Design Check PASS |
+| Public API DNS | BLOCKED | `api.authbox.io` is NXDOMAIN via `@1.1.1.1`; `@8.8.8.8` returns no answer |
+| VPS runtime access | BLOCKED | `ssh vps-prod` closes on `198.18.3.63:22` |
+| Cloudflare authority | BLOCKED | current Cloudflare API account cannot view the owning `authbox.io` zone and cannot list Pages projects |
+| Runtime guardrail | ADDED | `docker-compose.vps.yml` binds API/PostgreSQL to `127.0.0.1` only |
+
+Optimization conclusion: public API recovery is now a production infra task, not a Go route bug. Required repair is DNS/Tunnel ownership plus VPS runtime start from the loopback-only compose entrypoint.
+
 ## Changelog
 - 2026-03-22: 回写静态安全头、API base 显式配置与发布就绪性检查结论，并补齐 changelog 区块。（原因：auth reliability + release readiness）
 - 2026-05-31: 新增 native iOS baseline closeout 记录，重点收口生成物治理、跨平台 crypto parity 与本地 simulator 证据。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 同步 WP-015 local hardening fixes、final gates 与 remaining release blockers。（原因：SOP one-click delivery closeout）
 - 2026-05-31: 同步 WP-016 local release-blocker reduction，清除上一轮本地安全 blocker 并记录剩余线上发布门禁。（原因：local release-blocker hardening）
 - 2026-05-31: 同步 WP-017 console dependency security convergence，本地 release gate 已通过，线上发布仍需远端与 public API health 证据。（原因：release gate convergence）
+- 2026-06-01: 同步 WP-019 public API health recovery guardrail；新增 VPS-safe compose 并记录 DNS/Tunnel/VPS authority blockers。（原因：release convergence continuation）

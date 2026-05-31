@@ -199,6 +199,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 - 2026-05-31 WP-015 本地一键交付续跑：CodeGraph、DNA capsule、final `ai check`、package/API/web gates、real API E2E、Web route smoke、iOS crypto/UI、postmortem gate 均 PASS；同时修复 migration 009 与 MCP policy critical；公开发布仍 BLOCKED 于剩余 attacker review high/medium findings + GitHub/VPS/production consistency。
 - 2026-05-31 WP-016 本地 release-blocker reduction：SRP M2、query-string API keys、MCP proxy SSRF/data exfiltration、plaintext TOTP seeds、PNA/content-type、extension permissions、settings manual TOTP exposure 均已本地修复并通过新鲜验证；公开发布仍 BLOCKED 于 GitHub/VPS/production consistency 与 public API health 证据。
 - 2026-05-31 WP-017 console release gate dependency convergence：`apps/console` 升级到 Next 15.5.18 并适配 async App Router props；`GATEKEEPER=MARUCIE BASE=origin/main HEAD=HEAD make release-gate` PASS；公开生产推广仍需 GitHub workflow、VPS/production 与 public API health 证据。
+- 2026-06-01 WP-019 public API health triage：local/GitHub 已收敛到 `175e3317bedd79474368a867b80b8f1df9c3a5ab` 且 GitHub Release Gate / Agent Design Check 均 PASS；公开 API 仍 BLOCKED，原因是权威 DNS `api.authbox.io` = NXDOMAIN、当前 Cloudflare API 凭据不拥有该 zone、`vps-prod` SSH alias 连接关闭。本轮新增 loopback-only `docker-compose.vps.yml` 作为 VPS 恢复入口，未执行生产变更。
 
 ---
 
@@ -210,3 +211,4 @@ Maurice | maurice_wen@proton.me
 - 2026-05-31: 同步 WP-015 本地一键交付结果与 MCP policy canonical types；公开发布仍按安全与三端一致性阻塞。（原因：SOP one-click delivery closeout）
 - 2026-05-31: 同步 WP-016 本地 release-blocker reduction；将剩余 blocker 缩小为 GitHub/VPS/production consistency 与 public API health。（原因：local release-blocker hardening）
 - 2026-05-31: 同步 WP-017 console release gate dependency convergence；本地 release gate 已通过，public API health 仍独立阻塞公开发布。（原因：console audit blocker closeout）
+- 2026-06-01: 同步 WP-019 public API health triage；GitHub checks 已通过，但公开 API 仍因 DNS/Tunnel/VPS runtime 阻塞。（原因：release convergence continuation）

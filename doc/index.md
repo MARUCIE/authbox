@@ -3,7 +3,7 @@ Title: 文档索引
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-05-31
+LastUpdated: 2026-06-01
 Related:
   - /doc/00_project/index.md
   - /doc/10_features/
@@ -27,9 +27,9 @@ Related:
 
 <!-- AI-TOOLS:PATH_INDEX:BEGIN -->
 - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
-- **VERIFIED_AT_UTC**: `2026-05-31T11:10:00Z`
+- **VERIFIED_AT_UTC**: `2026-05-31T16:14:07Z`
 - **Top-level dirs**: `apps`, `packages`, `services`, `doc`, `postmortem`, `scripts`
-- **Top-level files**: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `GEMINI.md`, `README.md`, `docker-compose.yml`, `turbo.json`, `pnpm-workspace.yaml`, `Makefile`
+- **Top-level files**: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `GEMINI.md`, `README.md`, `docker-compose.yml`, `docker-compose.vps.yml`, `turbo.json`, `pnpm-workspace.yaml`, `Makefile`
 - **Key files**: `AGENTS.md`, `CLAUDE.md`, `README.md`, `turbo.json`
 - **Monorepo packages**:
   - `packages/crypto` - @authbox/crypto (Argon2id, HKDF, AES-GCM, SRP-6a)
@@ -67,6 +67,7 @@ Related:
 - 2026-03-22: 补齐项目级 `ai check` 文档门禁兼容项，新增标准 `## Changelog` 段并同步 path index 基线。（原因：release readiness hardening）
 - 2026-05-31: 登记 `apps/ios` 原生 iOS 工作区、SwiftPM crypto 包与 AutoFill extension，并把 path index 校验时间推进到当前本地审计。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 更新 WP-015 path index，补充 postmortem 与 scripts 顶层路径。（原因：SOP one-click delivery closeout）
+- 2026-06-01: 登记 VPS 专用 compose 入口 `docker-compose.vps.yml`，并推进 path index 校验时间。（原因：public API health blocker triage）
 - 2026-02-11: 增量更新 API 契约与鉴权同步文档。
 - 2026-02-11: 文档索引新增架构 ADR 与风险清单路径。
 - 2026-01-29: 初始化。

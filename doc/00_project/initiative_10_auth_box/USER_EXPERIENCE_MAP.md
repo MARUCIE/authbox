@@ -234,6 +234,16 @@ AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 | Query-driven pages | PASS | `searchParams` awaited for platforms and funnel metrics pages |
 | Release UX claim | BLOCKED for public production | Local release gate PASS, but public API health and production runtime still require separate verification |
 
+### WP-019 Public API UX Evidence (2026-06-01)
+
+| Surface | Result | Evidence |
+|---|---|---|
+| Public frontend | PASS | `https://authbox.io/` returns HTTP 200 |
+| API DNS | BLOCKED | `dig @1.1.1.1 api.authbox.io` returns NXDOMAIN |
+| API health | BLOCKED | `https://api.authbox.io/health` cannot complete TLS/HTTP health |
+| VPS runtime | BLOCKED | `ssh vps-prod` closes on `198.18.3.63:22`; runtime cannot be proven |
+| Release UX claim | BLOCKED for public production | User journeys that need API cannot be publicly claimed until DNS/Tunnel + VPS health return 200 |
+
 ## 路由地图
 
 ### Web App Routes
@@ -268,3 +278,4 @@ Maurice | maurice_wen@proton.me
 - 2026-05-31: 同步 WP-016 Settings/extension UX guard evidence；公开发布 UX claim 仍需线上三端与 API health 证据。（原因：local release-blocker hardening）
 - 2026-05-31: 同步 WP-017 console route contract evidence；本地 Next 15 build 通过但公开 UX claim 仍需 public API health 证明。（原因：release gate convergence）
 - 2026-05-31: 恢复 agent design CI 所需的 Journey I 专业智能体执行闭环锚点，并将 iOS 本地 Vault 基线顺延为 Journey J。（原因：GitHub Agent Design Check convergence）
+- 2026-06-01: 同步 WP-019 public API UX evidence；前端首页可达但 API DNS/Tunnel/VPS runtime 仍阻塞公开旅程声明。（原因：release convergence continuation）
