@@ -106,13 +106,13 @@ check_cmd "defaults_skill_priority" "skill priority is skill>plugin>mcp>manual" 
   jq -e '.defaults.skill_priority == ["skill","plugin","mcp","manual"]' "$CONFIG"
 
 check_cmd "prd_section_present" "PRD contains agent design SOP section" \
-  rg -q "## SOP：专业智能体设计（2026-02-18）" "$PRD_DOC"
+  grep -Fq "## SOP：专业智能体设计（2026-02-18）" "$PRD_DOC"
 
 check_cmd "uxmap_journey_present" "UXMap contains Journey I" \
-  rg -q "## Journey I: 专业智能体执行闭环（新增，2026-02-18）" "$UXMAP_DOC"
+  grep -Fq "## Journey I: 专业智能体执行闭环（新增，2026-02-18）" "$UXMAP_DOC"
 
 check_cmd "design_doc_present" "design doc has expected title" \
-  rg -q "# Professional Agent Design \(SOP\)" "$DESIGN_DOC"
+  grep -Fq "# Professional Agent Design (SOP)" "$DESIGN_DOC"
 
 jq -s \
   --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \

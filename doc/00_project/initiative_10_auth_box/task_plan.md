@@ -232,6 +232,7 @@ LastUpdated: 2026-05-31
 - [x] Root cause: `scripts/agent_design_check.sh` requires exact PRD and UX Map anchors for professional agent design SOP, but current docs no longer contained those exact headings.
 - [x] Fix: restore `## SOP：专业智能体设计（2026-02-18）` in PRD and `## Journey I: 专业智能体执行闭环（新增，2026-02-18）` in UX Map.
 - [x] Preserve iOS journey by renumbering it to Journey J.
+- [x] CI portability fix: replace `rg` title checks with `grep -Fq` because GitHub workflow only guarantees `jq` and `bash`.
 - [x] Verification: `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-after.json` PASS.
 
 ## 当前状态

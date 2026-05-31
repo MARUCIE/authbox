@@ -1282,10 +1282,11 @@ LastUpdated: 2026-05-31
 - Restored the PRD professional agent design SOP anchor required by CI.
 - Restored the UX Map professional agent execution Journey I anchor required by CI.
 - Preserved the iOS local Vault journey as Journey J.
+- Removed the script's implicit `rg` dependency by using `grep -Fq` for exact title checks.
 
 ### 验收结果
 
-- `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-after.json`: PASS.
+- `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-final.json`: PASS.
 
 ## Changelog
 - 2026-03-22: 追加发布就绪性检查交付，并补齐 changelog 区块以满足项目级文档门禁。（原因：release readiness hardening）

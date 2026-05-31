@@ -1752,13 +1752,15 @@ Cumulative: Round 4-7 = 50 optimization items total.
   - `prd_section_present`
   - `uxmap_journey_present`
 - The check script requires exact headings for professional agent design SOP and Journey I.
+- After restoring those headings, GitHub still failed all three title checks while remote file contents were correct; this indicated CI toolchain drift because the script used `rg`, but the workflow only verifies `jq` and `bash`.
 
 ### Implemented Fix
 
 - Restored `## SOP：专业智能体设计（2026-02-18）` in `PRD.md`.
 - Restored `## Journey I: 专业智能体执行闭环（新增，2026-02-18）` in `USER_EXPERIENCE_MAP.md`.
 - Preserved the iOS local Vault journey by renumbering it from Journey I to Journey J.
+- Replaced exact-title `rg` calls in `scripts/agent_design_check.sh` with `grep -Fq`.
 
 ### Verification
 
-- `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-after.json`: PASS.
+- `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-final.json`: PASS.
