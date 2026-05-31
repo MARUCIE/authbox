@@ -1742,3 +1742,23 @@ Cumulative: Round 4-7 = 50 optimization items total.
 - Local release gate is green for this branch state.
 - GitHub push/check evidence is still separate from this local note.
 - Cloudflare/VPS/production were not mutated; public API health remains a separate release blocker until explicitly verified.
+
+## WP-018 GitHub Agent Design Check Convergence (2026-05-31)
+
+### Root Cause
+
+- GitHub `Agent Design Check` failed on pushed commit `aa016da`.
+- Local reproduction with `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check.json` showed two failing checks:
+  - `prd_section_present`
+  - `uxmap_journey_present`
+- The check script requires exact headings for professional agent design SOP and Journey I.
+
+### Implemented Fix
+
+- Restored `## SOP：专业智能体设计（2026-02-18）` in `PRD.md`.
+- Restored `## Journey I: 专业智能体执行闭环（新增，2026-02-18）` in `USER_EXPERIENCE_MAP.md`.
+- Preserved the iOS local Vault journey by renumbering it from Journey I to Journey J.
+
+### Verification
+
+- `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-after.json`: PASS.

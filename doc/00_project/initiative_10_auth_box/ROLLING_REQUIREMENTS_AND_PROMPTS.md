@@ -40,6 +40,7 @@ LastUpdated: 2026-05-31
 | REQ-20260531-027 | 2026-05-31 | 将 Step 0 / 一键全量交付 SOP 转化为可审计本地执行循环：planning-with-files、DNA/CodeGraph、attacker review、Round 1 `ai check`、Round 2 UX Map、Task Closeout | local_pass_release_blocked | Local gates PASS; attacker review findings carried into WP-016; public release blocked by GitHub/VPS/API health evidence |
 | REQ-20260531-028 | 2026-05-31 | 收口本地 release blockers：SRP M2、query-string keys、MCP proxy SSRF、TOTP seed encryption、PNA/content-type、extension permissions、settings manual TOTP exposure | local_pass_release_blocked | Local code/test gates PASS; public release still requires GitHub/VPS/production consistency + public API health |
 | REQ-20260531-029 | 2026-05-31 | 收口 console release gate dependency security blocker：升级 Next、适配 App Router async props、关闭 critical/high audit findings 并复跑 release gate | local_gate_passed | `GATEKEEPER=MARUCIE BASE=origin/main HEAD=HEAD make release-gate` PASS; production promotion still needs remote/API health evidence |
+| REQ-20260531-030 | 2026-05-31 | 收口 GitHub Agent Design Check 文档锚点漂移：恢复 PRD/UX Map 中专业智能体设计 SOP/Journey I 精确标题 | local_passed | `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-after.json` PASS |
 
 ## 提示词台账
 
@@ -97,6 +98,7 @@ LastUpdated: 2026-05-31
 | QA-20260531-027 | 2026-05-31 | 为什么 MCP proxy 不能接受任意 agent-supplied URL/headers？ | proxy 工具可被诱导访问内网/localhost 或携带凭据头转发，形成 SSRF/数据外泄 | 新增 `sanitizeProxyRequest`：service host binding、DNS/private-IP rejection、credential header denial、method/body limits | proxy 工具新增测试必须覆盖 host mismatch、localhost/private DNS、forbidden auth headers、GET body | `packages/mcp-protocol/src/proxy-security.ts`, `packages/mcp-protocol/src/proxy-security.test.ts` |
 | QA-20260531-028 | 2026-05-31 | 为什么 TOTP seed 不能以 base32 明文存储在用户表？ | 数据库泄漏或低权限读表会直接暴露二次认证种子 | `AUTH_BOX_TOTP_SECRET_KEY` AES-GCM 加密 TOTP seed；migration 010 禁用旧 plaintext enrollments；plaintext secret fail closed | production 缺 TOTP encryption key 必须 fail-fast；测试必须断言 encrypted envelope 与 plaintext rejection | `services/api/internal/service/totp_service.go`, `services/api/internal/config/config.go`, `services/api/migrations/010_reset_plaintext_totp_secrets.up.sql` |
 | QA-20260531-029 | 2026-05-31 | 为什么 console build 通过仍可能被 release gate security audit 拦住？ | 旧 Next runtime 可正常构建但命中 npm critical/high advisories；Next 14 最新补丁仍残留 high finding | 升级 `apps/console` 到 `next@15.5.18`，并同步修复 Next 15 async `params/searchParams` 类型契约 | release gate 失败时先读 `console_security_audit` metadata；依赖升级后必须同时跑 console build、audit high threshold、full release gate | `apps/console/package.json`, `apps/console/app/**/page.tsx`, `outputs/release-gate/20260531T154354Z/reports/release_gate_summary.json` |
+| QA-20260531-030 | 2026-05-31 | 为什么 GitHub Agent Design Check 会在代码无关变更后失败？ | `scripts/agent_design_check.sh` 对 PRD/UX Map 使用精确标题锚点，文档重写时移除了历史专业智能体设计章节标题 | 恢复 PRD 的 SOP 标题和 UX Map 的 Journey I 标题；iOS journey 顺延为 Journey J | 修改 PRD/UX Map 时本地运行 `scripts/agent_design_check.sh`，不要只依赖 GitHub Actions 发现锚点漂移 | `scripts/agent_design_check.sh`, `doc/00_project/initiative_10_auth_box/PRD.md`, `doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md` |
 
 ## 2026-02-18 · REQ（UI/UX 优化）
 | id | requirement | scope | status | evidence |
@@ -172,3 +174,4 @@ LastUpdated: 2026-05-31
 - 2026-05-31: 收口 SOP one-click delivery continuation 的本地验收、DNA capsule、postmortem 与 release blocker 台账。（原因：WP-015 local delivery closeout）
 - 2026-05-31: 收口本地 release blocker hardening 的 REQ/PROMPT/QA，明确公开发布仍需三端与 public API health 证据。（原因：WP-016 local release-blocker reduction）
 - 2026-05-31: 收口 console release gate dependency security convergence 的 REQ/PROMPT/QA，记录 Next 15 升级与 release gate PASS 证据。（原因：WP-017 release gate convergence）
+- 2026-05-31: 收口 GitHub Agent Design Check 文档锚点漂移的 REQ/QA，记录本地脚本 PASS 证据。（原因：WP-018 GitHub check convergence）

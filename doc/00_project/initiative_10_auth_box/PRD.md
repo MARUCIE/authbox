@@ -165,6 +165,16 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | M6.2 | AGI Digital Identity: Agent-to-Agent trust + delegation chain | PLANNED (v5 vision) |
 | M7 | Desktop + Mobile + 团队功能 | Post-MVP |
 
+## SOP：专业智能体设计（2026-02-18）
+
+本项目保留专业智能体设计 SOP 作为 CI 可检查的路由锚点，用于约束 agent persona、职责边界、I/O、触发规则与验收门禁。
+
+| 资产 | 作用 | 当前状态 |
+|---|---|---|
+| `doc/00_project/initiative_10_auth_box/AGENT_PROFESSIONAL_DESIGN.md` | Persona / boundary / I-O / acceptance source | active |
+| `configs/agent-router/professional-agent-routing.v1.json` | Machine-readable trigger and routing config | active |
+| `scripts/agent_design_check.sh` | CI guard for config/doc consistency | active |
+
 ## 当前状态
 
 - Phase 0-4 + UX Round 1-2 + Round 3-13 全部完成

@@ -180,18 +180,30 @@ AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 
 **安全要点**: .env 文件在浏览器本地解析，明文 Key 直接用 Vault Key 加密后上传。Health check 直接从浏览器调用 Provider API（如 api.openai.com），不经过 Auth Box 服务端。
 
-### Journey I: iOS 本地 Vault 基线
+## Journey I: 专业智能体执行闭环（新增，2026-02-18）
+
+项目负责人通过专业智能体路由执行复杂任务，并要求每个角色输出可验证的交付物。
+
+| Step | 用户动作 | 系统响应 | 技术细节 |
+|------|----------|----------|----------|
+| I1 | 输入新任务或继续指令 | 路由器识别 scenario / scope / mode | `configs/agent-router/professional-agent-routing.v1.json` |
+| I2 | 任务需要长链路执行 | Leader Orchestrator 启用 planning-with-files | `task_plan.md` / `notes.md` / `deliverable.md` |
+| I3 | 需要调研或实现 | Researcher / Builder 按边界执行 | `AGENT_PROFESSIONAL_DESIGN.md` |
+| I4 | 进入验收 | Quality Watchdog 运行 Round 1 / Round 2 gates | `ai check`, UX Map, release gate |
+| I5 | 收尾 | 文档、rolling ledger、evidence path 同步 | Task Closeout |
+
+## Journey J: iOS 本地 Vault 基线
 
 用户在 iPhone 上创建或恢复助记词 Vault，本地生成确定性密码，并通过 iOS AutoFill extension 读取共享 Vault。
 
 | Step | 用户动作 | 系统响应 | 技术细节 |
 |------|----------|----------|----------|
-| I1 | 首次打开 iOS App | 展示 Create / Restore 入口 | `AuthBoxApp` + `ContentView` |
-| I2 | 创建 Vault | 生成 BIP-39 助记词并派生 vault/sync/auth/agent keys | `AuthBoxCrypto.Seed` |
-| I3 | 备份助记词并设置访问 | seed 存入 Keychain，Vault 状态切换为 unlocked | `KeychainManager` + SwiftData |
-| I4 | 新增 Vault Item | 本地保存条目并回显列表/详情 | `VaultStore` + `VaultListView` |
-| I5 | 生成站点密码 | 根据 seed + site + counter 生成确定性密码 | Swift vectors match TypeScript |
-| I6 | 调用 AutoFill extension | iOS Credential Provider 读取 shared app group 数据 | `AutoFillExtension` |
+| J1 | 首次打开 iOS App | 展示 Create / Restore 入口 | `AuthBoxApp` + `ContentView` |
+| J2 | 创建 Vault | 生成 BIP-39 助记词并派生 vault/sync/auth/agent keys | `AuthBoxCrypto.Seed` |
+| J3 | 备份助记词并设置访问 | seed 存入 Keychain，Vault 状态切换为 unlocked | `KeychainManager` + SwiftData |
+| J4 | 新增 Vault Item | 本地保存条目并回显列表/详情 | `VaultStore` + `VaultListView` |
+| J5 | 生成站点密码 | 根据 seed + site + counter 生成确定性密码 | Swift vectors match TypeScript |
+| J6 | 调用 AutoFill extension | iOS Credential Provider 读取 shared app group 数据 | `AutoFillExtension` |
 
 2026-05-31 evidence: Xcode simulator `AuthBox` build PASS; `FullFlowUITests.testFullOnboardingAndVaultFlow` PASS; SwiftPM crypto tests 62/62 PASS; `pnpm run ios:crypto-vectors` PASS.
 
@@ -251,7 +263,8 @@ Maurice | maurice_wen@proton.me
 
 ## Changelog
 - 2026-03-22: 同步 TOTP step-up 登录与发布就绪性检查现状，补齐 `## Changelog` 以满足项目级文档门禁。（原因：auth reliability + release readiness）
-- 2026-05-31: 新增 iOS App 渠道与 Journey I，并记录本地模拟验证证据；该旅程只覆盖本地 iOS baseline，不替代公开发布门禁。（原因：Projects folder dirty worktree closeout）
+- 2026-05-31: 新增 iOS App 渠道与 Journey J，并记录本地模拟验证证据；该旅程只覆盖本地 iOS baseline，不替代公开发布门禁。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 同步 WP-015 Round 2 UX evidence 与 Agent policy canonical UI/MCP 行为；公开发布 UX claim 仍受安全与线上健康门禁阻塞。（原因：SOP one-click delivery closeout）
 - 2026-05-31: 同步 WP-016 Settings/extension UX guard evidence；公开发布 UX claim 仍需线上三端与 API health 证据。（原因：local release-blocker hardening）
 - 2026-05-31: 同步 WP-017 console route contract evidence；本地 Next 15 build 通过但公开 UX claim 仍需 public API health 证明。（原因：release gate convergence）
+- 2026-05-31: 恢复 agent design CI 所需的 Journey I 专业智能体执行闭环锚点，并将 iOS 本地 Vault 基线顺延为 Journey J。（原因：GitHub Agent Design Check convergence）

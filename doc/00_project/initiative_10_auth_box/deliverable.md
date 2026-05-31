@@ -1275,7 +1275,20 @@ LastUpdated: 2026-05-31
 - Local release gate: PASS.
 - Public production promotion: still requires GitHub workflow evidence plus VPS/production/public API health verification.
 
+## 2026-05-31 · GitHub Agent Design Check Convergence / WP-018
+
+### 交付内容
+
+- Restored the PRD professional agent design SOP anchor required by CI.
+- Restored the UX Map professional agent execution Journey I anchor required by CI.
+- Preserved the iOS local Vault journey as Journey J.
+
+### 验收结果
+
+- `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-after.json`: PASS.
+
 ## Changelog
 - 2026-03-22: 追加发布就绪性检查交付，并补齐 changelog 区块以满足项目级文档门禁。（原因：release readiness hardening）
 - 2026-05-31: 追加 WP-015 一键交付续跑交付与 Task Closeout；结论限定为 local PASS / public release BLOCKED。（原因：SOP one-click delivery closeout）
 - 2026-05-31: 追加 WP-017 release gate dependency security convergence；结论限定为 local gate PASS / production promotion pending。（原因：console audit blocker closeout）
+- 2026-05-31: 追加 WP-018 GitHub Agent Design Check convergence；恢复 PRD/UX Map 中 CI 需要的专业智能体设计锚点。（原因：GitHub check convergence）

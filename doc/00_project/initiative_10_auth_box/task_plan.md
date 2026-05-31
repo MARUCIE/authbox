@@ -225,6 +225,15 @@ LastUpdated: 2026-05-31
 - [x] Round 1: `ai check` PASS with two rounds; run dir `outputs/check/20260531-154415-114f8034`.
 - [x] Remaining boundary: public promotion still requires GitHub check evidence after push plus VPS/production/public API health verification.
 
+## Round 14: GitHub Agent Design Check Convergence (DONE, 2026-05-31)
+
+目标：修复 push 后 GitHub `Agent Design Check` 的文档锚点漂移；不改业务代码。
+
+- [x] Root cause: `scripts/agent_design_check.sh` requires exact PRD and UX Map anchors for professional agent design SOP, but current docs no longer contained those exact headings.
+- [x] Fix: restore `## SOP：专业智能体设计（2026-02-18）` in PRD and `## Journey I: 专业智能体执行闭环（新增，2026-02-18）` in UX Map.
+- [x] Preserve iOS journey by renumbering it to Journey J.
+- [x] Verification: `scripts/agent_design_check.sh --output /tmp/authbox-agent-design-check-after.json` PASS.
+
 ## 当前状态
 
 - 所有 MVP 功能阶段已完成（Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-11）
