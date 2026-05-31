@@ -7,6 +7,13 @@ dist/
 build/
 .next/
 out/
+*.tsbuildinfo
+
+# SwiftPM / Xcode local build state
+apps/ios/**/.build/
+apps/ios/**/xcuserdata/
+DerivedData/
+*.xcuserstate
 
 # Turborepo
 .turbo/
@@ -16,6 +23,11 @@ pnpm-debug.log*
 
 # Runtime telemetry persistence (generated; not evidence)
 outputs/telemetry/
+outputs/check/
+outputs/pages-auth-check/
+outputs/pages-deploy/
+outputs/public-bundle-smoke/
+outputs/release-gate/
 apps/console/outputs/telemetry/
 
 # Environment files

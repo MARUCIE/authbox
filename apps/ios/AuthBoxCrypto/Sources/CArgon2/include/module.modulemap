@@ -1,0 +1,4 @@
+module CArgon2 {
+    header "CArgon2.h"
+    export *
+}

@@ -3,7 +3,7 @@ Title: USER_EXPERIENCE_MAP - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-03-22
+LastUpdated: 2026-05-31
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -14,7 +14,7 @@ Related:
 
 <!-- AI-TOOLS:PROJECT_DIR:BEGIN -->
 - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
-- **VERIFIED_AT_UTC**: `2026-02-24T00:00:00Z`
+- **VERIFIED_AT_UTC**: `2026-05-31T01:25:30Z`
 - **RULE**: Always run tasks against the project root. If the CLI detects a mismatch, it will update this block.
 <!-- AI-TOOLS:PROJECT_DIR:END -->
 
@@ -37,6 +37,7 @@ Related:
 |------|------|------|
 | Web App | `http://localhost:3010` | Next.js 15 主应用 |
 | Chrome Extension | Chrome Web Store / 本地加载 | 密码填充 + MCP Server |
+| iOS App | Xcode scheme `AuthBox` / iOS Simulator | SwiftUI 本地 Vault + iOS AutoFill extension |
 | API | `http://localhost:4010/api/v1` | Go API 服务 |
 | MCP Gateway | `ws://localhost:19876/mcp` | AI Agent 凭据网关 |
 
@@ -177,6 +178,21 @@ AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 
 **安全要点**: .env 文件在浏览器本地解析，明文 Key 直接用 Vault Key 加密后上传。Health check 直接从浏览器调用 Provider API（如 api.openai.com），不经过 Auth Box 服务端。
 
+### Journey I: iOS 本地 Vault 基线
+
+用户在 iPhone 上创建或恢复助记词 Vault，本地生成确定性密码，并通过 iOS AutoFill extension 读取共享 Vault。
+
+| Step | 用户动作 | 系统响应 | 技术细节 |
+|------|----------|----------|----------|
+| I1 | 首次打开 iOS App | 展示 Create / Restore 入口 | `AuthBoxApp` + `ContentView` |
+| I2 | 创建 Vault | 生成 BIP-39 助记词并派生 vault/sync/auth/agent keys | `AuthBoxCrypto.Seed` |
+| I3 | 备份助记词并设置访问 | seed 存入 Keychain，Vault 状态切换为 unlocked | `KeychainManager` + SwiftData |
+| I4 | 新增 Vault Item | 本地保存条目并回显列表/详情 | `VaultStore` + `VaultListView` |
+| I5 | 生成站点密码 | 根据 seed + site + counter 生成确定性密码 | Swift vectors match TypeScript |
+| I6 | 调用 AutoFill extension | iOS Credential Provider 读取 shared app group 数据 | `AutoFillExtension` |
+
+2026-05-31 evidence: Xcode simulator `AuthBox` build PASS; `FullFlowUITests.testFullOnboardingAndVaultFlow` PASS; SwiftPM crypto tests 62/62 PASS; `pnpm run ios:crypto-vectors` PASS.
+
 ## 路由地图
 
 ### Web App Routes
@@ -206,3 +222,4 @@ Maurice | maurice_wen@proton.me
 
 ## Changelog
 - 2026-03-22: 同步 TOTP step-up 登录与发布就绪性检查现状，补齐 `## Changelog` 以满足项目级文档门禁。（原因：auth reliability + release readiness）
+- 2026-05-31: 新增 iOS App 渠道与 Journey I，并记录本地模拟验证证据；该旅程只覆盖本地 iOS baseline，不替代公开发布门禁。（原因：Projects folder dirty worktree closeout）

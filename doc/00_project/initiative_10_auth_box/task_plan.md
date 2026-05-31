@@ -3,7 +3,7 @@ Title: task_plan - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-03-22
+LastUpdated: 2026-05-31
 ---
 
 # 任务计划 - Auth Box v2
@@ -233,6 +233,31 @@ LastUpdated: 2026-03-22
 - 2026-03-22: 认证链路硬化：TOTP step-up 登录、邮箱级限流和静态导出安全头全部按真实运行路径校正，验证基线切换为 local API 65/65 E2E。
 - 2026-03-22: 验收命令必须在 `PROJECT_DIR` 执行；从 `/Users/mauricewen/00-AI-Fleet` 触发的 `ai check` 结果视为无效，不纳入 Auth Box 项目验收。
 - 2026-03-22: 公共站点可达不等于可公开发版；发布前必须同时满足本地/GitHub/VPS commit 收敛、线上 API health 可证、以及项目目录内 `ai check` 有效结果。
+
+## 2026-05-31: Projects Folder Dirty Worktree Closeout (WP-014)
+
+目标：把 `/Users/mauricewen/Projects/10-auth-box` 的 114 项 dirty/untracked 工作树收口为可审计本地基线，避免生成物、发布证据输出和新 iOS 源码混在同一 dirty 状态中。
+
+已完成：
+- 将 `apps/ios` 识别为候选 native iOS baseline，而非生成物噪声。
+- 将 SwiftPM `.build`、Xcode `build`、runtime output dirs 与 `*.tsbuildinfo` 纳入 `.gitignore`。
+- 从 Git index 移除 4 个已跟踪 `tsconfig.tsbuildinfo` 生成缓存（本地文件保留并由 ignore 接管）。
+- 为 iOS/Web crypto vector 新增 repeatable root script：`pnpm run ios:crypto-vectors`。
+- 更新 PRD / SYSTEM_ARCHITECTURE / USER_EXPERIENCE_MAP / PLATFORM_OPTIMIZATION_PLAN / path index。
+
+本地验证：
+- `swift test` in `apps/ios/AuthBoxCrypto`: PASS, 62 tests.
+- `pnpm run ios:crypto-vectors`: PASS.
+- `node apps/ios/cross-platform-test.mjs`: PASS.
+- `pnpm --filter @authbox/crypto test`: PASS, 51 passed / 2 skipped.
+- `pnpm --filter @authbox/crypto build`: PASS.
+- `pnpm --filter @authbox/shared build`: PASS.
+- `pnpm --filter @authbox/mcp-protocol build`: PASS.
+- `xcodebuildmcp build_sim` for `AuthBox`: PASS.
+- `xcodebuildmcp test_sim` for `AuthBox`: PASS, 1 UI test, zero warnings/errors.
+- Project `ai check`: PASS via `GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn`; default-proxy attempt failed only on Go module TLS handshakes.
+
+Scope boundary：本轮不执行 GitHub push、Cloudflare Pages deploy、VPS 变更、生产数据操作或历史重写。
 
 ---
 

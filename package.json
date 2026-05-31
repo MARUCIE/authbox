@@ -6,6 +6,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "ios:crypto-vectors": "tsx apps/ios/cross-platform-test.ts",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
@@ -13,8 +14,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },
   "devDependencies": {
+    "prettier": "^3.4.0",
+    "tsx": "^4.21.0",
     "turbo": "^2.4.0",
-    "typescript": "^5.7.0",
-    "prettier": "^3.4.0"
+    "typescript": "^5.7.0"
   }
 }

@@ -3,7 +3,7 @@ Title: PDCA_ITERATION_CHECKLIST - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-03-22
+LastUpdated: 2026-05-31
 Related:
   - /doc/00_project/initiative_10_auth_box/index.md
 ---
@@ -37,7 +37,20 @@ Related:
 - [ ] 生产环境 - N/A（开发阶段）
 
 ## 阻塞项
-- 无（所有阻塞已解决）
+- 公开发布仍沿用 2026-03-22 release readiness blocker：GitHub/VPS 收敛与公共 API health 未在本轮 local-only cleanup 中验证。
+
+## 2026-05-31 iOS baseline cleanup
+- [x] PRD updated（native iOS baseline 技术栈与里程碑）
+- [x] SYSTEM_ARCHITECTURE updated（`apps/ios` 架构与本地验证）
+- [x] USER_EXPERIENCE_MAP updated（iOS App 渠道 + Journey I）
+- [x] PLATFORM_OPTIMIZATION_PLAN updated（生成物治理 + iOS baseline closeout）
+- [x] ROLLING_REQUIREMENTS_AND_PROMPTS updated（REQ/PROMPT/QA）
+- [x] task_plan updated（WP-014 目标、证据、边界）
+- [x] notes updated（dirty 分类与验证证据）
+- [x] deliverable updated（交付清单与残余风险）
+- [x] Round 1 automated checks：SwiftPM/Xcode/pnpm targeted gates PASS；project `ai check` PASS with alternate Go proxy
+- [x] Round 2 UX simulation：Xcode UI test `FullFlowUITests.testFullOnboardingAndVaultFlow` PASS, zero warnings/errors
+- [x] 三端一致性：N/A for this local-only cleanup; no GitHub/VPS/production action
 
 ## 测试结果
 - UX Map Journey 0: PASS
@@ -47,3 +60,4 @@ Related:
 
 ## Changelog
 - 2026-03-22: 补齐 changelog 区块，并将项目级 `ai check` 与 release readiness 复核纳入当前巡检背景。（原因：release readiness hardening）
+- 2026-05-31: 新增 iOS baseline cleanup 巡查项与 local-only release boundary。（原因：Projects folder dirty worktree closeout）

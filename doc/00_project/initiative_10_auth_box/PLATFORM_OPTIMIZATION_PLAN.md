@@ -3,7 +3,7 @@ Title: PLATFORM_OPTIMIZATION_PLAN - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-03-22
+LastUpdated: 2026-05-31
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -58,6 +58,17 @@ Related:
 - 关键流程平均响应 < 500ms（初期）
 - SEO 入口到 Console CTA CTR >= 3%（初期）
 - Organic 流量中高意图关键词占比逐月提升
+
+## Native iOS Baseline Closeout (2026-05-31)
+
+| Area | Result | Evidence |
+|---|---|---|
+| Generated artifact hygiene | `*.tsbuildinfo`, SwiftPM `.build`, Xcode `build`, runtime output dirs ignored; tracked `tsconfig.tsbuildinfo` files removed from Git index | `.gitignore`, `git rm --cached apps/web/tsconfig.tsbuildinfo packages/*/tsconfig.tsbuildinfo` |
+| Swift crypto parity | Swift package mirrors TypeScript seed/HKDF/AES/SRP vectors | `swift test` in `apps/ios/AuthBoxCrypto` -> 62/62 PASS |
+| TypeScript vector source | Root script added for repeatable vector generation | `pnpm run ios:crypto-vectors` PASS |
+| iOS app build | SwiftUI app + AutoFill extension compile for simulator | `xcodebuildmcp build_sim` PASS, zero warnings/errors |
+| iOS UX smoke | Full onboarding and vault UI test executes in simulator | `xcodebuildmcp test_sim` -> 1/1 PASS, zero warnings/errors |
+| Release boundary | No push, deploy, VPS action, or production credential use | Local-only work package closeout |
 
 ## 增长与 SEO 优化（新增）
 1. URL 分层治理：`features/use-cases/compare/docs` 四层信息架构。
@@ -366,3 +377,4 @@ AuditEvent {
 
 ## Changelog
 - 2026-03-22: 回写静态安全头、API base 显式配置与发布就绪性检查结论，并补齐 changelog 区块。（原因：auth reliability + release readiness）
+- 2026-05-31: 新增 native iOS baseline closeout 记录，重点收口生成物治理、跨平台 crypto parity 与本地 simulator 证据。（原因：Projects folder dirty worktree closeout）

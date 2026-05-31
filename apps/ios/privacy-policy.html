@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auth Box — Privacy Policy</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px 16px; line-height: 1.7; color: #333; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  h2 { font-size: 18px; margin-top: 32px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+  .date { color: #888; font-size: 14px; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 8px; }
+  .highlight { background: #f0f7ff; padding: 16px; border-radius: 8px; margin: 16px 0; }
+  footer { margin-top: 48px; text-align: center; color: #9B9B9D; font-size: 13px; line-height: 2.2; }
+</style>
+</head>
+<body>
+
+<h1>Auth Box Privacy Policy</h1>
+<p class="date">Effective Date: March 25, 2026</p>
+
+<div class="highlight">
+<strong>TL;DR:</strong> Auth Box is a zero-knowledge password manager. We cannot see, access, or decrypt your passwords. Your vault is encrypted on your device before it ever leaves — if it leaves at all.
+</div>
+
+<h2>1. Zero-Knowledge Architecture</h2>
+<p>Auth Box uses end-to-end encryption (AES-256-GCM) with keys derived from your seed phrase. All encryption and decryption happens exclusively on your device. Our servers — if you choose to use them — store only encrypted blobs that are mathematically impossible for us to decrypt.</p>
+
+<h2>2. Data We Do NOT Collect</h2>
+<ul>
+  <li>Your passwords, API keys, or credentials (encrypted, inaccessible to us)</li>
+  <li>Your seed phrase (never leaves your device)</li>
+  <li>Your master password (used only for SRP-6a authentication, never transmitted)</li>
+  <li>Your browsing history or app usage patterns</li>
+  <li>Advertising identifiers or tracking data</li>
+</ul>
+
+<h2>3. Data We May Collect (Optional Sync Only)</h2>
+<p>If you choose to enable server sync, we store:</p>
+<ul>
+  <li><strong>Email address</strong> — for account identification only</li>
+  <li><strong>Encrypted vault data</strong> — opaque blobs we cannot decrypt</li>
+  <li><strong>SRP verifier</strong> — a one-way derivative of your password (not the password itself)</li>
+  <li><strong>Device metadata</strong> — OS version, app version (for compatibility)</li>
+</ul>
+<p>If you use Auth Box in offline mode (no sync), we collect nothing.</p>
+
+<h2>4. Biometric Data (Face ID / Touch ID)</h2>
+<p>Auth Box uses Apple's LocalAuthentication framework for biometric unlock. Biometric data is processed entirely by the iOS Secure Enclave — it never leaves your device and is never accessible to Auth Box or any third party.</p>
+
+<h2>5. Third-Party Services</h2>
+<ul>
+  <li><strong>Apple App Store</strong> — processes purchases (Apple's privacy policy applies)</li>
+  <li><strong>Arweave Network</strong> (optional) — if you enable permanent backup, encrypted data is stored on the Arweave blockchain. This data is encrypted and cannot be read by anyone without your seed phrase.</li>
+</ul>
+<p>We do not use analytics SDKs, advertising networks, or third-party trackers.</p>
+
+<h2>6. Data Retention</h2>
+<p>Local data is stored on your device and deleted when you delete the app or reset your vault. Server-synced data is retained until you delete your account. Arweave backups are permanent by design (blockchain immutability) but are encrypted and useless without your seed phrase.</p>
+
+<h2>7. Children's Privacy</h2>
+<p>Auth Box is not directed at children under 13. We do not knowingly collect personal information from children.</p>
+
+<h2>8. Changes to This Policy</h2>
+<p>We will notify users of material changes via the app. The latest version is always available at this URL.</p>
+
+<h2>9. Contact</h2>
+<p>For privacy questions: <a href="mailto:maurice_wen@proton.me">maurice_wen@proton.me</a></p>
+
+<footer>
+  <p>Auth Box v1.0 — Privacy Policy</p>
+  <p>Maurice | maurice_wen@proton.me</p>
+</footer>
+
+</body>
+</html>

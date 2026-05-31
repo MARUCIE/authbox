@@ -3,7 +3,7 @@ Title: PRD - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-03-22
+LastUpdated: 2026-05-31
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -111,7 +111,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | 前端 Web | Next.js 15 + React 19 | SSR + App Router |
 | 浏览器扩展 | Chrome MV3 | Service Worker + Popup + Content Script |
 | 桌面端 | Tauri (Phase 4) | Rust + WebView |
-| 移动端 | React Native (Phase 4) | 跨平台 |
+| 移动端 | SwiftUI + SwiftData + SwiftPM (iOS baseline) | 本地优先 Vault、AutoFill extension、跨平台 crypto vectors |
 | 加密库 | @authbox/crypto | Argon2id + HKDF + AES-256-GCM + SRP-6a |
 | 数据库 | PostgreSQL 16 | 核心数据存储（仅加密 Blob） |
 | 缓存 | Redis 7 | Session 与速率限制 |
@@ -157,6 +157,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | M5.3 | 蜂群安全审计 (9/9 FIXED) + 性能审计 (8/8 FIXED) | DONE |
 | M5.4 | Market Launch (Show HN + authbox.io full-stack live) | BLOCKED (release gate; 2026-03-22 checkpoint) |
 | M5.5 | Five Primitives Engine (Capability/Intent/Policy/Effect/Fact) | PLANNED (P1) |
+| M5.6 | Native iOS baseline (SwiftUI + AutoFill + AuthBoxCrypto SwiftPM) | DONE (local baseline, not released) |
 | M6.0 | Bitcoin hash anchoring + Fact chain | PLANNED |
 | M6.1 | AGI Digital Identity: DID:ethr + Verifiable Credentials + Passkeys | PLANNED (v4 vision) |
 | M6.2 | AGI Digital Identity: Agent-to-Agent trust + delegation chain | PLANNED (v5 vision) |
@@ -182,6 +183,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 - 35 commits pushed to GitHub
 - 2026-03-22 发布就绪性检查：Auth Box 本地修复尚未提交；`origin/main`=`97336bf`，但 `vps-prod:/root/10-auth-box`=`850c226` 且 worktree 不干净；`authbox.io` 页面路由可达，但 `https://authbox.io/health` 返回 404、`api.authbox.io` 未解析、VPS `localhost:4010/health` 连接失败
 - 发布门禁现状：项目级 `ai check --base-dir /Users/mauricewen/Projects/10-auth-box` 已 PASS（run_dir=`outputs/check/20260322-021252-a7b35035`），但公开发布仍缺本地/GitHub/VPS 版本收敛 + 线上 API 健康证明
+- 2026-05-31 本地 dirty worktree closeout：`apps/ios` 原生 iOS 基线已审计并通过本地验证（SwiftPM crypto tests 62/62 PASS、Xcode simulator build PASS、UI test 1/1 PASS、TS crypto vector generator PASS；Xcode build/test zero warnings/errors；project `ai check` PASS with alternate Go proxy）；未执行 GitHub push、Cloudflare Pages deploy、VPS 变更或生产验证。
 
 ---
 
@@ -189,3 +191,4 @@ Maurice | maurice_wen@proton.me
 
 ## Changelog
 - 2026-03-22: 将 M5.4 状态调整为 release gate blocked，并记录本地/GitHub/VPS/API health 现状。（原因：release readiness checkpoint）
+- 2026-05-31: 将 iOS native baseline 纳入 PRD 技术栈、里程碑与当前状态；范围限定为本地可构建/可测试基线，不代表发布就绪。（原因：Projects folder dirty worktree closeout）

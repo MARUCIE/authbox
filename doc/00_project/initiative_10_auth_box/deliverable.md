@@ -3,10 +3,46 @@ Title: deliverable - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-03-22
+LastUpdated: 2026-05-31
 ---
 
 # 交付物
+
+## 增量交付（2026-05-31）- Native iOS baseline dirty worktree closeout
+
+### 交付项
+- 登记并提交 `apps/ios` native iOS baseline：
+  - SwiftUI app shell, onboarding, vault, generator, settings
+  - SwiftData local vault storage + Keychain seed protection
+  - iOS AutoFill Credential Provider extension
+  - `AuthBoxCrypto` SwiftPM package with BIP-39, HKDF, AES-GCM, SRP, Argon2 and cross-platform tests
+  - App Store metadata, privacy policy, icons, and mockups
+- 新增 root validation entry: `pnpm run ios:crypto-vectors`.
+- 修复 `apps/ios/cross-platform-test.mjs` Node ESM failure by making it a stable wrapper around the TypeScript vector source.
+- 修复 iOS UI test state leakage：`FullFlowUITests` now launches with `--reset-test-vault`, and app startup clears test Keychain/SwiftData state before the flow.
+- 收口生成物治理：
+  - `.gitignore` covers `*.tsbuildinfo`, SwiftPM `.build`, Xcode build output, and runtime output dirs.
+  - 4 tracked `tsconfig.tsbuildinfo` files removed from Git index.
+
+### 证据
+- `swift test` in `apps/ios/AuthBoxCrypto`: PASS, 62 tests.
+- `pnpm run ios:crypto-vectors`: PASS.
+- `node apps/ios/cross-platform-test.mjs`: PASS.
+- `pnpm --filter @authbox/crypto test`: PASS, 51 passed / 2 skipped.
+- `pnpm --filter @authbox/crypto build`: PASS.
+- `pnpm --filter @authbox/shared build`: PASS.
+- `pnpm --filter @authbox/mcp-protocol build`: PASS.
+- `xcodebuildmcp build_sim`: PASS, scheme `AuthBox`, zero warnings/errors.
+- `xcodebuildmcp test_sim`: PASS, 1/1 UI test, zero warnings/errors.
+- `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box --outdir outputs/check/20260531-ios-baseline-goproxy`: PASS with alternate Go proxy after default `proxy.golang.org` TLS handshake timeout.
+
+### Task Closeout
+- Skills：N/A（本轮为项目内 iOS baseline 与仓库卫生收口，不新增跨项目 Skill）。
+- PDCA 四文档：已同步（PRD / SYSTEM_ARCHITECTURE / USER_EXPERIENCE_MAP / PLATFORM_OPTIMIZATION_PLAN）。
+- 底层规范（CLAUDE/AGENTS）：N/A（未新增跨任务规则）。
+- Rolling Ledger：已更新（REQ-20260531-026 / PROMPT-20260531-014 / QA-20260531-022）。
+- 三端一致性：GitHub / VPS / production 为 N/A（本轮明确 local-only；未 push、未 deploy、未触碰 VPS）。
+- Residual risk：公开发布仍需单独重跑 release readiness gate；默认 `proxy.golang.org` 路径偶发 TLS handshake timeout，项目 gate 已用 alternate Go proxy 验证通过。
 
 ## 状态
 - 已完成（PDCA 文档已更新，UX Map 测试通过）

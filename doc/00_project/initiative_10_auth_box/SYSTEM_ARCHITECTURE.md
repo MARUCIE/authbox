@@ -3,7 +3,7 @@ Title: SYSTEM_ARCHITECTURE - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-03-22
+LastUpdated: 2026-05-31
 Related:
   - /doc/index.md
   - /doc/00_project/index.md
@@ -14,7 +14,7 @@ Related:
 
 <!-- AI-TOOLS:PROJECT_DIR:BEGIN -->
 - **PROJECT_DIR**: `/Users/mauricewen/Projects/10-auth-box`
-- **VERIFIED_AT_UTC**: `2026-02-24T00:00:00Z`
+- **VERIFIED_AT_UTC**: `2026-05-31T01:25:30Z`
 - **RULE**: Always run tasks against the project root. If the CLI detects a mismatch, it will update this block.
 <!-- AI-TOOLS:PROJECT_DIR:END -->
 
@@ -53,7 +53,7 @@ graph TD
         WEB[authbox.io<br/>CF Pages + Next.js 15]
         EXT[Chrome Extension MV3]
         DESK[Desktop App - Tauri]
-        MOBILE[Mobile App - RN]
+        MOBILE[Native iOS App<br/>SwiftUI + SwiftData + AutoFill]
     end
 
     subgraph "Layer 2: SYNC (可选, 可替换)"
@@ -108,6 +108,20 @@ graph TD
 - Layer 3 倒了 → Layer 1+2 继续工作（本地 + P2P/WebDAV 同步）
 - Layer 2 倒了 → Layer 1 继续工作（纯本地 + 手动导出）
 - Layer 1 设备丢了 → 助记词 + Arweave = 完整恢复
+
+## 3.1 Native iOS Baseline (2026-05-31)
+
+The repository now contains a native iOS workspace at `apps/ios`.
+
+| Layer | Path | Role | Verification |
+|---|---|---|---|
+| App shell | `apps/ios/AuthBox` | SwiftUI onboarding, vault, generator, settings, local app state | `xcodebuildmcp build_sim` PASS |
+| Local storage | `apps/ios/AuthBox/Sources/Core/Storage` | SwiftData vault items + Keychain seed protection | `FullFlowUITests.testFullOnboardingAndVaultFlow` PASS |
+| AutoFill | `apps/ios/AutoFillExtension` | iOS Credential Provider extension using shared app group | `xcodebuildmcp test_sim` PASS |
+| Crypto package | `apps/ios/AuthBoxCrypto` | SwiftPM package mirroring `@authbox/crypto` seed, HKDF, AES-GCM, SRP, Argon2 | `swift test` 62/62 PASS |
+| Cross-platform vectors | `apps/ios/cross-platform-test.ts` | TypeScript source-of-truth vectors for Swift assertions | `pnpm run ios:crypto-vectors` PASS |
+
+Scope boundary: this is a local iOS baseline only. It does not change the public release gate, Cloudflare Pages deployment, GitHub remote state, or VPS production state.
 
 ## 4. 密钥派生体系
 
@@ -839,3 +853,4 @@ Maurice | maurice_wen@proton.me
 
 ## Changelog
 - 2026-03-22: 架构文档继续回写发布就绪性检查结果，并补齐项目级 `ai check` 所需 changelog 区块。（原因：release readiness hardening）
+- 2026-05-31: 登记 native iOS baseline 架构与本地验证证据，并限定其不改变公开发布门禁。（原因：Projects folder dirty worktree closeout）

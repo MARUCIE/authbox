@@ -3,10 +3,39 @@ Title: notes - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-02-24
+LastUpdated: 2026-05-31
 ---
 
 # Notes
+
+## 2026-05-31T01:25:30Z（Projects folder dirty worktree closeout / WP-014）
+
+### Context
+- Source work package: `DIRTY-10-auth-box` from `/Users/mauricewen/00-AI-Fleet/outputs/reports/projects-audit/2026-05-31/work-packages.json`.
+- Initial status: 114 dirty/untracked entries (`tracked=6`, `untracked=108`), dominated by new `apps/ios` assets.
+- Constraint: local-only cleanup. No push, deploy, VPS mutation, production credential use, data deletion, or history rewrite.
+
+### Findings
+- `apps/ios` is a coherent native iOS baseline: SwiftUI app, SwiftData local vault, AutoFill extension, AuthBoxCrypto SwiftPM package, app icons/mockups, App Store metadata, privacy policy, and cross-platform crypto vector scripts.
+- Generated artifacts are now separated from source by `.gitignore`: `*.tsbuildinfo`, SwiftPM `.build`, Xcode `build`, and runtime output folders.
+- Four tracked `tsconfig.tsbuildinfo` files were generated caches and were removed from the Git index with `git rm --cached`; local files remain ignored.
+- The first rerun of `FullFlowUITests.testFullOnboardingAndVaultFlow` exposed simulator state leakage: a previous seed remained in Keychain, so the app opened in locked state and the Create button was absent. The app/test now use `--reset-test-vault` to delete test seed state and clear SwiftData items before UI launch.
+- Secret scan produced no credential findings requiring redaction; one match was a false positive on the text `task-scenario-classification`.
+
+### Verification Evidence
+- `swift test` (`apps/ios/AuthBoxCrypto`): PASS, 62 Swift Testing cases.
+- `pnpm run ios:crypto-vectors`: PASS; TypeScript vectors match Swift assertions for seed, HD keys, HKDF subkeys, and deterministic passwords.
+- `node apps/ios/cross-platform-test.mjs`: PASS after converting the `.mjs` file into a stable `tsx` wrapper.
+- `pnpm --filter @authbox/crypto test`: PASS, 51 passed / 2 live Arweave skipped.
+- `pnpm --filter @authbox/crypto build`: PASS.
+- `pnpm --filter @authbox/shared build`: PASS.
+- `pnpm --filter @authbox/mcp-protocol build`: PASS.
+- `xcodebuildmcp build_sim`: PASS for scheme `AuthBox` on iPhone 17 simulator, zero warnings/errors.
+- `xcodebuildmcp test_sim`: PASS, `FullFlowUITests.testFullOnboardingAndVaultFlow` 1/1, zero warnings/errors.
+- `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box --outdir outputs/check/20260531-ios-baseline-goproxy`: PASS with `GOPROXY=https://goproxy.cn,direct` / `GOSUMDB=sum.golang.google.cn`; the default-proxy attempt failed only on Go module TLS handshakes to `proxy.golang.org`.
+
+### Residual Risk
+- Public release remains blocked by prior 2026-03-22 release readiness gaps unless separately revalidated: GitHub/VPS convergence and public API health are not part of this local cleanup.
 
 ## 2026-01-29
 - `ai skills run planning-with-files` 因 skill runner ImportError 失败，按技能回退说明手动初始化。

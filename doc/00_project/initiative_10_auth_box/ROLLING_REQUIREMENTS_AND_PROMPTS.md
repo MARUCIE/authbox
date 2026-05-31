@@ -3,7 +3,7 @@ Title: ROLLING_REQUIREMENTS_AND_PROMPTS - initiative_10_auth_box
 Scope: project
 Owner: ai-agent
 Status: active
-LastUpdated: 2026-03-22
+LastUpdated: 2026-05-31
 ---
 
 # 滚动需求与提示词
@@ -36,6 +36,7 @@ LastUpdated: 2026-03-22
 | REQ-20260212-022 | 2026-02-12 | 队列执行规范固化（底层规范） | 已完成 | 将“队列执行/继续/go”写入 AGENTS/CLAUDE/CODEX/GEMINI；并复跑 full-loop-check（run_id=20260212T112402Z）留证据 |
 | REQ-20260213-023 | 2026-02-13 | SOP 4.1 项目级全链路回归复跑：在当前基线复核 UX Map Round 2 + real API replay + contract loop + ai check | 已完成 | project-regression Run `outputs/project-regression/20260213T021241Z` |
 | REQ-20260322-024 | 2026-03-22 | 全面审查 Auth Box，修复认证/审计/配置层 bug，并提升本地与静态发布 SLA | 已完成 | TOTP login + audit chain + config fail-fast + static headers + 65/65 E2E |
+| REQ-20260531-026 | 2026-05-31 | 收口 `10-auth-box` heavy dirty worktree：登记 native iOS baseline、隔离生成物、移除 tracked tsbuildinfo、补本地验证证据 | 已完成 | `apps/ios`, `.gitignore`, `doc/00_project/initiative_10_auth_box/*`; SwiftPM/Xcode/pnpm gates PASS |
 
 ## 提示词台账
 
@@ -53,6 +54,7 @@ LastUpdated: 2026-03-22
 | PROMPT-20260213-010 | 2026-02-13 | 继续/go（队列执行）：SOP 4.1 项目级全链路回归复跑（UX Map + E2E + ai check） | 任务验收 | 来自用户“继续/go/队列执行”指令 |
 | PROMPT-20260213-011 | 2026-02-13 | 继续（队列执行）：SOP 5.2 发布治理 + SOP 5.3 postmortem 守门（含本地 gate） | 发布守门 | 来自用户“继续”指令 |
 | PROMPT-20260322-012 | 2026-03-22 | 全面审查，修复 bug，提升 SLA；要求直接落地代码、补回归验证、同步 PDCA 文档 | 稳定性整改 | 来自用户指令 |
+| PROMPT-20260531-014 | 2026-05-31 | 继续整理 `/Users/mauricewen/Projects`：关闭 `10-auth-box` heavy dirty WIP，保留 local-only 边界，验证后提交可审计基线 | 项目仓库卫生 / iOS baseline closeout | 来自用户“继续”指令 |
 
 ## 防回归 Q&A
 
@@ -81,6 +83,7 @@ LastUpdated: 2026-03-22
 | REQ-20260322-025 | 2026-03-22 | 在公开市场发布前，必须补齐发布就绪性检查：项目内 `ai check`、本地/GitHub/VPS commit 收敛、以及公共 API health 证据 | `doc/00_project/initiative_10_auth_box/*`, release gate workflow, deployment runbook | in_progress | `doc/00_project/initiative_10_auth_box/notes.md`（Release Readiness Checkpoint） |
 | PROMPT-20260322-013 | 2026-03-22 | "执行发布就绪性检查：核对本地/GitHub/VPS 版本一致性，验证 authbox.io 公共路由与公共 API health，并只用项目目录内的新鲜证据判断是否可公开发布" | 适用于上线前最后一轮 go/no-go 审查 |
 | QA-20260322-021 | 2026-03-22 | 为什么 `authbox.io` 页面路由全是 200，仍然不能直接宣布可公开发布？ | 页面可达只证明 Pages 前端在线，不证明当前修复已提交、GitHub/VPS 同步、或公共 API 健康可用 | 发布门禁必须同时验证：项目目录 `ai check`、本地/GitHub/VPS commit 一致、公共 API health、以及核心用户旅程 smoke | 把“主页 200”降级为前端可达性信号，不得替代 release go/no-go 决策 | `doc/00_project/initiative_10_auth_box/notes.md` / `doc/00_project/initiative_10_auth_box/deliverable.md` |
+| QA-20260531-022 | 2026-05-31 | 如何避免 iOS 源码、Xcode/SwiftPM build output 和 TS build cache 混在同一个 dirty worktree 中？ | 新平台基线未登记，生成物 ignore 不完整，且旧 `tsconfig.tsbuildinfo` 已被 Git 跟踪 | 将 `apps/ios` 登记为 native iOS baseline；`.gitignore` 覆盖 Swift/Xcode/runtime output；`git rm --cached` 移除 tracked tsbuildinfo；补 SwiftPM/Xcode/pnpm 验证 | 每次新增平台目录时先分类 source vs generated，并把验证入口写入 root scripts 与 PDCA 文档 | `apps/ios`, `.gitignore`, `package.json`, `doc/00_project/initiative_10_auth_box/notes.md` |
 
 ## 2026-02-18 · REQ（UI/UX 优化）
 | id | requirement | scope | status | evidence |
@@ -152,3 +155,4 @@ LastUpdated: 2026-03-22
 
 ## Changelog
 - 2026-03-22: 新增发布就绪性检查的 REQ/PROMPT/QA，并补齐 changelog 区块以满足项目级文档门禁。（原因：release readiness hardening）
+- 2026-05-31: 新增 native iOS baseline dirty worktree closeout 的 REQ/PROMPT/QA。（原因：Projects folder audit WP-014）
