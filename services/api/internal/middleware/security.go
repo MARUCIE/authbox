@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"mime"
 	"net/http"
 	"strings"
 )
@@ -10,22 +11,24 @@ import (
 // ensuring it survives go-chi/cors's internal header manipulation on OPTIONS.
 func PrivateNetworkAccess(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(&pnaWriter{ResponseWriter: w}, r)
+		next.ServeHTTP(&pnaWriter{ResponseWriter: w, request: r}, r)
 	})
 }
 
 type pnaWriter struct {
 	http.ResponseWriter
+	request *http.Request
 }
 
 func (pw *pnaWriter) WriteHeader(code int) {
-	pw.ResponseWriter.Header().Set("Access-Control-Allow-Private-Network", "true")
+	if shouldAllowPrivateNetwork(pw.request) {
+		pw.ResponseWriter.Header().Set("Access-Control-Allow-Private-Network", "true")
+	}
 	pw.ResponseWriter.WriteHeader(code)
 }
 
 // SecurityHeaders adds standard security headers to all responses.
-// Includes Access-Control-Allow-Private-Network for Chrome 130+ PNA policy
-// (required when localhost:3010 calls localhost:4010).
+// PNA is emitted only for explicit Chrome private-network preflights.
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy",
@@ -36,7 +39,11 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Permitted-Cross-Domain-Policies", "none")
-		w.Header().Set("Access-Control-Allow-Private-Network", "true")
+		w.Header().Add("Vary", "Origin")
+		w.Header().Add("Vary", "Access-Control-Request-Private-Network")
+		if shouldAllowPrivateNetwork(r) {
+			w.Header().Set("Access-Control-Allow-Private-Network", "true")
+		}
 
 		next.ServeHTTP(w, r)
 	})
@@ -51,7 +58,11 @@ func RequireJSON(next http.Handler) http.Handler {
 			// These methods have no body; skip content-type check.
 		default:
 			ct := r.Header.Get("Content-Type")
-			if ct != "" && !strings.HasPrefix(ct, "application/json") {
+			if hasRequestBody(r) && ct == "" {
+				http.Error(w, `{"error":"Content-Type must be application/json","code":"INVALID_CONTENT_TYPE"}`, http.StatusUnsupportedMediaType)
+				return
+			}
+			if ct != "" && !isJSONContentType(ct) {
 				http.Error(w, `{"error":"Content-Type must be application/json","code":"INVALID_CONTENT_TYPE"}`, http.StatusUnsupportedMediaType)
 				return
 			}
@@ -70,6 +81,20 @@ func BodySizeLimit(maxBytes int64) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func shouldAllowPrivateNetwork(r *http.Request) bool {
+	return r.Method == http.MethodOptions &&
+		strings.EqualFold(r.Header.Get("Access-Control-Request-Private-Network"), "true")
+}
+
+func hasRequestBody(r *http.Request) bool {
+	return r.Body != nil && r.Body != http.NoBody && r.ContentLength != 0
+}
+
+func isJSONContentType(value string) bool {
+	mediaType, _, err := mime.ParseMediaType(value)
+	return err == nil && strings.EqualFold(mediaType, "application/json")
 }
 
 // ClientIP extracts the real client IP from X-Forwarded-For or falls back

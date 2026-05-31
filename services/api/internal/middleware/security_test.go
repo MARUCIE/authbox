@@ -15,12 +15,11 @@ func TestSecurityHeaders(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	checks := map[string]string{
-		"X-Content-Type-Options":              "nosniff",
-		"X-Frame-Options":                     "DENY",
-		"X-XSS-Protection":                    "1; mode=block",
-		"Referrer-Policy":                     "no-referrer",
-		"X-Permitted-Cross-Domain-Policies":   "none",
-		"Access-Control-Allow-Private-Network": "true",
+		"X-Content-Type-Options":            "nosniff",
+		"X-Frame-Options":                   "DENY",
+		"X-XSS-Protection":                  "1; mode=block",
+		"Referrer-Policy":                   "no-referrer",
+		"X-Permitted-Cross-Domain-Policies": "none",
 	}
 
 	for header, want := range checks {
@@ -41,18 +40,34 @@ func TestSecurityHeaders(t *testing.T) {
 	if !strings.Contains(csp, "default-src 'none'") {
 		t.Errorf("CSP missing default-src 'none': %s", csp)
 	}
+
+	if got := rr.Header().Get("Access-Control-Allow-Private-Network"); got != "" {
+		t.Errorf("PNA header without preflight request: want empty, got %q", got)
+	}
 }
 
 func TestRequireJSON_AllowsJSONPost(t *testing.T) {
 	handler := RequireJSON(okHandler())
 
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "Application/JSON; charset=utf-8")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != 200 {
 		t.Errorf("JSON POST: want 200, got %d", rr.Code)
+	}
+}
+
+func TestRequireJSON_RejectsBodyWithoutContentType(t *testing.T) {
+	handler := RequireJSON(okHandler())
+
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnsupportedMediaType {
+		t.Errorf("POST body without Content-Type: want 415, got %d", rr.Code)
 	}
 }
 
@@ -66,6 +81,19 @@ func TestRequireJSON_RejectsNonJSON(t *testing.T) {
 
 	if rr.Code != http.StatusUnsupportedMediaType {
 		t.Errorf("form POST: want 415, got %d", rr.Code)
+	}
+}
+
+func TestRequireJSON_RejectsJSONPrefixSpoof(t *testing.T) {
+	handler := RequireJSON(okHandler())
+
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("{}"))
+	req.Header.Set("Content-Type", "application/jsonx")
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnsupportedMediaType {
+		t.Errorf("spoofed JSON Content-Type: want 415, got %d", rr.Code)
 	}
 }
 
@@ -109,13 +137,27 @@ func TestRequireJSON_AllowsPostWithoutContentType(t *testing.T) {
 func TestPrivateNetworkAccess(t *testing.T) {
 	handler := PrivateNetworkAccess(okHandler())
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodOptions, "/", nil)
+	req.Header.Set("Access-Control-Request-Private-Network", "true")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
 	got := rr.Header().Get("Access-Control-Allow-Private-Network")
 	if got != "true" {
 		t.Errorf("PNA header: want 'true', got %q", got)
+	}
+}
+
+func TestPrivateNetworkAccess_OnlyWhenRequested(t *testing.T) {
+	handler := PrivateNetworkAccess(okHandler())
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	got := rr.Header().Get("Access-Control-Allow-Private-Network")
+	if got != "" {
+		t.Errorf("PNA header without request: want empty, got %q", got)
 	}
 }
 

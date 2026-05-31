@@ -4,7 +4,11 @@
   "version": "2.0.0",
   "description": "Zero-knowledge password manager & AI agent gateway",
   "permissions": ["storage", "activeTab", "alarms"],
-  "host_permissions": ["*://*/*"],
+  "host_permissions": [
+    "http://localhost:4010/*",
+    "https://api.authbox.io/*",
+    "https://authbox.io/*"
+  ],
   "action": {
     "default_popup": "src/popup/index.html",
     "default_icon": {
@@ -20,7 +24,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://*/*", "http://*/*"],
+      "exclude_matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "https://authbox.io/*",
+        "https://*.authbox.io/*"
+      ],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
     }

@@ -164,6 +164,34 @@ public enum SRP {
 
         return (clientProof: clientProof, sessionKey: sessionKey)
     }
+
+    /// Verify server proof M2 = H(A || M1 || K).
+    ///
+    /// This completes SRP mutual authentication. Callers must reject the login
+    /// response before persisting any session token when this check fails.
+    public static func verifyServerProof(
+        state: SRPClientState,
+        clientProof: Data,
+        sessionKey: Data,
+        serverProof: Data
+    ) -> Bool {
+        let A = dataToBigUInt(state.ephemeralPublic)
+        let aBytes = bigUIntToData(A, length: nByteLength)
+        let expected = hashSHA256(aBytes, clientProof, sessionKey)
+        return constantTimeEqual(expected, serverProof)
+    }
+
+    private static func constantTimeEqual(_ lhs: Data, _ rhs: Data) -> Bool {
+        guard lhs.count == rhs.count else {
+            return false
+        }
+
+        var diff: UInt8 = 0
+        for (a, b) in zip(lhs, rhs) {
+            diff |= a ^ b
+        }
+        return diff == 0
+    }
 }
 
 // MARK: - Errors

@@ -836,7 +836,18 @@ graph TD
 | iOS | PASS | SwiftPM 62 tests + simulator UI 1/1 |
 | MCP Policy Critical | FIXED | fail-closed unknown policy + canonical policy types |
 | Migration 009 | FIXED | composite `(token_hash, expires_at)` index |
-| Public Release | BLOCKED | remaining attacker review high/medium findings + GitHub/VPS/API health consistency |
+| WP-016 Security Blockers | FIXED locally | SRP M2, MCP proxy SSRF, TOTP encryption, query-string keys, API/extension hardening |
+| Public Release | BLOCKED | GitHub/VPS/production commit consistency + public API health not verified |
+
+### WP-016 本地 release-blocker reduction (2026-05-31)
+
+| Surface | Architecture Decision | Verification |
+|---|---|---|
+| SRP clients | Clients must verify server proof M2 before trusting session/vault material | TS crypto tests, web/extension typecheck/build, iOS Swift tests/build |
+| MCP proxy | Agent-supplied proxy requests are sanitized before bridge execution | `packages/mcp-protocol/src/proxy-security.test.ts` |
+| TOTP storage | User TOTP seeds are AES-GCM envelopes keyed by `AUTH_BOX_TOTP_SECRET_KEY` | Go service tests + migration 010 |
+| API boundary | PNA is explicit-preflight only; JSON content type uses parsed media type | Go middleware tests |
+| Extension | Host permissions are AuthBox/local API only; content script excludes AuthBox/local origins | extension typecheck/build |
 
 ## 13. AI 基建凭据目录
 
@@ -870,3 +881,4 @@ Maurice | maurice_wen@proton.me
 - 2026-03-22: 架构文档继续回写发布就绪性检查结果，并补齐项目级 `ai check` 所需 changelog 区块。（原因：release readiness hardening）
 - 2026-05-31: 登记 native iOS baseline 架构与本地验证证据，并限定其不改变公开发布门禁。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 回写 WP-015 本地交付架构状态、MCP policy critical fix 与 migration 009 fix；公开发布仍保持 blocked。（原因：SOP one-click delivery closeout）
+- 2026-05-31: 回写 WP-016 本地 release-blocker architecture decisions；公开发布 blocker 收敛为三端一致性与 public API health。（原因：local release-blocker hardening）

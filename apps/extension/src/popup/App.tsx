@@ -1,51 +1,55 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { GenericResponse, SearchResponse, StatusResponse } from '@/lib/messages';
-import { VAULT_URL, getApiBase } from '@/lib/config';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type {
+  GenericResponse,
+  SearchResponse,
+  StatusResponse,
+} from "@/lib/messages";
+import { VAULT_URL, getApiBase } from "@/lib/config";
 
 const SEARCH_DEBOUNCE_MS = 200;
 
-type SearchResult = SearchResponse['results'][number];
+type SearchResult = SearchResponse["results"][number];
 
-type AppState = 'loading' | 'login' | 'locked' | 'unlocked';
+type AppState = "loading" | "login" | "locked" | "unlocked";
 
 export function App() {
-  const [appState, setAppState] = useState<AppState>('loading');
+  const [appState, setAppState] = useState<AppState>("loading");
 
   useEffect(() => {
     (async () => {
       try {
         // Check if we have a session token stored
-        const stored = await chrome.storage.session.get('authbox_session');
+        const stored = await chrome.storage.session.get("authbox_session");
         const hasSession = Boolean(stored.authbox_session);
 
         if (!hasSession) {
-          setAppState('login');
+          setAppState("login");
           return;
         }
 
         // Check vault status
         const status: StatusResponse = await chrome.runtime.sendMessage({
-          type: 'GET_STATUS',
+          type: "GET_STATUS",
         });
-        setAppState(status.locked ? 'locked' : 'unlocked');
+        setAppState(status.locked ? "locked" : "unlocked");
       } catch {
-        setAppState('login');
+        setAppState("login");
       }
     })();
   }, []);
 
-  const handleLogin = useCallback(() => setAppState('locked'), []);
-  const handleUnlock = useCallback(() => setAppState('unlocked'), []);
+  const handleLogin = useCallback(() => setAppState("locked"), []);
+  const handleUnlock = useCallback(() => setAppState("unlocked"), []);
   const handleLock = useCallback(async () => {
-    await chrome.runtime.sendMessage({ type: 'LOCK_VAULT' });
-    setAppState('locked');
+    await chrome.runtime.sendMessage({ type: "LOCK_VAULT" });
+    setAppState("locked");
   }, []);
   const handleLogout = useCallback(async () => {
-    await chrome.runtime.sendMessage({ type: 'LOGOUT' });
-    setAppState('login');
+    await chrome.runtime.sendMessage({ type: "LOGOUT" });
+    setAppState("login");
   }, []);
 
-  if (appState === 'loading') {
+  if (appState === "loading") {
     return (
       <div className="app">
         <header className="header">
@@ -58,11 +62,11 @@ export function App() {
 
   return (
     <div className="app">
-      {appState === 'login' && <LoginView onLogin={handleLogin} />}
-      {appState === 'locked' && (
+      {appState === "login" && <LoginView onLogin={handleLogin} />}
+      {appState === "locked" && (
         <LockedView onUnlock={handleUnlock} onLogout={handleLogout} />
       )}
-      {appState === 'unlocked' && (
+      {appState === "unlocked" && (
         <UnlockedView onLock={handleLock} onLogout={handleLogout} />
       )}
     </div>
@@ -76,11 +80,11 @@ interface LoginViewProps {
 }
 
 function LoginView({ onLogin }: LoginViewProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [totpCode, setTotpCode] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
   const [pendingTOTPEmail, setPendingTOTPEmail] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
@@ -97,27 +101,32 @@ function LoginView({ onLogin }: LoginViewProps) {
     }
 
     setSubmitting(true);
-    setError('');
+    setError("");
 
     try {
       const apiBase = getApiBase();
 
       if (pendingTOTPEmail) {
-        const verifyTOTPRes = await fetch(`${apiBase}/api/v1/auth/login/totp/verify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: pendingTOTPEmail,
-            code: totpCode.trim(),
-          }),
-        });
+        const verifyTOTPRes = await fetch(
+          `${apiBase}/api/v1/auth/login/totp/verify`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: pendingTOTPEmail,
+              code: totpCode.trim(),
+            }),
+          },
+        );
         if (!verifyTOTPRes.ok) {
-          const body = await verifyTOTPRes.json().catch(() => ({ error: 'TOTP verification failed' }));
-          throw new Error(body.error ?? 'TOTP verification failed');
+          const body = await verifyTOTPRes
+            .json()
+            .catch(() => ({ error: "TOTP verification failed" }));
+          throw new Error(body.error ?? "TOTP verification failed");
         }
         const verifyTOTPData = await verifyTOTPRes.json();
         await chrome.runtime.sendMessage({
-          type: 'SET_SESSION',
+          type: "SET_SESSION",
           payload: { token: verifyTOTPData.sessionToken },
         });
         onLogin();
@@ -125,24 +134,30 @@ function LoginView({ onLogin }: LoginViewProps) {
       }
 
       // Import crypto functions dynamically to keep initial load fast
-      const { deriveKeys, srpClientInit, srpClientVerify } =
-        await import('@authbox/crypto');
+      const {
+        deriveKeys,
+        srpClientInit,
+        srpClientVerify,
+        srpVerifyServerProof,
+      } = await import("@authbox/crypto");
 
       // 1. SRP client init
       const clientState = await srpClientInit();
 
       // 2. Send A to server
       const initRes = await fetch(`${apiBase}/api/v1/auth/login/init`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
           clientPublicA: toBase64(clientState.ephemeralPublic),
         }),
       });
       if (!initRes.ok) {
-        const body = await initRes.json().catch(() => ({ error: 'Login failed' }));
-        throw new Error(body.error ?? 'Login failed');
+        const body = await initRes
+          .json()
+          .catch(() => ({ error: "Login failed" }));
+        throw new Error(body.error ?? "Login failed");
       }
       const initData = await initRes.json();
 
@@ -152,7 +167,7 @@ function LoginView({ onLogin }: LoginViewProps) {
 
       // 4. SRP client verify
       const serverPublicB = fromBase64(initData.serverPublicB);
-      const { clientProof } = await srpClientVerify(
+      const { clientProof, sessionKey } = await srpClientVerify(
         clientState,
         email.trim(),
         password,
@@ -162,8 +177,8 @@ function LoginView({ onLogin }: LoginViewProps) {
 
       // 5. Send proof to server
       const verifyRes = await fetch(`${apiBase}/api/v1/auth/login/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
           clientPublicA: toBase64(clientState.ephemeralPublic),
@@ -171,26 +186,42 @@ function LoginView({ onLogin }: LoginViewProps) {
         }),
       });
       if (!verifyRes.ok) {
-        const body = await verifyRes.json().catch(() => ({ error: 'Verification failed' }));
-        throw new Error(body.error ?? 'Verification failed');
+        const body = await verifyRes
+          .json()
+          .catch(() => ({ error: "Verification failed" }));
+        throw new Error(body.error ?? "Verification failed");
       }
       const verifyData = await verifyRes.json();
 
+      if (!verifyData.serverProofM2) {
+        throw new Error("Login response missing SRP server proof");
+      }
+      if (
+        !srpVerifyServerProof(
+          clientState,
+          clientProof,
+          sessionKey,
+          fromBase64(verifyData.serverProofM2),
+        )
+      ) {
+        throw new Error("SRP server proof verification failed");
+      }
+
       if (verifyData.totpRequired) {
         setPendingTOTPEmail(email.trim());
-        setTotpCode('');
+        setTotpCode("");
         return;
       }
 
       // 6. Store session token in background service worker
       await chrome.runtime.sendMessage({
-        type: 'SET_SESSION',
+        type: "SET_SESSION",
         payload: { token: verifyData.sessionToken },
       });
 
       onLogin();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setSubmitting(false);
     }
@@ -206,7 +237,9 @@ function LoginView({ onLogin }: LoginViewProps) {
       <form className="form" onSubmit={handleSubmit}>
         {pendingTOTPEmail ? (
           <>
-            <p className="subtitle">Master password verified. Enter your authenticator code.</p>
+            <p className="subtitle">
+              Master password verified. Enter your authenticator code.
+            </p>
             <label htmlFor="totp-code" className="label">
               Authenticator Code
             </label>
@@ -253,13 +286,22 @@ function LoginView({ onLogin }: LoginViewProps) {
         )}
 
         <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? 'Signing in...' : pendingTOTPEmail ? 'Verify Code' : 'Sign In'}
+          {submitting
+            ? "Signing in..."
+            : pendingTOTPEmail
+              ? "Verify Code"
+              : "Sign In"}
         </button>
         {error && <p className="error">{error}</p>}
       </form>
 
       <footer className="footer">
-        <a className="link" href={`${VAULT_URL}/register`} target="_blank" rel="noreferrer">
+        <a
+          className="link"
+          href={`${VAULT_URL}/register`}
+          target="_blank"
+          rel="noreferrer"
+        >
           Create Account
         </a>
       </footer>
@@ -275,8 +317,8 @@ interface LockedViewProps {
 }
 
 function LockedView({ onUnlock, onLogout }: LockedViewProps) {
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -290,22 +332,22 @@ function LockedView({ onUnlock, onLogout }: LockedViewProps) {
     if (!trimmed) return;
 
     setSubmitting(true);
-    setError('');
+    setError("");
 
     try {
       const response: GenericResponse = await chrome.runtime.sendMessage({
-        type: 'UNLOCK_VAULT',
+        type: "UNLOCK_VAULT",
         payload: { password: trimmed },
       });
 
       if (response.ok) {
         onUnlock();
       } else {
-        setError(response.error || 'Unlock failed');
+        setError(response.error || "Unlock failed");
         inputRef.current?.select();
       }
     } catch {
-      setError('Extension error. Please try again.');
+      setError("Extension error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -333,7 +375,7 @@ function LockedView({ onUnlock, onLogout }: LockedViewProps) {
           onChange={(e) => setPassword(e.target.value)}
         />
         <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? 'Unlocking...' : 'Unlock'}
+          {submitting ? "Unlocking..." : "Unlock"}
         </button>
         {error && <p className="error">{error}</p>}
       </form>
@@ -355,10 +397,10 @@ interface UnlockedViewProps {
 }
 
 function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [empty, setEmpty] = useState(false);
-  const [searchError, setSearchError] = useState('');
+  const [searchError, setSearchError] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -376,8 +418,8 @@ function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
         });
         if (tab?.url) {
           const response: SearchResponse = await chrome.runtime.sendMessage({
-            type: 'SEARCH_ITEMS',
-            payload: { query: '', uri: tab.url },
+            type: "SEARCH_ITEMS",
+            payload: { query: "", uri: tab.url },
           });
           if (response.results.length > 0) {
             setResults(response.results);
@@ -396,23 +438,23 @@ function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
     if (!trimmed) {
       // Don't clear URI-based results when search is empty
       setEmpty(false);
-      setSearchError('');
+      setSearchError("");
       return;
     }
 
     timerRef.current = setTimeout(async () => {
       try {
         const response: SearchResponse = await chrome.runtime.sendMessage({
-          type: 'SEARCH_ITEMS',
+          type: "SEARCH_ITEMS",
           payload: { query: trimmed },
         });
         setResults(response.results);
         setEmpty(response.results.length === 0);
-        setSearchError('');
+        setSearchError("");
       } catch {
         setResults([]);
         setEmpty(false);
-        setSearchError('Search failed');
+        setSearchError("Search failed");
       }
     }, SEARCH_DEBOUNCE_MS);
 
@@ -423,7 +465,7 @@ function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
 
   const handleItemClick = async (itemId: string) => {
     await chrome.runtime.sendMessage({
-      type: 'AUTOFILL_REQUEST',
+      type: "AUTOFILL_REQUEST",
       payload: { itemId },
     });
     window.close();
@@ -433,7 +475,7 @@ function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
     <>
       <header className="header header-row">
         <h1 className="logo logo-sm">Auth Box</h1>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: "flex", gap: "8px" }}>
           <button className="btn btn-ghost" onClick={onLock} title="Lock vault">
             Lock
           </button>
@@ -469,7 +511,8 @@ function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
               tabIndex={0}
               onClick={() => handleItemClick(item.id)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') handleItemClick(item.id);
+                if (e.key === "Enter" || e.key === " ")
+                  handleItemClick(item.id);
               }}
             >
               <div>

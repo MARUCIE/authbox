@@ -109,7 +109,7 @@ actor APIClient {
         // Step 2: Client verify
         let salt = Data(base64Encoded: initResp.srpSalt)!
         let serverB = Data(base64Encoded: initResp.serverPublicB)!
-        let (clientProof, _) = try SRP.clientVerify(
+        let (clientProof, sessionKey) = try SRP.clientVerify(
             state: srpState,
             email: email,
             password: password,
@@ -123,6 +123,16 @@ actor APIClient {
             clientProofM1: clientProof.base64EncodedString()
         )
         let verifyResp: LoginVerifyResponse = try await post("/auth/login/verify", body: verifyReq)
+
+        guard let serverProof = Data(base64Encoded: verifyResp.serverProofM2),
+              SRP.verifyServerProof(
+                state: srpState,
+                clientProof: clientProof,
+                sessionKey: sessionKey,
+                serverProof: serverProof
+              ) else {
+            throw APIError.invalidServerProof
+        }
 
         guard let token = verifyResp.sessionToken,
               let encVaultKey = verifyResp.encryptedVaultKey,
@@ -248,6 +258,7 @@ enum APIError: LocalizedError {
     case invalidResponse
     case httpError(statusCode: Int, body: String)
     case loginFailed
+    case invalidServerProof
     case totpRequired
 
     var errorDescription: String? {
@@ -255,6 +266,7 @@ enum APIError: LocalizedError {
         case .invalidResponse: "Invalid server response"
         case .httpError(let code, let body): "HTTP \(code): \(body)"
         case .loginFailed: "Login failed"
+        case .invalidServerProof: "SRP server proof verification failed"
         case .totpRequired: "TOTP verification required"
         }
     }

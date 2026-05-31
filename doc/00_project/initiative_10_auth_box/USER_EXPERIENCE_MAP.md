@@ -202,7 +202,16 @@ AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 | Web route map | PASS 12/12 | `outputs/sop-one-click-delivery/20260531T104046Z-wp015/round2-web-routes-final-dev2/reports/route_status.txt` |
 | Real API journey backing | PASS 65/65 | ephemeral PostgreSQL/API + `scripts/e2e-test.mjs` |
 | iOS local journey | PASS 1/1 UI + 62 crypto tests | `outputs/sop-one-click-delivery/20260531T104046Z-wp015/round2-ios/` |
-| Release UX claim | BLOCKED for public release | remaining security findings and public API health/three-end consistency not proven |
+| Release UX claim | BLOCKED for public release | GitHub/VPS/production consistency and public API health not proven |
+
+### WP-016 UX / Route Smoke Evidence (2026-05-31)
+
+| Surface | Result | Evidence |
+|---|---|---|
+| Settings route auth guard | PASS | static export served locally; Chrome headless loaded `/settings.html` and redirected unauthenticated user to unlock/login |
+| TOTP setup manual values | PASS by source/build guard | manual seed/URI hidden behind explicit reveal button and cleared on timeout/cancel/verify |
+| Extension browsing surface | PASS by manifest/build guard | global host permission removed; AuthBox/local origins excluded from content script |
+| Release UX claim | BLOCKED for public release | GitHub/VPS/production consistency and public API health not verified |
 
 ## 路由地图
 
@@ -235,3 +244,4 @@ Maurice | maurice_wen@proton.me
 - 2026-03-22: 同步 TOTP step-up 登录与发布就绪性检查现状，补齐 `## Changelog` 以满足项目级文档门禁。（原因：auth reliability + release readiness）
 - 2026-05-31: 新增 iOS App 渠道与 Journey I，并记录本地模拟验证证据；该旅程只覆盖本地 iOS baseline，不替代公开发布门禁。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 同步 WP-015 Round 2 UX evidence 与 Agent policy canonical UI/MCP 行为；公开发布 UX claim 仍受安全与线上健康门禁阻塞。（原因：SOP one-click delivery closeout）
+- 2026-05-31: 同步 WP-016 Settings/extension UX guard evidence；公开发布 UX claim 仍需线上三端与 API health 证据。（原因：local release-blocker hardening）

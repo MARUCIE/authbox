@@ -1,4 +1,4 @@
-import { sha256 } from '@noble/hashes/sha256';
+import { sha256 } from "@noble/hashes/sha256";
 
 /**
  * SRP-6a client implementation using native BigInt.
@@ -23,7 +23,7 @@ const N_HEX =
   'AF874E7303CE53299CCC041C7BC308D82A5698F3A8D0C38271AE35F8E9DBFBB6' +
   '94B5C803D89F7AE435DE236D525F54759B65E372FCD68EF20FA7111F9E4AFF73';
 
-const N = BigInt('0x' + N_HEX);
+const N = BigInt("0x" + N_HEX);
 const g = 2n;
 
 const ENCODER = new TextEncoder();
@@ -36,7 +36,7 @@ export interface SRPClientState {
 // --- Utility functions ---
 
 function bigintToBytes(n: bigint, length: number): Uint8Array {
-  const hex = n.toString(16).padStart(length * 2, '0');
+  const hex = n.toString(16).padStart(length * 2, "0");
   const bytes = new Uint8Array(length);
   for (let i = 0; i < length; i++) {
     bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
@@ -45,11 +45,11 @@ function bigintToBytes(n: bigint, length: number): Uint8Array {
 }
 
 function bytesToBigint(bytes: Uint8Array): bigint {
-  let hex = '';
+  let hex = "";
   for (const b of bytes) {
-    hex += b.toString(16).padStart(2, '0');
+    hex += b.toString(16).padStart(2, "0");
   }
-  return hex.length === 0 ? 0n : BigInt('0x' + hex);
+  return hex.length === 0 ? 0n : BigInt("0x" + hex);
 }
 
 /** Modular exponentiation: base^exp mod mod */
@@ -82,12 +82,8 @@ function hashSHA256(...inputs: Uint8Array[]): Uint8Array {
  * Compute the SRP 'x' value: x = H(salt || H(identity || ":" || password))
  * where H = SHA-256.
  */
-function computeX(
-  email: string,
-  password: string,
-  salt: Uint8Array,
-): bigint {
-  const innerHash = hashSHA256(ENCODER.encode(email + ':' + password));
+function computeX(email: string, password: string, salt: Uint8Array): bigint {
+  const innerHash = hashSHA256(ENCODER.encode(email + ":" + password));
   const xHash = hashSHA256(salt, innerHash);
   return bytesToBigint(xHash);
 }
@@ -179,12 +175,12 @@ export async function srpClientVerify(
 
   // Safety check
   if (B % N === 0n) {
-    throw new Error('SRP: server public key B is invalid (B mod N === 0)');
+    throw new Error("SRP: server public key B is invalid (B mod N === 0)");
   }
 
   const u = computeU(A, B);
   if (u === 0n) {
-    throw new Error('SRP: scrambling parameter u is zero');
+    throw new Error("SRP: scrambling parameter u is zero");
   }
 
   const x = computeX(email, password, salt);
@@ -194,7 +190,7 @@ export async function srpClientVerify(
   const gx = modPow(g, x, N);
   const kgx = (k * gx) % N;
   // Ensure non-negative: add N before subtracting
-  const base = ((B - kgx) % N + N) % N;
+  const base = (((B - kgx) % N) + N) % N;
   const exp = a + u * x;
   const S = modPow(base, exp, N);
 
@@ -207,4 +203,34 @@ export async function srpClientVerify(
   const clientProof = hashSHA256(aBytes, bBytes, sessionKey);
 
   return { clientProof, sessionKey };
+}
+
+/**
+ * Login step 3: verify the server proof M2.
+ *
+ * The server proof binds the server's response to the same A, M1, and session
+ * key that the client computed. Rejecting bad M2 completes SRP mutual auth
+ * before any session token or vault key is trusted.
+ */
+export function srpVerifyServerProof(
+  state: SRPClientState,
+  clientProof: Uint8Array,
+  sessionKey: Uint8Array,
+  serverProof: Uint8Array,
+): boolean {
+  const A = bytesToBigint(state.ephemeralPublic);
+  const aBytes = bigintToBytes(A, N_BYTE_LENGTH);
+  const expected = hashSHA256(aBytes, clientProof, sessionKey);
+  return constantTimeEqual(expected, serverProof);
+}
+
+function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff === 0;
 }

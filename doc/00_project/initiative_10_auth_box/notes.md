@@ -8,6 +8,43 @@ LastUpdated: 2026-05-31
 
 # Notes
 
+## 2026-05-31T11:55:02Z（Local release-blocker reduction / WP-016）
+
+### Context
+- Continuation target: reduce the prior local release blockers without GitHub, VPS, Cloudflare, production mutation, real secrets, or destructive history work.
+- Boundary: local code, docs, tests, static export, and simulator verification only.
+
+### Fixes
+- SRP M2 proof is now verified by web, extension, and iOS clients before trusting session/vault credentials.
+- Google AI health check no longer places API keys in query strings; MCP WebSocket auth no longer accepts `api_key` query params.
+- MCP proxy tool now sanitizes outbound requests: public DNS only, service-name host binding, no URL credentials, no private/loopback/link-local targets, no credential/hop-by-hop headers, method allowlist, body limits.
+- TOTP seeds are encrypted at rest with `AUTH_BOX_TOTP_SECRET_KEY`; existing plaintext enrollments are disabled by migration 010; plaintext stored secrets fail closed.
+- API security middleware emits `Access-Control-Allow-Private-Network` only on explicit PNA preflight and validates JSON `Content-Type` with `mime.ParseMediaType`.
+- Settings TOTP manual values are hidden by default and cleared on timeout/cancel/verify.
+- Chrome extension host permissions are narrowed from global host access to AuthBox/local API hosts; content scripts exclude localhost and AuthBox domains.
+
+### Verification Evidence
+- `pnpm --filter @authbox/crypto test`: PASS, 52 passed / 2 skipped.
+- `pnpm --filter @authbox/mcp-protocol test`: PASS, 7/7.
+- `(cd services/api && go test ./...)`: PASS.
+- `(cd apps/ios/AuthBoxCrypto && swift test)`: PASS, 63 tests.
+- `pnpm --filter @authbox/crypto build`: PASS.
+- `pnpm --filter @authbox/mcp-protocol build`: PASS.
+- `pnpm --filter @authbox/web typecheck`: PASS.
+- `pnpm --filter @authbox/extension typecheck`: PASS.
+- `pnpm --filter @authbox/web build`: PASS, 16 static pages.
+- `pnpm --filter @authbox/extension build`: PASS.
+- `xcodebuild -project apps/ios/AuthBox.xcodeproj -scheme AuthBox -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build`: PASS; residual asset warnings only (`AccentColor` missing, AppIcon unassigned children).
+- `ai check`: PASS, run_dir `outputs/check/20260531-115040-dc90d291`, docs OK, tests OK (`rounds=2`).
+- Static guards: no `api_key` query/`?key=` patterns in active app/package/service code; `git diff --check` PASS.
+- Chrome headless static-export smoke: `http://localhost:3010/settings.html` returned 200 and unauthenticated protected route redirected to unlock/login screen; screenshot `/tmp/authbox-settings.png`.
+- `make postmortem-scan`: PASS after tightening PM-002/PM-003 regexes to match unsafe code shapes rather than rejection tests or documentation mentions.
+
+### Known Gaps
+- `pnpm lint` is blocked by existing `apps/web` `next lint` interactive ESLint setup prompt; not introduced by this branch.
+- Public release remains blocked until GitHub/VPS/production commit consistency and public API health are verified with explicit authority.
+- Static iOS asset warnings remain outside this blocker-reduction scope.
+
 ## 2026-05-31T01:25:30Z（Projects folder dirty worktree closeout / WP-014）
 
 ### Context
@@ -1668,10 +1705,10 @@ Cumulative: Round 4-7 = 50 optimization items total.
   - MCP unknown policy types no longer fail open.
   - API/Web/MCP policy enum drift corrected.
   - MCP credential/proxy policy checks now carry item identity and deny missing required scope attributes.
-- Remaining release blockers carried forward:
-  - API key in URL query string risk.
-  - Proxy SSRF/data exfiltration hardening still incomplete.
-  - SRP M2 proof verification gap remains in some clients.
-  - Plaintext TOTP seed exposure risk.
-  - CSP/PNA/content-type/extension permission hardening items from attacker review remain unclosed.
-- Release verdict: local delivery gates PASS; public release remains BLOCKED until the remaining security findings are closed or explicitly risk-accepted and GitHub/VPS/production consistency is proven.
+- Release blockers carried forward at WP-015 close and closed by WP-016:
+  - API key query-string transport.
+  - Proxy SSRF/data exfiltration hardening.
+  - SRP M2 proof verification in clients.
+  - Plaintext TOTP seed exposure.
+  - PNA/content-type/extension permission hardening items from attacker review.
+- Release verdict after WP-016: local delivery gates PASS; public release remains BLOCKED until GitHub/VPS/production consistency and public API health are proven.

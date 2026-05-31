@@ -69,7 +69,27 @@ Related:
 
 Release status:
 - Local SOP delivery: PASS.
-- Public release: BLOCKED until remaining security findings, GitHub/VPS commit consistency, and public API health are proven.
+- Public release: BLOCKED until GitHub/VPS commit consistency and public API health are proven.
+
+## 2026-05-31 Local release-blocker reduction
+- [x] SRP M2 proof verification enforced across Web/Extension/iOS/shared crypto.
+- [x] API key query-string leakage removed from active Google AI health and MCP WebSocket auth paths.
+- [x] MCP proxy SSRF/data-exfiltration guard implemented and tested.
+- [x] TOTP seed encryption added; plaintext legacy enrollments disabled by migration 010.
+- [x] API PNA/content-type hardening implemented and tested.
+- [x] Settings TOTP manual values hidden/expired/cleared.
+- [x] Extension permissions narrowed.
+- [x] Round 1 automated checks: package/API/iOS/Web/Extension gates + `ai check` PASS.
+- [x] Round 2 UX smoke: static export served locally; Chrome headless protected-route smoke PASS.
+- [x] Postmortem added for local release blocker class.
+- [x] `make postmortem-scan` PASS after trigger false-positive tightening.
+- [x] Rolling Ledger updated.
+- [x] Three-end consistency: N/A for this local-only branch; no GitHub/VPS/production authority used.
+
+Release status:
+- Local release-blocker reduction: PASS.
+- Public release: BLOCKED until GitHub/VPS/production commit consistency and public API health are proven.
+- Tooling gap: `pnpm lint` is blocked by existing interactive Next ESLint setup.
 
 ## 测试结果
 - UX Map Journey 0: PASS
@@ -81,3 +101,4 @@ Release status:
 - 2026-03-22: 补齐 changelog 区块，并将项目级 `ai check` 与 release readiness 复核纳入当前巡检背景。（原因：release readiness hardening）
 - 2026-05-31: 新增 iOS baseline cleanup 巡查项与 local-only release boundary。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 收口 SOP one-click delivery continuation：CodeGraph、DNA、Round 1、Round 2、attacker review 与 postmortem gate 均有新鲜证据；公开发布仍按安全/三端一致性阻塞处理。（原因：WP-015 local delivery closeout）
+- 2026-05-31: 收口 WP-016 本地 release-blocker reduction；公开发布 blocker 收敛为三端一致性与 public API health。（原因：local release-blocker hardening）

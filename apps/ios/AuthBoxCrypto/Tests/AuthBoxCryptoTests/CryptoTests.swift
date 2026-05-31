@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import Testing
 @testable import AuthBoxCrypto
 
@@ -183,6 +184,34 @@ struct SRPTests {
         } catch {
             // Expected: SRPError.invalidServerPublicKey
         }
+    }
+
+    @Test("server proof verification accepts exact M2 and rejects tampering")
+    func verifyServerProof() {
+        let state = SRP.clientInit()
+        let clientProof = AES256GCM.generateRandomBytes(32)
+        let sessionKey = AES256GCM.generateRandomBytes(32)
+        var proofInput = Data()
+        proofInput.append(state.ephemeralPublic)
+        proofInput.append(clientProof)
+        proofInput.append(sessionKey)
+        let serverProof = Data(SHA256.hash(data: proofInput))
+
+        #expect(SRP.verifyServerProof(
+            state: state,
+            clientProof: clientProof,
+            sessionKey: sessionKey,
+            serverProof: serverProof
+        ))
+
+        var tampered = serverProof
+        tampered[0] = tampered[0] ^ 0xFF
+        #expect(!SRP.verifyServerProof(
+            state: state,
+            clientProof: clientProof,
+            sessionKey: sessionKey,
+            serverProof: tampered
+        ))
     }
 }
 

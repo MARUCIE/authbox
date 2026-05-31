@@ -400,14 +400,38 @@ AuditEvent {
 
 ### Remaining Release Blockers
 
-- API key in URL query string risk.
-- Proxy SSRF/data exfiltration hardening incomplete.
-- SRP M2 proof verification gap remains in some clients.
-- Plaintext TOTP seed exposure risk.
-- CSP/PNA/content-type/extension permission hardening items remain open.
-- GitHub/VPS/production commit and public API health consistency not verified in this local-only run.
+- WP-015 local code blockers above are superseded by WP-016 and fixed locally.
+- GitHub/VPS/production commit and public API health consistency are not verified in this local-only run.
+- `pnpm lint` remains blocked by existing `apps/web` `next lint` interactive ESLint setup prompt.
+
+## WP-016 Local Release-Blocker Reduction (2026-05-31)
+
+### Fixed In Current Boundary
+
+| # | Category | Severity | Fix | Evidence |
+|---|---|---|---|---|
+| 56 | Auth | HIGH | SRP M2 server proof verification in web, extension, iOS, and crypto tests | `srpVerifyServerProof`, iOS `verifyServerProof` |
+| 57 | Secret Handling | HIGH | Removed API keys from URL query strings in active health/MCP auth paths | static `rg` guard + web build |
+| 58 | MCP Security | HIGH | Proxy tool rejects host mismatch, private DNS/IP targets, credential headers, disallowed methods, and oversize bodies | `proxy-security.test.ts` |
+| 59 | TOTP Security | HIGH | TOTP seeds stored as AES-GCM envelopes; plaintext seeds rejected; migration 010 disables legacy plaintext enrollments | Go service tests + migrations |
+| 60 | API Security | MEDIUM | PNA header only on explicit preflight; JSON content-type parsed strictly | Go middleware tests |
+| 61 | UX/Security | MEDIUM | TOTP manual setup values hidden by default and cleared on enrollment timeout | web typecheck/build + source guard |
+| 62 | Extension Security | MEDIUM | MV3 host permissions narrowed and AuthBox/local origins excluded from content scripts | extension typecheck/build |
+
+### Final Local Gates
+
+- `ai check`: PASS (`outputs/check/20260531-115040-dc90d291`).
+- TS crypto test/build: PASS.
+- MCP protocol test/build: PASS.
+- API Go tests: PASS (`go test ./...`).
+- iOS Swift tests + simulator build: PASS.
+- Web typecheck/build: PASS.
+- Extension typecheck/build: PASS.
+- Static secret/query guard + `git diff --check`: PASS.
+- Chrome headless static route smoke: PASS for protected `/settings.html` redirect.
 
 ## Changelog
 - 2026-03-22: 回写静态安全头、API base 显式配置与发布就绪性检查结论，并补齐 changelog 区块。（原因：auth reliability + release readiness）
 - 2026-05-31: 新增 native iOS baseline closeout 记录，重点收口生成物治理、跨平台 crypto parity 与本地 simulator 证据。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 同步 WP-015 local hardening fixes、final gates 与 remaining release blockers。（原因：SOP one-click delivery closeout）
+- 2026-05-31: 同步 WP-016 local release-blocker reduction，清除上一轮本地安全 blocker 并记录剩余线上发布门禁。（原因：local release-blocker hardening）

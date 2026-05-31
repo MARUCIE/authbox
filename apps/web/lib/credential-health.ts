@@ -8,7 +8,13 @@
  * and never leave the browser except to the provider's own API.
  */
 
-export type HealthStatus = 'valid' | 'invalid' | 'expired' | 'quota_exceeded' | 'error' | 'unchecked';
+export type HealthStatus =
+  | "valid"
+  | "invalid"
+  | "expired"
+  | "quota_exceeded"
+  | "error"
+  | "unchecked";
 
 export interface HealthCheckResult {
   providerId: string;
@@ -23,244 +29,287 @@ interface ProviderCheck {
   method?: string;
   headers: (fields: Record<string, string>) => Record<string, string>;
   body?: string;
-  parseResponse: (status: number, body: string) => { status: HealthStatus; message: string };
+  parseResponse: (
+    status: number,
+    body: string,
+  ) => { status: HealthStatus; message: string };
 }
 
 // ─── Provider Health Check Registry ───────────────────────────────────────
 
 const HEALTH_CHECKS: Record<string, ProviderCheck> = {
   openai: {
-    url: (f) => `${f.base_url || 'https://api.openai.com/v1'}/models`,
+    url: (f) => `${f.base_url || "https://api.openai.com/v1"}/models`,
     headers: (f) => ({ Authorization: `Bearer ${f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      if (status === 429) return { status: 'quota_exceeded', message: 'Rate limited or quota exceeded' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      if (status === 429)
+        return {
+          status: "quota_exceeded",
+          message: "Rate limited or quota exceeded",
+        };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   anthropic: {
-    url: 'https://api.anthropic.com/v1/messages',
-    method: 'POST',
+    url: "https://api.anthropic.com/v1/messages",
+    method: "POST",
     headers: (f) => ({
-      'x-api-key': f.api_key,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
+      "x-api-key": f.api_key,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
     }),
-    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] }),
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1,
+      messages: [{ role: "user", content: "ping" }],
+    }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      if (status === 429) return { status: 'quota_exceeded', message: 'Rate limited' };
-      if (status === 400) return { status: 'valid', message: 'API key valid (model access varies)' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      if (status === 429)
+        return { status: "quota_exceeded", message: "Rate limited" };
+      if (status === 400)
+        return {
+          status: "valid",
+          message: "API key valid (model access varies)",
+        };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   google_ai: {
-    url: (f) => `https://generativelanguage.googleapis.com/v1beta/models?key=${f.api_key}`,
-    headers: () => ({}),
+    url: "https://generativelanguage.googleapis.com/v1beta/models",
+    headers: (f) => ({ "x-goog-api-key": f.api_key }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 400 || status === 403) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 400 || status === 403)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   groq: {
-    url: 'https://api.groq.com/openai/v1/models',
+    url: "https://api.groq.com/openai/v1/models",
     headers: (f) => ({ Authorization: `Bearer ${f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   deepseek: {
-    url: 'https://api.deepseek.com/v1/models',
+    url: "https://api.deepseek.com/v1/models",
     headers: (f) => ({ Authorization: `Bearer ${f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   mistral: {
-    url: 'https://api.mistral.ai/v1/models',
+    url: "https://api.mistral.ai/v1/models",
     headers: (f) => ({ Authorization: `Bearer ${f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   together: {
-    url: 'https://api.together.xyz/v1/models',
+    url: "https://api.together.xyz/v1/models",
     headers: (f) => ({ Authorization: `Bearer ${f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   openrouter: {
-    url: 'https://openrouter.ai/api/v1/models',
+    url: "https://openrouter.ai/api/v1/models",
     headers: (f) => ({ Authorization: `Bearer ${f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   replicate: {
-    url: 'https://api.replicate.com/v1/account',
+    url: "https://api.replicate.com/v1/account",
     headers: (f) => ({ Authorization: `Bearer ${f.api_token || f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API token valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid token' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200)
+        return { status: "valid", message: "API token valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid token" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   elevenlabs: {
-    url: 'https://api.elevenlabs.io/v1/user',
-    headers: (f) => ({ 'xi-api-key': f.api_key }),
+    url: "https://api.elevenlabs.io/v1/user",
+    headers: (f) => ({ "xi-api-key": f.api_key }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   heygen: {
-    url: 'https://api.heygen.com/v2/user/remaining_quota',
-    headers: (f) => ({ 'x-api-key': f.api_key }),
+    url: "https://api.heygen.com/v2/user/remaining_quota",
+    headers: (f) => ({ "x-api-key": f.api_key }),
     parseResponse: (status, body) => {
       if (status === 200) {
         try {
           const data = JSON.parse(body);
-          return { status: 'valid', message: `Valid. Remaining quota: ${data.data?.remaining_quota ?? 'unknown'}` };
+          return {
+            status: "valid",
+            message: `Valid. Remaining quota: ${data.data?.remaining_quota ?? "unknown"}`,
+          };
         } catch {
-          return { status: 'valid', message: 'API key valid' };
+          return { status: "valid", message: "API key valid" };
         }
       }
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   pinecone: {
-    url: 'https://api.pinecone.io/indexes',
-    headers: (f) => ({ 'Api-Key': f.api_key }),
+    url: "https://api.pinecone.io/indexes",
+    headers: (f) => ({ "Api-Key": f.api_key }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401 || status === 403) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401 || status === 403)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   brave_search: {
-    url: 'https://api.search.brave.com/res/v1/web/search?q=test&count=1',
-    headers: (f) => ({ 'X-Subscription-Token': f.api_key }),
+    url: "https://api.search.brave.com/res/v1/web/search?q=test&count=1",
+    headers: (f) => ({ "X-Subscription-Token": f.api_key }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401 || status === 403) return { status: 'invalid', message: 'Invalid API key' };
-      if (status === 429) return { status: 'quota_exceeded', message: 'Rate limited' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401 || status === 403)
+        return { status: "invalid", message: "Invalid API key" };
+      if (status === 429)
+        return { status: "quota_exceeded", message: "Rate limited" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   tavily: {
-    url: 'https://api.tavily.com/search',
-    method: 'POST',
-    headers: () => ({ 'Content-Type': 'application/json' }),
-    body: '',  // Will be set dynamically
+    url: "https://api.tavily.com/search",
+    method: "POST",
+    headers: () => ({ "Content-Type": "application/json" }),
+    body: "", // Will be set dynamically
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401 || status === 403) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401 || status === 403)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   cloudflare: {
-    url: 'https://api.cloudflare.com/client/v4/user/tokens/verify',
+    url: "https://api.cloudflare.com/client/v4/user/tokens/verify",
     headers: (f) => ({ Authorization: `Bearer ${f.api_token}` }),
     parseResponse: (status, body) => {
       if (status === 200) {
         try {
           const data = JSON.parse(body);
-          if (data.success) return { status: 'valid', message: 'Token valid' };
-        } catch { /* fall through */ }
-        return { status: 'valid', message: 'Token valid' };
+          if (data.success) return { status: "valid", message: "Token valid" };
+        } catch {
+          /* fall through */
+        }
+        return { status: "valid", message: "Token valid" };
       }
-      if (status === 401) return { status: 'invalid', message: 'Invalid token' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid token" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   vercel: {
-    url: 'https://api.vercel.com/v2/user',
+    url: "https://api.vercel.com/v2/user",
     headers: (f) => ({ Authorization: `Bearer ${f.api_token}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'Token valid' };
-      if (status === 401 || status === 403) return { status: 'invalid', message: 'Invalid token' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "Token valid" };
+      if (status === 401 || status === 403)
+        return { status: "invalid", message: "Invalid token" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   github: {
-    url: 'https://api.github.com/user',
+    url: "https://api.github.com/user",
     headers: (f) => ({
       Authorization: `Bearer ${f.personal_access_token}`,
-      'User-Agent': 'AuthBox/2.0',
+      "User-Agent": "AuthBox/2.0",
     }),
     parseResponse: (status, body) => {
       if (status === 200) {
         try {
           const data = JSON.parse(body);
-          return { status: 'valid', message: `Valid. User: ${data.login}` };
+          return { status: "valid", message: `Valid. User: ${data.login}` };
         } catch {
-          return { status: 'valid', message: 'Token valid' };
+          return { status: "valid", message: "Token valid" };
         }
       }
-      if (status === 401) return { status: 'invalid', message: 'Invalid token' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid token" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   sendgrid: {
-    url: 'https://api.sendgrid.com/v3/user/profile',
+    url: "https://api.sendgrid.com/v3/user/profile",
     headers: (f) => ({ Authorization: `Bearer ${f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   resend: {
-    url: 'https://api.resend.com/api-keys',
+    url: "https://api.resend.com/api-keys",
     headers: (f) => ({ Authorization: `Bearer ${f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 
   posthog: {
-    url: (f) => `${f.host || 'https://app.posthog.com'}/api/projects/`,
+    url: (f) => `${f.host || "https://app.posthog.com"}/api/projects/`,
     headers: (f) => ({ Authorization: `Bearer ${f.api_key}` }),
     parseResponse: (status) => {
-      if (status === 200) return { status: 'valid', message: 'API key valid' };
-      if (status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${status}` };
+      if (status === 200) return { status: "valid", message: "API key valid" };
+      if (status === 401)
+        return { status: "invalid", message: "Invalid API key" };
+      return { status: "error", message: `HTTP ${status}` };
     },
   },
 };
@@ -298,30 +347,34 @@ export async function checkCredentialHealth(
   if (!check) {
     return {
       providerId,
-      status: 'unchecked',
-      message: 'No health check available for this provider',
+      status: "unchecked",
+      message: "No health check available for this provider",
       checkedAt: new Date().toISOString(),
       latencyMs: 0,
     };
   }
 
   try {
-    const url = typeof check.url === 'function' ? check.url(fields) : check.url;
+    const url = typeof check.url === "function" ? check.url(fields) : check.url;
     const headers = check.headers(fields);
     let body = check.body;
 
     // Special case: Tavily needs the API key in the body
-    if (providerId === 'tavily') {
-      body = JSON.stringify({ api_key: fields.api_key, query: 'test', max_results: 1 });
+    if (providerId === "tavily") {
+      body = JSON.stringify({
+        api_key: fields.api_key,
+        query: "test",
+        max_results: 1,
+      });
     }
 
     const response = await fetch(url, {
-      method: check.method ?? 'GET',
+      method: check.method ?? "GET",
       headers,
-      body: check.method === 'POST' ? body : undefined,
+      body: check.method === "POST" ? body : undefined,
     });
 
-    const responseBody = await response.text().catch(() => '');
+    const responseBody = await response.text().catch(() => "");
     const result = check.parseResponse(response.status, responseBody);
 
     return {
@@ -334,8 +387,8 @@ export async function checkCredentialHealth(
   } catch (err) {
     return {
       providerId,
-      status: 'error',
-      message: err instanceof Error ? err.message : 'Network error',
+      status: "error",
+      message: err instanceof Error ? err.message : "Network error",
       checkedAt: new Date().toISOString(),
       latencyMs: Date.now() - startTime,
     };

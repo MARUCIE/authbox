@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	testSRPN *big.Int
-	testSRPG = big.NewInt(2)
-	testSRPK *big.Int
+	testSRPN          *big.Int
+	testSRPG          = big.NewInt(2)
+	testSRPK          *big.Int
+	testTOTPSecretKey = []byte("authbox-test-totp-secret-key-v1!")
 )
 
 func init() {
@@ -59,7 +60,14 @@ func TestLoginVerifyWithTOTPAllowsFollowUpVerification(t *testing.T) {
 
 	userRepo := newFakeUserRepo(user)
 	sessionRepo := &fakeSessionRepo{}
-	service := NewAuthService(userRepo, sessionRepo, NewTOTPService(userRepo), time.Hour)
+	service := NewAuthService(userRepo, sessionRepo, NewTOTPService(userRepo, testTOTPSecretKey), time.Hour)
+	encryptedSecret, err := service.totpService.encryptSecret(user.TOTPSecret)
+	if err != nil {
+		t.Fatalf("encryptSecret: %v", err)
+	}
+	if err := userRepo.SetTOTPSecret(ctx, user.ID, encryptedSecret); err != nil {
+		t.Fatalf("SetTOTPSecret: %v", err)
+	}
 
 	clientState, err := newTestSRPClientState()
 	if err != nil {
@@ -140,7 +148,7 @@ func TestLoginVerifyRefreshesUserStateBeforeTOTPDecision(t *testing.T) {
 
 	userRepo := newFakeUserRepo(user)
 	sessionRepo := &fakeSessionRepo{}
-	service := NewAuthService(userRepo, sessionRepo, NewTOTPService(userRepo), time.Hour)
+	service := NewAuthService(userRepo, sessionRepo, NewTOTPService(userRepo, testTOTPSecretKey), time.Hour)
 
 	clientState, err := newTestSRPClientState()
 	if err != nil {
@@ -155,16 +163,15 @@ func TestLoginVerifyRefreshesUserStateBeforeTOTPDecision(t *testing.T) {
 	}
 
 	secret := []byte("01234567890123456789")
-	if err := userRepo.SetTOTPSecret(ctx, user.ID, secret); err != nil {
+	encryptedSecret, err := service.totpService.encryptSecret(secret)
+	if err != nil {
+		t.Fatalf("encryptSecret: %v", err)
+	}
+	if err := userRepo.SetTOTPSecret(ctx, user.ID, encryptedSecret); err != nil {
 		t.Fatalf("SetTOTPSecret: %v", err)
 	}
 	if err := userRepo.EnableTOTP(ctx, user.ID); err != nil {
 		t.Fatalf("EnableTOTP: %v", err)
-	}
-
-	currentUser, err := userRepo.FindByID(ctx, user.ID)
-	if err != nil {
-		t.Fatalf("FindByID: %v", err)
 	}
 
 	pendingBefore := service.pending[email]
@@ -186,7 +193,7 @@ func TestLoginVerifyRefreshesUserStateBeforeTOTPDecision(t *testing.T) {
 		t.Fatal("expected LoginVerify to require TOTP after refreshed user lookup")
 	}
 
-	code := generateTOTP(currentUser.TOTPSecret, time.Now().Unix()/30)
+	code := generateTOTP(secret, time.Now().Unix()/30)
 	finalResp, err := service.LoginVerifyTOTP(ctx, email, code, "127.0.0.1", "test-agent")
 	if err != nil {
 		t.Fatalf("LoginVerifyTOTP: %v", err)

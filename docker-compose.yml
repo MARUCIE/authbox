@@ -34,6 +34,7 @@ services:
       AUTH_BOX_ENV: "local"
       AUTH_BOX_VERSION: "2.0.0"
       AUTH_BOX_ALLOWED_ORIGINS: "http://localhost:3010,http://localhost:3000"
+      AUTH_BOX_TOTP_SECRET_KEY: "YXV0aGJveC1sb2NhbC1kZXYtdG90cC1rZXktdjEhISE="
     ports:
       - "4010:8080"
     healthcheck:

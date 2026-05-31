@@ -8,6 +8,43 @@ LastUpdated: 2026-05-31
 
 # 交付物
 
+## 增量交付（2026-05-31）- Local release-blocker reduction
+
+### 交付项
+- SRP M2 server proof verification enforced across Web, Chrome extension, iOS, and shared crypto tests.
+- Query-string API key leakage removed from Google AI health checks and MCP WebSocket auth.
+- MCP proxy request hardening added: host binding, private-network/DNS rejection, credential header stripping, method/body limits.
+- TOTP seeds encrypted at rest; plaintext enrollments are disabled by migration 010 and rejected by service code.
+- API security middleware tightened for PNA preflight behavior and JSON content-type parsing.
+- Settings TOTP manual setup values are hidden by default and expire/clear after enrollment timeout.
+- Chrome extension permissions narrowed from global host permissions to AuthBox/local API hosts and page content-script matches with exclusions.
+
+### 证据
+- `pnpm --filter @authbox/crypto test`: PASS (52 passed / 2 skipped).
+- `pnpm --filter @authbox/mcp-protocol test`: PASS (7/7).
+- `(cd services/api && go test ./...)`: PASS.
+- `(cd apps/ios/AuthBoxCrypto && swift test)`: PASS (63 tests).
+- `pnpm --filter @authbox/crypto build`: PASS.
+- `pnpm --filter @authbox/mcp-protocol build`: PASS.
+- `pnpm --filter @authbox/web typecheck`: PASS.
+- `pnpm --filter @authbox/extension typecheck`: PASS.
+- `pnpm --filter @authbox/web build`: PASS (16 static pages).
+- `pnpm --filter @authbox/extension build`: PASS.
+- `xcodebuild ... -scheme AuthBox ... iphonesimulator build`: PASS.
+- `ai check`: PASS (`outputs/check/20260531-115040-dc90d291`, docs OK, tests OK rounds=2).
+- Static guards: no active `api_key` query/`?key=` patterns; `git diff --check` PASS.
+- UX smoke: static export served locally; Chrome headless loaded `/settings.html` and confirmed unauthenticated protected route redirects to unlock/login.
+- `make postmortem-scan`: PASS.
+
+### Task Closeout
+- Skills：N/A（本轮为项目内 release-blocker hardening，不新增跨项目 Skill）。
+- PDCA 四文档：已同步（PRD / SYSTEM_ARCHITECTURE / USER_EXPERIENCE_MAP / PLATFORM_OPTIMIZATION_PLAN）。
+- 底层规范（CLAUDE/AGENTS）：N/A（未新增跨任务规则）。
+- Rolling Ledger：已更新（REQ-20260531-028 / PROMPT-20260531-016 / QA-20260531-026..028）。
+- Postmortem：已新增 `postmortem/PM-20260531-003-local-release-blockers.md`。
+- 三端一致性：GitHub / VPS / production 为 N/A（本轮明确 local-only；未 push、未 deploy、未触碰 VPS/Cloudflare）。
+- Residual risk：`pnpm lint` 仍被既有 Next ESLint 交互配置阻塞；公开发布仍需 GitHub/VPS/production commit 一致性与 public API health 证据。
+
 ## 增量交付（2026-05-31）- Native iOS baseline dirty worktree closeout
 
 ### 交付项

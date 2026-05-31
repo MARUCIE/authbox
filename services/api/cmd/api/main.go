@@ -124,7 +124,7 @@ func main() {
 	auditRepo := pg.NewAuditRepository(pool)
 
 	// Services
-	totpService := service.NewTOTPService(userRepo)
+	totpService := service.NewTOTPService(userRepo, cfg.TOTPSecretKey)
 	authService := service.NewAuthService(userRepo, sessionRepo, totpService, cfg.SessionTTL)
 	vaultService := service.NewVaultService(userRepo, vaultRepo)
 	agentService := service.NewAgentService(agentRepo)

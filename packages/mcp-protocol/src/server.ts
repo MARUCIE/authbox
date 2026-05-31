@@ -1,25 +1,45 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import type { AgentPolicy } from '@authbox/shared';
-import { PolicyEngine, type AccessRequest, type AccessDecision, type PendingApproval } from './policy-engine';
-import { authboxTools, type ProxyRequest, type ProxyResponse, type ToolCallResult } from './tools';
+import { WebSocketServer, WebSocket } from "ws";
+import type { AgentPolicy } from "@authbox/shared";
+import {
+  PolicyEngine,
+  type AccessRequest,
+  type AccessDecision,
+  type PendingApproval,
+} from "./policy-engine";
+import { sanitizeProxyRequest } from "./proxy-security";
+import {
+  authboxTools,
+  type ProxyRequest,
+  type ProxyResponse,
+  type ToolCallResult,
+} from "./tools";
 
 export interface AuditEvent {
-  actorType: 'agent';
+  actorType: "agent";
   actorId: string;
   userId: string;
   action: string;
   resourceType?: string;
   resourceId?: string;
-  decision: 'allowed' | 'denied' | 'error';
+  decision: "allowed" | "denied" | "error";
   metadata?: Record<string, unknown>;
 }
 
 export interface VaultBridge {
-  getCredential(userId: string, serviceName: string): Promise<Record<string, string> | null>;
+  getCredential(
+    userId: string,
+    serviceName: string,
+  ): Promise<Record<string, string> | null>;
   listServices(userId: string): Promise<string[]>;
-  proxyRequest(userId: string, serviceName: string, request: ProxyRequest): Promise<ProxyResponse>;
+  proxyRequest(
+    userId: string,
+    serviceName: string,
+    request: ProxyRequest,
+  ): Promise<ProxyResponse>;
   getPolicies(agentId: string): Promise<AgentPolicy[]>;
-  verifyApiKey(apiKey: string): Promise<{ agentId: string; userId: string } | null>;
+  verifyApiKey(
+    apiKey: string,
+  ): Promise<{ agentId: string; userId: string } | null>;
   logAudit(event: AuditEvent): Promise<void>;
   /** Notify the user about a pending step-up approval (e.g., show browser notification). */
   notifyApproval?(approval: PendingApproval): void;
@@ -32,22 +52,22 @@ interface MCPSession {
 }
 
 interface JsonRpcRequest {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   id: number | string;
   method: string;
   params?: Record<string, unknown>;
 }
 
 interface JsonRpcResponse {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   id: number | string | null;
   result?: unknown;
   error?: { code: number; message: string; data?: unknown };
 }
 
-const MCP_VERSION = '2024-11-05';
-const SERVER_NAME = 'authbox-vault';
-const SERVER_VERSION = '2.0.0';
+const MCP_VERSION = "2024-11-05";
+const SERVER_NAME = "authbox-vault";
+const SERVER_VERSION = "2.0.0";
 
 export class AuthBoxMCPServer {
   private wss: WebSocketServer | null = null;
@@ -79,12 +99,12 @@ export class AuthBoxMCPServer {
 
     this.wss = new WebSocketServer({ port });
 
-    this.wss.on('connection', (ws, req) => {
-      const url = new URL(req.url ?? '/', `http://localhost:${port}`);
-      const apiKey = url.searchParams.get('api_key') ?? req.headers['x-api-key'] as string;
+    this.wss.on("connection", (ws, req) => {
+      const rawApiKey = req.headers["x-api-key"];
+      const apiKey = Array.isArray(rawApiKey) ? undefined : rawApiKey;
 
       if (!apiKey) {
-        ws.close(4001, 'API key required');
+        ws.close(4001, "API key required");
         return;
       }
 
@@ -92,14 +112,17 @@ export class AuthBoxMCPServer {
     });
 
     // Reset rate limit counters every 5 minutes
-    const interval = setInterval(() => this.policyEngine.resetCounters(), 5 * 60 * 1000);
-    this.wss.on('close', () => clearInterval(interval));
+    const interval = setInterval(
+      () => this.policyEngine.resetCounters(),
+      5 * 60 * 1000,
+    );
+    this.wss.on("close", () => clearInterval(interval));
   }
 
   stop(): void {
     if (this.wss) {
       for (const ws of this.sessions.keys()) {
-        ws.close(1000, 'Server shutting down');
+        ws.close(1000, "Server shutting down");
       }
       this.sessions.clear();
       this.wss.close();
@@ -111,7 +134,7 @@ export class AuthBoxMCPServer {
     try {
       const identity = await this.bridge.verifyApiKey(apiKey);
       if (!identity) {
-        ws.close(4003, 'Invalid API key');
+        ws.close(4003, "Invalid API key");
         return;
       }
 
@@ -123,19 +146,19 @@ export class AuthBoxMCPServer {
 
       this.sessions.set(ws, session);
 
-      ws.on('message', (data) => {
+      ws.on("message", (data) => {
         this.handleMessage(session, data.toString());
       });
 
-      ws.on('close', () => {
+      ws.on("close", () => {
         this.sessions.delete(ws);
       });
 
-      ws.on('error', () => {
+      ws.on("error", () => {
         this.sessions.delete(ws);
       });
     } catch {
-      ws.close(4500, 'Authentication error');
+      ws.close(4500, "Authentication error");
     }
   }
 
@@ -145,9 +168,9 @@ export class AuthBoxMCPServer {
       parsed = JSON.parse(raw);
     } catch {
       this.send(session.ws, {
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: null,
-        error: { code: -32700, message: 'Parse error' },
+        error: { code: -32700, message: "Parse error" },
       });
       return;
     }
@@ -158,35 +181,35 @@ export class AuthBoxMCPServer {
       let result: unknown;
 
       switch (method) {
-        case 'initialize':
+        case "initialize":
           result = this.handleInitialize();
           break;
-        case 'tools/list':
+        case "tools/list":
           result = this.handleToolsList();
           break;
-        case 'tools/call':
+        case "tools/call":
           result = await this.handleToolCall(session, params ?? {});
           break;
-        case 'ping':
+        case "ping":
           result = {};
           break;
         default:
           this.send(session.ws, {
-            jsonrpc: '2.0',
+            jsonrpc: "2.0",
             id,
             error: { code: -32601, message: `Method not found: ${method}` },
           });
           return;
       }
 
-      this.send(session.ws, { jsonrpc: '2.0', id, result });
+      this.send(session.ws, { jsonrpc: "2.0", id, result });
     } catch (err) {
       this.send(session.ws, {
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id,
         error: {
           code: -32603,
-          message: err instanceof Error ? err.message : 'Internal error',
+          message: err instanceof Error ? err.message : "Internal error",
         },
       });
     }
@@ -225,15 +248,15 @@ export class AuthBoxMCPServer {
     const policies = await this.bridge.getPolicies(session.agentId);
 
     switch (toolName) {
-      case 'get_credential':
+      case "get_credential":
         return this.toolGetCredential(session, policies, args);
-      case 'proxy_authenticated_request':
+      case "proxy_authenticated_request":
         return this.toolProxyRequest(session, policies, args);
-      case 'list_available_services':
+      case "list_available_services":
         return this.toolListServices(session, policies);
       default:
         return {
-          content: [{ type: 'text', text: `Unknown tool: ${toolName}` }],
+          content: [{ type: "text", text: `Unknown tool: ${toolName}` }],
           isError: true,
         };
     }
@@ -249,7 +272,7 @@ export class AuthBoxMCPServer {
 
     const request: AccessRequest = {
       agentId: session.agentId,
-      action: 'read',
+      action: "read",
       itemId: serviceName,
     };
 
@@ -262,42 +285,57 @@ export class AuthBoxMCPServer {
         request,
       );
       if (!approved) {
-        decision.reason = 'Step-up approval denied by user';
-        await this.logAccess(session, 'get_credential', serviceName, decision);
+        decision.reason = "Step-up approval denied by user";
+        await this.logAccess(session, "get_credential", serviceName, decision);
         return {
-          content: [{ type: 'text', text: 'Access denied: step-up approval was denied by the user' }],
+          content: [
+            {
+              type: "text",
+              text: "Access denied: step-up approval was denied by the user",
+            },
+          ],
           isError: true,
         };
       }
       // User approved -- continue with credential retrieval
       decision.allowed = true;
-      decision.reason = 'Step-up approval granted by user';
+      decision.reason = "Step-up approval granted by user";
     }
 
-    await this.logAccess(session, 'get_credential', serviceName, decision);
+    await this.logAccess(session, "get_credential", serviceName, decision);
 
     if (!decision.allowed) {
       return {
-        content: [{ type: 'text', text: `Access denied: ${decision.reason}` }],
+        content: [{ type: "text", text: `Access denied: ${decision.reason}` }],
         isError: true,
       };
     }
 
-    const credential = await this.bridge.getCredential(session.userId, serviceName);
+    const credential = await this.bridge.getCredential(
+      session.userId,
+      serviceName,
+    );
     if (!credential) {
       return {
-        content: [{ type: 'text', text: `No credential found for service: ${serviceName}` }],
+        content: [
+          {
+            type: "text",
+            text: `No credential found for service: ${serviceName}`,
+          },
+        ],
         isError: true,
       };
     }
 
     // Filter fields if requested
     const filtered = fields
-      ? Object.fromEntries(Object.entries(credential).filter(([k]) => fields.includes(k)))
+      ? Object.fromEntries(
+          Object.entries(credential).filter(([k]) => fields.includes(k)),
+        )
       : credential;
 
     return {
-      content: [{ type: 'text', text: JSON.stringify(filtered) }],
+      content: [{ type: "text", text: JSON.stringify(filtered) }],
     };
   }
 
@@ -310,7 +348,7 @@ export class AuthBoxMCPServer {
 
     const request: AccessRequest = {
       agentId: session.agentId,
-      action: 'proxy',
+      action: "proxy",
       itemId: serviceName,
     };
 
@@ -323,49 +361,65 @@ export class AuthBoxMCPServer {
         request,
       );
       if (!approved) {
-        decision.reason = 'Step-up approval denied by user';
-        await this.logAccess(session, 'proxy_request', serviceName, decision);
+        decision.reason = "Step-up approval denied by user";
+        await this.logAccess(session, "proxy_request", serviceName, decision);
         return {
-          content: [{ type: 'text', text: 'Access denied: step-up approval was denied by the user' }],
+          content: [
+            {
+              type: "text",
+              text: "Access denied: step-up approval was denied by the user",
+            },
+          ],
           isError: true,
         };
       }
       decision.allowed = true;
-      decision.reason = 'Step-up approval granted by user';
+      decision.reason = "Step-up approval granted by user";
     }
 
-    await this.logAccess(session, 'proxy_request', serviceName, decision);
+    await this.logAccess(session, "proxy_request", serviceName, decision);
 
     if (!decision.allowed) {
       return {
-        content: [{ type: 'text', text: `Access denied: ${decision.reason}` }],
+        content: [{ type: "text", text: `Access denied: ${decision.reason}` }],
         isError: true,
       };
     }
 
-    const proxyReq: ProxyRequest = {
+    const proxyReq = await sanitizeProxyRequest(serviceName, {
       method: args.method as string,
       url: args.url as string,
       headers: args.headers as Record<string, string> | undefined,
       body: args.body as string | undefined,
-    };
+    });
 
     try {
-      const response = await this.bridge.proxyRequest(session.userId, serviceName, proxyReq);
+      const response = await this.bridge.proxyRequest(
+        session.userId,
+        serviceName,
+        proxyReq,
+      );
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            status: response.status,
-            headers: response.headers,
-            body: response.body,
-          }),
-        }],
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              status: response.status,
+              headers: response.headers,
+              body: response.body,
+            }),
+          },
+        ],
       };
     } catch (err) {
       return {
-        content: [{ type: 'text', text: `Proxy request failed: ${err instanceof Error ? err.message : 'Unknown error'}` }],
+        content: [
+          {
+            type: "text",
+            text: `Proxy request failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -377,15 +431,15 @@ export class AuthBoxMCPServer {
   ): Promise<ToolCallResult> {
     const request: AccessRequest = {
       agentId: session.agentId,
-      action: 'read',
+      action: "read",
     };
 
     const decision = this.policyEngine.evaluate(policies, request);
-    await this.logAccess(session, 'list_services', undefined, decision);
+    await this.logAccess(session, "list_services", undefined, decision);
 
     if (!decision.allowed) {
       return {
-        content: [{ type: 'text', text: `Access denied: ${decision.reason}` }],
+        content: [{ type: "text", text: `Access denied: ${decision.reason}` }],
         isError: true,
       };
     }
@@ -393,7 +447,7 @@ export class AuthBoxMCPServer {
     const services = await this.bridge.listServices(session.userId);
 
     return {
-      content: [{ type: 'text', text: JSON.stringify({ services }) }],
+      content: [{ type: "text", text: JSON.stringify({ services }) }],
     };
   }
 
@@ -405,13 +459,13 @@ export class AuthBoxMCPServer {
   ): Promise<void> {
     try {
       await this.bridge.logAudit({
-        actorType: 'agent',
+        actorType: "agent",
         actorId: session.agentId,
         userId: session.userId,
         action,
-        resourceType: 'credential',
+        resourceType: "credential",
         resourceId,
-        decision: decision.allowed ? 'allowed' : 'denied',
+        decision: decision.allowed ? "allowed" : "denied",
         metadata: {
           reason: decision.reason,
           policies: decision.appliedPolicies,

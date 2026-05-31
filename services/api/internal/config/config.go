@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"log/slog"
 	"net/url"
 	"os"
@@ -18,12 +19,14 @@ type Config struct {
 	SessionTTL     time.Duration
 	AllowedOrigins []string
 	AuthRateLimit  int
+	TOTPSecretKey  []byte
 }
 
 func Load() Config {
 	sessionHours := getEnvInt("AUTH_BOX_SESSION_TTL_HOURS", 168) // default 7 days
 	env := getEnv("AUTH_BOX_ENV", "local")
 	origins := parseOrigins(getEnv("AUTH_BOX_ALLOWED_ORIGINS", "http://localhost:3000"))
+	totpSecretKey := loadTOTPSecretKey(env)
 
 	// Production safety: reject localhost origins (not just warn)
 	if env == "production" {
@@ -47,7 +50,27 @@ func Load() Config {
 		SessionTTL:     time.Duration(sessionHours) * time.Hour,
 		AllowedOrigins: origins,
 		AuthRateLimit:  getEnvInt("AUTH_BOX_AUTH_RATE_LIMIT", 5),
+		TOTPSecretKey:  totpSecretKey,
 	}
+}
+
+func loadTOTPSecretKey(env string) []byte {
+	value := getEnv("AUTH_BOX_TOTP_SECRET_KEY", "")
+	if value == "" && env != "production" {
+		value = "YXV0aGJveC1sb2NhbC1kZXYtdG90cC1rZXktdjEhISE="
+		slog.Warn("using local development TOTP secret encryption key; set AUTH_BOX_TOTP_SECRET_KEY outside local development")
+	}
+	if value == "" {
+		slog.Error("AUTH_BOX_TOTP_SECRET_KEY is required in production")
+		os.Exit(1)
+	}
+
+	key, err := base64.StdEncoding.DecodeString(value)
+	if err != nil || len(key) != 32 {
+		slog.Error("AUTH_BOX_TOTP_SECRET_KEY must be a base64-encoded 32-byte key")
+		os.Exit(1)
+	}
+	return key
 }
 
 // parseOrigins splits a comma-separated origin list and validates each entry.

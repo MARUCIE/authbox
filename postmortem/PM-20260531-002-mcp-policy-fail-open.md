@@ -32,7 +32,8 @@ The MCP policy engine allowed unknown policy types by default, while API and Web
 
 # Triggers (machine-matchable)
 TRIGGER_REGEX: default:\s*return\s*\{\s*allowed:\s*true
-TRIGGER_REGEX: scope_access|step_up_auth|allowed_types
+TRIGGER_REGEX: case\s+"(scope_access|step_up_auth|allowed_types)"
+TRIGGER_REGEX: policyTypes\s*:=.*(scope_access|step_up_auth|allowed_types)
 TRIGGER_PATH: packages/mcp-protocol/src/policy-engine.ts
 TRIGGER_PATH: services/api/internal/handler/agent_handler.go
 TRIGGER_PATH: apps/web/app/(vault)/agents/page.tsx

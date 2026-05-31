@@ -2,14 +2,18 @@ package service
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/subtle"
 	"encoding/base32"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"auth-box-api/internal/domain"
@@ -18,11 +22,20 @@ import (
 )
 
 type TOTPService struct {
-	userRepo domain.UserRepository
+	userRepo     domain.UserRepository
+	secretCipher cipher.AEAD
 }
 
-func NewTOTPService(userRepo domain.UserRepository) *TOTPService {
-	return &TOTPService{userRepo: userRepo}
+func NewTOTPService(userRepo domain.UserRepository, secretKey []byte) *TOTPService {
+	block, err := aes.NewCipher(secretKey)
+	if err != nil {
+		panic("invalid TOTP secret encryption key")
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		panic("invalid TOTP secret encryption cipher")
+	}
+	return &TOTPService{userRepo: userRepo, secretCipher: aead}
 }
 
 type TOTPEnrollResponse struct {
@@ -61,7 +74,12 @@ func (s *TOTPService) Enroll(ctx context.Context, userID uuid.UUID) (*TOTPEnroll
 		return nil, err
 	}
 
-	if err := s.userRepo.SetTOTPSecret(ctx, userID, secret); err != nil {
+	encryptedSecret, err := s.encryptSecret(secret)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.userRepo.SetTOTPSecret(ctx, userID, encryptedSecret); err != nil {
 		return nil, err
 	}
 
@@ -84,7 +102,12 @@ func (s *TOTPService) Verify(ctx context.Context, userID uuid.UUID, code string)
 		return fmt.Errorf("TOTP not enrolled")
 	}
 
-	if !validateTOTP(user.TOTPSecret, code, time.Now()) {
+	secret, err := s.decryptSecret(user.TOTPSecret)
+	if err != nil {
+		return err
+	}
+
+	if !validateTOTP(secret, code, time.Now()) {
 		return fmt.Errorf("invalid TOTP code")
 	}
 
@@ -104,7 +127,12 @@ func (s *TOTPService) Disable(ctx context.Context, userID uuid.UUID, code string
 		return fmt.Errorf("TOTP not enabled")
 	}
 
-	if !validateTOTP(user.TOTPSecret, code, time.Now()) {
+	secret, err := s.decryptSecret(user.TOTPSecret)
+	if err != nil {
+		return err
+	}
+
+	if !validateTOTP(secret, code, time.Now()) {
 		return fmt.Errorf("invalid TOTP code")
 	}
 
@@ -120,7 +148,55 @@ func (s *TOTPService) Check(ctx context.Context, userID uuid.UUID, code string) 
 	if user == nil || !user.TOTPEnabled {
 		return false, nil
 	}
-	return validateTOTP(user.TOTPSecret, code, time.Now()), nil
+	secret, err := s.decryptSecret(user.TOTPSecret)
+	if err != nil {
+		return false, err
+	}
+	return validateTOTP(secret, code, time.Now()), nil
+}
+
+const totpSecretEnvelopePrefix = "authbox-totp-v1:"
+const totpSecretAAD = "authbox:totp:v1"
+
+func (s *TOTPService) encryptSecret(secret []byte) ([]byte, error) {
+	nonce := make([]byte, s.secretCipher.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, err
+	}
+
+	ciphertext := s.secretCipher.Seal(nil, nonce, secret, []byte(totpSecretAAD))
+	envelope := totpSecretEnvelopePrefix +
+		base64.RawStdEncoding.EncodeToString(nonce) +
+		":" +
+		base64.RawStdEncoding.EncodeToString(ciphertext)
+	return []byte(envelope), nil
+}
+
+func (s *TOTPService) decryptSecret(envelope []byte) ([]byte, error) {
+	text := string(envelope)
+	if !strings.HasPrefix(text, totpSecretEnvelopePrefix) {
+		return nil, fmt.Errorf("TOTP secret is not encrypted")
+	}
+
+	parts := strings.Split(strings.TrimPrefix(text, totpSecretEnvelopePrefix), ":")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("TOTP secret envelope is malformed")
+	}
+
+	nonce, err := base64.RawStdEncoding.DecodeString(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf("TOTP secret nonce is malformed")
+	}
+	ciphertext, err := base64.RawStdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("TOTP secret ciphertext is malformed")
+	}
+
+	secret, err := s.secretCipher.Open(nil, nonce, ciphertext, []byte(totpSecretAAD))
+	if err != nil {
+		return nil, fmt.Errorf("TOTP secret decrypt failed")
+	}
+	return secret, nil
 }
 
 func validateTOTP(secret []byte, code string, now time.Time) bool {

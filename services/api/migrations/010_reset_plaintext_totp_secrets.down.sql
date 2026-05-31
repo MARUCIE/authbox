@@ -1,0 +1,2 @@
+-- Plaintext TOTP seed storage is intentionally not restored.
+-- Users who had TOTP enabled before this migration must re-enroll.

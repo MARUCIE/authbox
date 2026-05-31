@@ -156,6 +156,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 | M5.2 | 凭据健康检查 (20 provider verifiers) | DONE |
 | M5.3 | 蜂群安全审计 (9/9 FIXED) + 性能审计 (8/8 FIXED) | DONE |
 | M5.4 | Market Launch (Show HN + authbox.io full-stack live) | BLOCKED (release gate; 2026-03-22 checkpoint) |
+| M5.4a | Local release-blocker reduction (SRP M2, MCP proxy, TOTP seed, API/extension hardening) | DONE (local, not published) |
 | M5.5 | Five Primitives Engine (Capability/Intent/Policy/Effect/Fact) | PLANNED (P1) |
 | M5.6 | Native iOS baseline (SwiftUI + AutoFill + AuthBoxCrypto SwiftPM) | DONE (local baseline, not released) |
 | M6.0 | Bitcoin hash anchoring + Fact chain | PLANNED |
@@ -185,6 +186,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 - 发布门禁现状：项目级 `ai check --base-dir /Users/mauricewen/Projects/10-auth-box` 已 PASS（run_dir=`outputs/check/20260322-021252-a7b35035`），但公开发布仍缺本地/GitHub/VPS 版本收敛 + 线上 API 健康证明
 - 2026-05-31 本地 dirty worktree closeout：`apps/ios` 原生 iOS 基线已审计并通过本地验证（SwiftPM crypto tests 62/62 PASS、Xcode simulator build PASS、UI test 1/1 PASS、TS crypto vector generator PASS；Xcode build/test zero warnings/errors；project `ai check` PASS with alternate Go proxy）；未执行 GitHub push、Cloudflare Pages deploy、VPS 变更或生产验证。
 - 2026-05-31 WP-015 本地一键交付续跑：CodeGraph、DNA capsule、final `ai check`、package/API/web gates、real API E2E、Web route smoke、iOS crypto/UI、postmortem gate 均 PASS；同时修复 migration 009 与 MCP policy critical；公开发布仍 BLOCKED 于剩余 attacker review high/medium findings + GitHub/VPS/production consistency。
+- 2026-05-31 WP-016 本地 release-blocker reduction：SRP M2、query-string API keys、MCP proxy SSRF/data exfiltration、plaintext TOTP seeds、PNA/content-type、extension permissions、settings manual TOTP exposure 均已本地修复并通过新鲜验证；公开发布仍 BLOCKED 于 GitHub/VPS/production consistency 与 public API health 证据。
 
 ---
 
@@ -194,3 +196,4 @@ Maurice | maurice_wen@proton.me
 - 2026-03-22: 将 M5.4 状态调整为 release gate blocked，并记录本地/GitHub/VPS/API health 现状。（原因：release readiness checkpoint）
 - 2026-05-31: 将 iOS native baseline 纳入 PRD 技术栈、里程碑与当前状态；范围限定为本地可构建/可测试基线，不代表发布就绪。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 同步 WP-015 本地一键交付结果与 MCP policy canonical types；公开发布仍按安全与三端一致性阻塞。（原因：SOP one-click delivery closeout）
+- 2026-05-31: 同步 WP-016 本地 release-blocker reduction；将剩余 blocker 缩小为 GitHub/VPS/production consistency 与 public API health。（原因：local release-blocker hardening）

@@ -199,16 +199,30 @@ LastUpdated: 2026-05-31
 - [x] Removed hardcoded `trycloudflare` API defaults from web/console/extension/E2E; local defaults remain `localhost`, non-local now requires explicit env
 - [x] Real API validation: local PostgreSQL + Go API on `:8080` + `scripts/e2e-test.mjs` 65/65 PASS
 
+## Round 12: Local Release-Blocker Reduction (DONE, 2026-05-31)
+
+目标：收口上一轮 attacker review 留下的本地可修复发布 blocker；不触碰 GitHub、VPS、Cloudflare 或生产环境。
+
+- [x] SRP M2 server proof verification now enforced in web, extension, iOS, and shared crypto tests.
+- [x] API key query-string leakage removed from Google AI health check and MCP WebSocket auth.
+- [x] MCP proxy request SSRF/data-exfiltration guard added: host binding, DNS/private-network rejection, forbidden credential headers, method/body limits.
+- [x] TOTP seeds encrypted at rest with `AUTH_BOX_TOTP_SECRET_KEY`; plaintext stored seeds are rejected; migration 010 disables pre-existing plaintext enrollments.
+- [x] API middleware tightened: PNA is preflight-only, JSON media type parsing rejects spoofed prefixes, missing `Content-Type` with body is rejected.
+- [x] Settings TOTP manual setup values hidden by default with enrollment expiry cleanup.
+- [x] Chrome extension permissions reduced from global host access to AuthBox/local API hosts plus normal page content-script matches and exclusions.
+- [x] Verification: package tests/builds, Go tests, Swift tests, web/extension builds, iOS simulator build, `ai check`, static guards, and Chrome headless route smoke.
+
 ## 当前状态
 
 - 所有 MVP 功能阶段已完成（Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-11）
-- 构建通过：7/7 packages (incl. video), 16 pages, 0 errors
+- 构建通过：targeted packages + Web/Extension + iOS simulator, 16 Web pages, 0 errors
 - 最新验证基线：`make test-api` PASS + `make test-crypto` PASS（51 deterministic + 2 live skipped） + `scripts/e2e-test.mjs http://localhost:8080` 65/65 PASS
 - Follow-up drift cleanup: README / UX baseline synced to 2026-03-22 reality, `_headers` no longer allows `*.trycloudflare.com`, runtime scan shows no temporary tunnel dependency outside historical docs
 - Release readiness checkpoint (2026-03-22): `authbox.io` public routes (`/`, `/login`, `/register`, `/create`, `/unlock`, `/settings`, `/manifest.webmanifest`) return 200 with security headers, but public API health is not proven (`/health` on authbox.io = 404; `api.authbox.io` unresolved)
 - Project gate checkpoint (2026-03-22): `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box` PASS (`outputs/check/20260322-021252-a7b35035`); patched `scripts/release_gate.sh` now reuses the same project-scoped gate and passes on current worktree (`outputs/release-gate/20260322T021557Z/`)
 - Three-end consistency is currently BLOCKED: local committed HEAD and `origin/main` both at `97336bf`, while `vps-prod:/root/10-auth-box` is `850c226` and dirty (`?? docker-compose.vps-local.yml`); VPS `localhost:4010/health` refused connection
 - Release gate cannot represent the current fixes until they are committed; existing `release-gate` / `risk-classify` scripts only evaluate committed ref ranges
+- 2026-05-31 local release-blocker reduction: prior local security blockers for SRP M2, query-string API keys, MCP proxy SSRF, plaintext TOTP seeds, PNA/content-type hardening, settings TOTP exposure, and extension host permissions are fixed with fresh tests/builds; public release remains blocked until GitHub/VPS/production consistency and public API health are explicitly verified.
 - 7/7 UX Map Journeys PASS, 9/9 routes HTTP 200
 - Round 3: 20/20 real API endpoints tested (PostgreSQL + Go API, no mock)
 - Round 4-7: 50 security/performance optimizations

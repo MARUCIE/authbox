@@ -23,16 +23,17 @@ import {
   srpGenerateVerifier,
   srpClientInit,
   srpClientVerify,
+  srpVerifyServerProof,
   generateVaultKey,
   encryptVaultKey,
   decryptVaultKey,
   generateRandomBytes,
-} from '@authbox/crypto';
-import { authApi } from './api';
+} from "@authbox/crypto";
+import { authApi } from "./api";
 
 const DEFAULT_KDF_PARAMS = {
-  algorithm: 'argon2id' as const,
-  memory: 262144,    // 256 MB in KiB
+  algorithm: "argon2id" as const,
+  memory: 262144, // 256 MB in KiB
   iterations: 3,
   parallelism: 4,
   keyLength: 32,
@@ -87,13 +88,13 @@ export async function register(
 }
 
 export interface LoginResult {
-  kind: 'complete';
+  kind: "complete";
   sessionToken: string;
   vaultKey: Uint8Array;
 }
 
 export interface PendingTOTPLogin {
-  kind: 'totp_required';
+  kind: "totp_required";
   email: string;
   encKey: Uint8Array;
 }
@@ -117,7 +118,7 @@ export async function login(
 
   // 4. SRP client verify
   const serverPublicB = fromBase64(initResponse.serverPublicB);
-  const { clientProof } = await srpClientVerify(
+  const { clientProof, sessionKey } = await srpClientVerify(
     clientState,
     email,
     password,
@@ -132,16 +133,35 @@ export async function login(
     clientProofM1: toBase64(clientProof),
   });
 
+  if (!verifyResponse.serverProofM2) {
+    throw new Error("Login response missing SRP server proof");
+  }
+  if (
+    !srpVerifyServerProof(
+      clientState,
+      clientProof,
+      sessionKey,
+      fromBase64(verifyResponse.serverProofM2),
+    )
+  ) {
+    throw new Error("SRP server proof verification failed");
+  }
+
   if (verifyResponse.totpRequired) {
     return {
-      kind: 'totp_required',
+      kind: "totp_required",
       email,
       encKey: keys.encKey,
     };
   }
 
-  if (!verifyResponse.sessionToken || !verifyResponse.encryptedVaultKey || !verifyResponse.vaultKeyNonce || !verifyResponse.vaultKeyTag) {
-    throw new Error('Login response missing vault credentials');
+  if (
+    !verifyResponse.sessionToken ||
+    !verifyResponse.encryptedVaultKey ||
+    !verifyResponse.vaultKeyNonce ||
+    !verifyResponse.vaultKeyTag
+  ) {
+    throw new Error("Login response missing vault credentials");
   }
 
   // 6. Decrypt vault key
@@ -152,7 +172,7 @@ export async function login(
   });
 
   return {
-    kind: 'complete',
+    kind: "complete",
     sessionToken: verifyResponse.sessionToken,
     vaultKey,
   };
@@ -174,7 +194,7 @@ export async function verifyLoginTOTP(
   });
 
   return {
-    kind: 'complete',
+    kind: "complete",
     sessionToken: verifyResponse.sessionToken,
     vaultKey,
   };
