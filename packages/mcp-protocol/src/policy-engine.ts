@@ -79,7 +79,7 @@ export class PolicyEngine {
       case 'step_up':
         return this.checkStepUp(rules, request);
       default:
-        return { allowed: true, reason: 'Unknown policy type, defaulting to allow' };
+        return { allowed: false, reason: `Unknown policy type: ${policy.policyType}` };
     }
   }
 
@@ -91,6 +91,10 @@ export class PolicyEngine {
       return { allowed: false, reason: 'Item explicitly denied' };
     }
 
+    if (rules.allowedItemTypes && !request.itemType) {
+      return { allowed: false, reason: 'Missing item type for scoped policy' };
+    }
+
     if (rules.allowedItemTypes && request.itemType) {
       const allowed = rules.allowedItemTypes as string[];
       if (!allowed.includes(request.itemType)) {
@@ -98,10 +102,18 @@ export class PolicyEngine {
       }
     }
 
+    if (rules.allowedItemIds && !request.itemId) {
+      return { allowed: false, reason: 'Missing item ID for scoped policy' };
+    }
+
     if (rules.allowedItemIds && request.itemId) {
       if (!rules.allowedItemIds.includes(request.itemId)) {
         return { allowed: false, reason: 'Item ID not in allowed list' };
       }
+    }
+
+    if (rules.allowedFolderIds && !request.folderId) {
+      return { allowed: false, reason: 'Missing folder ID for scoped policy' };
     }
 
     if (rules.allowedFolderIds && request.folderId) {

@@ -1,0 +1,334 @@
+{
+  "ok": true,
+  "initiative_slug": "10_auth_box",
+  "required": [
+    {
+      "path": "doc/index.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/index.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/index.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/PRD.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/EXECUTION_ROADMAP.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/PDCA_EXECUTION_PLAN.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/PDCA_ITERATION_CHECKLIST.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md",
+      "min_bytes": 200,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/task_plan.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/notes.md",
+      "min_bytes": 50,
+      "require_changelog": false
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/deliverable.md",
+      "min_bytes": 50,
+      "require_changelog": true
+    }
+  ],
+  "docs": [
+    {
+      "path": "doc/index.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/index.md",
+      "exists": true,
+      "size_bytes": 3615,
+      "min_bytes": 200,
+      "sha256": "71ebf9b9c3d788144952e2f92e71234002c58546d7503e341bee63cdb0d63744",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/index.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/index.md",
+      "exists": true,
+      "size_bytes": 654,
+      "min_bytes": 200,
+      "sha256": "7c63912ba0b9113f105b952cec18e408431dcbb332214866f60f7fd47588292f",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-03-22",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/index.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/index.md",
+      "exists": true,
+      "size_bytes": 2493,
+      "min_bytes": 50,
+      "sha256": "8ca56b32848f2110302c1944dd18c6d39074d7a4d0ce3fffa0769fdddbb5fb8b",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-03-22",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/USER_EXPERIENCE_MAP.md",
+      "exists": true,
+      "size_bytes": 14528,
+      "min_bytes": 200,
+      "sha256": "80fee406ec2daa85d3bddfb2fcc07ff1a0af5518f81dbbf25ba442ca53d222f2",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/SYSTEM_ARCHITECTURE.md",
+      "exists": true,
+      "size_bytes": 31169,
+      "min_bytes": 200,
+      "sha256": "d771a2983eada7eabe44d3d612018595f9db8679f507efbec322ddc59b5ffc27",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/PRD.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/PRD.md",
+      "exists": true,
+      "size_bytes": 10792,
+      "min_bytes": 200,
+      "sha256": "c31b107c9d4dd0313f4877d18a841802a1fd6993f768dba3665988603b2472e0",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/PLATFORM_OPTIMIZATION_PLAN.md",
+      "exists": true,
+      "size_bytes": 24334,
+      "min_bytes": 200,
+      "sha256": "b72e126797182a29060de2e5cc96fc536e25e9275b01551d1e598bec7ee275de",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/EXECUTION_ROADMAP.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/EXECUTION_ROADMAP.md",
+      "exists": true,
+      "size_bytes": 656,
+      "min_bytes": 50,
+      "sha256": "5fd11364cdb48677cb6f1dee1475a072a8026d5720228ee5cac89e2c92aa6fc0",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-03-22",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/PDCA_EXECUTION_PLAN.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/PDCA_EXECUTION_PLAN.md",
+      "exists": true,
+      "size_bytes": 660,
+      "min_bytes": 50,
+      "sha256": "ef559eecda763655ed5b4ef79645cc7b24d61b379a72b87bc1592f7c6276b4a1",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-03-22",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/PDCA_ITERATION_CHECKLIST.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/PDCA_ITERATION_CHECKLIST.md",
+      "exists": true,
+      "size_bytes": 4383,
+      "min_bytes": 50,
+      "sha256": "5ddffae9d919b8de237dc2c6a77fe6cbe26668a75d41cbe47df6c8439d8ee276",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/ROLLING_REQUIREMENTS_AND_PROMPTS.md",
+      "exists": true,
+      "size_bytes": 25554,
+      "min_bytes": 200,
+      "sha256": "eaae50366be855eb02bf968eb53e01113c750ea2d58fb48264b4daef9d5d9625",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/task_plan.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/task_plan.md",
+      "exists": true,
+      "size_bytes": 19653,
+      "min_bytes": 50,
+      "sha256": "cc17e3e61c86eb16e827b7de10870036721becb999b128719421f7ab529fdf54",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/notes.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/notes.md",
+      "exists": true,
+      "size_bytes": 107356,
+      "min_bytes": 50,
+      "sha256": "7570a3d3435298229f455bfa13a94ed94cb2db7e261ccb1aed41baa840ec0422",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": false,
+        "changelog_ok": true
+      },
+      "ok": true
+    },
+    {
+      "path": "doc/00_project/initiative_10_auth_box/deliverable.md",
+      "abs_path": "/Users/mauricewen/Projects/10-auth-box/doc/00_project/initiative_10_auth_box/deliverable.md",
+      "exists": true,
+      "size_bytes": 64218,
+      "min_bytes": 50,
+      "sha256": "431db8c35e7b0ef3412707f25f72919aaedb723860cb8a23059f1e3ebd841aab",
+      "frontmatter": {
+        "ok": true,
+        "error": null,
+        "missing_fields": [],
+        "last_updated": "2026-05-31",
+        "last_updated_ok": true,
+        "require_changelog": true,
+        "changelog_ok": true
+      },
+      "ok": true
+    }
+  ],
+  "doc_location_gate": {
+    "ok": true,
+    "hits": []
+  }
+}

@@ -289,7 +289,7 @@ AuditEvent {
 | 22 | Security | CRITICAL | ClientPublicA/ClientProofM1 decoded byte length validation (0 < len <= 1024) | `handler/auth_handler.go` |
 | 23 | Security | HIGH | Logout handler: reject empty bearer token before hashing | `handler/auth_handler.go` |
 | 24 | Security | HIGH | AgentType enum validation (claude/gpt/gemini/custom) | `handler/agent_handler.go` |
-| 25 | Security | HIGH | PolicyType enum validation (scope/rate_limit/time_window/approval) | `handler/agent_handler.go` |
+| 25 | Security | HIGH | PolicyType enum validation (canonical: item_scope/action_perm/rate_limit/time_window/step_up) | `handler/agent_handler.go` |
 | 26 | Security | HIGH | Agent name length bound (max 128 chars) | `handler/agent_handler.go` |
 | 27 | Security | HIGH | Connection provider length bound (max 64 chars) | `handler/connection_handler.go` |
 | 28 | Code Quality | MEDIUM | Sentinel error pattern: domain/errors.go + errors.Is() in handlers | `domain/errors.go`, `pg/agent_repo.go`, `pg/connection_repo.go`, `handler/agent_handler.go`, `handler/connection_handler.go` |
@@ -375,6 +375,39 @@ AuditEvent {
 - `go build ./...`: PASS (zero errors)
 - `npx turbo build`: PASS (6/6 packages, 13 pages, 0 errors)
 
+## WP-015 Local Delivery Hardening (2026-05-31)
+
+### Fixed In Current Boundary
+
+| # | Category | Severity | Fix | Evidence |
+|---|---|---|---|---|
+| 51 | Database | HIGH | Removed volatile `NOW()` partial index predicate from migration 009; added migration SQL regression test | `services/api/migrations/migration_sql_test.go` |
+| 52 | MCP Security | CRITICAL | Unknown policy types now fail closed | `packages/mcp-protocol/src/policy-engine.test.ts` |
+| 53 | MCP Security | CRITICAL | API/Web/MCP policy enum names aligned to canonical policy types | `services/api/internal/handler/agent_handler_test.go` |
+| 54 | MCP Security | CRITICAL | Item-scope policy denies when required request attributes are missing; MCP requests include item identity | `packages/mcp-protocol/src/server.ts` |
+| 55 | Release Gate | MEDIUM | `make postmortem-scan` no longer depends on stale hardcoded base SHA | `Makefile` |
+
+### Final Local Gates
+
+- `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box`: PASS (`outputs/check/20260531T104046Z-wp015-final2`).
+- MCP package test/build: PASS.
+- Web typecheck/build: PASS.
+- API Go tests: PASS.
+- Real API E2E: PASS 65/65.
+- Web route smoke: PASS 12/12.
+- iOS SwiftPM/UI: PASS.
+- Postmortem scan: PASS.
+
+### Remaining Release Blockers
+
+- API key in URL query string risk.
+- Proxy SSRF/data exfiltration hardening incomplete.
+- SRP M2 proof verification gap remains in some clients.
+- Plaintext TOTP seed exposure risk.
+- CSP/PNA/content-type/extension permission hardening items remain open.
+- GitHub/VPS/production commit and public API health consistency not verified in this local-only run.
+
 ## Changelog
 - 2026-03-22: 回写静态安全头、API base 显式配置与发布就绪性检查结论，并补齐 changelog 区块。（原因：auth reliability + release readiness）
 - 2026-05-31: 新增 native iOS baseline closeout 记录，重点收口生成物治理、跨平台 crypto parity 与本地 simulator 证据。（原因：Projects folder dirty worktree closeout）
+- 2026-05-31: 同步 WP-015 local hardening fixes、final gates 与 remaining release blockers。（原因：SOP one-click delivery closeout）

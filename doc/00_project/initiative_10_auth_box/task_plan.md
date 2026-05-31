@@ -259,6 +259,65 @@ LastUpdated: 2026-05-31
 
 Scope boundary：本轮不执行 GitHub push、Cloudflare Pages deploy、VPS 变更、生产数据操作或历史重写。
 
+## 2026-05-31: SOP One-Click Full Delivery Continuation (WP-015)
+
+目标：把用户提供的 Step 0 / SOP 约束转化为可审计、可续跑的本地执行循环；先建立证据链与安全边界，再运行 Round 1 自动化检查、Round 2 UX Map 模拟、attacker review 与 Task Closeout。
+
+非目标：
+- 不自动 push / PR / GitHub 评论 / Issue / 邮件 / 社媒沟通。
+- 不触碰 VPS、Cloudflare、生产数据或真实用户凭据。
+- 不做历史重写、生产发布或破坏性清理。
+- 不在未验证前宣称 release-ready。
+
+约束与路由决策：
+- 当前 Codex App 在 outside-tmux surface，`omx team` / `omx question` / runtime `ralph` 不能直接作为 tmux overlay 使用；本轮用 planning-with-files + native subagents + 本地命令队列模拟 ralph loop，最大 12 轮，completion promise = DONE。
+- 命令队列必须从 `PROJECT_DIR` 执行，并以 `set -euo pipefail` 防止跑错目录与静默失败。
+- Tool selection priority: DNA capsule -> installed skill/plugin/MCP -> local scripts/Makefile -> manual bounded command。
+- Frontend automation priority for this surface: Playwright-capable local/browser tool first; unavailable时降级到 agent-browser；不使用生产站点作为默认验收路径。
+- Security/attacker review 是发布前强制门禁；已派发 read-only subagent。
+- Speed governance：可并行化，但不跳过 docs/tests/security review。
+
+验收标准：
+- `task_plan.md` / `notes.md` / `deliverable.md` / `PDCA_ITERATION_CHECKLIST.md` 记录本轮目标、证据、阻塞与收尾状态。
+- DNA search / validate / doctor 有新鲜证据；若沉淀新 capsule，必须通过 `ai dna validate` + `ai dna doctor`。
+- CodeGraph 状态已检查；若初始化索引，`.codegraph/` 作为本地 cache 不进入 Git。
+- Round 1：项目级 `ai check` 或更强等效自动化检查通过，并保存证据目录。
+- Round 2：按 UX Map route/journey 做本地模拟测试并记录证据；若本地服务不可用，明确 blocked evidence。
+- Attacker review 完成，权限绕过/注入/越权/数据暴露面有结论或待修项。
+- Task Closeout 更新 deliverable / Rolling Ledger / 三端一致性状态。
+
+测试计划：
+1. Preflight: `git status --short --branch`, tool availability, DNA search/validate/doctor, CodeGraph status/index as needed。
+2. Automated gates: `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box --outdir outputs/check/<run-id>`; targeted package checks if `ai check` exposes a narrow blocker。
+3. UX simulation: derive actual routes from `apps/web` / `apps/console` and UX Map; run local server or Docker only if required; capture route, console/network, and screenshot evidence when browser tooling is available。
+4. Security review: read-only attacker review subagent + local grep/static checks for CORS/CSP/secrets/auth boundary drift。
+5. Closeout: update docs and ledger; do not mark complete until every explicit requirement has evidence or a documented N/A/blocker。
+
+Initial evidence captured:
+- Project root: `/Users/mauricewen/Projects/10-auth-box`.
+- Worktree before edits: clean; branch `main...origin/main [ahead 1]`; HEAD `4b12253`.
+- Required planning files exist.
+- `ai`, `omx`, `pnpm`, `go`, Docker, and `npx` are installed.
+- Default AI-tools DNA registry validates and doctors successfully; no project-local DNA registry exists yet.
+- CodeGraph status before indexing: not initialized.
+
+Next queue:
+- Run CodeGraph init/index after ignoring `.codegraph/`.
+- Run project-level `ai check` with a fresh output directory.
+- Integrate subagent attacker/verifier results.
+- Update deliverable only after fresh gates produce evidence.
+
+Closeout update:
+- CodeGraph: initialized, synced, and final status is up to date (247 files, 2,806 nodes, 5,761 edges).
+- Round 1: final `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box --outdir outputs/check/20260531T104046Z-wp015-final2` PASS (`ok=true`, two rounds).
+- Round 2: real API E2E PASS 65/65 on ephemeral PostgreSQL/API; final web UX route smoke PASS 12/12; iOS SwiftPM crypto PASS 62 tests; iOS UI simulator PASS 1/1.
+- Critical defects fixed: PostgreSQL migration volatile partial index; MCP policy fail-open/enum drift/missing item identity.
+- Postmortems added: `PM-20260531-001-postgres-partial-index-now.md`, `PM-20260531-002-mcp-policy-fail-open.md`.
+- DNA capsule added and synced: `auth-box-delivery-preflight`; `ai dna validate` PASS, `ai dna doctor` no drift after sync.
+- Attacker review: critical issues fixed; remaining high/medium security findings are documented as release blockers.
+- Three-end consistency: N/A for this local-only run; no GitHub/VPS/production action authorized or executed.
+- Final state: local SOP delivery PASS, public release BLOCKED pending security backlog + GitHub/VPS/production consistency.
+
 ---
 
 Maurice | maurice_wen@proton.me

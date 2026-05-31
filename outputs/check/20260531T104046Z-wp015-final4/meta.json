@@ -1,0 +1,13 @@
+{
+  "schema": "ai-tools.check.result.v1",
+  "started_at": "2026-05-31T11:16:19Z",
+  "base_dir": "/Users/mauricewen/Projects/10-auth-box",
+  "run_dir": "/Users/mauricewen/Projects/10-auth-box/outputs/check/20260531T104046Z-wp015-final4",
+  "options": {
+    "strict": true,
+    "audit": false,
+    "no_sbom": true,
+    "no_tests": false,
+    "rounds": 2
+  }
+}

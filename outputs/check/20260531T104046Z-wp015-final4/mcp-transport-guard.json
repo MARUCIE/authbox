@@ -1,0 +1,6 @@
+{
+  "ok": true,
+  "skipped": true,
+  "reason": "script_missing",
+  "script": "/Users/mauricewen/Projects/10-auth-box/runtime/control_plane/mcp_transport_guard_cli.py"
+}

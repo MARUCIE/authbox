@@ -37,6 +37,7 @@ LastUpdated: 2026-05-31
 | REQ-20260213-023 | 2026-02-13 | SOP 4.1 项目级全链路回归复跑：在当前基线复核 UX Map Round 2 + real API replay + contract loop + ai check | 已完成 | project-regression Run `outputs/project-regression/20260213T021241Z` |
 | REQ-20260322-024 | 2026-03-22 | 全面审查 Auth Box，修复认证/审计/配置层 bug，并提升本地与静态发布 SLA | 已完成 | TOTP login + audit chain + config fail-fast + static headers + 65/65 E2E |
 | REQ-20260531-026 | 2026-05-31 | 收口 `10-auth-box` heavy dirty worktree：登记 native iOS baseline、隔离生成物、移除 tracked tsbuildinfo、补本地验证证据 | 已完成 | `apps/ios`, `.gitignore`, `doc/00_project/initiative_10_auth_box/*`; SwiftPM/Xcode/pnpm gates PASS |
+| REQ-20260531-027 | 2026-05-31 | 将 Step 0 / 一键全量交付 SOP 转化为可审计本地执行循环：planning-with-files、DNA/CodeGraph、attacker review、Round 1 `ai check`、Round 2 UX Map、Task Closeout | local_pass_release_blocked | Local gates PASS; public release blocked by remaining security findings + GitHub/VPS/API health evidence |
 
 ## 提示词台账
 
@@ -55,6 +56,7 @@ LastUpdated: 2026-05-31
 | PROMPT-20260213-011 | 2026-02-13 | 继续（队列执行）：SOP 5.2 发布治理 + SOP 5.3 postmortem 守门（含本地 gate） | 发布守门 | 来自用户“继续”指令 |
 | PROMPT-20260322-012 | 2026-03-22 | 全面审查，修复 bug，提升 SLA；要求直接落地代码、补回归验证、同步 PDCA 文档 | 稳定性整改 | 来自用户指令 |
 | PROMPT-20260531-014 | 2026-05-31 | 继续整理 `/Users/mauricewen/Projects`：关闭 `10-auth-box` heavy dirty WIP，保留 local-only 边界，验证后提交可审计基线 | 项目仓库卫生 / iOS baseline closeout | 来自用户“继续”指令 |
+| PROMPT-20260531-015 | 2026-05-31 | Step 0 / SOP：自动执行命令、自动调用 skill、自动调研优化；队列执行；planning-with-files + ralph loop + ai check + UX Map + attacker review + DNA capsule + Task Closeout | 一键全量交付续跑 | 来自用户目标上下文 |
 
 ## 防回归 Q&A
 
@@ -84,6 +86,9 @@ LastUpdated: 2026-05-31
 | PROMPT-20260322-013 | 2026-03-22 | "执行发布就绪性检查：核对本地/GitHub/VPS 版本一致性，验证 authbox.io 公共路由与公共 API health，并只用项目目录内的新鲜证据判断是否可公开发布" | 适用于上线前最后一轮 go/no-go 审查 |
 | QA-20260322-021 | 2026-03-22 | 为什么 `authbox.io` 页面路由全是 200，仍然不能直接宣布可公开发布？ | 页面可达只证明 Pages 前端在线，不证明当前修复已提交、GitHub/VPS 同步、或公共 API 健康可用 | 发布门禁必须同时验证：项目目录 `ai check`、本地/GitHub/VPS commit 一致、公共 API health、以及核心用户旅程 smoke | 把“主页 200”降级为前端可达性信号，不得替代 release go/no-go 决策 | `doc/00_project/initiative_10_auth_box/notes.md` / `doc/00_project/initiative_10_auth_box/deliverable.md` |
 | QA-20260531-022 | 2026-05-31 | 如何避免 iOS 源码、Xcode/SwiftPM build output 和 TS build cache 混在同一个 dirty worktree 中？ | 新平台基线未登记，生成物 ignore 不完整，且旧 `tsconfig.tsbuildinfo` 已被 Git 跟踪 | 将 `apps/ios` 登记为 native iOS baseline；`.gitignore` 覆盖 Swift/Xcode/runtime output；`git rm --cached` 移除 tracked tsbuildinfo；补 SwiftPM/Xcode/pnpm 验证 | 每次新增平台目录时先分类 source vs generated，并把验证入口写入 root scripts 与 PDCA 文档 | `apps/ios`, `.gitignore`, `package.json`, `doc/00_project/initiative_10_auth_box/notes.md` |
+| QA-20260531-023 | 2026-05-31 | 如何避免一键全量交付续跑时“流程口号很多但证据不可审计”？ | 长 SOP 目标未先落入 task_plan/notes，工具路由和安全边界无法复盘 | 先用 planning-with-files 记录目标/非目标/约束/验收/命令队列，再运行本地 gates；subagent 只做 bounded read-only review | 每批命令以 `cd PROJECT_DIR` + `set -euo pipefail` 开始；Round 1/2/attacker review/Task Closeout 必须有 notes 证据 | `doc/00_project/initiative_10_auth_box/task_plan.md`, `doc/00_project/initiative_10_auth_box/notes.md` |
+| QA-20260531-024 | 2026-05-31 | 为什么 fresh DB migration 会在 `009_critical_indexes.up.sql` 卡死？ | PostgreSQL partial index predicate 使用 volatile `NOW()`；索引谓词必须 immutable | 改为 `(token_hash, expires_at)` composite index，并补迁移 SQL regression test 扫描 volatile partial predicate | 每次新增 migration 运行空库迁移；`services/api/migrations/migration_sql_test.go` 阻止 `CREATE INDEX ... WHERE NOW()` | `postmortem/PM-20260531-001-postgres-partial-index-now.md`, `services/api/migrations/migration_sql_test.go` |
+| QA-20260531-025 | 2026-05-31 | 为什么 MCP policy attacker review 判定 critical？ | MCP policy engine unknown type fail-open，且 API/Web/MCP policy enum 漂移；请求缺少 item scope identity | unknown policy type 默认 deny；统一 canonical policy types；item_scope 缺 request attributes 时 deny；MCP credential/proxy check 传入 `itemId` | Policy enum 变更必须同时更新 shared/API/Web/MCP，并有 fail-closed regression tests | `postmortem/PM-20260531-002-mcp-policy-fail-open.md`, `packages/mcp-protocol/src/policy-engine.test.ts` |
 
 ## 2026-02-18 · REQ（UI/UX 优化）
 | id | requirement | scope | status | evidence |
@@ -156,3 +161,4 @@ LastUpdated: 2026-05-31
 ## Changelog
 - 2026-03-22: 新增发布就绪性检查的 REQ/PROMPT/QA，并补齐 changelog 区块以满足项目级文档门禁。（原因：release readiness hardening）
 - 2026-05-31: 新增 native iOS baseline dirty worktree closeout 的 REQ/PROMPT/QA。（原因：Projects folder audit WP-014）
+- 2026-05-31: 收口 SOP one-click delivery continuation 的本地验收、DNA capsule、postmortem 与 release blocker 台账。（原因：WP-015 local delivery closeout）

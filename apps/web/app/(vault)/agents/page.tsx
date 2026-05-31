@@ -64,8 +64,8 @@ export default function AgentsPage() {
   // Policies for selected agent
   const [policies, setPolicies] = useState<PolicyItem[]>([]);
   const [showPolicyForm, setShowPolicyForm] = useState(false);
-  const [policyType, setPolicyType] = useState('scope_access');
-  const [policyRules, setPolicyRules] = useState('{\n  "allowed_types": ["login"],\n  "actions": ["read"]\n}');
+  const [policyType, setPolicyType] = useState('item_scope');
+  const [policyRules, setPolicyRules] = useState('{\n  "allowedItemIds": ["GitHub"]\n}');
   const [creatingPolicy, setCreatingPolicy] = useState(false);
 
   const fetchAgents = useCallback(async () => {
@@ -173,12 +173,20 @@ export default function AgentsPage() {
         return;
       }
       const rules = parsed as Record<string, unknown>;
-      if (rules.allowed_types && !Array.isArray(rules.allowed_types)) {
-        setError('allowed_types must be an array');
+      if (rules.allowedItemTypes && !Array.isArray(rules.allowedItemTypes)) {
+        setError('allowedItemTypes must be an array');
         return;
       }
-      if (rules.actions && !Array.isArray(rules.actions)) {
-        setError('actions must be an array');
+      if (rules.allowedItemIds && !Array.isArray(rules.allowedItemIds)) {
+        setError('allowedItemIds must be an array');
+        return;
+      }
+      if (rules.allowedFolderIds && !Array.isArray(rules.allowedFolderIds)) {
+        setError('allowedFolderIds must be an array');
+        return;
+      }
+      if (rules.allowedActions && !Array.isArray(rules.allowedActions)) {
+        setError('allowedActions must be an array');
         return;
       }
       await agentApi.createPolicy(sessionToken, selectedId, {
@@ -186,8 +194,8 @@ export default function AgentsPage() {
         rules,
       });
       setShowPolicyForm(false);
-      setPolicyType('scope_access');
-      setPolicyRules('{\n  "allowed_types": ["login"],\n  "actions": ["read"]\n}');
+      setPolicyType('item_scope');
+      setPolicyRules('{\n  "allowedItemIds": ["GitHub"]\n}');
       await fetchPolicies(selectedId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create policy');
@@ -366,10 +374,11 @@ export default function AgentsPage() {
                       onChange={(e) => setPolicyType(e.target.value)}
                       className="flex h-9 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-1 text-sm"
                     >
-                      <option value="scope_access">Scope Access</option>
+                      <option value="item_scope">Item Scope</option>
+                      <option value="action_perm">Action Permission</option>
                       <option value="rate_limit">Rate Limit</option>
                       <option value="time_window">Time Window</option>
-                      <option value="step_up_auth">Step-Up Auth</option>
+                      <option value="step_up">Step-Up</option>
                     </select>
                   </div>
                   <div>

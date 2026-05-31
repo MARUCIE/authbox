@@ -126,8 +126,10 @@ Chrome 扩展检测登录表单，自动填充凭据，保存新凭据。
 | E2 | 点击"注册新 Agent" | 展示注册表单（名称、类型、允许的 scope） | -- |
 | E3 | 填写信息并提交 | 生成 Agent API Key 并展示一次 | POST `/api/v1/agents` |
 | E4 | 复制 API Key | 提示"此 Key 仅显示一次" | -- |
-| E5 | 配置访问策略 | 设置 scope、rate limit、time window、是否需要审批 | POST `/api/v1/agents/:id/policies` |
+| E5 | 配置访问策略 | 设置 item scope、action permission、rate limit、time window、step-up | POST `/api/v1/agents/:id/policies` |
 | E6 | 查看 Agent 活动 | 展示近期凭据访问记录 | GET `/api/v1/audit?agent_id=...` |
+
+2026-05-31 WP-015 evidence: `/agents` route smoke PASS; policy UI defaults now use canonical `item_scope`, `action_perm`, `rate_limit`, `time_window`, `step_up`; MCP policy engine denies unknown policy types and missing required item scope attributes.
 
 ### Journey F: MCP 连接
 
@@ -193,6 +195,15 @@ AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 
 2026-05-31 evidence: Xcode simulator `AuthBox` build PASS; `FullFlowUITests.testFullOnboardingAndVaultFlow` PASS; SwiftPM crypto tests 62/62 PASS; `pnpm run ios:crypto-vectors` PASS.
 
+### WP-015 Round 2 UX Evidence (2026-05-31)
+
+| Surface | Result | Evidence |
+|---|---|---|
+| Web route map | PASS 12/12 | `outputs/sop-one-click-delivery/20260531T104046Z-wp015/round2-web-routes-final-dev2/reports/route_status.txt` |
+| Real API journey backing | PASS 65/65 | ephemeral PostgreSQL/API + `scripts/e2e-test.mjs` |
+| iOS local journey | PASS 1/1 UI + 62 crypto tests | `outputs/sop-one-click-delivery/20260531T104046Z-wp015/round2-ios/` |
+| Release UX claim | BLOCKED for public release | remaining security findings and public API health/three-end consistency not proven |
+
 ## 路由地图
 
 ### Web App Routes
@@ -223,3 +234,4 @@ Maurice | maurice_wen@proton.me
 ## Changelog
 - 2026-03-22: 同步 TOTP step-up 登录与发布就绪性检查现状，补齐 `## Changelog` 以满足项目级文档门禁。（原因：auth reliability + release readiness）
 - 2026-05-31: 新增 iOS App 渠道与 Journey I，并记录本地模拟验证证据；该旅程只覆盖本地 iOS baseline，不替代公开发布门禁。（原因：Projects folder dirty worktree closeout）
+- 2026-05-31: 同步 WP-015 Round 2 UX evidence 与 Agent policy canonical UI/MCP 行为；公开发布 UX claim 仍受安全与线上健康门禁阻塞。（原因：SOP one-click delivery closeout）

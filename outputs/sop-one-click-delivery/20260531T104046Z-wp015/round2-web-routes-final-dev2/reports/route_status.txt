@@ -1,0 +1,12 @@
+/ 200
+/register 200
+/login 200
+/unlock 200
+/create 200
+/restore 200
+/passwords 200
+/api-keys 200
+/authorizations 200
+/agents 200
+/audit 200
+/settings 200

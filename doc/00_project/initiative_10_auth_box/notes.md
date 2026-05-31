@@ -37,6 +37,56 @@ LastUpdated: 2026-05-31
 ### Residual Risk
 - Public release remains blocked by prior 2026-03-22 release readiness gaps unless separately revalidated: GitHub/VPS convergence and public API health are not part of this local cleanup.
 
+## 2026-05-31T10:40:46Z（SOP one-click delivery continuation / WP-015）
+
+### Context
+- User provided Step 0 / SOP objective requiring autonomous queued execution, planning-with-files, ralph-style loop, DNA capsule lookup, CodeGraph preference, attacker review, UX Map Round 2, `ai check` Round 1, and Task Closeout.
+- Current surface: Codex App outside tmux. OMX runtime overlays (`omx team`, `omx question`, runtime `ralph`) are not directly available here, so this run uses project files, native subagents, and local command queues.
+- Scope boundary: no GitHub comments/PR/issue, no push, no Cloudflare/VPS/production mutation, no real secrets, no destructive cleanup.
+
+### Skill / Tool Routing Evidence
+- Loaded skills:
+  - `planning-with-files`: use task_plan / notes / deliverable / PDCA checklist as external memory.
+  - `engineering-protocol`: correctness, simplicity, testability, maintainability, measured performance.
+  - `verification-before-completion`: no completion claim without fresh evidence.
+  - `systematic-debugging`: root cause before fixes if a gate fails.
+- Tool availability:
+  - `ai`: `/Users/mauricewen/00-AI-Fleet/bin/ai`
+  - `omx`: `/Users/mauricewen/.npm-global/bin/omx`
+  - `npx`: `/opt/homebrew/bin/npx`
+  - `pnpm`: `/Users/mauricewen/.npm-global/bin/pnpm`
+  - `go`: `/opt/homebrew/bin/go`
+  - `docker`: `/usr/local/bin/docker`
+- DNA:
+  - First attempted `ai dna search "authbox delivery preflight" --json`; CLI rejected subcommand-position `--json` (`unrecognized arguments: --json`).
+  - Corrected global-position command `ai --json dna search "authbox delivery preflight"` routed through AI-tools router rather than direct DNA JSON search output.
+  - `ai dna validate`: PASS for default AI-tools capsules.
+  - `ai dna doctor`: PASS, no drift detected.
+- CodeGraph:
+  - `ai codegraph status .`: project not initialized.
+  - `.gitignore` updated to keep `.codegraph/` local-only before indexing.
+- Native subagents:
+  - `code-reviewer` read-only attacker review spawned; scope: permission bypass, injection, auth/session/TOTP/SRP, CORS/CSP, vault encryption, extension/MCP exposure.
+  - `verifier` read-only gate audit spawned; scope: Round 1 / Round 2 smallest proof commands and blockers.
+
+### Optimization Suggestion（Tool Calls > 8）
+- Bottleneck: repeated SOP/tool availability discovery in every long run.
+- Skill direction: create a zero-dependency `auth-box-delivery-preflight` DNA capsule that records command queue, docs paths, and verification gates.
+- Validation command: `ai dna validate && ai dna doctor`.
+
+### Current Evidence
+- Git preflight before edits: worktree clean; `main...origin/main [ahead 1]`; HEAD `4b12253 Make the native iOS baseline auditable and repeatable`.
+- Project docs already contain `PROJECT_DIR` managed blocks and required planning files.
+- `package.json` scripts: `build`, `dev`, `ios:crypto-vectors`, `test`, `lint`, `typecheck`, `clean`, `format`.
+- Makefile targets include `test-api`, `test-crypto`, `full-loop-check`, `postmortem-scan`, `risk-classify`, `release-gate`, `agent-design-check`.
+
+### Next Command Queue
+1. Initialize/index CodeGraph cache locally.
+2. Run fresh `ai check` under `PROJECT_DIR`.
+3. Run targeted checks if `ai check` identifies a narrow blocker.
+4. Run UX Map local simulation only after route/server evidence is current.
+5. Fold subagent findings into security and verification sections.
+
 ## 2026-01-29
 - `ai skills run planning-with-files` 因 skill runner ImportError 失败，按技能回退说明手动初始化。
 
@@ -1562,3 +1612,66 @@ Cumulative: Round 4-7 = 50 optimization items total.
   - summary: `outputs/release-gate/20260322T021557Z/reports/release_gate_summary.json`
 - `packages/crypto` live Arweave probes are now opt-in (`AUTHBOX_LIVE_ARWEAVE=1`); default gate is deterministic (`51 passed, 2 skipped`) instead of depending on third-party TLS/network state.
 - Conclusion: internal/local product flow and project-scoped Round 1 gate are green, but public release/promotion gate remains BLOCKED until code is committed, GitHub/VPS are re-synced, and public API health is recovered.
+
+## SOP One-Click Delivery Continuation (2026-05-31 / WP-015)
+
+### Scope And Boundaries
+
+- Project root: `/Users/mauricewen/Projects/10-auth-box`.
+- Initial HEAD: `4b12253c9c117ea0c5a41c6d62c2cef161ce508a`.
+- Mode: local-only autonomous delivery loop using planning-with-files, native subagents, CodeGraph, DNA, `ai check`, UX Map route smoke, iOS simulator evidence, and attacker review.
+- Non-goals preserved: no GitHub push/comment, no Cloudflare/VPS/production mutation, no production data, no history rewrite.
+
+### Implemented Fixes
+
+1. PostgreSQL migration 009 failed on fresh DB because a partial index used volatile `NOW()` in the predicate.
+   - Fixed `services/api/migrations/009_critical_indexes.up.sql` to use `(token_hash, expires_at)`.
+   - Fixed `services/api/migrations/009_critical_indexes.down.sql`.
+   - Added `services/api/migrations/migration_sql_test.go`.
+2. MCP policy enforcement had a critical fail-open/drift issue.
+   - `packages/mcp-protocol/src/policy-engine.ts`: unknown policy types deny by default; item-scope policies deny when required request scope is missing.
+   - `packages/mcp-protocol/src/server.ts`: credential/proxy policy checks include requested service identity as `itemId`.
+   - `services/api/internal/handler/agent_handler.go`: canonical policy types now match MCP/shared semantics.
+   - `apps/web/app/(vault)/agents/page.tsx`: policy creation defaults and validation now use canonical `item_scope`, `action_perm`, `rate_limit`, `time_window`, `step_up`.
+   - Added regression tests in `packages/mcp-protocol/src/policy-engine.test.ts` and `services/api/internal/handler/agent_handler_test.go`.
+3. Postmortem gate maintenance.
+   - Added `postmortem/PM-20260531-001-postgres-partial-index-now.md`.
+   - Added `postmortem/PM-20260531-002-mcp-policy-fail-open.md`.
+   - Fixed `Makefile` `postmortem-scan` to use `BASE/HEAD` overrides instead of a stale hardcoded base SHA.
+4. DNA reuse capsule.
+   - Created `/Users/mauricewen/00-AI-Fleet/dna/capsules/auth-box-delivery-preflight/SKILL.md`.
+   - Registry updated at `/Users/mauricewen/00-AI-Fleet/configs/dna-registry.json`.
+
+### Verification Evidence
+
+- CodeGraph init/status: `outputs/sop-one-click-delivery/20260531T104046Z-wp015/logs/codegraph_init_status.log`.
+- CodeGraph final sync/status: `outputs/sop-one-click-delivery/20260531T104046Z-wp015/logs/final-verification/codegraph_sync.log`, `codegraph_status_after_sync.log`; final index 247 files, 2,806 nodes, 5,761 edges, up to date.
+- Round 1 initial `ai check`: `outputs/check/20260531T104046Z-wp015-goproxy`.
+- Final `ai check`: PASS, `ok=true`, `rounds=2`, run dir `outputs/check/20260531T104046Z-wp015-final2`.
+- Final package/API/web/CodeGraph gate: `outputs/sop-one-click-delivery/20260531T104046Z-wp015/logs/final-verification/package-api-web-codegraph.log`.
+  - `pnpm --filter @authbox/mcp-protocol test`: PASS.
+  - `pnpm --filter @authbox/mcp-protocol build`: PASS.
+  - `pnpm --filter @authbox/web typecheck`: PASS.
+  - `pnpm --filter @authbox/web build`: PASS, 16 static pages.
+  - `(cd services/api && go test ./...)`: PASS.
+- Round 2 real API E2E after migration fix: local ephemeral PostgreSQL + API `scripts/e2e-test.mjs http://localhost:18081`: PASS 65/65.
+- Round 2 final web route smoke after `/agents` policy UI change: `outputs/sop-one-click-delivery/20260531T104046Z-wp015/round2-web-routes-final-dev2/reports/route_status.txt`; all 12 UX routes returned HTTP 200.
+- iOS crypto evidence: `outputs/sop-one-click-delivery/20260531T104046Z-wp015/round2-ios/logs/ios_crypto.log`; SwiftPM 62 tests PASS and `pnpm run ios:crypto-vectors` PASS.
+- iOS simulator UI evidence: XcodeBuildMCP `AuthBoxUITests/FullFlowUITests/testFullOnboardingAndVaultFlow` PASS, 1 test, zero warnings/errors; screenshot copied to `outputs/sop-one-click-delivery/20260531T104046Z-wp015/round2-ios/screenshots/full_flow_after_test.jpg`.
+- DNA validation: `outputs/sop-one-click-delivery/20260531T104046Z-wp015/logs/final-verification/dna_validate.log`; PASS.
+- DNA sync/doctor: `dna_sync.log`, `dna_doctor_after_sync.log`; no drift after sync, but OpenClaw runtime recognition warnings remain for all DNA-managed skills and are treated as tool-runtime warning, not registry drift.
+- Postmortem gate: `outputs/sop-one-click-delivery/20260531T104046Z-wp015/logs/final-verification/postmortem_scan_after_makefile_fix.log`; PASS.
+
+### Attacker Review Result
+
+- Critical findings fixed in this run:
+  - MCP unknown policy types no longer fail open.
+  - API/Web/MCP policy enum drift corrected.
+  - MCP credential/proxy policy checks now carry item identity and deny missing required scope attributes.
+- Remaining release blockers carried forward:
+  - API key in URL query string risk.
+  - Proxy SSRF/data exfiltration hardening still incomplete.
+  - SRP M2 proof verification gap remains in some clients.
+  - Plaintext TOTP seed exposure risk.
+  - CSP/PNA/content-type/extension permission hardening items from attacker review remain unclosed.
+- Release verdict: local delivery gates PASS; public release remains BLOCKED until the remaining security findings are closed or explicitly risk-accepted and GitHub/VPS/production consistency is proven.

@@ -83,7 +83,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 ### Phase 3: AI Agent Gateway
 
 - Agent 注册与 API Key 分发
-- 访问策略引擎（scope/rate-limit/time-window/approval）
+- 访问策略引擎（item_scope/action_perm/rate_limit/time_window/step_up）
 - MCP 工具集：`get_credential`、`proxy_authenticated_request`、`list_available_services`
 - Agent 活动审计与仪表盘
 
@@ -184,6 +184,7 @@ Auth Box v2 定位为 **零知识加密的数字身份网关**，统一管理三
 - 2026-03-22 发布就绪性检查：Auth Box 本地修复尚未提交；`origin/main`=`97336bf`，但 `vps-prod:/root/10-auth-box`=`850c226` 且 worktree 不干净；`authbox.io` 页面路由可达，但 `https://authbox.io/health` 返回 404、`api.authbox.io` 未解析、VPS `localhost:4010/health` 连接失败
 - 发布门禁现状：项目级 `ai check --base-dir /Users/mauricewen/Projects/10-auth-box` 已 PASS（run_dir=`outputs/check/20260322-021252-a7b35035`），但公开发布仍缺本地/GitHub/VPS 版本收敛 + 线上 API 健康证明
 - 2026-05-31 本地 dirty worktree closeout：`apps/ios` 原生 iOS 基线已审计并通过本地验证（SwiftPM crypto tests 62/62 PASS、Xcode simulator build PASS、UI test 1/1 PASS、TS crypto vector generator PASS；Xcode build/test zero warnings/errors；project `ai check` PASS with alternate Go proxy）；未执行 GitHub push、Cloudflare Pages deploy、VPS 变更或生产验证。
+- 2026-05-31 WP-015 本地一键交付续跑：CodeGraph、DNA capsule、final `ai check`、package/API/web gates、real API E2E、Web route smoke、iOS crypto/UI、postmortem gate 均 PASS；同时修复 migration 009 与 MCP policy critical；公开发布仍 BLOCKED 于剩余 attacker review high/medium findings + GitHub/VPS/production consistency。
 
 ---
 
@@ -192,3 +193,4 @@ Maurice | maurice_wen@proton.me
 ## Changelog
 - 2026-03-22: 将 M5.4 状态调整为 release gate blocked，并记录本地/GitHub/VPS/API health 现状。（原因：release readiness checkpoint）
 - 2026-05-31: 将 iOS native baseline 纳入 PRD 技术栈、里程碑与当前状态；范围限定为本地可构建/可测试基线，不代表发布就绪。（原因：Projects folder dirty worktree closeout）
+- 2026-05-31: 同步 WP-015 本地一键交付结果与 MCP policy canonical types；公开发布仍按安全与三端一致性阻塞。（原因：SOP one-click delivery closeout）

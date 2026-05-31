@@ -52,6 +52,25 @@ Related:
 - [x] Round 2 UX simulation：Xcode UI test `FullFlowUITests.testFullOnboardingAndVaultFlow` PASS, zero warnings/errors
 - [x] 三端一致性：N/A for this local-only cleanup; no GitHub/VPS/production action
 
+## 2026-05-31 SOP one-click delivery continuation
+- [x] planning-with-files loaded and current task_plan/notes/deliverable/checklist read
+- [x] SOP objective recorded in task_plan and notes
+- [x] Skill/tool routing evidence recorded
+- [x] DNA validate/doctor checked against default AI-tools registry
+- [x] DNA capsule `auth-box-delivery-preflight` created, synced, and validated
+- [x] CodeGraph initialized/indexed and final status up to date
+- [x] Round 1 automated checks completed with fresh evidence (`outputs/check/20260531T104046Z-wp015-final2`)
+- [x] Round 2 UX Map simulation completed with fresh evidence (API 65/65, web route 12/12, iOS UI 1/1)
+- [x] Attacker review completed; critical findings fixed and remaining high/medium findings documented as release blockers
+- [x] Postmortems added for migration and MCP policy regressions
+- [x] Task Closeout updated in deliverable
+- [x] Rolling Ledger updated
+- [x] Three-end consistency marked N/A with evidence: local-only run, no GitHub/VPS/production authority used
+
+Release status:
+- Local SOP delivery: PASS.
+- Public release: BLOCKED until remaining security findings, GitHub/VPS commit consistency, and public API health are proven.
+
 ## 测试结果
 - UX Map Journey 0: PASS
   - Z1: docker compose up - 所有容器启动成功
@@ -61,3 +80,4 @@ Related:
 ## Changelog
 - 2026-03-22: 补齐 changelog 区块，并将项目级 `ai check` 与 release readiness 复核纳入当前巡检背景。（原因：release readiness hardening）
 - 2026-05-31: 新增 iOS baseline cleanup 巡查项与 local-only release boundary。（原因：Projects folder dirty worktree closeout）
+- 2026-05-31: 收口 SOP one-click delivery continuation：CodeGraph、DNA、Round 1、Round 2、attacker review 与 postmortem gate 均有新鲜证据；公开发布仍按安全/三端一致性阻塞处理。（原因：WP-015 local delivery closeout）

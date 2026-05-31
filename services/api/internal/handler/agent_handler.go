@@ -19,7 +19,7 @@ var validAgentTypes = map[string]bool{
 	"claude": true, "gpt": true, "gemini": true, "custom": true,
 }
 var validPolicyTypes = map[string]bool{
-	"scope": true, "rate_limit": true, "time_window": true, "approval": true,
+	"item_scope": true, "action_perm": true, "rate_limit": true, "time_window": true, "step_up": true,
 }
 
 type AgentHandler struct {

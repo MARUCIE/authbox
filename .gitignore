@@ -13,10 +13,14 @@ out/
 apps/ios/**/.build/
 apps/ios/**/xcuserdata/
 DerivedData/
+outputs/**/DerivedData/
 *.xcuserstate
 
 # Turborepo
 .turbo/
+
+# Local code intelligence cache
+.codegraph/
 
 # pnpm
 pnpm-debug.log*

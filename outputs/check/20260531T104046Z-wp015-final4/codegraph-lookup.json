@@ -1,0 +1,85 @@
+{
+  "ok": true,
+  "command": [
+    "/Users/mauricewen/.npm-global/bin/codegraph",
+    "query",
+    "main",
+    "--path",
+    "/Users/mauricewen/Projects/10-auth-box",
+    "--limit",
+    "5",
+    "--json"
+  ],
+  "duration": 0.19857478141784668,
+  "returncode": 0,
+  "parse_error": null,
+  "match_count": 5,
+  "result": [
+    {
+      "node": {
+        "id": "function:4642f9271e1dab31c5f82bbfd71de2e8",
+        "kind": "function",
+        "name": "main",
+        "qualifiedName": "main",
+        "filePath": "services/api/cmd/api/main.go",
+        "language": "go",
+        "startLine": 62,
+        "endLine": 274,
+        "startColumn": 0,
+        "endColumn": 1,
+        "signature": "()",
+        "visibility": null,
+        "isExported": false,
+        "isAsync": false,
+        "isStatic": false,
+        "isAbstract": false,
+        "updatedAt": 1780224255770
+      },
+      "score": 111.76220139344284
+    },
+    {
+      "node": {
+        "id": "function:2223b450d1b539beb710ed1f658fc54c",
+        "kind": "function",
+        "name": "main",
+        "qualifiedName": "main",
+        "filePath": "packages/mcp-protocol/src/stdio-server.ts",
+        "language": "typescript",
+        "startLine": 51,
+        "endLine": 54,
+        "startColumn": 0,
+        "endColumn": 1,
+        "signature": "()",
+        "visibility": null,
+        "isExported": false,
+        "isAsync": true,
+        "isStatic": false,
+        "isAbstract": false,
+        "updatedAt": 1780224255651
+      },
+      "score": 98.76220139344284
+    },
+    {
+      "node": {
+        "id": "function:b7ef7eaca9f3fc1f1ac10a4b48595497",
+        "kind": "function",
+        "name": "main",
+        "qualifiedName": "main",
+        "filePath": "scripts/public_bundle_smoke.mjs",
+        "language": "javascript",
+        "startLine": 175,
+        "endLine": 206,
+        "startColumn": 0,
+        "endColumn": 1,
+        "signature": "()",
+        "visibility": null,
+        "isExported": false,
+        "isAsync": true,
+        "isStatic": false,
+        "isAbstract": false,
+        "updatedAt": 1780224255762
+      },
+      "score": 98.76220139344284
+    }
+  ]
+}

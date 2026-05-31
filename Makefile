@@ -130,7 +130,7 @@ full-loop-check: ## Run full-loop closure check (entry/system/contract/verificat
 	@scripts/full_loop_closure_check.sh --project-dir .
 
 postmortem-scan: ## Run postmortem trigger scan (local gate)
-	@scripts/postmortem_scan.sh --base 007eff50b0400d8642f798419b6cc5e2bf4b5c4c --head HEAD
+	@scripts/postmortem_scan.sh --base $${BASE:-HEAD~1} --head $${HEAD:-HEAD}
 
 risk-classify: ## Classify release risk (P0/P1/P2)
 	@scripts/release_risk_classify.sh --base $${BASE:-HEAD~1} --head $${HEAD:-HEAD}

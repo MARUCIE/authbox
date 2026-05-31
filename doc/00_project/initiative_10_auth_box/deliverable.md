@@ -1153,5 +1153,55 @@ LastUpdated: 2026-05-31
   - GitHub 与 VPS 版本不一致
   - 公共 API health 未恢复
 
+## 2026-05-31 · SOP One-Click Delivery Continuation / WP-015
+
+### 交付内容
+
+1. 本地一键交付证据链
+   - 用 planning-with-files 记录目标、非目标、约束、验收标准与命令队列。
+   - 初始化并同步 CodeGraph；`.codegraph/` 作为本地缓存由 `.gitignore` 接管。
+   - 新增 DNA capsule：`auth-box-delivery-preflight`（AI-Fleet registry），用于复用 AuthBox delivery preflight。
+2. 关键缺陷修复
+   - 修复 fresh PostgreSQL migration 009：移除 volatile `NOW()` partial index predicate，改为 `(token_hash, expires_at)` composite index。
+   - 修复 MCP policy critical：unknown policy type fail-closed；API/Web/MCP policy enum 对齐；item_scope 缺必要 request scope 时 deny；MCP credential/proxy request 传入 item identity。
+   - 修复 `make postmortem-scan` stale base SHA，使其支持 `BASE/HEAD` 覆盖。
+3. 防回归资产
+   - 新增 `services/api/migrations/migration_sql_test.go`。
+   - 新增 `packages/mcp-protocol/src/policy-engine.test.ts`。
+   - 新增 `services/api/internal/handler/agent_handler_test.go`。
+   - 新增 `postmortem/PM-20260531-001-postgres-partial-index-now.md`。
+   - 新增 `postmortem/PM-20260531-002-mcp-policy-fail-open.md`。
+
+### 验收结果
+
+- Round 1: final `ai check` PASS（`outputs/check/20260531T104046Z-wp015-final2`, `ok=true`, two rounds）。
+- Package/API/Web gates: PASS（`pnpm --filter @authbox/mcp-protocol test/build`, `pnpm --filter @authbox/web typecheck/build`, `(cd services/api && go test ./...)`）。
+- CodeGraph: PASS（final status up to date: 247 files, 2,806 nodes, 5,761 edges）。
+- Round 2 UX Map:
+  - Real API E2E: PASS 65/65 on local ephemeral PostgreSQL/API.
+  - Web routes: PASS 12/12 HTTP 200 (`/`, `/register`, `/login`, `/unlock`, `/create`, `/restore`, `/passwords`, `/api-keys`, `/authorizations`, `/agents`, `/audit`, `/settings`).
+  - iOS crypto: PASS 62 SwiftPM tests + `pnpm run ios:crypto-vectors`.
+  - iOS simulator UI: PASS 1/1 `FullFlowUITests.testFullOnboardingAndVaultFlow`.
+- DNA:
+  - `ai dna validate`: PASS.
+  - `ai dna sync`: changed=1 for `auth-box-delivery-preflight`.
+  - `ai dna doctor`: no drift after sync; OpenClaw runtime emits recognition warnings for DNA-managed skills.
+- Postmortem gate: `make postmortem-scan` PASS after Makefile fix.
+
+### Task Closeout
+
+- [x] Skills: `auth-box-delivery-preflight` DNA capsule created under AI-Fleet and synced.
+- [x] PDCA 四文档：PRD / SYSTEM_ARCHITECTURE / USER_EXPERIENCE_MAP / PLATFORM_OPTIMIZATION_PLAN 已同步本地交付状态与 release blocker。
+- [x] 底层规范（CLAUDE/AGENTS）：N/A，本轮未新增跨项目底层规则；新增的是 DNA capsule 与项目 postmortems。
+- [x] Rolling Ledger：REQ-20260531-027、QA-20260531-024、QA-20260531-025 已更新。
+- [x] 技术债收口：本轮发现的 migration、MCP policy、postmortem-scan gate 均已在当前边界内修复。
+- [x] 三端一致性：N/A，本轮明确 local-only；未执行 GitHub/VPS/Cloudflare/production 操作。
+
+### 结论
+
+- Local SOP delivery: PASS.
+- Public release: BLOCKED. Attacker review critical findings已修复，但 high/medium 安全项仍需关闭或明确风险接受；同时仍需 GitHub/VPS/production commit/API health 一致性证据。
+
 ## Changelog
 - 2026-03-22: 追加发布就绪性检查交付，并补齐 changelog 区块以满足项目级文档门禁。（原因：release readiness hardening）
+- 2026-05-31: 追加 WP-015 一键交付续跑交付与 Task Closeout；结论限定为 local PASS / public release BLOCKED。（原因：SOP one-click delivery closeout）

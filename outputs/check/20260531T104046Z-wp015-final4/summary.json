@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "finished_at": "2026-05-31T11:16:57Z",
+  "run_dir": "/Users/mauricewen/Projects/10-auth-box/outputs/check/20260531T104046Z-wp015-final4",
+  "rounds": 2,
+  "checks": {
+    "docs": true,
+    "no_emoji": true,
+    "registry": true,
+    "instruction_mirror_drift": true,
+    "foundation_surface_audit": true,
+    "mcp_transport_guard": true,
+    "aaas_contracts": true,
+    "codegraph_lookup": true,
+    "sbom": true,
+    "skill_integrity": true,
+    "audit": true,
+    "tests": true
+  },
+  "skipped": [
+    "aaas_contracts",
+    "audit",
+    "foundation_surface_audit",
+    "instruction_mirror_drift",
+    "mcp_transport_guard",
+    "registry",
+    "sbom",
+    "skill_integrity"
+  ]
+}

@@ -250,6 +250,7 @@ export class AuthBoxMCPServer {
     const request: AccessRequest = {
       agentId: session.agentId,
       action: 'read',
+      itemId: serviceName,
     };
 
     const decision = this.policyEngine.evaluate(policies, request);
@@ -310,6 +311,7 @@ export class AuthBoxMCPServer {
     const request: AccessRequest = {
       agentId: session.agentId,
       action: 'proxy',
+      itemId: serviceName,
     };
 
     const decision = this.policyEngine.evaluate(policies, request);

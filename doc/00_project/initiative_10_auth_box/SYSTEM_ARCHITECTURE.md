@@ -823,6 +823,21 @@ graph TD
 | Extension parallel fetch (Promise.all) | Unlock ~40% faster |
 | .dockerignore | ~35% smaller image |
 
+### WP-015 本地交付架构状态 (2026-05-31)
+
+| 面 | 结论 | 证据 |
+|---|---|---|
+| CodeGraph | Up to date | 247 files, 2,806 nodes, 5,761 edges |
+| Round 1 Gate | PASS | `outputs/check/20260531T104046Z-wp015-final2` |
+| Web Static Export | PASS | 16 static pages, `/agents` included |
+| API Test Surface | PASS | `(cd services/api && go test ./...)` |
+| Real API E2E | PASS | 65/65 on ephemeral PostgreSQL/API |
+| UX Routes | PASS | 12/12 HTTP 200 via local dev server |
+| iOS | PASS | SwiftPM 62 tests + simulator UI 1/1 |
+| MCP Policy Critical | FIXED | fail-closed unknown policy + canonical policy types |
+| Migration 009 | FIXED | composite `(token_hash, expires_at)` index |
+| Public Release | BLOCKED | remaining attacker review high/medium findings + GitHub/VPS/API health consistency |
+
 ## 13. AI 基建凭据目录
 
 Auth Box 不仅管理密码，还是 **AI Agent 基建凭据中枢**：
@@ -854,3 +869,4 @@ Maurice | maurice_wen@proton.me
 ## Changelog
 - 2026-03-22: 架构文档继续回写发布就绪性检查结果，并补齐项目级 `ai check` 所需 changelog 区块。（原因：release readiness hardening）
 - 2026-05-31: 登记 native iOS baseline 架构与本地验证证据，并限定其不改变公开发布门禁。（原因：Projects folder dirty worktree closeout）
+- 2026-05-31: 回写 WP-015 本地交付架构状态、MCP policy critical fix 与 migration 009 fix；公开发布仍保持 blocked。（原因：SOP one-click delivery closeout）
