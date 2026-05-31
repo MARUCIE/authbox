@@ -849,6 +849,15 @@ graph TD
 | API boundary | PNA is explicit-preflight only; JSON content type uses parsed media type | Go middleware tests |
 | Extension | Host permissions are AuthBox/local API only; content script excludes AuthBox/local origins | extension typecheck/build |
 
+### WP-017 Console release gate dependency convergence (2026-05-31)
+
+| Surface | Architecture Decision | Verification |
+|---|---|---|
+| Console runtime | Use Next 15.5.18 on `apps/console` to remove critical/high release-gate audit findings | `npm audit --audit-level=high` PASS |
+| App Router contract | Treat dynamic `params` and `searchParams` as async page inputs | `npm run build` PASS, 31 routes |
+| Release gate | P0 local gate requires explicit gatekeeper and critical/high console audit closure | `outputs/release-gate/20260531T154354Z/reports/release_gate_summary.json` PASS |
+| Production boundary | No Cloudflare/VPS/production mutation in this round | Public API health remains separate release evidence |
+
 ## 13. AI 基建凭据目录
 
 Auth Box 不仅管理密码，还是 **AI Agent 基建凭据中枢**：
@@ -882,3 +891,4 @@ Maurice | maurice_wen@proton.me
 - 2026-05-31: 登记 native iOS baseline 架构与本地验证证据，并限定其不改变公开发布门禁。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 回写 WP-015 本地交付架构状态、MCP policy critical fix 与 migration 009 fix；公开发布仍保持 blocked。（原因：SOP one-click delivery closeout）
 - 2026-05-31: 回写 WP-016 本地 release-blocker architecture decisions；公开发布 blocker 收敛为三端一致性与 public API health。（原因：local release-blocker hardening）
+- 2026-05-31: 回写 WP-017 console dependency and App Router compatibility decision；本地 release gate 通过但 production health 仍需单独证明。（原因：release gate convergence）

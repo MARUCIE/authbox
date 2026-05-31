@@ -1239,6 +1239,43 @@ LastUpdated: 2026-05-31
 - Local SOP delivery: PASS.
 - Public release: BLOCKED. Attacker review critical findings已修复，但 high/medium 安全项仍需关闭或明确风险接受；同时仍需 GitHub/VPS/production commit/API health 一致性证据。
 
+## 2026-05-31 · Release Gate Dependency Security Convergence / WP-017
+
+### 交付内容
+
+1. Console dependency security unblock
+   - `apps/console` upgraded from `next@14.2.5` to `next@15.5.18`.
+   - Dynamic route pages updated for Next 15 async `params`.
+   - Query-driven pages updated for Next 15 async `searchParams`.
+2. Release gate evidence
+   - Console build now passes on Next 15.
+   - Console audit threshold now has zero critical/high findings.
+   - Full local release gate passes with explicit P0 gatekeeper signoff.
+
+### 验收结果
+
+- `npm run build` in `apps/console`: PASS, 31 app routes.
+- `npm audit --audit-level=high`: PASS.
+- `npm audit --json`: `critical=0`, `high=0`, `moderate=2`, `total=2`.
+- `GATEKEEPER=MARUCIE BASE=origin/main HEAD=HEAD make release-gate`: PASS.
+- Release gate summary: `outputs/release-gate/20260531T154354Z/reports/release_gate_summary.json`.
+- Round 1 `ai check`: PASS, `outputs/check/20260531-154415-114f8034`, two rounds.
+
+### Task Closeout
+
+- [x] Skills: N/A（本轮为项目依赖安全与 Next 15 兼容修复，未抽取跨项目 skill）。
+- [x] PDCA 四文档：PRD / SYSTEM_ARCHITECTURE / USER_EXPERIENCE_MAP / PLATFORM_OPTIMIZATION_PLAN 已同步 release gate 状态。
+- [x] 底层规范（CLAUDE/AGENTS）：N/A（未新增跨项目底层规则）。
+- [x] Rolling Ledger：REQ-20260531-029、PROMPT-20260531-017、QA-20260531-029 已更新。
+- [x] 技术债收口：critical/high npm audit blocker 已关闭；PostCSS moderate 作为 upstream Next dependency advisory 保留观察，不阻断当前 P0 gate。
+- [x] 三端一致性：local gate PASS；GitHub check evidence 待 push 后确认；VPS/production 未触碰，public API health 仍需单独验证。
+
+### 结论
+
+- Local release gate: PASS.
+- Public production promotion: still requires GitHub workflow evidence plus VPS/production/public API health verification.
+
 ## Changelog
 - 2026-03-22: 追加发布就绪性检查交付，并补齐 changelog 区块以满足项目级文档门禁。（原因：release readiness hardening）
 - 2026-05-31: 追加 WP-015 一键交付续跑交付与 Task Closeout；结论限定为 local PASS / public release BLOCKED。（原因：SOP one-click delivery closeout）
+- 2026-05-31: 追加 WP-017 release gate dependency security convergence；结论限定为 local gate PASS / production promotion pending。（原因：console audit blocker closeout）

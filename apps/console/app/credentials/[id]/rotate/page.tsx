@@ -1,16 +1,18 @@
 import { PageShell } from "../../../../components/page-shell";
 
-export default function CredentialRotatePage({
+export default async function CredentialRotatePage({
   params
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   return (
     <PageShell
       title="Rotate credential"
       description="Trigger a rotation and update downstream bindings."
     >
-      <p className="muted">Credential ID: {params.id}</p>
+      <p className="muted">Credential ID: {id}</p>
     </PageShell>
   );
 }

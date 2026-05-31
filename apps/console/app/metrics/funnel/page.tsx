@@ -7,7 +7,7 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 type FunnelMetricsPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     window_minutes?: string;
     bucket_minutes?: string;
     recent_limit?: string;
@@ -15,7 +15,7 @@ type FunnelMetricsPageProps = {
     persona?: string;
     tenant_id?: string;
     route?: string;
-  };
+  }>;
 };
 
 function parsePositiveInt(value?: string): number | undefined {
@@ -41,15 +41,16 @@ function formatDateTime(value: string): string {
   return date.toISOString();
 }
 
-export default function FunnelMetricsPage({ searchParams }: FunnelMetricsPageProps) {
+export default async function FunnelMetricsPage({ searchParams }: FunnelMetricsPageProps) {
+  const resolvedSearchParams = await searchParams;
   const analytics = getPublicTelemetryAnalytics({
-    windowMinutes: parsePositiveInt(searchParams?.window_minutes),
-    bucketMinutes: parsePositiveInt(searchParams?.bucket_minutes),
-    recentLimit: parsePositiveInt(searchParams?.recent_limit),
-    source: searchParams?.source,
-    persona: searchParams?.persona,
-    tenantId: searchParams?.tenant_id,
-    route: searchParams?.route
+    windowMinutes: parsePositiveInt(resolvedSearchParams?.window_minutes),
+    bucketMinutes: parsePositiveInt(resolvedSearchParams?.bucket_minutes),
+    recentLimit: parsePositiveInt(resolvedSearchParams?.recent_limit),
+    source: resolvedSearchParams?.source,
+    persona: resolvedSearchParams?.persona,
+    tenantId: resolvedSearchParams?.tenant_id,
+    route: resolvedSearchParams?.route
   });
   const persistence = getTelemetryPersistenceInfo();
 

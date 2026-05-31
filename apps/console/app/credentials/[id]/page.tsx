@@ -1,16 +1,18 @@
 import { PageShell } from "../../../components/page-shell";
 
-export default function CredentialDetailPage({
+export default async function CredentialDetailPage({
   params
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   return (
     <PageShell
       title="Credential detail"
       description="Inspect credential status and rotation history."
     >
-      <p className="muted">Credential ID: {params.id}</p>
+      <p className="muted">Credential ID: {id}</p>
     </PageShell>
   );
 }

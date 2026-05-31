@@ -39,6 +39,7 @@ LastUpdated: 2026-05-31
 | REQ-20260531-026 | 2026-05-31 | 收口 `10-auth-box` heavy dirty worktree：登记 native iOS baseline、隔离生成物、移除 tracked tsbuildinfo、补本地验证证据 | 已完成 | `apps/ios`, `.gitignore`, `doc/00_project/initiative_10_auth_box/*`; SwiftPM/Xcode/pnpm gates PASS |
 | REQ-20260531-027 | 2026-05-31 | 将 Step 0 / 一键全量交付 SOP 转化为可审计本地执行循环：planning-with-files、DNA/CodeGraph、attacker review、Round 1 `ai check`、Round 2 UX Map、Task Closeout | local_pass_release_blocked | Local gates PASS; attacker review findings carried into WP-016; public release blocked by GitHub/VPS/API health evidence |
 | REQ-20260531-028 | 2026-05-31 | 收口本地 release blockers：SRP M2、query-string keys、MCP proxy SSRF、TOTP seed encryption、PNA/content-type、extension permissions、settings manual TOTP exposure | local_pass_release_blocked | Local code/test gates PASS; public release still requires GitHub/VPS/production consistency + public API health |
+| REQ-20260531-029 | 2026-05-31 | 收口 console release gate dependency security blocker：升级 Next、适配 App Router async props、关闭 critical/high audit findings 并复跑 release gate | local_gate_passed | `GATEKEEPER=MARUCIE BASE=origin/main HEAD=HEAD make release-gate` PASS; production promotion still needs remote/API health evidence |
 
 ## 提示词台账
 
@@ -59,6 +60,7 @@ LastUpdated: 2026-05-31
 | PROMPT-20260531-014 | 2026-05-31 | 继续整理 `/Users/mauricewen/Projects`：关闭 `10-auth-box` heavy dirty WIP，保留 local-only 边界，验证后提交可审计基线 | 项目仓库卫生 / iOS baseline closeout | 来自用户“继续”指令 |
 | PROMPT-20260531-015 | 2026-05-31 | Step 0 / SOP：自动执行命令、自动调用 skill、自动调研优化；队列执行；planning-with-files + ralph loop + ai check + UX Map + attacker review + DNA capsule + Task Closeout | 一键全量交付续跑 | 来自用户目标上下文 |
 | PROMPT-20260531-016 | 2026-05-31 | 继续：基于上一轮 attacker review 直接修复本地 release blockers，跑 package/API/iOS/Web/Extension/ai check/UX smoke，并保持 production/GitHub/VPS out-of-scope | release-blocker hardening | 来自用户“继续”指令 |
+| PROMPT-20260531-017 | 2026-05-31 | 继续：推进 release convergence，关闭本地 release gate 的 console security audit blocker，验证后提交并同步远端检查 | release gate convergence | 来自用户“继续”指令 |
 
 ## 防回归 Q&A
 
@@ -94,6 +96,7 @@ LastUpdated: 2026-05-31
 | QA-20260531-026 | 2026-05-31 | 为什么 SRP 登录不能只验证 M1/client proof 后就信任 session？ | 客户端未验证 server proof M2，无法证明服务端持有同一 SRP session key | 在 web/extension/iOS 和 shared crypto 中验证 M2，失败即拒绝 session/vault key | SRP 客户端变更必须覆盖 valid/tampered M2 tests；TOTP pending 前也必须先验证 M2 | `packages/crypto/src/srp.ts`, `apps/web/lib/auth.ts`, `apps/extension/src/popup/App.tsx`, `apps/ios/AuthBox/Sources/Core/Network/APIClient.swift` |
 | QA-20260531-027 | 2026-05-31 | 为什么 MCP proxy 不能接受任意 agent-supplied URL/headers？ | proxy 工具可被诱导访问内网/localhost 或携带凭据头转发，形成 SSRF/数据外泄 | 新增 `sanitizeProxyRequest`：service host binding、DNS/private-IP rejection、credential header denial、method/body limits | proxy 工具新增测试必须覆盖 host mismatch、localhost/private DNS、forbidden auth headers、GET body | `packages/mcp-protocol/src/proxy-security.ts`, `packages/mcp-protocol/src/proxy-security.test.ts` |
 | QA-20260531-028 | 2026-05-31 | 为什么 TOTP seed 不能以 base32 明文存储在用户表？ | 数据库泄漏或低权限读表会直接暴露二次认证种子 | `AUTH_BOX_TOTP_SECRET_KEY` AES-GCM 加密 TOTP seed；migration 010 禁用旧 plaintext enrollments；plaintext secret fail closed | production 缺 TOTP encryption key 必须 fail-fast；测试必须断言 encrypted envelope 与 plaintext rejection | `services/api/internal/service/totp_service.go`, `services/api/internal/config/config.go`, `services/api/migrations/010_reset_plaintext_totp_secrets.up.sql` |
+| QA-20260531-029 | 2026-05-31 | 为什么 console build 通过仍可能被 release gate security audit 拦住？ | 旧 Next runtime 可正常构建但命中 npm critical/high advisories；Next 14 最新补丁仍残留 high finding | 升级 `apps/console` 到 `next@15.5.18`，并同步修复 Next 15 async `params/searchParams` 类型契约 | release gate 失败时先读 `console_security_audit` metadata；依赖升级后必须同时跑 console build、audit high threshold、full release gate | `apps/console/package.json`, `apps/console/app/**/page.tsx`, `outputs/release-gate/20260531T154354Z/reports/release_gate_summary.json` |
 
 ## 2026-02-18 · REQ（UI/UX 优化）
 | id | requirement | scope | status | evidence |
@@ -168,3 +171,4 @@ LastUpdated: 2026-05-31
 - 2026-05-31: 新增 native iOS baseline dirty worktree closeout 的 REQ/PROMPT/QA。（原因：Projects folder audit WP-014）
 - 2026-05-31: 收口 SOP one-click delivery continuation 的本地验收、DNA capsule、postmortem 与 release blocker 台账。（原因：WP-015 local delivery closeout）
 - 2026-05-31: 收口本地 release blocker hardening 的 REQ/PROMPT/QA，明确公开发布仍需三端与 public API health 证据。（原因：WP-016 local release-blocker reduction）
+- 2026-05-31: 收口 console release gate dependency security convergence 的 REQ/PROMPT/QA，记录 Next 15 升级与 release gate PASS 证据。（原因：WP-017 release gate convergence）

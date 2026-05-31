@@ -5,12 +5,13 @@ import { APIRequestError, apiEntry, listPlatforms } from "../../lib/api";
 export const dynamic = "force-dynamic";
 
 type PlatformsPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     created?: string;
-  };
+  }>;
 };
 
 export default async function PlatformsPage({ searchParams }: PlatformsPageProps) {
+  const resolvedSearchParams = await searchParams;
   let platforms = [] as Awaited<ReturnType<typeof listPlatforms>>;
   let errorSummary = "";
   let errorDetail = "";
@@ -34,7 +35,7 @@ export default async function PlatformsPage({ searchParams }: PlatformsPageProps
   }
 
   const entry = apiEntry();
-  const created = searchParams?.created === "1";
+  const created = resolvedSearchParams?.created === "1";
 
   return (
     <PageShell

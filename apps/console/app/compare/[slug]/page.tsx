@@ -6,12 +6,13 @@ export function generateStaticParams() {
   return compareCards.map((item) => ({ slug: item.slug }));
 }
 
-export default function CompareDetailPage({
+export default async function CompareDetailPage({
   params
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const card = findMarketingCard(compareCards, params.slug);
+  const { slug } = await params;
+  const card = findMarketingCard(compareCards, slug);
   if (!card) {
     notFound();
   }

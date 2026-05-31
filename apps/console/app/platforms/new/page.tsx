@@ -8,17 +8,18 @@ import { recordPublicEvent } from "../../../lib/public-telemetry-store";
 export const dynamic = "force-dynamic";
 
 type NewPlatformPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     created?: string;
     error?: string;
     source?: string;
     tenant_id?: string;
-  };
+  }>;
 };
 
-export default function NewPlatformPage({ searchParams }: NewPlatformPageProps) {
-  const source = searchParams?.source || "direct";
-  const tenantId = searchParams?.tenant_id || "public";
+export default async function NewPlatformPage({ searchParams }: NewPlatformPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const source = resolvedSearchParams?.source || "direct";
+  const tenantId = resolvedSearchParams?.tenant_id || "public";
 
   recordPublicEvent({
     event: "ONBOARDING_ENTRY_VIEW",
@@ -67,7 +68,9 @@ export default function NewPlatformPage({ searchParams }: NewPlatformPageProps) 
     redirect("/platforms?created=1");
   }
 
-  const errorMessage = searchParams?.error ? decodeURIComponent(searchParams.error) : "";
+  const errorMessage = resolvedSearchParams?.error
+    ? decodeURIComponent(resolvedSearchParams.error)
+    : "";
 
   return (
     <PageShell

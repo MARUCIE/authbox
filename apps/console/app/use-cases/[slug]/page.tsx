@@ -6,12 +6,13 @@ export function generateStaticParams() {
   return useCaseCards.map((item) => ({ slug: item.slug }));
 }
 
-export default function UseCaseDetailPage({
+export default async function UseCaseDetailPage({
   params
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const card = findMarketingCard(useCaseCards, params.slug);
+  const { slug } = await params;
+  const card = findMarketingCard(useCaseCards, slug);
   if (!card) {
     notFound();
   }

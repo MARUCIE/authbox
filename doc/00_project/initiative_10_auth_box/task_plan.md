@@ -212,11 +212,25 @@ LastUpdated: 2026-05-31
 - [x] Chrome extension permissions reduced from global host access to AuthBox/local API hosts plus normal page content-script matches and exclusions.
 - [x] Verification: package tests/builds, Go tests, Swift tests, web/extension builds, iOS simulator build, `ai check`, static guards, and Chrome headless route smoke.
 
+## Round 13: Console Release Gate Dependency Security (DONE, 2026-05-31)
+
+目标：收口 GitHub 发布前的本地 release gate blocker；不触碰 Cloudflare/VPS/production。
+
+- [x] Root cause: `apps/console` pinned `next@14.2.5`, causing `console_security_audit` to fail P0 release gate on critical npm advisories.
+- [x] Upgrade path: move console to `next@15.5.18` instead of staying on Next 14.x, because `next@14.2.35` still leaves high audit findings.
+- [x] Compatibility fix: update App Router dynamic page `params` and `searchParams` props to the async Next 15 contract.
+- [x] Build validation: `npm run build` in `apps/console` PASS; 31 app routes generated.
+- [x] Security validation: `npm audit --audit-level=high` PASS; npm audit metadata now reports `critical=0`, `high=0`, `total=2` (remaining PostCSS advisory is moderate).
+- [x] Release gate: `GATEKEEPER=MARUCIE BASE=origin/main HEAD=HEAD make release-gate` PASS; summary at `outputs/release-gate/20260531T154354Z/reports/release_gate_summary.json`.
+- [x] Round 1: `ai check` PASS with two rounds; run dir `outputs/check/20260531-154415-114f8034`.
+- [x] Remaining boundary: public promotion still requires GitHub check evidence after push plus VPS/production/public API health verification.
+
 ## 当前状态
 
 - 所有 MVP 功能阶段已完成（Phase 0-4 + Gap Fixes + UX Round 1-2 + Round 3-11）
 - 构建通过：targeted packages + Web/Extension + iOS simulator, 16 Web pages, 0 errors
 - 最新验证基线：`make test-api` PASS + `make test-crypto` PASS（51 deterministic + 2 live skipped） + `scripts/e2e-test.mjs http://localhost:8080` 65/65 PASS
+- 最新 release gate 基线：`GATEKEEPER=MARUCIE BASE=origin/main HEAD=HEAD make release-gate` PASS（`outputs/release-gate/20260531T154354Z/reports/release_gate_summary.json`）
 - Follow-up drift cleanup: README / UX baseline synced to 2026-03-22 reality, `_headers` no longer allows `*.trycloudflare.com`, runtime scan shows no temporary tunnel dependency outside historical docs
 - Release readiness checkpoint (2026-03-22): `authbox.io` public routes (`/`, `/login`, `/register`, `/create`, `/unlock`, `/settings`, `/manifest.webmanifest`) return 200 with security headers, but public API health is not proven (`/health` on authbox.io = 404; `api.authbox.io` unresolved)
 - Project gate checkpoint (2026-03-22): `ai check --json --no-sbom --base-dir /Users/mauricewen/Projects/10-auth-box` PASS (`outputs/check/20260322-021252-a7b35035`); patched `scripts/release_gate.sh` now reuses the same project-scoped gate and passes on current worktree (`outputs/release-gate/20260322T021557Z/`)

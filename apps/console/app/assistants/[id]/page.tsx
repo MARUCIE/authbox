@@ -1,16 +1,18 @@
 import { PageShell } from "../../../components/page-shell";
 
-export default function AssistantDetailPage({
+export default async function AssistantDetailPage({
   params
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   return (
     <PageShell
       title="Assistant detail"
       description="Review bindings, scopes, and usage."
     >
-      <p className="muted">Assistant ID: {params.id}</p>
+      <p className="muted">Assistant ID: {id}</p>
     </PageShell>
   );
 }

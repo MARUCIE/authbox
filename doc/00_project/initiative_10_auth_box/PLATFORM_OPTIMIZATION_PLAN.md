@@ -430,8 +430,21 @@ AuditEvent {
 - Static secret/query guard + `git diff --check`: PASS.
 - Chrome headless static route smoke: PASS for protected `/settings.html` redirect.
 
+## WP-017 Console Release Gate Dependency Security (2026-05-31)
+
+| Area | Result | Evidence |
+|---|---|---|
+| Console dependency security | `next@14.2.5` replaced with `next@15.5.18`; critical/high npm audit findings closed | `apps/console/package.json`, `apps/console/package-lock.json` |
+| Next 15 compatibility | Dynamic `params` and query `searchParams` are awaited according to App Router async prop contract | `apps/console/app/**/page.tsx` |
+| Build gate | Console production build passes; 31 app routes generated | `npm run build` in `apps/console` |
+| Audit gate | High/critical threshold passes; remaining PostCSS advisory is moderate | `npm audit --audit-level=high`, `npm audit --json` |
+| Release gate | P0 local release gate passes with explicit gatekeeper | `outputs/release-gate/20260531T154354Z/reports/release_gate_summary.json` |
+
+优化结论：本地发布门禁的 console critical/high audit blocker 已关闭；公开生产推广仍需远端 workflow、VPS/production 与 public API health 证据。
+
 ## Changelog
 - 2026-03-22: 回写静态安全头、API base 显式配置与发布就绪性检查结论，并补齐 changelog 区块。（原因：auth reliability + release readiness）
 - 2026-05-31: 新增 native iOS baseline closeout 记录，重点收口生成物治理、跨平台 crypto parity 与本地 simulator 证据。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 同步 WP-015 local hardening fixes、final gates 与 remaining release blockers。（原因：SOP one-click delivery closeout）
 - 2026-05-31: 同步 WP-016 local release-blocker reduction，清除上一轮本地安全 blocker 并记录剩余线上发布门禁。（原因：local release-blocker hardening）
+- 2026-05-31: 同步 WP-017 console dependency security convergence，本地 release gate 已通过，线上发布仍需远端与 public API health 证据。（原因：release gate convergence）

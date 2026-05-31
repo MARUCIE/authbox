@@ -213,6 +213,15 @@ AI Agent 通过 MCP 协议连接 Auth Box 并请求凭据。
 | Extension browsing surface | PASS by manifest/build guard | global host permission removed; AuthBox/local origins excluded from content script |
 | Release UX claim | BLOCKED for public release | GitHub/VPS/production consistency and public API health not verified |
 
+### WP-017 Console Route Contract Evidence (2026-05-31)
+
+| Surface | Result | Evidence |
+|---|---|---|
+| Console route contract | PASS | Next 15.5.18 production build generated 31 app routes |
+| Dynamic route params | PASS | `params` awaited for dynamic accounts/assistants/credentials/platforms/features/compare/use-cases pages |
+| Query-driven pages | PASS | `searchParams` awaited for platforms and funnel metrics pages |
+| Release UX claim | BLOCKED for public production | Local release gate PASS, but public API health and production runtime still require separate verification |
+
 ## 路由地图
 
 ### Web App Routes
@@ -245,3 +254,4 @@ Maurice | maurice_wen@proton.me
 - 2026-05-31: 新增 iOS App 渠道与 Journey I，并记录本地模拟验证证据；该旅程只覆盖本地 iOS baseline，不替代公开发布门禁。（原因：Projects folder dirty worktree closeout）
 - 2026-05-31: 同步 WP-015 Round 2 UX evidence 与 Agent policy canonical UI/MCP 行为；公开发布 UX claim 仍受安全与线上健康门禁阻塞。（原因：SOP one-click delivery closeout）
 - 2026-05-31: 同步 WP-016 Settings/extension UX guard evidence；公开发布 UX claim 仍需线上三端与 API health 证据。（原因：local release-blocker hardening）
+- 2026-05-31: 同步 WP-017 console route contract evidence；本地 Next 15 build 通过但公开 UX claim 仍需 public API health 证明。（原因：release gate convergence）

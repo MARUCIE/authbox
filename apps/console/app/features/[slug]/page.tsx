@@ -6,12 +6,13 @@ export function generateStaticParams() {
   return featureCards.map((item) => ({ slug: item.slug }));
 }
 
-export default function FeatureDetailPage({
+export default async function FeatureDetailPage({
   params
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const card = findMarketingCard(featureCards, params.slug);
+  const { slug } = await params;
+  const card = findMarketingCard(featureCards, slug);
   if (!card) {
     notFound();
   }
