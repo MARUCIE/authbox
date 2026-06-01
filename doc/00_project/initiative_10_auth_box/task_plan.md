@@ -433,10 +433,19 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
 - [x] Features/Authorizations: agent grants, policy editor, tamper-evident audit log (Fact) — AuthorizationsView.swift (broker start/stop, AddGrantSheet add agent + allowed actions + step-up toggle, pending consent, audit list with chain-integrity badge). AuditLog.swift SHA-256 hash chain; AuditLogTests 4/4 (genesis link, intact verify, deterministic hash, distinct decisions). No seeded/demo data.
 - Verify: xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' test → ** TEST SUCCEEDED ** rc=0, 41/41 (5 Broker + 9 PolicyEngine + 4 AuditLog + 7 CredentialHealth + 5 EnvParser + 7 VaultService + 4 VaultSession).
 
-### P5 — Distribution
-- [ ] codesign (Developer ID) + notarize + staple
-- [ ] DMG packaging; optional Sparkle auto-update
-- [ ] `/security` attacker-review SubAgent pass (gate before release)
+### P5 — Security review (attacker gate) + Distribution
+- [x] `/security` attacker-review SubAgent pass — fresh-context audit returned 9 findings (1C/2H/4M/2L); all fixed in code (commits db730eb P5a, ccbe57c P5b), 46/46 tests green. Audited-clean: secret logging, AES-GCM/ECIES, SE access control, deny-by-default core, CSPRNG, SwiftData ciphertext-only, entitlements.
+  - [x] SEC-001 (Critical): per-agent bearer-token auth on broker — loopback ≠ identity. AgentCapability.tokenHash (SHA-256), AccessIntent.token, constant-time AgentToken.matches; unknown/bad-token denied + audited. BrokerTests +wrong-token deny.
+  - [x] SEC-002 (High): persist audit chain (AuditFileStore JSONL); load+continue on launch; loadedIntegrityOK. AuditLogTests +persistence-reload +tamper-detect.
+  - [x] SEC-003 (High): withVaultKey borrow closure zeroes transient key copy (resetBytes); vaultKey getter deleted, 7 call sites migrated; masterKeyForTesting #if DEBUG.
+  - [x] SEC-004 (Medium): isSafeEndpoint SSRF guard (https-only, refuse loopback/private/link-local/metadata) before egress. CredentialHealthTests +block +classifier.
+  - [x] SEC-005 (Medium): tavily body via JSONSerialization; transport drops CR/LF headers.
+  - [x] SEC-006 (Medium): broker accepts only verified loopback IP literals (.name branch removed).
+  - [x] SEC-007 (Medium): duplicate approvalId denied fail-closed (was fail-open-by-hang).
+  - [x] SEC-008 (Low): zero derived seed in provisionAndUnlock (defer resetBytes).
+  - [x] SEC-009 (Low): withVaultKey re-arms auto-lock timer → activity-based idle.
+- [ ] codesign (Developer ID) + notarize + staple — HITL: needs Maurice's Apple Developer ID cert + DEVELOPMENT_TEAM
+- [ ] DMG packaging; optional Sparkle auto-update — follows codesign
 
 ### P6 — AI-Fleet integration (bonus, fixes the 2026-06-01 git-key-leak class)
 - [ ] Broker client so gemini-proxy et al. request keys from broker instead of gemini-api-config.json

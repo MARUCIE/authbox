@@ -1854,3 +1854,23 @@ Cumulative: Round 4-7 = 50 optimization items total.
 - UI: broker start/stop card, AddGrantSheet (agent name + allowed actions + step-up toggle), pending consent cards (Allow once / Deny), audit log with live chain-integrity badge. No seeded/demo agents — everything is user-added.
 - Verify: xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' test -> ** TEST SUCCEEDED ** rc=0, 41/41 (5 Broker + 9 PolicyEngine + 4 AuditLog + 7 CredentialHealth + 5 EnvParser + 7 VaultService + 4 VaultSession).
 - Next: P5 distribution (codesign Developer ID + notarize + staple + DMG; /security attacker-review gate) and P6 AI-Fleet integration (broker client replacing gemini-api-config.json reads). P5 codesign/notarize needs Maurice's Developer ID cert (HITL) — the build currently ad-hoc signs.
+
+## 2026-06-01 · P5 attacker review — 9 findings fixed (SEC-001…009)
+
+Fresh-context security-auditor subagent reviewed Core/Domain Swift. Returned 1 Critical, 2 High, 4 Medium, 2 Low. All fixed in code over two commits; 41 → 46 tests.
+
+- SEC-001 (Critical) — broker authorized ANY local process. Loopback proves locality, not identity: every local process shares 127.0.0.1, so binding loopback was never authentication. Fix: per-agent bearer token. AgentCapability stores SHA-256 tokenHash (the /etc/shadow model — no reusable secret at rest); AccessIntent carries the plaintext token; AgentToken.matches does a constant-time digest compare (no timing oracle). Unknown agent / bad token → deny, and the failed attempt is itself sealed into the audit chain. Plaintext shown to the operator once at grant (copy-once alert), never stored.
+- SEC-002 (High) — audit chain was in-memory only; restart wiped it and verify() over an empty chain returned true → tamper-evidence was hollow. Fix: AuditFileStore (append-only JSONL in Application Support); load + continue chain on launch; loadedIntegrityOK flags a truncated/edited persisted log. JSON Double round-trips the Date losslessly so the recomputed %.3f canonical still matches.
+- SEC-003 (High) — vaultKey: Data? getter handed out a copy that lingered un-zeroed until ARC reclaimed it, defeating SecureBytes. Fix: withVaultKey borrow closure zeroes the transient via resetBytes on return; getter deleted (single source of truth), 7 call sites migrated, hasVaultKey covers nil-checks. The one async consumer (provider health check) split: key borrowed only for the synchronous decrypt, async probe runs on the revealed secret — key never spans an await. masterKeyForTesting now #if DEBUG (no plaintext getter in release).
+- SEC-004 (Medium) — openai base_url + posthog host interpolate a user field into the URL → a malicious .env could exfiltrate the key to the cloud metadata service / an internal host. Fix: isSafeEndpoint (https-only; refuse loopback/private/link-local/metadata literals + .local/.internal) gates check() before any egress.
+- SEC-005 (Medium) — tavily body was hand-built with only `"` escaped (injectable). Fix: JSONSerialization body. Transport also drops any header whose name/value carries CR/LF (request splitting).
+- SEC-006 (Medium) — broker accepted a `.name("localhost")` peer (resolver-dependent + dead path for real inbound). Fix: only verified loopback IP literals.
+- SEC-007 (Medium) — a reused approvalId overwrote the in-flight resolver, orphaning the original waiter (hangs forever) and leaking its timeout = fail-open-by-hang. Fix: duplicate approvalId denied fail-closed, original left intact.
+- SEC-008 (Low) — derived BIP-39 seed not zeroed post-provision. Fix: defer resetBytes on the seed in provisionAndUnlock.
+- SEC-009 (Low) — fixed idle countdown ignored activity. Fix: withVaultKey re-arms the auto-lock timer on every borrow → activity-based idle.
+
+Audited-clean (no change): secret logging (fingerprint/redaction only), AES-GCM/ECIES usage, Secure Enclave access control, deny-by-default policy core, CSPRNG password generation, SwiftData stores ciphertext only, entitlements.
+
+Verify: xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' test → ** TEST SUCCEEDED ** rc=0, 46/46 (6 Broker + 9 PolicyEngine + 6 AuditLog + 9 CredentialHealth + 5 EnvParser + 7 VaultService + 4 VaultSession). Commits: db730eb (P5a) + ccbe57c (P5b), author Maurice, no AI trailer.
+
+Next: P5 distribution (codesign Developer ID + notarize + staple + DMG) remains HITL (needs Maurice's Apple Developer ID cert). P6 AI-Fleet broker integration remains HITL (touches live gemini proxy).
