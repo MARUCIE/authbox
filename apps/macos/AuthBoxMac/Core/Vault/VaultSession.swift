@@ -98,6 +98,19 @@ final class VaultSession: ObservableObject {
     func unlock() { Task { await unlockAsync() } }
     func lock() { performLock() }
 
+    /// Re-arm the idle auto-lock timer for USER activity that doesn't borrow the
+    /// vault key — e.g. managing agent authorizations, where the operator may
+    /// dwell for minutes without touching the vault. Without this, the idle timer
+    /// (last armed by the unlock or a vault-key borrow) fires mid-session and
+    /// auto-locks under the user. Deliberately NOT called from the broker's
+    /// connection handler: agent traffic must NOT be able to hold the vault open,
+    /// which would let a rogue local process defeat auto-lock. Only the human
+    /// interacting with the UI counts as activity here.
+    func noteActivity() {
+        guard isUnlocked else { return }
+        armIdleTimer()
+    }
+
     /// Awaitable unlock for tests and call sites that need the result.
     @discardableResult
     func unlockAsync() async -> Bool {

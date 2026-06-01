@@ -108,6 +108,7 @@ final class AuthorizationCenter: ObservableObject {
 
 struct AuthorizationsView: View {
     @StateObject private var center = AuthorizationCenter()
+    @EnvironmentObject private var session: VaultSession
     @State private var showingAdd = false
     @State private var issuedToken: String?
 
@@ -124,7 +125,7 @@ struct AuthorizationsView: View {
         .navigationTitle("Authorizations")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button { showingAdd = true } label: { Label("Grant agent", systemImage: "plus") }
+                Button { session.noteActivity(); showingAdd = true } label: { Label("Grant agent", systemImage: "plus") }
             }
         }
         .sheet(isPresented: $showingAdd) {
@@ -155,11 +156,14 @@ struct AuthorizationsView: View {
                 Label(center.brokerRunning ? "Broker running" : "Broker stopped",
                       systemImage: center.brokerRunning ? "bolt.horizontal.circle.fill" : "bolt.horizontal.circle")
                     .font(.headline).foregroundStyle(center.brokerRunning ? .green : .secondary)
-                Text("ws://127.0.0.1:\(AuthorizationBroker.port) · loopback only")
+                // String(port) avoids LocalizedStringKey integer interpolation, which
+                // applies the locale's grouping separator and renders 19876 as "19,876".
+                Text("ws://127.0.0.1:\(String(AuthorizationBroker.port)) · loopback only")
                     .font(.caption).foregroundStyle(.secondary).monospaced()
             }
             Spacer()
             Button(center.brokerRunning ? "Stop" : "Start") {
+                session.noteActivity()   // user activity re-arms idle auto-lock
                 center.brokerRunning ? center.stopBroker() : center.startBroker()
             }
             .buttonStyle(.borderedProminent).tint(center.brokerRunning ? .red : .green)
@@ -182,9 +186,9 @@ struct AuthorizationsView: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Deny") { Task { await center.resolve(p, allow: false) } }
+                    Button("Deny") { session.noteActivity(); Task { await center.resolve(p, allow: false) } }
                         .buttonStyle(.bordered)
-                    Button("Allow once") { Task { await center.resolve(p, allow: true) } }
+                    Button("Allow once") { session.noteActivity(); Task { await center.resolve(p, allow: true) } }
                         .buttonStyle(.borderedProminent)
                 }
                 .padding(10)

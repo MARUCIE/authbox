@@ -1941,3 +1941,59 @@ scripts/package-dmg.sh — two tiers:
 Built app is ad-hoc + hardened-runtime (flags 0x10002 adhoc,runtime), Identifier com.authbox.mac, TeamIdentifier not set (expected for ad-hoc).
 
 Remaining HITL to finish P5: Maurice's Apple Developer ID Application cert + a notarytool keychain profile (`xcrun notarytool store-credentials`) + DEVELOPMENT_TEAM in project.yml (re-enables app-group + keychain-access-groups). Then one command: AUTHBOX_DEV_ID=… AUTHBOX_NOTARY_PROFILE=… scripts/package-dmg.sh.
+
+## 2026-06-01 · Full end-to-end functional verification via computer-use (Maurice request)
+
+Maurice: "我点setup 没有让我按指纹，直接进去了，调用computer use 视觉验证整个app的功能，确保完全闭环".
+
+Setup-without-Touch-ID is BY DESIGN, not a bug. `provisionAndUnlock` (VaultSession.swift:146)
+derives the master key from the mnemonic, wraps it with the Secure Enclave PUBLIC key
+(`wrap`, SecureEnclaveKeyStore.swift:83 — public-key encryption needs no auth), and holds it
+in memory directly from derivation. It never calls `unwrap`. The Touch ID gate IS `unwrap`
+(`SecKeyCreateDecryptedData` on the `.biometryCurrentSet` private key, line 98-114), which
+fires on UNLOCK after a lock — not at setup.
+
+Verified live via computer-use against the running signed app (PID 67540, team 35HKS5847W,
+hardened runtime, launched from /02-private-project/auth-box build/verify-signing):
+
+- Touch ID unlock gate: app auto-locked (idle timer) -> Unlock -> SE decrypt -> Touch ID ->
+  unlocked vault. The locked->unlocked state transition is the proof the SE private key was
+  unwrapped under a positive biometric match.
+- Generator: Random (20-char `)}(jzH$$k3LWRDlFLFqp`, all 4 char classes; clipboard copy
+  verified byte-exact). Deterministic (vaultKey+"github.com" -> `C4mkVYFBM!Zy%5AOzcir`,
+  IDENTICAL on regeneration = pure-function reproducibility proven).
+- Vault: full CRUD. Add (title/username/url/secret/notes, encrypted via vault key) -> appears
+  in list. Reveal -> decrypt round-trip EXACT (`S3cr3t!Pass#2026` + notes). Delete -> list
+  back to "No items yet".
+- AI Providers: paste 3-line .env -> auto-classify "3 classified, 0 unmatched"
+  (OpenAI/Anthropic/Google AI [LLM], by env-var name) -> encrypted import -> existing section.
+  Health check is REAL: fake OpenAI key -> red "invalid" + "Invalid API key" (a genuine 401
+  negative test against the real endpoint, not a stub).
+- Authorizations broker: Start -> "Broker running". Loopback-only EMPIRICALLY proven with nc:
+  127.0.0.1:19876 CONNECTS; LAN 10.238.253.229:19876 REFUSED; Tailscale 100.103.219.74:19876
+  REFUSED. lsof shows `*:19876` but NWParameters.requiredInterfaceType=.loopback +
+  isLoopbackPeer() (AuthorizationBroker.swift:45,86) enforce loopback at the network layer.
+  Agent grant ("Claude Agent", read+use, step-up) -> 256-bit bearer token shown once
+  (clipboard verified `kj3JHwEj7+lqmqRzUt2S2R/doROto2h1eL+rPciIgzc=`; SEC-001 stores hash only).
+  Audit chain badge "chain intact".
+- Broker request path: real Python `websockets` client connected FROM loopback and sent
+  AccessIntent {agent_claude_agent_0, action:read, token} -> broker accepted the connection and
+  processed it (token authenticated; SENT logged). The LIVE step-up consent click + audit Fact
+  append was NOT completed end-to-end this session: it is gated on Maurice's physical Touch ID
+  for the step-up approval (sudo-type HITL), and the unlock prompt was not completed.
+
+Findings (minor; no code changed this session):
+1. Broker SURVIVES vault lock: AuthorizationCenter @StateObject persists across lock (verified:
+   broker still LISTEN on 19876, same PID 67540, after auto-lock). Grant + broker survive; only
+   the pending-approval UI is hidden behind LockedView while locked (acceptable security model).
+2. Idle auto-lock (300s) is re-armed ONLY by withVaultKey borrows (vault/generator/providers),
+   NOT by Authorizations actions (start broker / grant / approve). Working only in the
+   Authorizations panel for >5 min auto-locks the vault. UX gap, not a security defect.
+3. Cosmetic: broker port renders "ws://127.0.0.1:19,876" — LocalizedStringKey integer
+   interpolation applies locale grouping. Fix: `\(String(AuthorizationBroker.port))` or
+   `.number.grouping(.never)` in AuthorizationsView brokerCard.
+4. UX: after deleting a vault item, the NavigationStack detail stays on the now-empty
+   destination (shows "Auth Box") instead of auto-popping to the list. VaultViews
+   navigationDestination(for:) returns empty when the item is gone; consider popping on delete.
+
+No commit (verification only).

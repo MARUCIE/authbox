@@ -140,6 +140,7 @@ struct ItemDetailView: View {
     let item: VaultItem
     @ObservedObject var vm: VaultViewModel
     @EnvironmentObject private var session: VaultSession
+    @Environment(\.dismiss) private var dismiss
     @State private var revealed: VaultSecret?
 
     var body: some View {
@@ -166,6 +167,7 @@ struct ItemDetailView: View {
             Section {
                 Button(role: .destructive) {
                     vm.delete(item.id)
+                    dismiss()   // pop back to the list; this destination's item is now gone
                 } label: { Label("Delete", systemImage: "trash") }
             }
         }
