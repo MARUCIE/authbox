@@ -28,19 +28,25 @@ Standalone signed Swift probes against `SecKeyCreateRandomKey`:
 Conclusion: any Secure-Enclave-engaging keychain persistence requires a team-prefixed `keychain-access-groups` entitlement, which is only honored under a **provisioning-profile-backed signature**. There is NO team-free path. The error message `"failed to add key to keychain: SecKeyRef('com.apple.setoken')"` confirms the SE hardware key is created — only the keychain persistence (`kSecAttrIsPermanent`) is rejected.
 
 ### Fix applied (SOTA — keep the SE design, do not downgrade)
-- `project.yml` (both targets): `DEVELOPMENT_TEAM: L37Q42H4SZ` + `CODE_SIGN_IDENTITY: "Apple Development"` + `CODE_SIGN_STYLE: Automatic` (was ad-hoc `-` / Manual). Team L37Q42H4SZ = the `Apple Development: maoyuan.wen@proton.me` identity already in this Mac's keychain.
+- `project.yml` (both targets): `DEVELOPMENT_TEAM: 35HKS5847W` + `CODE_SIGN_IDENTITY: "Apple Development"` + `CODE_SIGN_STYLE: Automatic` (was ad-hoc `-` / Manual). Team `35HKS5847W` = "maoyuan wen (Personal Team)", the team the `maoyuan.wen@proton.me` Apple ID actually belongs to.
 - `AuthBoxMac.entitlements`: enabled `keychain-access-groups = $(AppIdentifierPrefix)com.authbox.mac` (the default group the SE keystore queries use). Removed the "deferred to P1" comment.
 - `scripts/package-dmg.sh`: LOCAL-tier build now passes `-allowProvisioningUpdates`.
 - `scripts/verify-se-signing.sh`: NEW — builds with provisioning, asserts embedded profile + signed keychain-access-groups; deterministic yes/no that the credential gate is cleared before the Touch ID tap.
 
-### The single remaining step (sudo-type HITL — cannot be automated)
-The app/entitlement/team wiring is correct: the ONLY build error left is `No Accounts: Add a new account in Accounts settings.` Automatic provisioning needs an Apple ID logged into **Xcode > Settings > Accounts** (add `maoyuan.wen@proton.me`; the free personal team L37Q42H4SZ then appears). That is an interactive credential action (Apple ID + 2FA) — HITL by the credential rule, exactly like a sudo / Keychain Allow prompt.
+### Team gotcha (cost one cycle)
+First attempt used team `L37Q42H4SZ` because that was the only cert in the keychain (`security find-identity -v -p codesigning`). But that cert is an ORPHAN — the signed-in Apple ID's actual team is `35HKS5847W` (`defaults read com.apple.dt.Xcode IDEProvisioningTeams` → teamID). With the wrong team, automatic signing returns `No profiles for 'com.authbox.mac' were found`. Lesson: the keychain cert's embedded team ≠ the account's active team; read IDEProvisioningTeams for the team automatic signing will actually use.
 
-After adding the account:
-```bash
-cd /Users/mauricewen/Projects/10-auth-box && bash scripts/verify-se-signing.sh
+### Network gotcha (the actual sign-in/provisioning blocker)
+Apple ID sign-in and dev-portal provisioning both need DIRECT network. Surge fake-DNS maps `idmsa/appleid/developerservices2/developer.apple.com` to `198.18.3.x` and the proxied TLS fails (`SSL_ERROR_SYSCALL`) → Xcode "Your identity couldn't be verified." Proven the fix works by resolving via real DNS (223.5.5.5 → Apple `17.x`) + direct curl (idmsa http=200). Route `apple.com` DIRECT in Surge (or disable the proxy) during sign-in/provisioning. (In CN, Apple identity should be DIRECT anyway — proxying triggers geo-checks.)
+
+### VERIFIED 2026-06-01 (real, not stub)
+`bash scripts/verify-se-signing.sh` →
 ```
-→ if it prints OK, launch the app and tap Touch ID on "Finish setup". That physical tap is the only step that can never run headless (true for ANY design).
+OK: build SUCCEEDED with automatic provisioning
+OK: embedded provisioning profile present
+OK: signed entitlements carry keychain-access-groups = 35HKS5847W.com.authbox.mac
+```
+The SE key-creation prerequisite is satisfied. ONLY remaining step: launch the signed app and tap Touch ID on "Finish setup" — the one action that can never run headless (true for ANY design).
 
 ### Why not the autonomous-but-weaker alternative
 Switching to a software-managed key (plain keychain item + app-layer LAContext gate) would run ad-hoc with no account, but it abandons SE hardware key isolation + SEP-enforced ACL + `.biometryCurrentSet` anti-coercion — a security retreat dressed as a fix. Per "replacement must be strictly better / no 偷工减料", the broken-but-strong SE design is restored to working, not replaced with a working-but-weak one. The credential gate is the legitimate cost.

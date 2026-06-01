@@ -40,7 +40,7 @@ if ! xcodebuild -project "$MACOS_DIR/AuthBoxMac.xcodeproj" -scheme AuthBoxMac \
   grep -iE "No Accounts|No profiles|requires a development team|Communication with Apple" \
     /tmp/verify-se-build.log | sed 's/^/  /' | sort -u || true
   echo "  -> Open Xcode > Settings > Accounts, add the Apple ID 'maoyuan.wen@proton.me'"
-  echo "     (free personal team L37Q42H4SZ), then re-run this script."
+  echo "     (free personal team 35HKS5847W = 'maoyuan wen Personal Team'), then re-run."
   echo "  (full log: /tmp/verify-se-build.log)"
   exit 1
 fi
@@ -58,7 +58,7 @@ fi
 # 3. team-prefixed keychain-access-groups in the SIGNED entitlements
 ENTS="$(codesign -d --entitlements - "$APP" 2>/dev/null | tr -d '\0')"
 if echo "$ENTS" | grep -q "keychain-access-groups"; then
-  GROUP="$(echo "$ENTS" | grep -A2 keychain-access-groups | grep -oE '[A-Z0-9]{10}\.[a-zA-Z0-9.]+' | head -1)"
+  GROUP="$(echo "$ENTS" | grep -A8 keychain-access-groups | grep -oE '[A-Z0-9]{10}\.[a-zA-Z0-9.]+' | head -1 || true)"
   echo "OK: signed entitlements carry keychain-access-groups = ${GROUP:-<present>}"
 else
   echo "ERROR: signed binary is missing keychain-access-groups (SE key creation will fail)"

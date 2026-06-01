@@ -18,8 +18,9 @@
 	  Required for persistent Secure Enclave keys. macOS keys the SE-resident
 	  private key into this team-prefixed access group; without it SecKeyCreateRandomKey
 	  fails errSecMissingEntitlement (-34018). $(AppIdentifierPrefix) expands to the
-	  team prefix (L37Q42H4SZ.) at sign time; com.authbox.mac is the app's own group,
-	  which is the default group the SecureEnclaveKeyStore queries use.
+	  team prefix (35HKS5847W.) at sign time; com.authbox.mac is the app's own group,
+	  which is the default group the SecureEnclaveKeyStore queries use. Verified
+	  2026-06-01: signed entitlements carry 35HKS5847W.com.authbox.mac.
 	-->
 	<key>keychain-access-groups</key>
 	<array>

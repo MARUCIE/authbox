@@ -41,11 +41,13 @@ targets:
         # keychain-access-groups demand a provisioning-profile-backed signature.
         # Empirically on macOS 26.5, ad-hoc and bare-dev-cert both fail (-34018 /
         # amfid SIGKILL) — only an automatically-provisioned dev signature works.
-        # Team L37Q42H4SZ = the "Apple Development: maoyuan.wen@proton.me" identity
-        # already present in this Mac's keychain.
+        # Team 35HKS5847W = "maoyuan wen (Personal Team)", the free personal team the
+        # maoyuan.wen@proton.me Apple ID actually belongs to (Xcode's selected team;
+        # the orphan L37Q42H4SZ cert in the keychain is from a team this account is
+        # not a member of, so it cannot provision com.authbox.mac).
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_ENTITLEMENTS: AuthBoxMac/Resources/AuthBoxMac.entitlements
-        DEVELOPMENT_TEAM: L37Q42H4SZ
+        DEVELOPMENT_TEAM: 35HKS5847W
         CODE_SIGN_IDENTITY: "Apple Development"
         CODE_SIGN_STYLE: Automatic
         SWIFT_VERSION: "5.0"
@@ -70,6 +72,6 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "5.0"
         # Match the host app's signing so TEST_HOST loads under the same identity.
-        DEVELOPMENT_TEAM: L37Q42H4SZ
+        DEVELOPMENT_TEAM: 35HKS5847W
         CODE_SIGN_IDENTITY: "Apple Development"
         CODE_SIGN_STYLE: Automatic
