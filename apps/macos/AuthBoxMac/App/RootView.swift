@@ -71,7 +71,7 @@ struct RootView: View {
         case .vault:          VaultListView()
         case .generator:      GeneratorView()
         case .providers:      ProviderHubView()
-        case .authorizations: PlaceholderDetail(section: section)
+        case .authorizations: AuthorizationsView()
         }
     }
 }

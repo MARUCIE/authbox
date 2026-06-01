@@ -425,12 +425,13 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
 - Verify: xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' test → ** TEST SUCCEEDED ** rc=0, 23/23 (7 CredentialHealth + 5 EnvParser + 7 VaultService + 4 VaultSession).
 
 ### P4 — Authorization broker (local MCP Gateway)
-- [ ] Core/Broker: WebSocket server bound ws://127.0.0.1:19876 (loopback only)
-- [ ] Domain/Delegation: Swift 五原语 model (Capability/Intent/Policy/Effect/Fact)
-- [ ] Core/Policy: deny-by-default engine; types item_scope|action_perm|rate_limit|time_window|step_up
-- [ ] step_up policy → Touch ID prompt + menu-bar consent card (Allow once / Deny)
-- [ ] Policy contract tests mirror policy-engine.test.ts fail-closed cases (unknown type, missing scoped attr)
-- [ ] Features/Authorizations: agent grants, policy editor, tamper-evident audit log (Fact)
+- [x] Core/Broker: WebSocket server bound ws://127.0.0.1:19876 (loopback only) — AuthorizationBroker.swift uses Network.framework NWListener + native NWProtocolWebSocket (no hand-rolled RFC6455). Loopback enforced twice: requiredInterfaceType=.loopback + per-connection isLoopbackPeer() check. REAL e2e proof: BrokerTests.test_loopback_websocket_round_trip connects an NWConnection WS client, sends an intent, receives an allowed effect (0.054s, not a stub).
+- [x] Domain/Delegation: Swift 五原语 model (Capability/Intent/Policy/Effect/Fact) — DelegationModel.swift (AgentCapability/AccessIntent/AgentPolicy/AccessEffect + AuditFact=Fact in AuditLog). Mirrors shared/types/agent.ts PolicyType/PolicyRules.
+- [x] Core/Policy: deny-by-default engine; types item_scope|action_perm|rate_limit|time_window|step_up — PolicyEngine.swift faithful port of policy-engine.ts; fail-closed (empty/disabled/unknown→deny, every policy must pass). Injectable clock for rate_limit/time_window determinism.
+- [x] step_up policy → Touch ID prompt + menu-bar consent card (Allow once / Deny) — step_up returns pendingApprovalId; requestApproval suspends (register-before-notify, fail-closed 60s timeout). AuthorizationCenter.resolve() gates "Allow" behind BiometricAuthenticating (Touch ID); AuthorizationsView consent cards Allow once / Deny.
+- [x] Policy contract tests mirror policy-engine.test.ts fail-closed cases (unknown type, missing scoped attr) — PolicyEngineTests 9/9: no-policies-deny, all-disabled-deny, scoped-missing-item-type-deny, action allow/deny, rate-limit threshold (injected clock), time-window block, step-up approve+reject, all-policies-must-pass priority order. (Swift enum makes "unknown type" unrepresentable → covered structurally; the missing-scoped-attr fail-closed case is mirrored directly.)
+- [x] Features/Authorizations: agent grants, policy editor, tamper-evident audit log (Fact) — AuthorizationsView.swift (broker start/stop, AddGrantSheet add agent + allowed actions + step-up toggle, pending consent, audit list with chain-integrity badge). AuditLog.swift SHA-256 hash chain; AuditLogTests 4/4 (genesis link, intact verify, deterministic hash, distinct decisions). No seeded/demo data.
+- Verify: xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' test → ** TEST SUCCEEDED ** rc=0, 41/41 (5 Broker + 9 PolicyEngine + 4 AuditLog + 7 CredentialHealth + 5 EnvParser + 7 VaultService + 4 VaultSession).
 
 ### P5 — Distribution
 - [ ] codesign (Developer ID) + notarize + staple
