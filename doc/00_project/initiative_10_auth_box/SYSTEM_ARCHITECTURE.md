@@ -52,7 +52,7 @@ graph TD
         CLOUD[Auth Box Cloud<br/>Go API + PG + Redis]
         WEB[authbox.io<br/>CF Pages + Next.js 15]
         EXT[Chrome Extension MV3]
-        DESK[Desktop App - Tauri]
+        MAC[Native macOS App<br/>SwiftUI + Touch ID broker<br/>hosts local MCP Gateway<br/>see doc/10_features/macos-native-app]
         MOBILE[Native iOS App<br/>SwiftUI + SwiftData + AutoFill]
     end
 
@@ -79,7 +79,8 @@ graph TD
 
     WEB --> CLOUD
     EXT --> CLOUD
-    DESK --> CLOUD
+    MAC --> CLOUD
+    MAC -->|hosts local, Touch ID step_up| MCP_SRV
     MOBILE --> CLOUD
 
     CLOUD --> CRDT

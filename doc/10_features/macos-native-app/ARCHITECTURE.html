@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<!-- generated-by: html-style-router | route: Claude Warm Academic (genre: architecture/technical guide) + VAULT ONYX brand sidecar | SPEC: skills/shared/html-style-router/SPEC.md | data-style-id: vault-onyx -->
+<html lang="zh-CN" data-style-id="vault-onyx">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="generated-by" content="html-style-router" />
+<title>Auth Box for Mac — 原生 macOS 架构方案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* html-style-router :: Claude Warm Academic base + VAULT ONYX brand sidecar */
+  :root{
+    /* --claude- canonical token signature (style-router provenance) */
+    --claude-ink:#dfe3f0; --claude-bg:#0b1326; --claude-accent:#3730a3;
+    /* VAULT ONYX brand tokens */
+    --surface:#0b1326; --surface-lowest:#060e20; --surface-low:#131b2e;
+    --surface-c:#171f33; --surface-high:#222a3d; --surface-highest:#2d3449; --surface-bright:#31394d;
+    --primary:#c3c0ff; --primary-container:#3730a3; --indigo:#3730a3;
+    --amber:#d97706; --amber-text:#ffb77d; --emerald:#059669; --emerald-text:#68dba9; --error:#ffb4ab;
+    --tertiary-container:#004d34; --ghost:rgba(70,69,83,.20);
+    --page-max:1040px; --page-gutter-total:clamp(32px,6vw,96px);
+    --r:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--surface);color:var(--claude-ink);font-family:Inter,"IBM Plex Sans",system-ui,sans-serif;
+    font-size:15px;line-height:1.8;-webkit-font-smoothing:antialiased}
+  .frame{width:min(var(--page-max),calc(100% - var(--page-gutter-total)));margin-inline:auto}
+  h1,h2,h3{font-family:"Space Grotesk",sans-serif;letter-spacing:-0.02em;color:#fff}
+  code,.mono{font-family:"JetBrains Mono",monospace}
+
+  .hero{padding:72px 0 56px;background:
+    radial-gradient(900px 360px at 78% -8%, rgba(55,48,163,.45), transparent 60%),
+    radial-gradient(700px 320px at 8% 4%, rgba(217,119,6,.10), transparent 55%);}
+  .badge{display:inline-block;font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--emerald-text);
+    background:var(--tertiary-container);padding:5px 13px;border-radius:999px;margin-bottom:20px}
+  .hero h1{font-size:clamp(2.1rem,5vw,3.4rem);line-height:1.1;margin-bottom:18px}
+  .hero h1 .grad{background:linear-gradient(135deg,var(--primary),#8b87ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero .sub{font-size:1.05rem;color:#aeb4c8;max-width:62ch}
+  .meta{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px}
+  .chip{font-size:12.5px;color:#c7ccdb;background:var(--surface-high);padding:6px 13px;border-radius:8px}
+  .chip b{color:var(--amber-text);font-weight:600}
+
+  section{padding:30px 0}
+  h2{font-size:1.55rem;margin-bottom:6px}
+  .lede{color:#9aa1b6;margin-bottom:22px;font-size:.96rem}
+  h3{font-size:1.06rem;margin:22px 0 9px;color:#eef0f8}
+
+  .card{background:var(--surface-c);border-radius:var(--r);padding:24px 26px;margin:14px 0}
+  .card.low{background:var(--surface-low)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+
+  .adr{border-left:3px solid var(--indigo);background:var(--surface-low);padding:16px 20px;border-radius:0 var(--r) var(--r) 0;margin:12px 0}
+  .adr .t{font-family:"Space Grotesk";font-weight:700;color:#fff;font-size:1rem}
+  .adr .d{color:var(--emerald-text);font-size:.86rem;margin:3px 0 8px;font-weight:500}
+  .adr.reject{border-left-color:#5b4b6b}
+  .adr.reject .d{color:var(--error)}
+
+  ul.clean{list-style:none;padding:0}
+  ul.clean li{padding:7px 0 7px 26px;position:relative;color:#c9cee0}
+  ul.clean li::before{content:"";position:absolute;left:4px;top:15px;width:7px;height:7px;border-radius:50%;
+    background:var(--emerald);box-shadow:0 0 8px var(--emerald)}
+
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.88rem}
+  th,td{text-align:left;padding:11px 14px}
+  thead th{color:var(--primary);font-family:"Space Grotesk";font-weight:500;font-size:.82rem;letter-spacing:.02em}
+  tbody tr{background:var(--surface-low)}
+  tbody tr:nth-child(even){background:var(--surface-c)}
+  td b{color:#fff}
+
+  pre{background:var(--surface-lowest);border-radius:var(--r);padding:18px 20px;overflow-x:auto;
+    font-family:"JetBrains Mono";font-size:12.5px;line-height:1.7;color:#b9c2de;margin:14px 0}
+
+  .flow{display:flex;flex-direction:column;gap:0}
+  .flow .step{background:var(--surface-c);border-radius:var(--r);padding:14px 18px;position:relative}
+  .flow .arrow{text-align:center;color:var(--indigo);font-size:18px;padding:3px 0}
+  .flow .step .lbl{font-family:"Space Grotesk";font-weight:500;color:#fff}
+  .flow .step .det{font-size:.83rem;color:#9aa1b6}
+
+  .phase{display:flex;align-items:baseline;gap:14px;padding:11px 0}
+  .phase .p{font-family:"Space Grotesk";font-weight:700;color:var(--amber-text);min-width:42px}
+  .phase .x{color:#c9cee0}
+
+  footer{text-align:center;padding:56px 20px 40px;color:#6b7493;font-size:13px;line-height:2.2;margin-top:24px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="frame">
+    <span class="badge">架构方案 · 2026-06-01 · 扩展 authbox v5 不可阻挡架构</span>
+    <h1>Auth Box <span class="grad">for Mac</span><br/>一个用指纹把关的本地凭据中枢</h1>
+    <p class="sub">把三个分散的凭据面融合进一个原生 macOS app（应用程序）：密码 Vault（保险库）、70+ AI provider（服务商）密钥中枢、AI agent（智能体）授权管理——全部由 Touch ID（指纹认证）+ Secure Enclave（安全隔区）+ Keychain（钥匙串）在硬件层把关。</p>
+    <div class="meta">
+      <span class="chip"><b>复用</b> AuthBoxCrypto（已支持 macOS 14）</span>
+      <span class="chip"><b>原生</b> SwiftUI（非 Tauri / 非 Catalyst）</span>
+      <span class="chip"><b>把关</b> Touch ID = step_up 策略后端</span>
+      <span class="chip"><b>修复</b> AI-Fleet git 密钥泄露类问题</span>
+    </div>
+  </div>
+</header>
+
+<main class="frame">
+
+<section>
+  <h2>1 · 为什么要做它</h2>
+  <p class="lede">本地的三个凭据面目前是割裂且部分不安全的。一个 native（原生）Mac app 把它们统一到一个硬件把关的 broker（代理中枢）背后。</p>
+  <div class="grid2">
+    <div class="card low"><h3 style="margin-top:0">① 密码</h3>Auth Box Vault 已有 web 和 iOS 客户端，但缺一个一流的 Mac 原生客户端——Layer 3（便利层）此前只把桌面端标记为 Tauri（计划）。</div>
+    <div class="card low"><h3 style="margin-top:0">② AI provider 密钥</h3>web 端有 provider 中枢，但在开发者的 Mac 上密钥会泄漏进 git 跟踪的配置文件。2026-06-01 的舰队审计在 <code>gemini-api-config.json</code>、pm2 env dump（环境快照）、探针脚本里发现了真实的 provider 密钥——这正是本地 Keychain broker 能消除的失败模式。</div>
+    <div class="card low"><h3 style="margin-top:0">③ Agent 授权</h3>哪个 AI agent 能用哪个凭据、在什么策略下，由 MCP Gateway（网关）策略引擎执行；但 step-up（升级认证）缺一个强本地因子——没有硬件级的 human-in-the-loop（人工介入）门。</div>
+    <div class="card"><h3 style="margin-top:0">关键洞察</h3>Mac 是唯一一台已经具备正确原语的设备：<b>Touch ID（LocalAuthentication）、Keychain、Secure Enclave</b>。原生 macOS app 把三个面统一到一个硬件把关的 broker 之后。</div>
+  </div>
+</section>
+
+<section>
+  <h2>2 · 架构决策记录（ADR）</h2>
+  <p class="lede">决策不是凭空选型——真实代码已经决定了它。</p>
+
+  <div class="adr">
+    <div class="t">ADR-001 — 原生 SwiftUI macOS，不用 Tauri，也不用 Mac Catalyst</div>
+    <div class="d">决定：新建一个共享 AuthBoxCrypto 的多平台 SwiftUI 目标 apps/macos，输出 Mac 原生 UI（主窗口 + 菜单栏）。</div>
+    <ul class="clean">
+      <li><code>AuthBoxCrypto/Package.swift</code> 已声明 <code>platforms: [.iOS(.v17), .macOS(.v14)]</code>，crypto 核心（Argon2id / SRP-6a / HKDF / AES-GCM / BIP-39）已跨平台，<b>复用成本 ≈ 0</b>。</li>
+      <li>密码管理器是安全产品：Tauri / Electron 的 web 运行时带来的额外攻击面不可接受，而原生方案给出一流的 Secure Enclave 密钥包裹 + Keychain ACL（访问控制列表）+ App Sandbox（沙箱）+ Touch ID。</li>
+      <li>Mac Catalyst 会产出手机形态的 app——对一个要像 1Password / Keychain Access 那样的菜单栏 broker 来说，是错误的 UX。</li>
+    </ul>
+  </div>
+
+  <div class="adr">
+    <div class="t">ADR-002 — Touch ID 是现有 step_up 策略的后端</div>
+    <div class="d">决定：不发明新的认证概念。</div>
+    MCP 策略引擎已把 <code>step_up</code> 定义为标准策略类型（见 postmortem PM-20260531-002）。macOS app 通过 <code>LAContext.evaluatePolicy</code> 实现 <code>step_up</code>。Touch ID 是<b>接到已存在扩展点上的后端</b>，不是新增的面。
+  </div>
+
+  <div class="adr">
+    <div class="t">ADR-003 — 处处 deny-by-default（把 PM-002 教训烘焙进去）</div>
+    <div class="d">决定：策略评估 fail-closed（失败即关闭）。</div>
+    未知策略类型 → 拒绝；缺少 scoped 必填属性 → 拒绝；要求 step_up 但生物识别不可用 → 拒绝（绝不静默降级）。与 PM-002 在 Go/TS 侧的修复对齐，让三个引擎（TS MCP、Go API、Swift broker）契约一致。
+  </div>
+
+  <div class="adr">
+    <div class="t">ADR-004 — 密钥只进 Keychain + Secure Enclave，绝不进 app bundle 或 git</div>
+    <div class="d">决定：明文凭据与 Vault 主密钥永不以明文落盘、永不进 app 包或 git。</div>
+    Vault 主密钥由一个常驻 Secure Enclave 的密钥包裹，仅在 Touch ID 之后释放。这是 AI-Fleet 密钥泄露类问题的<b>结构性修复</b>。
+  </div>
+
+  <div class="adr reject">
+    <div class="t">已放弃的备选</div>
+    <div class="d">Tauri 桌面端（web 攻击面）· Mac Catalyst（错误 UX）· 新写一套 crypto（违反复用，重新引入 ios:crypto-vectors 测试要防的跨实现分歧）</div>
+  </div>
+</section>
+
+<section>
+  <h2>3 · 融合的三个域</h2>
+  <div class="card">
+    <h3 style="margin-top:0">3.1 密码 Vault</h3>
+    复用 AuthBoxCrypto：助记词（BIP-39，24 词）→ 主密钥（Argon2id）→ Vault 密钥（HKDF）→ AES-GCM 逐项加密；确定性密码派生（<code>seed + site → password</code>）支持「空保险库」模式。本地用 SwiftData 仅存密文 blob + 元数据；Vault 密钥仅在解锁期间驻留内存，静止时由 Secure Enclave 密钥包裹。可选经现有 Go API 同步（SRP-6a 认证、零知识 blob），同步是 Layer-2 可选项，离线完全可用。
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">3.2 AI Provider 中枢</h3>
+    <code>CredentialCatalog</code>（Swift）由 <code>credential-catalog.ts</code> <b>代码生成</b>（单一事实源，70+ provider / 15 类）——生成而非手抄，杜绝目录漂移。支持 <b>.env 拖拽导入</b>（解析→按 EnvPattern 分类到 provider→预览→存为带 categoryId/providerId 标签的 Vault 项）与 <b>凭据健康检查</b>（移植 credential-health.ts，一键校验密钥是否仍有效）。每个 provider 密钥都是一等 Vault 项，因此继承加密、同步与授权策略。
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">3.3 授权 / Agent 委派 broker</h3>
+    本地 host 一个 MCP Gateway 在 <code>ws://127.0.0.1:19876</code>（仅环回）。AI agent 连入，按 <code>itemId</code>（服务名）+ <code>action</code> 请求凭据，Swift 策略引擎按<b>五原语</b>评估：
+    <ul class="clean">
+      <li><b>Capability（能力）</b>：agent 被允许请求什么</li>
+      <li><b>Intent（意图）</b>：具体请求（item + action + 上下文）</li>
+      <li><b>Policy（策略）</b>：<code>item_scope | action_perm | rate_limit | time_window | step_up</code></li>
+      <li><b>Effect（效果）</b>：按策略的释放或拒绝</li>
+      <li><b>Fact（事实）</b>：不可篡改的审计记录</li>
+    </ul>
+    <code>step_up</code> → 一次 macOS Touch ID 提示 + 菜单栏 consent（同意）卡片：「Claude 想用 OpenAI 密钥执行 <code>proxy.chat</code> —— 允许一次 / 拒绝」。Deny-by-default。<b>这就是 AI-Fleet 的修复</b>：gemini-proxy 不再从 git 跟踪的配置读密钥，而是向 broker 请求，由 broker 在 Touch ID 后按策略释放并记录访问。
+  </div>
+</section>
+
+<section>
+  <h2>4 · macOS 认证与密钥架构</h2>
+  <p class="lede">硬件信任链：指纹 → 安全隔区密钥 → 内存中主密钥 → 逐项密钥 → 按策略释放明文。</p>
+  <div class="flow">
+    <div class="step"><span class="lbl">Touch ID</span> <span class="det">LocalAuthentication · evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics)</span></div>
+    <div class="arrow">▼</div>
+    <div class="step"><span class="lbl">Secure Enclave 密钥</span> <span class="det">kSecAttrTokenIDSecureEnclave · 访问控制 .biometryCurrentSet + .privateKeyUsage</span></div>
+    <div class="arrow">▼ 解包</div>
+    <div class="step"><span class="lbl">Vault 主密钥</span> <span class="det">仅解锁期间驻留内存；锁定/休眠时清零</span></div>
+    <div class="arrow">▼ HKDF</div>
+    <div class="step"><span class="lbl">逐项 AES-GCM 密钥</span> <span class="det">解密 → 明文凭据（按策略释放）</span></div>
+  </div>
+  <ul class="clean">
+    <li>Keychain 存放 Secure-Enclave 包裹的 Vault 密钥，访问控制要求 <code>biometryCurrentSet</code>——重新录入指纹即失效（抗胁迫）。</li>
+    <li>自动锁定：休眠、屏保、可配置空闲后；清零内存主密钥。</li>
+    <li>App Sandbox + Hardened Runtime（强化运行时）+ 公证（notarization）：凭据 broker 的必备项，约束进程被攻破后的爆炸半径。</li>
+    <li>keychain-access-groups + app-group <code>group.com.authbox.shared</code>：让未来的 macOS AutoFill（自动填充）扩展共享 Vault，与 iOS 现有 entitlements（权限声明）镜像一致。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>5 · 威胁模型（攻击者视角审查摘要）</h2>
+  <table>
+    <thead><tr><th>威胁</th><th>缓解</th></tr></thead>
+    <tbody>
+      <tr><td>恶意软件读取磁盘上的 Vault</td><td>静止时 Vault 密钥由 Secure Enclave 包裹，落盘的只有密文 blob</td></tr>
+      <tr><td>进程内存抓取</td><td>主密钥仅解锁期间在内存；锁定/休眠清零；沙箱隔离</td></tr>
+      <tr><td>恶意 AI agent 经 MCP</td><td>仅环回绑定；deny-by-default 策略；<code>step_up</code> Touch ID；逐请求审计</td></tr>
+      <tr><td>策略枚举漂移 / fail-open</td><td>Swift 引擎与 TS+Go 契约测试；未知类型 → 拒绝（PM-002）</td></tr>
+      <tr><td>密钥进 bundle / git</td><td>结构上不可能——密钥只在 Keychain/Enclave，绝不进 app 发布的文件</td></tr>
+      <tr><td>被胁迫重录指纹</td><td><code>biometryCurrentSet</code> 在录入变更时使包裹密钥失效</td></tr>
+      <tr><td>重放 / 过宽授权</td><td><code>rate_limit</code> + <code>time_window</code> + <code>item_scope</code> 策略；consent 默认「允许一次」</td></tr>
+    </tbody>
+  </table>
+  <p class="lede" style="margin-top:14px">发布前必经一次 <code>/security</code> 攻击者视角审查 SubAgent（子代理）门禁（见第 6 节 P5）。</p>
+</section>
+
+<section>
+  <h2>6 · 分阶段实现计划（原子化）</h2>
+  <p class="lede">完整原子队列见 <code>task_plan.md §WP-020</code>（共 31 个原子项）。阶段门禁：每阶段 pnpm typecheck && pnpm test（TS 侧）+ xcodebuild build/test（Swift 侧）+ notes.md 里的 UX 手测证据。</p>
+  <div class="card low">
+    <div class="phase"><span class="p">P0</span><span class="x">脚手架：apps/macos SwiftUI 目标，链接 AuthBoxCrypto，沙箱+强化运行时权限，macOS 14 编译通过</span></div>
+    <div class="phase"><span class="p">P1</span><span class="x">认证核心：LocalAuthentication 解锁、Secure-Enclave 包裹 Vault 密钥、Keychain 存储、自动锁定</span></div>
+    <div class="phase"><span class="p">P2</span><span class="x">Vault：item 增删改查、生成器、确定性派生、SwiftData 存储（复用 iOS Features/Vault）</span></div>
+    <div class="phase"><span class="p">P3</span><span class="x">Provider 中枢：目录代码生成、.env 拖拽导入、健康检查</span></div>
+    <div class="phase"><span class="p">P4</span><span class="x">授权 broker：本地 MCP Gateway host、Swift 策略引擎（deny-by-default）、step_up Touch ID、consent UI、审计日志</span></div>
+    <div class="phase"><span class="p">P5</span><span class="x">分发：代码签名 + 公证、DMG、可选 Sparkle 自动更新、/security 审查门禁</span></div>
+    <div class="phase"><span class="p">P6</span><span class="x">AI-Fleet 集成（加分项）：broker 客户端让 gemini-proxy 等向 broker 请求密钥而非读 git 配置</span></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>Auth Box for Mac v0.1 — 原生 macOS 架构方案</p>
+  <p>Maurice | maurice_wen@proton.me</p>
+  <p style="font-size:12px;margin-top:8px">2026-06-01 · 扩展 authbox v5 不可阻挡架构 · VAULT ONYX 设计系统 · 数据来源：真实代码盘点（apps/ios + AuthBoxCrypto + credential-catalog.ts + PM-20260531-002）</p>
+</footer>
+
+</body>
+</html>

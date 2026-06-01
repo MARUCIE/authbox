@@ -1788,3 +1788,24 @@ Cumulative: Round 4-7 = 50 optimization items total.
 - Source control + GitHub workflows: PASS.
 - Public API health: BLOCKED by missing public `api.authbox.io` DNS/Tunnel route and unverified VPS runtime.
 - Production mutation: not executed in this session.
+
+
+## 2026-06-01 · macOS Native App — Discovery + Architecture Decision (goal: 融合密码/provider/授权 + Touch ID)
+
+### Discovery (read real code first, no fabrication)
+- authbox v2.0.0 monorepo already mature: pnpm/turbo, Go API, Next.js web, Chrome MV3 ext, **apps/ios SwiftUI + AuthBoxCrypto SwiftPM**.
+- `AuthBoxCrypto/Package.swift` already targets `[.iOS(.v17), .macOS(.v14)]` → crypto (Argon2id/SRP-6a/HKDF/AES-GCM) is cross-platform Swift, ZERO rewrite needed for macOS.
+- iOS SwiftUI structure to mirror: `apps/ios/AuthBox/Sources/{App,Core/{Network,Storage},Design,Features/{Vault,Generator,Onboarding,Settings}}`.
+- Entitlements already declare app-group `group.com.authbox.shared` + autofill-credential-provider.
+- AI provider mgmt = `packages/shared/src/types/credential-catalog.ts` (70+ providers / 15 categories) + `apps/web/lib/{env-import-parser,credential-health}.ts`.
+- Authorization = MCP Gateway `ws://localhost:19876` + 五原语 policy engine; canonical policy types (PM-20260531-002): `item_scope, action_perm, rate_limit, time_window, step_up`.
+- SYSTEM_ARCHITECTURE v5 Layer 3 had desktop pencilled as **Tauri** + iOS as native SwiftUI.
+- Postmortem PM-002 lesson: policy engine MUST be deny-by-default (unknown type → deny; missing scoped attr → deny).
+
+### Decision (SOTA, decided autonomously per goal mandate)
+- Build native **multiplatform SwiftUI macOS target `apps/macos`**, sharing `AuthBoxCrypto` + domain logic; Mac-native UI (menu-bar broker). REPLACES planned Tauri desktop in Layer 3.
+- Touch ID = backend for the existing `step_up` policy (not a new feature — a backend for an existing extension point) via LocalAuthentication.
+- Local MCP Gateway hosted natively in the Mac app; deny-by-default policy (PM-002 baked in).
+- Secrets ONLY in Keychain + Secure-Enclave-wrapped keys; never bundle/git. Bonus: this broker is the SOTA fix for the AI-Fleet git-key-leak class I audited 2026-06-01 (proxies call broker, not git config).
+- Discarded: Tauri desktop (web runtime = attack surface on a security product), Mac Catalyst (phone-shaped UX, wrong for a menu-bar credential broker), new crypto impl (violates reuse).
+- Deliverable order: architecture 2份制 (.md canonical EN + .html ZH via html-style-router) FIRST, then atomic-phase implementation.

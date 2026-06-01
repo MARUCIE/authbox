@@ -388,3 +388,56 @@ Maurice | maurice_wen@proton.me
 ## Changelog
 - 2026-03-22: 新增 release readiness checkpoint、三端一致性阻塞项与项目级 `ai check` 兼容收口任务。（原因：release readiness hardening）
 - 2026-06-01: 追加 WP-019 public API health blocker triage，记录权威 DNS NXDOMAIN、VPS alias 不可读、GitHub checks PASS，并给出生产恢复 change set。（原因：release convergence continuation）
+
+
+## 2026-06-01 · WP-020 — Auth Box for Mac (native macOS app) · Atomic Execution Queue
+
+Goal: native SwiftUI macOS app fusing vault + 70+ AI provider hub + agent-authorization
+broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/macos-native-app/ARCHITECTURE.md.
+
+### P0 — Scaffold (build green on macOS 14)
+- [ ] Add `apps/macos/AuthBoxMac` SwiftUI target to AuthBox.xcodeproj (or new .xcodeproj)
+- [ ] Link `AuthBoxCrypto` SwiftPM dependency (already macOS 14)
+- [ ] AuthBoxMac.entitlements: app-sandbox, hardened-runtime, app-group group.com.authbox.shared, keychain-access-groups
+- [ ] @main App scene + menu-bar (MenuBarExtra) scene + main WindowGroup
+- [ ] `xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' build` green
+
+### P1 — Auth core (Touch ID + Secure Enclave)
+- [ ] Core/Auth: LAContext wrapper, evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics), availability+error handling
+- [ ] Core/Keychain: Secure-Enclave key (kSecAttrTokenIDSecureEnclave, .biometryCurrentSet + .privateKeyUsage)
+- [ ] Vault master key wrap/unwrap via Enclave key; in-memory only while unlocked
+- [ ] Auto-lock: on sleep / screensaver / idle timeout; zero master key on lock
+- [ ] Unit test: lock/unlock cycle, key zeroed on lock
+
+### P2 — Vault
+- [ ] Domain/Vault: reuse seed-phrase HD derivation + item model from AuthBoxCrypto/iOS
+- [ ] Core/Storage: SwiftData store holding ciphertext blobs + metadata only
+- [ ] Features/Vault: item list, item detail, add/edit/delete
+- [ ] Features/Vault: password generator + deterministic derivation (seed+site)
+- [ ] Crypto parity: `pnpm run ios:crypto-vectors` passes for macOS
+
+### P3 — Provider Hub
+- [ ] `pnpm run gen:swift-catalog` codegen from credential-catalog.ts → CredentialCatalog.generated.swift
+- [ ] CI checksum gate: generated Swift in sync with TS source
+- [ ] Domain/Providers: port env-import-parser.ts → Swift EnvParser
+- [ ] Features/ProviderHub: .env drag-drop import + preview + classify-to-provider
+- [ ] Core: port credential-health.ts → Swift health-check probes; one-click verify
+
+### P4 — Authorization broker (local MCP Gateway)
+- [ ] Core/Broker: WebSocket server bound ws://127.0.0.1:19876 (loopback only)
+- [ ] Domain/Delegation: Swift 五原语 model (Capability/Intent/Policy/Effect/Fact)
+- [ ] Core/Policy: deny-by-default engine; types item_scope|action_perm|rate_limit|time_window|step_up
+- [ ] step_up policy → Touch ID prompt + menu-bar consent card (Allow once / Deny)
+- [ ] Policy contract tests mirror policy-engine.test.ts fail-closed cases (unknown type, missing scoped attr)
+- [ ] Features/Authorizations: agent grants, policy editor, tamper-evident audit log (Fact)
+
+### P5 — Distribution
+- [ ] codesign (Developer ID) + notarize + staple
+- [ ] DMG packaging; optional Sparkle auto-update
+- [ ] `/security` attacker-review SubAgent pass (gate before release)
+
+### P6 — AI-Fleet integration (bonus, fixes the 2026-06-01 git-key-leak class)
+- [ ] Broker client so gemini-proxy et al. request keys from broker instead of gemini-api-config.json
+- [ ] Migrate AI-Fleet provider keys → broker; remove from git-tracked config (HITL: touches live proxy)
+
+Gate per phase: pnpm typecheck && pnpm test (TS) + xcodebuild build/test (Swift) + UX-map manual evidence in notes.md.
