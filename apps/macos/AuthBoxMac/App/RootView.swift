@@ -24,15 +24,6 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .authorizations: return "person.badge.shield.checkmark"
         }
     }
-
-    var subtitle: String {
-        switch self {
-        case .vault: return "Passwords & secrets — seed-phrase vault"
-        case .generator: return "Random & deterministic password generation"
-        case .providers: return "70+ AI provider keys — .env import, health checks"
-        case .authorizations: return "Agent grants, policies, audit — Touch ID gated"
-        }
-    }
 }
 
 struct RootView: View {
@@ -104,29 +95,5 @@ struct LockedView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
-    }
-}
-
-/// P0 placeholder for each domain; replaced by real feature views in P2-P4.
-struct PlaceholderDetail: View {
-    let section: AppSection
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: section.systemImage)
-                .font(.system(size: 44))
-                .foregroundStyle(.tint)
-            Text(section.rawValue)
-                .font(.title.weight(.bold))
-            Text(section.subtitle)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Text("Coming in the next phase")
-                .font(.caption)
-                .padding(.horizontal, 12).padding(.vertical, 5)
-                .background(.quaternary, in: Capsule())
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .navigationTitle(section.rawValue)
     }
 }
