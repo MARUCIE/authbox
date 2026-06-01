@@ -403,11 +403,11 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
 - [x] xcodebuild macOS build -> BUILD SUCCEEDED (rc=0, 0 errors, ad-hoc signed Auth Box.app)
 
 ### P1 — Auth core (Touch ID + Secure Enclave)
-- [ ] Core/Auth: LAContext wrapper, evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics), availability+error handling
-- [ ] Core/Keychain: Secure-Enclave key (kSecAttrTokenIDSecureEnclave, .biometryCurrentSet + .privateKeyUsage)
-- [ ] Vault master key wrap/unwrap via Enclave key; in-memory only while unlocked
-- [ ] Auto-lock: on sleep / screensaver / idle timeout; zero master key on lock
-- [ ] Unit test: lock/unlock cycle, key zeroed on lock
+- [x] Core/Auth/BiometricAuth.swift: LAContext wrapper + LAError->AuthError mapping + availability; deny-by-default (any error -> .failure)
+- [x] Core/Keychain/SecureEnclaveKeyStore.swift: SE EC-P256 key (.biometryCurrentSet + .privateKeyUsage), ECIES wrap/unwrap
+- [x] Core/Vault/VaultSession.swift: SE unwrap = Touch ID gate; master key in SecureBytes, in-memory only while unlocked
+- [x] Auto-lock: NSWorkspace.willSleep + com.apple.screenIsLocked + idle Timer -> performLock() zeroes SecureBytes
+- [x] AuthBoxMacTests/VaultSessionTests.swift: 4 tests PASS (unlock-holds-key / lock-zeroes / deny-on-unwrap-fail / preonboarding-biometric-gate) -> TEST SUCCEEDED rc=0
 
 ### P2 — Vault
 - [ ] Domain/Vault: reuse seed-phrase HD derivation + item model from AuthBoxCrypto/iOS

@@ -27,7 +27,6 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.authbox.mac
-        PRODUCT_NAME: "Auth Box"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
@@ -43,5 +42,22 @@ targets:
         SWIFT_STRICT_CONCURRENCY: minimal
         DEAD_CODE_STRIPPING: YES
     scheme:
-      testTargets: []
+      testTargets:
+        - AuthBoxMacTests
       gatherCoverageData: false
+
+  AuthBoxMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: AuthBoxMacTests
+    dependencies:
+      - target: AuthBoxMac
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.authbox.mac.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual

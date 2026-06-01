@@ -1817,3 +1817,12 @@ Cumulative: Round 4-7 = 50 optimization items total.
 - AuthBoxCrypto reuse PROVEN cross-platform: macOS build compiled Argon2/SRP/HKDF/AES256GCM/Seed/VaultCrypto/WordlistEN + BigInt 5.7.0.
 - Note: ad-hoc disables hardened runtime (expected, P5 Developer ID). app-group + keychain-access-groups deferred to P1 (need team).
 - Next: P1 auth core — Core/Auth (LAContext Touch ID), Core/Keychain (Secure Enclave wrap), auto-lock. Runtime Touch ID prompt = manual UX gate at the Mac.
+
+## 2026-06-01 . WP-020 P1 — Auth core DONE (build+tests green)
+- Files: Core/Auth/BiometricAuth.swift, Core/Keychain/SecureEnclaveKeyStore.swift, Core/Vault/VaultSession.swift, AuthBoxMacTests/VaultSessionTests.swift. project.yml + AuthBoxMacTests target.
+- Mechanism: SE EC-P256 private key with [.privateKeyUsage,.biometryCurrentSet] => DECRYPT (unwrap) IS the Touch ID gate + invalidated on fingerprint re-enroll. Public key wraps master key (no auth). Master key held in SecureBytes, zeroed on lock/sleep/idle.
+- Deny-by-default: any biometric/unwrap failure -> stays locked (tested).
+- Verify: xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' test -> ** TEST SUCCEEDED ** rc=0, VaultSessionTests 4/4 (/tmp/authbox_mac_test.log).
+- HONEST SCOPE: protocol seams (BiometricAuthenticating/VaultKeyWrapping/WrappedKeyStore) let state logic test headless; the REAL Touch ID + Secure Enclave round-trip is a MANUAL UX gate at the Mac (biometrics cannot be driven headless). To be exercised by Maurice when P2 onboarding provisions a real seed-derived key.
+- Resolved: TEST_HOST mismatch (dropped PRODUCT_NAME='Auth Box' -> product=AuthBoxMac, display name via CFBundleDisplayName); async-in-autoclosure (hoisted unlockAsync() into a let).
+- Next: P2 Vault — wire AuthBoxCrypto seed->master-key into VaultSession.provision(), SwiftData ciphertext store, item CRUD + generator, reuse iOS Features/Vault.

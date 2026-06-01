@@ -7,7 +7,7 @@
 import SwiftUI
 
 struct MenuBarContent: View {
-    @EnvironmentObject private var lockState: LockState
+    @EnvironmentObject private var lockState: VaultSession
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {

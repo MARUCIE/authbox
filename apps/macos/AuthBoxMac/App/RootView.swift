@@ -33,7 +33,7 @@ enum AppSection: String, CaseIterable, Identifiable {
 }
 
 struct RootView: View {
-    @EnvironmentObject private var lockState: LockState
+    @EnvironmentObject private var lockState: VaultSession
     @State private var selection: AppSection = .vault
 
     var body: some View {
@@ -55,7 +55,7 @@ struct RootView: View {
 
 /// P0 locked screen. P1 replaces the button action with a Touch ID prompt.
 struct LockedView: View {
-    @EnvironmentObject private var lockState: LockState
+    @EnvironmentObject private var lockState: VaultSession
 
     var body: some View {
         VStack(spacing: 18) {

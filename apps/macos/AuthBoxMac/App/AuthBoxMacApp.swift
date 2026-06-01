@@ -15,42 +15,23 @@ import AuthBoxCrypto  // shared cross-platform crypto core — proves the SwiftP
 
 @main
 struct AuthBoxMacApp: App {
-    /// Vault lock state. P0 is a stub; P1 wires it to LocalAuthentication +
-    /// a Secure-Enclave-wrapped vault key.
-    @StateObject private var lockState = LockState()
+    /// P1: real session — Touch ID gate + Secure-Enclave-wrapped vault key,
+    /// master key held in memory only while unlocked, zeroed on lock/sleep/idle.
+    @StateObject private var session = VaultSession()
 
     var body: some Scene {
         WindowGroup("Auth Box") {
             RootView()
-                .environmentObject(lockState)
+                .environmentObject(session)
                 .frame(minWidth: 880, minHeight: 560)
         }
         .windowToolbarStyle(.unified)
 
         // Menu-bar broker surface: quick unlock + pending agent requests + lock-all.
-        MenuBarExtra("Auth Box", systemImage: lockState.isUnlocked ? "lock.open.fill" : "lock.fill") {
+        MenuBarExtra("Auth Box", systemImage: session.isUnlocked ? "lock.open.fill" : "lock.fill") {
             MenuBarContent()
-                .environmentObject(lockState)
+                .environmentObject(session)
         }
         .menuBarExtraStyle(.window)
-    }
-}
-
-/// Minimal lock-state model. The real implementation (P1) holds the in-memory
-/// vault master key only while unlocked and zeroes it on lock/sleep.
-@MainActor
-final class LockState: ObservableObject {
-    @Published private(set) var isUnlocked: Bool = false
-
-    /// P0 stub. P1 replaces this with LAContext.evaluatePolicy(...) +
-    /// Secure-Enclave key unwrap. Deny-by-default: stays locked on any failure.
-    func unlock() {
-        // P1: Touch ID gate goes here.
-        isUnlocked = true
-    }
-
-    func lock() {
-        // P1: zero the in-memory master key here.
-        isUnlocked = false
     }
 }
