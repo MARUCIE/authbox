@@ -11,18 +11,31 @@
 | Architecture (2份制) | DONE | `doc/10_features/macos-native-app/ARCHITECTURE.md` + `.html` (VAULT ONYX), commit `85aaab1` |
 | P0 Scaffold | DONE | XcodeGen target, build green, commit `6f47598` |
 | P1 Auth core | DONE | Touch ID + Secure Enclave + auto-lock, tests 4/4, commit `2c21920` |
-| P2 Vault | NEXT | not started |
-| P3 Provider Hub / P4 Broker / P5 Dist / P6 AI-Fleet | TODO | see `task_plan.md §WP-020` |
+| P2 Vault | DONE | SwiftData ciphertext store, CRUD, generator, onboarding; commit `3b03abf` |
+| P3 Provider Hub | DONE | TS→Swift catalog codegen (15/91/108), .env import, health checks; commit `27b4fb3` |
+| P4 Authorization broker | DONE | real loopback WS gateway, deny-by-default engine, tamper-evident audit; commit `20df92a` |
+| P5 Distribution | BLOCKED (HITL) | needs Maurice's Developer ID cert for codesign/notarize; build is ad-hoc signed |
+| P6 AI-Fleet integration | DEFERRED (HITL) | broker client replacing gemini-api-config.json touches the LIVE gemini proxy |
 
-3 commits ahead of `origin/main` at handoff time (pushed in the same session if `local_ahead` shows 0 afterwards).
+All three fused domains (vault / provider hub / authorization broker) are
+implemented + tested. `xcodebuild ... test` → **41/41 PASS** (incl. a real
+loopback WebSocket round-trip, not a stub). Pushed to `origin/main`.
 
 ## What exists (apps/macos/)
 - `project.yml` — XcodeGen manifest (canonical; `.xcodeproj` is derived + gitignored). Rebuild: `cd apps/macos && xcodegen generate`.
-- `AuthBoxMac/App/` — `AuthBoxMacApp.swift` (@main, WindowGroup + MenuBarExtra), `RootView.swift` (3-domain NavigationSplitView + LockedView), `MenuBarContent.swift`.
-- `AuthBoxMac/Core/Auth/BiometricAuth.swift` — `BiometricAuthenticating` protocol + `LABiometricAuth` (LAContext), deny-by-default.
-- `AuthBoxMac/Core/Keychain/SecureEnclaveKeyStore.swift` — `VaultKeyWrapping` protocol + SE EC-P256 ECIES wrap/unwrap.
-- `AuthBoxMac/Core/Vault/VaultSession.swift` — lock/unlock state machine, `SecureBytes`, `WrappedKeyStore` + Keychain impl, auto-lock observers.
-- `AuthBoxMacTests/VaultSessionTests.swift` — 4 headless state tests (PASS).
+- `AuthBoxMac/App/` — `AuthBoxMacApp.swift` (@main, WindowGroup + MenuBarExtra), `RootView.swift` (4 sections: vault/generator/providers/authorizations; LockedView ⇄ OnboardingView gate), `MenuBarContent.swift`.
+- `Core/Auth/BiometricAuth.swift` — `BiometricAuthenticating` + `LABiometricAuth` (LAContext), deny-by-default.
+- `Core/Keychain/SecureEnclaveKeyStore.swift` — `VaultKeyWrapping` + SE EC-P256 ECIES wrap/unwrap.
+- `Core/Vault/VaultSession.swift` — lock/unlock state machine, `SecureBytes`, Keychain wrapped-key store, auto-lock, `provisionAndUnlock(mnemonic:)`.
+- `Core/Storage/VaultStore.swift` — SwiftData `@Model VaultItemRecord` (ciphertext+metadata only), shared process container.
+- `Domain/Vault/{VaultService,PasswordGenerator}.swift` — encrypt/store/reveal via VaultCrypto; random + deterministic generation.
+- `Domain/Providers/{CredentialCatalog.generated.swift,EnvParser,CredentialHealth,ProviderImportService}.swift` — generated catalog + .env parse + health probes + vault import.
+- `Domain/Delegation/DelegationModel.swift` — the 五原语 (Capability/Intent/Policy/Effect/Fact).
+- `Core/Policy/PolicyEngine.swift` — deny-by-default engine (5 policy types, injectable clock, async step-up).
+- `Core/Broker/{AuthorizationBroker,AuditLog}.swift` — real loopback WebSocket gateway + SHA-256 hash-chain audit.
+- `Features/{Vault,Generator,Onboarding,Providers,Authorizations}/` — the SwiftUI surfaces.
+- `AuthBoxMacTests/` — 41 tests across VaultSession, VaultService, EnvParser, CredentialHealth, PolicyEngine, AuditLog, Broker.
+- Codegen: `pnpm run gen:swift-catalog` (regenerate) / `--check` (CI staleness gate).
 
 ## Build / test commands
 ```bash
@@ -32,12 +45,18 @@ xcodebuild -project AuthBoxMac.xcodeproj -scheme AuthBoxMac -destination 'platfo
 xcodebuild -project AuthBoxMac.xcodeproj -scheme AuthBoxMac -destination 'platform=macOS' test
 ```
 
-## P2 — Vault (next, do this)
-1. Read the AuthBoxCrypto public API (`apps/ios/AuthBoxCrypto/Sources/AuthBoxCrypto/*.swift`): seed → master key derivation, item AES-GCM. Reuse, do not reimplement.
-2. Wire `VaultSession.provision(masterKey:)` from the seed-derived master key during onboarding.
-3. SwiftData store holding ciphertext blobs + metadata only (`Core/Storage`).
-4. `Features/Vault`: item list/detail/CRUD + password generator + deterministic derivation. Reuse `apps/ios/AuthBox/Sources/Features/Vault` patterns.
-5. Verify: `pnpm run ios:crypto-vectors` parity + xcodebuild test green + UX evidence in notes.md.
+## Visual Verification (2026-06-01)
+- `doc/10_features/macos-native-app/screenshots/onboarding.png` — real pixel capture (1800×1184 @2x) of the running app's first-run onboarding screen. The app launched (pid confirmed), front window "Auth Box" rendered at 900×592 (confirmed via System Events), then captured with `screencapture -R`.
+- Scope note: the unlocked surfaces (vault list, provider hub, authorizations) sit behind the real Touch ID + Secure Enclave gate, which **cannot run headless** — Maurice must provision a mnemonic on the Mac to capture those. The locked/onboarding screen is the headless-reachable surface.
+
+## P5 — Distribution (next; HITL-gated)
+1. **/security attacker-review** (autonomous, runs before packaging) — a fresh-context security audit of the Core/Domain Swift was run this session; fold its findings in before packaging.
+2. **codesign (Developer ID)** — needs Maurice's Apple Developer ID cert + `DEVELOPMENT_TEAM` in `project.yml`. Re-enables hardened runtime + app-group + keychain-access-groups (currently ad-hoc, team-deferred). HITL.
+3. **notarize + staple** — `xcrun notarytool` with Maurice's Apple ID app-specific password. HITL.
+4. **DMG packaging** — `create-dmg` or `hdiutil`; optional Sparkle auto-update.
+
+## P6 — AI-Fleet integration (bonus; HITL-gated)
+- Replace `gemini-api-config.json` plaintext-key reads with a broker client (ws://127.0.0.1:19876). Touches the LIVE gemini proxy → production system → HITL before wiring.
 
 ## Hard constraints / gotchas
 - **Manual UX gate**: the real Touch ID + Secure Enclave round-trip cannot run headless. Provision a key + unlock on the Mac to exercise it (Maurice).
