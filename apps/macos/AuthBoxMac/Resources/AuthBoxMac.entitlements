@@ -15,11 +15,15 @@
 	<key>com.apple.security.network.server</key>
 	<true/>
 	<!--
-	  P1 (requires a DEVELOPMENT_TEAM / provisioning profile, deferred from P0 ad-hoc build):
-	    com.apple.security.application-groups  -> group.com.authbox.shared
-	    keychain-access-groups                 -> $(AppIdentifierPrefix)com.authbox.shared
-	  These let the future AutoFill credential-provider extension share the vault,
-	  mirroring apps/ios/AuthBox/AuthBox.entitlements.
+	  Required for persistent Secure Enclave keys. macOS keys the SE-resident
+	  private key into this team-prefixed access group; without it SecKeyCreateRandomKey
+	  fails errSecMissingEntitlement (-34018). $(AppIdentifierPrefix) expands to the
+	  team prefix (L37Q42H4SZ.) at sign time; com.authbox.mac is the app's own group,
+	  which is the default group the SecureEnclaveKeyStore queries use.
 	-->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.authbox.mac</string>
+	</array>
 </dict>
 </plist>

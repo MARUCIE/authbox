@@ -10,7 +10,7 @@
 |---|---|---|
 | Architecture (2份制) | DONE | `doc/10_features/macos-native-app/ARCHITECTURE.md` + `.html` (VAULT ONYX), commit `85aaab1` |
 | P0 Scaffold | DONE | XcodeGen target, build green, commit `6f47598` |
-| P1 Auth core | DONE | Touch ID + Secure Enclave + auto-lock, tests 4/4, commit `2c21920` |
+| P1 Auth core | CODE DONE / runtime gated | Touch ID + Secure Enclave + auto-lock, tests 4/4, commit `2c21920`. SE key creation needs dev-team signing (see "Secure Enclave signing" below) — ad-hoc fails -34018 on the real machine. |
 | P2 Vault | DONE | SwiftData ciphertext store, CRUD, generator, onboarding; commit `3b03abf` |
 | P3 Provider Hub | DONE | TS→Swift catalog codegen (15/91/108), .env import, health checks; commit `27b4fb3` |
 | P4 Authorization broker | DONE | real loopback WS gateway, deny-by-default engine, tamper-evident audit; commit `20df92a` |
@@ -92,10 +92,30 @@ core, CSPRNG password generation, SwiftData stores only ciphertext, entitlements
 ## P6 — AI-Fleet integration (bonus; HITL-gated)
 - Replace `gemini-api-config.json` plaintext-key reads with a broker client (ws://127.0.0.1:19876). Touches the LIVE gemini proxy → production system → HITL before wiring.
 
+## Secure Enclave signing (the one live blocker — 2026-06-01)
+The persistent SE wrap key (`Core/Keychain/SecureEnclaveKeyStore.swift`) cannot be
+created by an ad-hoc-signed app. Proven empirically on macOS 26.5: ad-hoc → -34018
+(`errSecMissingEntitlement`); dev-cert without a provisioning profile → amfid SIGKILL.
+macOS keys the SE-resident key into a team-prefixed `keychain-access-groups`, which
+only works under a provisioning-profile-backed signature.
+
+Fix is wired (commit on `origin/main`): `project.yml` uses automatic signing with
+team `L37Q42H4SZ` (the `Apple Development: maoyuan.wen@proton.me` identity already in
+the keychain) + `keychain-access-groups` re-enabled in `AuthBoxMac.entitlements`.
+
+**Remaining one-time action (sudo-type HITL):** add the Apple ID `maoyuan.wen@proton.me`
+in **Xcode > Settings > Accounts** (free personal team L37Q42H4SZ appears). Then:
+```bash
+bash scripts/verify-se-signing.sh   # asserts profile + signed keychain-access-groups
+```
+If OK → launch the app, tap Touch ID on "Finish setup". The Touch ID tap is the only
+step that can never be headless. Do NOT swap the SE design for a software key to dodge
+the account — that is a security retreat (see notes.md 2026-06-01).
+
 ## Hard constraints / gotchas
 - **Deployment target = macOS 26.0** (latest, "Tahoe"). Set 2026-06-01: dev/run/test host is macOS 26.5 and only the 26.5 SDK is installed, so 26.0 is the honest floor — the app is built/run/tested on exactly the OS it targets, and standard SwiftUI controls pick up Liquid Glass styling for free. The shared `AuthBoxCrypto` SwiftPM package stays `.macOS(.v14)` (cross-platform with iOS 17); a 26.0 app depending on a 14-min package is valid. To broaden to older Macs (e.g. workshop distribution), flip the three `project.yml` deploymentTarget entries back to "15.0"/"14.0" + `xcodegen generate`.
 - **Manual UX gate**: the real Touch ID + Secure Enclave round-trip cannot run headless. Provision a key + unlock on the Mac to exercise it (Maurice).
-- **Team-deferred entitlements (P1→needs DEVELOPMENT_TEAM)**: app-group `group.com.authbox.shared` + keychain-access-groups + runtime hardened-runtime (ad-hoc disables it). Add when a signing team is configured.
+- **Signing (2026-06-01)**: keychain-access-groups is now ENABLED + automatic dev-team signing (L37Q42H4SZ) is wired — see "Secure Enclave signing" above; needs the Apple ID added in Xcode Accounts once. The app-group `group.com.authbox.shared` (for the future AutoFill extension) is still deferred — App Groups needs a separate provisioned capability; add it only when that extension lands.
 - Product/module name is `AuthBoxMac` (display name "Auth Box" via CFBundleDisplayName). Test import: `@testable import AuthBoxMac`. Do NOT re-add `PRODUCT_NAME` (breaks TEST_HOST).
 - Secrets only in Keychain + Secure Enclave; never in bundle/git (ADR-004).
 - Policy engine (P4) must be deny-by-default (PM-20260531-002).

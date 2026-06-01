@@ -37,12 +37,17 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: "Auth Box"
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.utilities"
-        # P0 local build: ad-hoc sign + hardened runtime. Team-scoped entitlements
-        # (app-group, keychain-access-groups) land in P1 with a DEVELOPMENT_TEAM.
+        # Development-team signing (REQUIRED): persistent Secure Enclave keys +
+        # keychain-access-groups demand a provisioning-profile-backed signature.
+        # Empirically on macOS 26.5, ad-hoc and bare-dev-cert both fail (-34018 /
+        # amfid SIGKILL) — only an automatically-provisioned dev signature works.
+        # Team L37Q42H4SZ = the "Apple Development: maoyuan.wen@proton.me" identity
+        # already present in this Mac's keychain.
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_ENTITLEMENTS: AuthBoxMac/Resources/AuthBoxMac.entitlements
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: L37Q42H4SZ
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: Automatic
         SWIFT_VERSION: "5.0"
         SWIFT_STRICT_CONCURRENCY: minimal
         DEAD_CODE_STRIPPING: YES
@@ -64,5 +69,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.authbox.mac.tests
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "5.0"
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGN_STYLE: Manual
+        # Match the host app's signing so TEST_HOST loads under the same identity.
+        DEVELOPMENT_TEAM: L37Q42H4SZ
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: Automatic

@@ -46,8 +46,11 @@ echo "NOTE: packaging Auth Box $VERSION"
 
 # 1. Fresh project + Release build ---------------------------------------------
 ( cd "$MACOS_DIR" && xcodegen generate >/dev/null )
+# -allowProvisioningUpdates: the app uses automatic development signing (team
+# L37Q42H4SZ) because persistent Secure Enclave keys need a provisioning-profile-
+# backed signature. Requires an Apple ID in Xcode > Settings > Accounts (one-time).
 xcodebuild -project "$MACOS_DIR/AuthBoxMac.xcodeproj" -scheme "$SCHEME" \
-  -configuration Release -derivedDataPath "$DD" build >/dev/null
+  -configuration Release -derivedDataPath "$DD" -allowProvisioningUpdates build >/dev/null
 APP="$PRODUCTS/$APP_NAME"
 [ -d "$APP" ] || { echo "ERROR: $APP not found after build"; exit 1; }
 echo "OK: built $APP"

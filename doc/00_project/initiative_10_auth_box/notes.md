@@ -8,6 +8,43 @@ LastUpdated: 2026-05-31
 
 # Notes
 
+## 2026-06-01T06:55:53Z（Secure Enclave -34018 root-cause + signing fix / WP-020）
+
+### Symptom (real machine)
+- Maurice ran the built app, tapped "Finish setup" on vault onboarding → `Setup failed: keyCreationFailed("…OSStatus error -34018…")`.
+- -34018 = `errSecMissingEntitlement`, thrown by `SecKeyCreateRandomKey` in `Core/Keychain/SecureEnclaveKeyStore.swift:113` when creating the persistent Secure-Enclave wrap key.
+- Unit tests were green throughout because `VaultSessionTests` inject a fake `VaultKeyWrapping` — the real SE path was never exercised. (Stubs prove logic, not 打通.)
+
+### Root cause — proven empirically on this macOS 26.5 Mac (not theorized)
+Standalone signed Swift probes against `SecKeyCreateRandomKey`:
+
+| Variant | Signature | Result |
+|---|---|---|
+| SE persistent key | ad-hoc (`-`) | -34018 |
+| SE persistent key | `Apple Development` cert + `application-identifier` | amfid SIGKILL (137) — entitlement needs a profile |
+| SE persistent key | `Apple Development` cert + `keychain-access-groups` only | amfid SIGKILL (137) — same |
+| biometric-ACL generic password (file + data-protection) | ad-hoc | -34018 |
+
+Conclusion: any Secure-Enclave-engaging keychain persistence requires a team-prefixed `keychain-access-groups` entitlement, which is only honored under a **provisioning-profile-backed signature**. There is NO team-free path. The error message `"failed to add key to keychain: SecKeyRef('com.apple.setoken')"` confirms the SE hardware key is created — only the keychain persistence (`kSecAttrIsPermanent`) is rejected.
+
+### Fix applied (SOTA — keep the SE design, do not downgrade)
+- `project.yml` (both targets): `DEVELOPMENT_TEAM: L37Q42H4SZ` + `CODE_SIGN_IDENTITY: "Apple Development"` + `CODE_SIGN_STYLE: Automatic` (was ad-hoc `-` / Manual). Team L37Q42H4SZ = the `Apple Development: maoyuan.wen@proton.me` identity already in this Mac's keychain.
+- `AuthBoxMac.entitlements`: enabled `keychain-access-groups = $(AppIdentifierPrefix)com.authbox.mac` (the default group the SE keystore queries use). Removed the "deferred to P1" comment.
+- `scripts/package-dmg.sh`: LOCAL-tier build now passes `-allowProvisioningUpdates`.
+- `scripts/verify-se-signing.sh`: NEW — builds with provisioning, asserts embedded profile + signed keychain-access-groups; deterministic yes/no that the credential gate is cleared before the Touch ID tap.
+
+### The single remaining step (sudo-type HITL — cannot be automated)
+The app/entitlement/team wiring is correct: the ONLY build error left is `No Accounts: Add a new account in Accounts settings.` Automatic provisioning needs an Apple ID logged into **Xcode > Settings > Accounts** (add `maoyuan.wen@proton.me`; the free personal team L37Q42H4SZ then appears). That is an interactive credential action (Apple ID + 2FA) — HITL by the credential rule, exactly like a sudo / Keychain Allow prompt.
+
+After adding the account:
+```bash
+cd /Users/mauricewen/Projects/10-auth-box && bash scripts/verify-se-signing.sh
+```
+→ if it prints OK, launch the app and tap Touch ID on "Finish setup". That physical tap is the only step that can never run headless (true for ANY design).
+
+### Why not the autonomous-but-weaker alternative
+Switching to a software-managed key (plain keychain item + app-layer LAContext gate) would run ad-hoc with no account, but it abandons SE hardware key isolation + SEP-enforced ACL + `.biometryCurrentSet` anti-coercion — a security retreat dressed as a fix. Per "replacement must be strictly better / no 偷工减料", the broken-but-strong SE design is restored to working, not replaced with a working-but-weak one. The credential gate is the legitimate cost.
+
 ## 2026-05-31T11:55:02Z（Local release-blocker reduction / WP-016）
 
 ### Context
