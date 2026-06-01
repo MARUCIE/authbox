@@ -33,8 +33,17 @@ final class AuthorizationCenter: ObservableObject {
         // PolicyEngine/AuditLog are @MainActor; build them in this isolated init
         // body rather than as default args (which evaluate nonisolated).
         self.engine = engine ?? PolicyEngine()
-        self.audit = audit ?? AuditLog()
+        // SEC-002: persist the audit chain so it survives restarts. Fall back to
+        // in-memory only if Application Support is unreachable.
+        if let injected = audit {
+            self.audit = injected
+        } else if let url = AuditLog.defaultStoreURL() {
+            self.audit = AuditLog(url: url)
+        } else {
+            self.audit = AuditLog()
+        }
         self.biometric = biometric
+        self.auditValid = self.audit.loadedIntegrityOK
         self.engine.onApprovalNeeded = { [weak self] approval in
             Task { @MainActor in self?.pending.append(approval) }
         }
@@ -61,7 +70,11 @@ final class AuthorizationCenter: ObservableObject {
         refreshAudit()
     }
 
-    func addCapability(name: String, allowedActions: [AgentAction], requireStepUp: Bool) {
+    /// Grant an agent and return its bearer token. (SEC-001) The token is shown
+    /// to the operator exactly once here — only its hash is stored. The agent
+    /// process must present this token on every intent.
+    @discardableResult
+    func addCapability(name: String, allowedActions: [AgentAction], requireStepUp: Bool) -> String {
         let agentId = "agent_\(name.lowercased().replacingOccurrences(of: " ", with: "_"))_\(capabilities.count)"
         var policies: [AgentPolicy] = []
         let stamp = Date(timeIntervalSince1970: 0)
@@ -77,7 +90,10 @@ final class AuthorizationCenter: ObservableObject {
                 rules: PolicyRules(requireApproval: true),
                 priority: 5, enabled: true, createdAt: stamp, updatedAt: stamp))
         }
-        capabilities.append(AgentCapability(id: agentId, name: name, policies: policies))
+        let token = AgentToken.generate()
+        capabilities.append(AgentCapability(
+            id: agentId, name: name, policies: policies, tokenHash: AgentToken.hash(token)))
+        return token
     }
 
     func revoke(_ capability: AgentCapability) {
@@ -93,6 +109,7 @@ final class AuthorizationCenter: ObservableObject {
 struct AuthorizationsView: View {
     @StateObject private var center = AuthorizationCenter()
     @State private var showingAdd = false
+    @State private var issuedToken: String?
 
     var body: some View {
         ScrollView {
@@ -112,8 +129,22 @@ struct AuthorizationsView: View {
         }
         .sheet(isPresented: $showingAdd) {
             AddGrantSheet { name, actions, stepUp in
-                center.addCapability(name: name, allowedActions: actions, requireStepUp: stepUp)
+                issuedToken = center.addCapability(name: name, allowedActions: actions, requireStepUp: stepUp)
             }
+        }
+        .alert("Agent token — copy now", isPresented: Binding(
+            get: { issuedToken != nil },
+            set: { if !$0 { issuedToken = nil } })) {
+            Button("Copy") {
+                if let t = issuedToken {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(t, forType: .string)
+                }
+                issuedToken = nil
+            }
+            Button("Done", role: .cancel) { issuedToken = nil }
+        } message: {
+            Text("This bearer token is shown only once. The agent must present it on every request; it is not stored in plaintext.\n\n\(issuedToken ?? "")")
         }
         .onAppear { center.refreshAudit() }
     }

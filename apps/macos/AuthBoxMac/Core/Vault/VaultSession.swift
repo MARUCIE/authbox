@@ -63,8 +63,12 @@ final class VaultSession: ObservableObject {
         installAutoLockObservers()
     }
 
+    #if DEBUG
     /// Test/diagnostic accessor: the live master key, or nil when locked.
+    /// (SEC-003) Compiled only in DEBUG so the release binary exposes no plaintext
+    /// master-key getter.
     var masterKeyForTesting: [UInt8]? { master?.bytes }
+    #endif
 
     /// The live vault key (== master key) while unlocked, else nil. Consumed by
     /// VaultService to encrypt/decrypt items. Never persisted in plaintext.

@@ -77,4 +77,29 @@ final class CredentialHealthTests: XCTestCase {
         XCTAssertTrue(CredentialHealth.hasHealthCheck("github"))
         XCTAssertFalse(CredentialHealth.hasHealthCheck("kling"))
     }
+
+    // MARK: - SEC-004 SSRF guard
+
+    func test_attacker_base_url_to_metadata_is_blocked() async {
+        // A malicious .env points openai's base_url at the cloud metadata service.
+        // The probe must be blocked BEFORE the credential leaves the machine,
+        // even though the (fake) transport would have returned 200.
+        let r = await CredentialHealth.check(
+            providerId: "openai",
+            fields: ["base_url": "http://169.254.169.254/latest/meta-data", "api_key": "sk-secret"],
+            transport: FakeTransport(status: 200, body: ""), now: fixedNow)
+        XCTAssertEqual(r.status, .error)
+        XCTAssertTrue(r.message.contains("blocked"), "unsafe endpoint must be refused")
+    }
+
+    func test_safe_endpoint_classifier() {
+        XCTAssertTrue(CredentialHealth.isSafeEndpoint("https://api.openai.com/v1/models"))
+        XCTAssertTrue(CredentialHealth.isSafeEndpoint("https://eu.posthog.com/api/projects/"))
+        XCTAssertFalse(CredentialHealth.isSafeEndpoint("http://api.openai.com/v1/models"), "non-HTTPS rejected")
+        XCTAssertFalse(CredentialHealth.isSafeEndpoint("https://169.254.169.254/"), "metadata IP rejected")
+        XCTAssertFalse(CredentialHealth.isSafeEndpoint("https://127.0.0.1/v1"), "loopback rejected")
+        XCTAssertFalse(CredentialHealth.isSafeEndpoint("https://10.0.0.5/v1"), "private-A rejected")
+        XCTAssertFalse(CredentialHealth.isSafeEndpoint("https://192.168.1.1/v1"), "private-C rejected")
+        XCTAssertFalse(CredentialHealth.isSafeEndpoint("https://internal.host.local/x"), ".local rejected")
+    }
 }

@@ -11,14 +11,22 @@ import Network
 @MainActor
 final class BrokerTests: XCTestCase {
 
+    /// The bearer token the test agent presents (SEC-001). The capability stores
+    /// only its hash; intents must carry the plaintext.
+    private static let token = "broker-test-bearer-token"
+
     private func capability() -> [String: AgentCapability] {
         let stamp = Date(timeIntervalSince1970: 0)
         let cap = AgentCapability(id: "agent-1", name: "Test Agent", policies: [
             AgentPolicy(id: "p-action", agentId: "agent-1", policyType: .action_perm,
                         rules: PolicyRules(allowedActions: [.read]),
                         priority: 10, enabled: true, createdAt: stamp, updatedAt: stamp),
-        ])
+        ], tokenHash: AgentToken.hash(BrokerTests.token))
         return [cap.id: cap]
+    }
+
+    private func authedIntent(_ action: AgentAction) -> AccessIntent {
+        AccessIntent(agentId: "agent-1", action: action, token: BrokerTests.token)
     }
 
     private func makeBroker() -> AuthorizationBroker {
@@ -30,7 +38,7 @@ final class BrokerTests: XCTestCase {
     func test_decide_allows_permitted_action_and_audits() async {
         let audit = AuditLog()
         let broker = AuthorizationBroker(engine: PolicyEngine(), audit: audit, capabilities: capability)
-        let effect = await broker.decide(AccessIntent(agentId: "agent-1", action: .read))
+        let effect = await broker.decide(authedIntent(.read))
         XCTAssertTrue(effect.allowed)
         XCTAssertEqual(audit.facts.count, 1, "every decision is sealed into the audit log")
         XCTAssertTrue(audit.verify())
@@ -38,13 +46,27 @@ final class BrokerTests: XCTestCase {
 
     func test_decide_denies_unknown_agent() async {
         let broker = makeBroker()
-        let effect = await broker.decide(AccessIntent(agentId: "ghost", action: .read))
-        XCTAssertFalse(effect.allowed, "unknown agent → no policies → deny")
+        let effect = await broker.decide(AccessIntent(agentId: "ghost", action: .read, token: BrokerTests.token))
+        XCTAssertFalse(effect.allowed, "unknown agent → no capability → deny")
+        XCTAssertEqual(effect.reason, "Unknown agent")
+    }
+
+    func test_decide_denies_wrong_token() async {
+        let audit = AuditLog()
+        let broker = AuthorizationBroker(engine: PolicyEngine(), audit: audit, capabilities: capability)
+        // Valid agent + permitted action, but no/incorrect bearer token (SEC-001).
+        let noToken = await broker.decide(AccessIntent(agentId: "agent-1", action: .read))
+        XCTAssertFalse(noToken.allowed, "loopback locality is not identity — absent token → deny")
+        XCTAssertEqual(noToken.reason, "Agent authentication failed")
+        let badToken = await broker.decide(AccessIntent(agentId: "agent-1", action: .read, token: "wrong"))
+        XCTAssertFalse(badToken.allowed, "wrong token → deny")
+        XCTAssertEqual(audit.facts.count, 2, "failed auth attempts are themselves audited")
+        XCTAssertTrue(audit.verify())
     }
 
     func test_decide_denies_unpermitted_action() async {
         let broker = makeBroker()
-        let effect = await broker.decide(AccessIntent(agentId: "agent-1", action: .proxy))
+        let effect = await broker.decide(authedIntent(.proxy))
         XCTAssertFalse(effect.allowed)
     }
 
@@ -67,7 +89,7 @@ final class BrokerTests: XCTestCase {
         defer { broker.stop() }
 
         let effect = try await sendIntent(
-            AccessIntent(agentId: "agent-1", action: .read), toPort: port)
+            AccessIntent(agentId: "agent-1", action: .read, token: BrokerTests.token), toPort: port)
         XCTAssertTrue(effect.allowed, "permitted action returns allowed over the socket")
     }
 

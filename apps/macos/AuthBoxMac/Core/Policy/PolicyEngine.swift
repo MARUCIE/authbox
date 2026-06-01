@@ -168,6 +168,14 @@ final class PolicyEngine {
     func requestApproval(_ approvalId: String, intent: AccessIntent,
                          timeoutSeconds: Double = 60) async -> Bool {
         await withCheckedContinuation { (c: CheckedContinuation<Bool, Never>) in
+            // SEC-007: a reused approvalId must NOT clobber an in-flight resolver.
+            // Overwriting would orphan the original waiter (it never resumes →
+            // hangs forever) and leak its timeout task — a fail-open-by-hang.
+            // Deny the duplicate fail-closed; leave the original request intact.
+            guard resolvers[approvalId] == nil else {
+                c.resume(returning: false)
+                return
+            }
             resolvers[approvalId] = c
             let pending = PendingApproval(
                 id: approvalId, agentId: intent.agentId, action: intent.action,

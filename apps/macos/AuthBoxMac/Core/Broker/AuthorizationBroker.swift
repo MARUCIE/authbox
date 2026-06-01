@@ -78,14 +78,17 @@ final class AuthorizationBroker: ObservableObject {
         receive(on: conn)
     }
 
-    /// Defense in depth: reject any peer that is not a loopback host.
+    /// Defense in depth: accept ONLY verified loopback IP literals. A `.name`
+    /// peer (e.g. "localhost") is rejected — it depends on resolver state and is
+    /// a dead path for real inbound TCP, so it would only be an over-broad accept.
+    /// (SEC-006) Note: loopback proves locality, NOT identity — per-agent token
+    /// authentication in `decide` is the real gate (SEC-001).
     private nonisolated func isLoopbackPeer(_ conn: NWConnection) -> Bool {
         if case let .hostPort(host, _) = conn.endpoint {
             switch host {
             case .ipv4(let a): return a.isLoopback
             case .ipv6(let a): return a.isLoopback
-            case .name(let n, _): return n == "localhost"
-            @unknown default: return false
+            default: return false
             }
         }
         return false
@@ -122,9 +125,19 @@ final class AuthorizationBroker: ObservableObject {
     }
 
     func decide(_ intent: AccessIntent) async -> AccessEffect {
-        let policies = capabilities()[intent.agentId]?.policies ?? []
-        var effect = engine.evaluate(policies, intent: intent)
+        // SEC-001: authenticate the agent BEFORE evaluating policies. Loopback
+        // proves locality, not identity — every local process can reach this
+        // socket. An unknown agent or a bad/absent bearer token is denied
+        // fail-closed, and the attempt is still sealed into the audit chain so a
+        // brute-force or impersonation attempt is itself a tamper-evident Fact.
+        guard let capability = capabilities()[intent.agentId] else {
+            return sealed(intent, AccessEffect(allowed: false, reason: "Unknown agent", appliedPolicies: []))
+        }
+        guard AgentToken.matches(intent.token, storedHash: capability.tokenHash) else {
+            return sealed(intent, AccessEffect(allowed: false, reason: "Agent authentication failed", appliedPolicies: []))
+        }
 
+        var effect = engine.evaluate(capability.policies, intent: intent)
         if let approvalId = effect.pendingApprovalId {
             let approved = await engine.requestApproval(approvalId, intent: intent)
             effect = AccessEffect(
@@ -132,6 +145,13 @@ final class AuthorizationBroker: ObservableObject {
                 reason: approved ? "Approved via step-up" : "Denied or timed out at step-up",
                 appliedPolicies: effect.appliedPolicies)
         }
+        return sealed(intent, effect)
+    }
+
+    /// Seal a decision into the audit chain and return it. The audit Fact never
+    /// records the bearer token — only agentId/action/itemId/allowed/reason.
+    @discardableResult
+    private func sealed(_ intent: AccessIntent, _ effect: AccessEffect) -> AccessEffect {
         audit.append(intent: intent, effect: effect)
         return effect
     }

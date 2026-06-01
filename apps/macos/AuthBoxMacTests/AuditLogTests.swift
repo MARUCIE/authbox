@@ -50,4 +50,50 @@ final class AuditLogTests: XCTestCase {
         let b = log.append(intent: intent("agent-1"), effect: effect(false))
         XCTAssertNotEqual(a.hash, b.hash)
     }
+
+    // MARK: - SEC-002 persistence (chain survives restart; tamper is detected)
+
+    private func tempURL() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("audit-test-\(UUID().uuidString).jsonl")
+    }
+
+    func test_chain_persists_and_reloads_across_restart() {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let first = AuditLog(url: url, now: { Date(timeIntervalSince1970: 100) })
+        first.append(intent: intent("agent-1"), effect: effect(true))
+        first.append(intent: intent("agent-2"), effect: effect(false))
+
+        // A fresh instance (simulating an app restart) must reload the chain.
+        let reloaded = AuditLog(url: url)
+        XCTAssertEqual(reloaded.facts.count, 2, "prior chain reloaded from disk")
+        XCTAssertTrue(reloaded.loadedIntegrityOK, "reloaded chain verifies intact")
+        XCTAssertTrue(reloaded.verify())
+
+        // Appending continues the chain from the loaded tip.
+        let cont = reloaded.append(intent: intent("agent-3"), effect: effect(true))
+        XCTAssertEqual(cont.seq, 2)
+        XCTAssertTrue(reloaded.verify())
+    }
+
+    func test_tampered_persisted_chain_fails_integrity_on_load() throws {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let log = AuditLog(url: url, now: { Date(timeIntervalSince1970: 100) })
+        log.append(intent: intent("agent-1"), effect: effect(true))
+        log.append(intent: intent("agent-2"), effect: effect(true))
+
+        // Tamper: flip an allowed=true decision to false in the persisted file.
+        let raw = try String(contentsOf: url, encoding: .utf8)
+        let tampered = raw.replacingOccurrences(of: "\"reason\":\"ok\"", with: "\"reason\":\"FORGED\"")
+        XCTAssertNotEqual(raw, tampered, "precondition: the tamper actually changed a line")
+        try tampered.write(to: url, atomically: true, encoding: .utf8)
+
+        let reloaded = AuditLog(url: url)
+        XCTAssertFalse(reloaded.loadedIntegrityOK, "edited Fact breaks the hash chain")
+        XCTAssertFalse(reloaded.verify())
+    }
 }

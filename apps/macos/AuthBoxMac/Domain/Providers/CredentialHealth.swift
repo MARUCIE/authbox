@@ -39,11 +39,23 @@ struct URLSessionHealthTransport: HealthTransport {
         guard let url = URL(string: request.url) else { throw URLError(.badURL) }
         var req = URLRequest(url: url)
         req.httpMethod = request.method
-        for (k, v) in request.headers { req.setValue(v, forHTTPHeaderField: k) }
+        for (k, v) in request.headers {
+            // SEC-005: a CR/LF in a header value is a header/request-splitting
+            // vector. Drop any header whose name or value carries control chars.
+            guard !k.containsControlCharacters, !v.containsControlCharacters else { continue }
+            req.setValue(v, forHTTPHeaderField: k)
+        }
         if request.method == "POST" { req.httpBody = request.body?.data(using: .utf8) }
         let (data, response) = try await URLSession.shared.data(for: req)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         return (code, String(data: data, encoding: .utf8) ?? "")
+    }
+}
+
+private extension String {
+    /// True if the string contains any C0 control character (CR, LF, NUL, …).
+    var containsControlCharacters: Bool {
+        unicodeScalars.contains { CharacterSet.controlCharacters.contains($0) }
     }
 }
 
@@ -212,8 +224,15 @@ enum CredentialHealth {
             method: "POST",
             headers: { _ in ["Content-Type": "application/json"] },
             body: { f in
-                let key = (f["api_key"] ?? "").replacingOccurrences(of: "\"", with: "\\\"")
-                return "{\"api_key\":\"\(key)\",\"query\":\"test\",\"max_results\":1}"
+                // SEC-005: build the JSON with a serializer, not string concat.
+                // Hand-escaping only `"` left control chars / backslashes / `</script>`
+                // style payloads injectable into the body. JSONSerialization escapes
+                // every field correctly.
+                let payload: [String: Any] = [
+                    "api_key": f["api_key"] ?? "", "query": "test", "max_results": 1,
+                ]
+                guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
+                return String(data: data, encoding: .utf8)
             },
             parse: { status, _ in
                 switch status {
@@ -288,6 +307,42 @@ enum CredentialHealth {
     static func hasHealthCheck(_ providerId: String) -> Bool { checks[providerId] != nil }
     static var providers: [String] { Array(checks.keys).sorted() }
 
+    // MARK: - SSRF guard (SEC-004)
+
+    /// Reject probe URLs that could exfiltrate a credential to a non-provider
+    /// endpoint. Two providers (openai `base_url`, posthog `host`) interpolate a
+    /// user-supplied field straight into the URL — a malicious .env could point
+    /// it at the cloud metadata service or an internal host carrying the key.
+    /// We require https and refuse loopback / link-local / private / metadata
+    /// hosts. Legit public provider hosts (incl. self-hosted PostHog over https)
+    /// still pass.
+    static func isSafeEndpoint(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString),
+              url.scheme?.lowercased() == "https",
+              let host = url.host?.lowercased(), !host.isEmpty else { return false }
+
+        if host == "localhost" || host.hasSuffix(".local") || host.hasSuffix(".internal") { return false }
+        if host == "metadata.google.internal" { return false }
+
+        // IPv4 literal: block loopback / private / link-local ranges.
+        let octets = host.split(separator: ".")
+        if octets.count == 4, let o = try? octets.map({ part -> Int in
+            guard let n = Int(part), (0...255).contains(n) else { throw URLError(.badURL) }
+            return n
+        }) {
+            if o[0] == 0 || o[0] == 127 { return false }                 // this-host / loopback
+            if o[0] == 10 { return false }                               // private A
+            if o[0] == 172, (16...31).contains(o[1]) { return false }    // private B
+            if o[0] == 192, o[1] == 168 { return false }                 // private C
+            if o[0] == 169, o[1] == 254 { return false }                 // link-local + metadata
+        }
+
+        // IPv6 loopback / link-local / unique-local literals.
+        if host == "::1" || host.hasPrefix("fe80") || host.hasPrefix("fc") || host.hasPrefix("fd") { return false }
+
+        return true
+    }
+
     // MARK: - Executor
 
     /// Run one health check. `now` is injectable for deterministic latency in tests.
@@ -304,6 +359,13 @@ enum CredentialHealth {
         }
         let request = HealthRequest(url: def.url(fields), method: def.method,
                                     headers: def.headers(fields), body: def.body(fields))
+        // SEC-004: block exfiltration to a non-provider / internal endpoint
+        // before any bytes (and the credential) leave the machine.
+        guard isSafeEndpoint(request.url) else {
+            return HealthCheckResult(providerId: providerId, status: .error,
+                                     message: "Endpoint blocked: unsafe or non-HTTPS host",
+                                     latencyMs: Int(now().timeIntervalSince(start) * 1000))
+        }
         do {
             let (status, body) = try await transport.send(request)
             let parsed = def.parse(status, body)
