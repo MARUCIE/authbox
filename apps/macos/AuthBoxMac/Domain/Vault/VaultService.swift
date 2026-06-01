@@ -13,6 +13,9 @@ import AuthBoxCrypto
 struct VaultSecret: Codable, Equatable {
     var secret: String          // password or API key value
     var notes: String = ""
+    /// Multi-field provider credentials (e.g. AWS access_key_id + secret_access_key).
+    /// Nil for simple password items; populated by Provider Hub imports.
+    var fields: [String: String]? = nil
 }
 
 /// Decrypted, displayable item (metadata only; secret fetched on demand via reveal).

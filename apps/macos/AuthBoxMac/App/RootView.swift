@@ -70,7 +70,8 @@ struct RootView: View {
         switch section {
         case .vault:          VaultListView()
         case .generator:      GeneratorView()
-        case .providers, .authorizations: PlaceholderDetail(section: section)
+        case .providers:      ProviderHubView()
+        case .authorizations: PlaceholderDetail(section: section)
         }
     }
 }

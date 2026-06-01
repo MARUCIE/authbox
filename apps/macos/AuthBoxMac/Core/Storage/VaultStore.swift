@@ -51,12 +51,29 @@ final class VaultItemRecord {
 
 @MainActor
 final class VaultStore {
+    /// One process-wide container for the persistent store, so every VaultStore
+    /// (vault view, provider hub) shares the same mainContext — writes in one
+    /// surface are immediately visible in the other. In-memory stores stay
+    /// per-instance for test isolation.
+    private static var sharedContainer: ModelContainer?
+
     let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
     init(inMemory: Bool = false) throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: inMemory)
-        container = try ModelContainer(for: VaultItemRecord.self, configurations: config)
+        if inMemory {
+            container = try ModelContainer(
+                for: VaultItemRecord.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        } else if let shared = VaultStore.sharedContainer {
+            container = shared
+        } else {
+            let created = try ModelContainer(
+                for: VaultItemRecord.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: false))
+            VaultStore.sharedContainer = created
+            container = created
+        }
     }
 
     func insert(_ record: VaultItemRecord) throws {

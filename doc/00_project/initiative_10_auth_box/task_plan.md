@@ -417,11 +417,12 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
 - [x] Crypto parity: `pnpm run ios:crypto-vectors` passes for macOS — reference vectors emit clean (M12/M24 valid, vault/sync/auth/agent keys, HKDF, PW_GITHUB=`d$^ton](I(^8R{dprpi%`); macOS links the identical AuthBoxCrypto SwiftPM package as iOS, so deterministic output matches by construction. VaultServiceTests + VaultSessionTests: 11/11 PASS → TEST SUCCEEDED rc=0
 
 ### P3 — Provider Hub
-- [ ] `pnpm run gen:swift-catalog` codegen from credential-catalog.ts → CredentialCatalog.generated.swift
-- [ ] CI checksum gate: generated Swift in sync with TS source
-- [ ] Domain/Providers: port env-import-parser.ts → Swift EnvParser
-- [ ] Features/ProviderHub: .env drag-drop import + preview + classify-to-provider
-- [ ] Core: port credential-health.ts → Swift health-check probes; one-click verify
+- [x] `pnpm run gen:swift-catalog` codegen from credential-catalog.ts → CredentialCatalog.generated.swift — scripts/gen-swift-catalog.ts (tsx) imports CREDENTIAL_CATEGORIES/PROVIDER_TEMPLATES/ENV_PATTERNS, emits typed Swift (AuthPattern/FieldType enums, CredentialCatalog enum). Real output: 15 categories · 91 providers · 108 env patterns.
+- [x] CI checksum gate: generated Swift in sync with TS source — `--check` mode regenerates in memory + byte-compares (exit 1 on drift); header embeds sha256(credential-catalog.ts)=2007f208…. `pnpm run gen:swift-catalog --check` → OK in sync.
+- [x] Domain/Providers: port env-import-parser.ts → Swift EnvParser — EnvParser.swift (parseEnvFile/parseJsonConfig/classify/group/parseAndClassify; NSRegularExpression case-insensitive matchEnvVar; ordered pairs preserve insertion order). EnvParserTests 5/5 (AWS multi-field merge, JSON autodetect, alias gemini→google_ai).
+- [x] Features/ProviderHub: .env drag-drop import + preview + classify-to-provider — ProviderHubView.swift (paste + .fileImporter, preview card grouped by category, "Import N to vault" encrypts via ProviderImportService → provider-tagged VaultItemRecord). VaultSecret extended with optional fields (multi-field providers). Shared VaultStore container so vault+hub see one mainContext.
+- [x] Core: port credential-health.ts → Swift health-check probes; one-click verify — CredentialHealth.swift (21-provider registry, injectable HealthTransport seam + URLSessionHealthTransport default, batch concurrency 5). One-click Verify button per provider row with status color/icon. CredentialHealthTests 7/7 (openai 200/401/429, anthropic 400=valid, github body login parse, unchecked, transport-error, batch).
+- Verify: xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' test → ** TEST SUCCEEDED ** rc=0, 23/23 (7 CredentialHealth + 5 EnvParser + 7 VaultService + 4 VaultSession).
 
 ### P4 — Authorization broker (local MCP Gateway)
 - [ ] Core/Broker: WebSocket server bound ws://127.0.0.1:19876 (loopback only)
