@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- P0: App Sandbox required for a credential broker (containment over prevention). -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- .env drag-drop import (P3) needs user-selected file read. -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+	<!-- P4: local MCP Gateway broker is loopback-only; allow outbound for optional Go-API sync. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<!-- P4: bind the local MCP Gateway server socket (ws://127.0.0.1:19876). -->
+	<key>com.apple.security.network.server</key>
+	<true/>
+	<!--
+	  P1 (requires a DEVELOPMENT_TEAM / provisioning profile, deferred from P0 ad-hoc build):
+	    com.apple.security.application-groups  -> group.com.authbox.shared
+	    keychain-access-groups                 -> $(AppIdentifierPrefix)com.authbox.shared
+	  These let the future AutoFill credential-provider extension share the vault,
+	  mirroring apps/ios/AuthBox/AuthBox.entitlements.
+	-->
+</dict>
+</plist>

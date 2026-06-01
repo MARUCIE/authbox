@@ -1809,3 +1809,11 @@ Cumulative: Round 4-7 = 50 optimization items total.
 - Secrets ONLY in Keychain + Secure-Enclave-wrapped keys; never bundle/git. Bonus: this broker is the SOTA fix for the AI-Fleet git-key-leak class I audited 2026-06-01 (proxies call broker, not git config).
 - Discarded: Tauri desktop (web runtime = attack surface on a security product), Mac Catalyst (phone-shaped UX, wrong for a menu-bar credential broker), new crypto impl (violates reuse).
 - Deliverable order: architecture 2份制 (.md canonical EN + .html ZH via html-style-router) FIRST, then atomic-phase implementation.
+
+## 2026-06-01 . WP-020 P0 — Scaffold DONE (build verified)
+- XcodeGen 2.45.4 + Xcode 26.5 + Swift 6.3.2. apps/macos/project.yml -> AuthBoxMac.xcodeproj (derived, gitignored).
+- Files: project.yml, AuthBoxMac/App/{AuthBoxMacApp,RootView,MenuBarContent}.swift, Resources/AuthBoxMac.entitlements, .gitignore.
+- Build: xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' build -> BUILD SUCCEEDED rc=0, 0 errors (/tmp/authbox_mac_build.log).
+- AuthBoxCrypto reuse PROVEN cross-platform: macOS build compiled Argon2/SRP/HKDF/AES256GCM/Seed/VaultCrypto/WordlistEN + BigInt 5.7.0.
+- Note: ad-hoc disables hardened runtime (expected, P5 Developer ID). app-group + keychain-access-groups deferred to P1 (need team).
+- Next: P1 auth core — Core/Auth (LAContext Touch ID), Core/Keychain (Secure Enclave wrap), auto-lock. Runtime Touch ID prompt = manual UX gate at the Mac.

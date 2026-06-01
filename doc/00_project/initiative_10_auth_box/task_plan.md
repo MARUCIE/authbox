@@ -396,11 +396,11 @@ Goal: native SwiftUI macOS app fusing vault + 70+ AI provider hub + agent-author
 broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/macos-native-app/ARCHITECTURE.md.
 
 ### P0 — Scaffold (build green on macOS 14)
-- [ ] Add `apps/macos/AuthBoxMac` SwiftUI target to AuthBox.xcodeproj (or new .xcodeproj)
-- [ ] Link `AuthBoxCrypto` SwiftPM dependency (already macOS 14)
-- [ ] AuthBoxMac.entitlements: app-sandbox, hardened-runtime, app-group group.com.authbox.shared, keychain-access-groups
-- [ ] @main App scene + menu-bar (MenuBarExtra) scene + main WindowGroup
-- [ ] `xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' build` green
+- [x] Add `apps/macos/AuthBoxMac` SwiftUI target via XcodeGen (project.yml canonical, .xcodeproj derived/gitignored) — isolated from iOS pbxproj
+- [x] Link `AuthBoxCrypto` SwiftPM — PROVEN: macOS build compiled Argon2/SRP/HKDF/AES256GCM/Seed/VaultCrypto for arm64-apple-macos14.0
+- [x] AuthBoxMac.entitlements: app-sandbox + user-selected files + network client/server. DEFERRED to P1 (need DEVELOPMENT_TEAM): app-group group.com.authbox.shared + keychain-access-groups + runtime hardened-runtime (ad-hoc disables it)
+- [x] @main AuthBoxMacApp: WindowGroup(RootView 3-domain NavigationSplitView) + MenuBarExtra(MenuBarContent) + LockState stub
+- [x] xcodebuild macOS build -> BUILD SUCCEEDED (rc=0, 0 errors, ad-hoc signed Auth Box.app)
 
 ### P1 — Auth core (Touch ID + Secure Enclave)
 - [ ] Core/Auth: LAContext wrapper, evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics), availability+error handling
