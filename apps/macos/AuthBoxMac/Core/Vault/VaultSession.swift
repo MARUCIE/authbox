@@ -70,9 +70,25 @@ final class VaultSession: ObservableObject {
     var masterKeyForTesting: [UInt8]? { master?.bytes }
     #endif
 
-    /// The live vault key (== master key) while unlocked, else nil. Consumed by
-    /// VaultService to encrypt/decrypt items. Never persisted in plaintext.
-    var vaultKey: Data? { master.map { Data($0.bytes) } }
+    /// Whether the vault key is currently available, for enabling UI without
+    /// vending a copy of the key itself.
+    var hasVaultKey: Bool { master != nil }
+
+    /// Borrow the live vault key for the duration of `body`, then zero the
+    /// transient copy. (SEC-003) This replaces a `vaultKey: Data?` getter: that
+    /// getter handed out a Data copy that lingered un-zeroed in the caller's
+    /// allocation until ARC reclaimed it, defeating SecureBytes' zeroing. Returns
+    /// nil when locked. Every borrow also counts as activity and re-arms the
+    /// auto-lock timer (SEC-009), making the idle timeout activity-based rather
+    /// than a fixed countdown from unlock.
+    @discardableResult
+    func withVaultKey<T>(_ body: (Data) throws -> T) rethrows -> T? {
+        guard let master else { return nil }
+        armIdleTimer()
+        var key = Data(master.bytes)
+        defer { key.resetBytes(in: 0..<key.count) }
+        return try body(key)
+    }
 
     /// Whether a wrapped master key has been provisioned (vault was set up).
     var isProvisioned: Bool { ((try? wrappedStore.load()) ?? nil) != nil }
@@ -129,7 +145,13 @@ final class VaultSession: ObservableObject {
     /// The mnemonic itself is NEVER stored — it is the user's offline recovery.
     @discardableResult
     func provisionAndUnlock(mnemonic: String) throws -> Bool {
-        let seed = Seed.mnemonicToSeed(mnemonic)
+        // SEC-008: zero the derived seed once the keys are extracted. The seed is
+        // the root of all derived keys; it must not linger in this allocation
+        // after provisioning. (The mnemonic String stays the user's offline
+        // recovery and is never persisted; the master key lives in SecureBytes,
+        // which zeroes on clear.)
+        var seed = Seed.mnemonicToSeed(mnemonic)
+        defer { seed.resetBytes(in: 0..<seed.count) }
         let keys = Seed.deriveAllKeys(seed: seed)
         try provision(masterKey: keys.vaultKey)
         master = SecureBytes(keys.vaultKey)

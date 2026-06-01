@@ -43,9 +43,18 @@ final class ProviderHubViewModel: ObservableObject {
         catch { self.error = "\(error)" }
     }
 
-    func checkHealth(_ item: VaultItem, vaultKey: Data) async {
+    /// Synchronously decrypt one item under a borrowed vault key. Kept separate
+    /// from `checkHealth` so the key borrow (SEC-003) stays synchronous and never
+    /// has to span the async network call.
+    func reveal(_ item: VaultItem, vaultKey: Data) -> VaultSecret? {
+        try? vault.reveal(item.id, vaultKey: vaultKey)
+    }
+
+    /// Probe the provider with an already-revealed secret. The vault key never
+    /// reaches this async context — only the decrypted fields, which must travel
+    /// to the provider anyway.
+    func checkHealth(_ item: VaultItem, secret: VaultSecret) async {
         guard let pid = item.providerId, CredentialHealth.hasHealthCheck(pid) else { return }
-        guard let secret = try? vault.reveal(item.id, vaultKey: vaultKey) else { return }
         let fields = secret.fields ?? ["api_key": secret.secret]
         health[item.id] = await CredentialHealth.check(providerId: pid, fields: fields)
     }
@@ -134,13 +143,13 @@ struct ProviderHubView: View {
                 }
             }
             Button {
-                if let key = session.vaultKey { vm.runImport(vaultKey: key) }
+                session.withVaultKey { vm.runImport(vaultKey: $0) }
             } label: {
                 Label("Import \(preview.classified.count) credential\(preview.classified.count == 1 ? "" : "s") to vault",
                       systemImage: "lock.badge.clock")
             }
             .buttonStyle(.borderedProminent)
-            .disabled(preview.classified.isEmpty || session.vaultKey == nil)
+            .disabled(preview.classified.isEmpty || !session.hasVaultKey)
         }
         .padding(16)
         .background(.tint.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
@@ -176,7 +185,11 @@ struct ProviderHubView: View {
             Spacer()
             if let pid = item.providerId, CredentialHealth.hasHealthCheck(pid) {
                 Button {
-                    Task { if let key = session.vaultKey { await vm.checkHealth(item, vaultKey: key) } }
+                    // Borrow the key only for the synchronous decrypt (SEC-003);
+                    // the async probe runs on the revealed secret, key already zeroed.
+                    if let secret = session.withVaultKey({ vm.reveal(item, vaultKey: $0) }) ?? nil {
+                        Task { await vm.checkHealth(item, secret: secret) }
+                    }
                 } label: {
                     Label(result == nil ? "Verify" : result!.status.rawValue,
                           systemImage: icon(for: result?.status))

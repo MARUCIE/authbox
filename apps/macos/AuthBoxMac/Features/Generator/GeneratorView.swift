@@ -53,7 +53,7 @@ struct GeneratorView: View {
 
             Section {
                 Button("Generate") { generate() }
-                    .disabled(mode == .deterministic && (site.isEmpty || session.vaultKey == nil))
+                    .disabled(mode == .deterministic && (site.isEmpty || !session.hasVaultKey))
                 if !output.isEmpty {
                     LabeledContent("Result") {
                         HStack {
@@ -74,8 +74,10 @@ struct GeneratorView: View {
             output = PasswordGenerator.random(options)
         case .deterministic:
             // The vault key doubles as the deterministic seed while unlocked.
-            guard let seed = session.vaultKey else { return }
-            output = PasswordGenerator.deterministic(seed: seed, site: site, options)
+            // Borrow it (SEC-003) so the key copy is zeroed right after use.
+            if let result = session.withVaultKey({ PasswordGenerator.deterministic(seed: $0, site: site, options) }) {
+                output = result
+            }
         }
     }
 

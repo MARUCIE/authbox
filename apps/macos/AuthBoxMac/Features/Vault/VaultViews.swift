@@ -75,8 +75,9 @@ struct VaultListView: View {
         }
         .sheet(isPresented: $showingAdd) {
             AddItemSheet { title, username, url, secret in
-                guard let key = session.vaultKey else { return }
-                vm.add(title: title, username: username, url: url, secret: secret, vaultKey: key)
+                session.withVaultKey { key in
+                    vm.add(title: title, username: username, url: url, secret: secret, vaultKey: key)
+                }
             }
         }
         .overlay(alignment: .bottom) {
@@ -158,7 +159,7 @@ struct ItemDetailView: View {
                     Button("Hide") { revealed = nil }
                 } else {
                     Button {
-                        if let key = session.vaultKey { revealed = vm.reveal(item.id, vaultKey: key) }
+                        revealed = session.withVaultKey { vm.reveal(item.id, vaultKey: $0) } ?? nil
                     } label: { Label("Reveal with vault key", systemImage: "eye") }
                 }
             }
