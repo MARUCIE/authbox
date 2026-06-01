@@ -23,6 +23,34 @@ enum KeychainError: Error, Equatable {
     case notProvisioned
 }
 
+extension KeychainError: LocalizedError {
+    /// Human-actionable text. Surfaced verbatim in onboarding/unlock UI, so it must
+    /// translate raw OSStatus into something the user can act on — not leak the enum.
+    var errorDescription: String? {
+        switch self {
+        case .enclaveUnavailable:
+            return "This Mac has no Secure Enclave, which Auth Box needs to protect your vault key."
+        case .keyCreationFailed(let detail):
+            // -34018 = errSecMissingEntitlement: the persistent Secure Enclave key
+            // can only be created under a provisioning-profile-backed signature.
+            // An ad-hoc/unsigned build always hits this; a notarized build never does.
+            if detail.contains("-34018") || detail.localizedCaseInsensitiveContains("entitlement") {
+                return "Couldn't create the Secure Enclave key: this build isn't signed with a "
+                     + "development team. Add an Apple ID in Xcode › Settings › Accounts, then "
+                     + "rebuild (see scripts/verify-se-signing.sh). [OSStatus -34018]"
+            }
+            return "Couldn't create the Secure Enclave key: \(detail)"
+        case .wrapFailed(let detail):
+            return "Couldn't protect the vault key: \(detail)"
+        case .unwrapFailed(let detail):
+            return "Couldn't unlock the vault key — Touch ID may have been cancelled or the "
+                 + "enrolled fingerprints changed. (\(detail))"
+        case .notProvisioned:
+            return "No vault has been set up on this device yet."
+        }
+    }
+}
+
 /// Seam: vault session depends on this, not on Security directly.
 protocol VaultKeyWrapping: Sendable {
     /// Wrap (encrypt) the master key with the SE public key. No auth required.

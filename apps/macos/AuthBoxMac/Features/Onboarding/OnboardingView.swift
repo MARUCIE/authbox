@@ -101,7 +101,9 @@ struct OnboardingView: View {
         do {
             try session.provisionAndUnlock(mnemonic: phrase)
         } catch {
-            self.error = "Setup failed: \(error)"
+            // localizedDescription reads KeychainError.errorDescription; plain
+            // interpolation would leak the raw enum (e.g. keyCreationFailed("…-34018…")).
+            self.error = "Setup failed: \(error.localizedDescription)"
         }
     }
 }
