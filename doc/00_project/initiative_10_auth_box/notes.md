@@ -1874,3 +1874,15 @@ Audited-clean (no change): secret logging (fingerprint/redaction only), AES-GCM/
 Verify: xcodebuild -scheme AuthBoxMac -destination 'platform=macOS' test → ** TEST SUCCEEDED ** rc=0, 46/46 (6 Broker + 9 PolicyEngine + 6 AuditLog + 9 CredentialHealth + 5 EnvParser + 7 VaultService + 4 VaultSession). Commits: db730eb (P5a) + ccbe57c (P5b), author Maurice, no AI trailer.
 
 Next: P5 distribution (codesign Developer ID + notarize + staple + DMG) remains HITL (needs Maurice's Apple Developer ID cert). P6 AI-Fleet broker integration remains HITL (touches live gemini proxy).
+
+## 2026-06-01 · Deployment target → macOS 26.0 (support latest system)
+
+Maurice: "我目前系统是 mac os 26.5，要支持最新系统."
+
+Diagnosed first (local infra): project.yml had deploymentTarget macOS "14.0" in 3 spots (global + app + test). Toolchain = Xcode 26.5 / Swift 6.3.2, default target arm64-apple-macosx26.0, ONLY the macOS 26.5 SDK installed, running OS = macOS 26.5 (25F71). So the app already compiled against the latest SDK and ran on 26.5 (forward compat). The real issue: a 14.0 floor on a host where only the 26.5 SDK exists is an UNTESTED claim — can't run/verify a 14.0 build here.
+
+Change: bumped all three deploymentTarget entries 14.0 → 26.0. AuthBoxCrypto SwiftPM package left at .macOS(.v14) (shared with iOS 17; a 26.0 app depending on a 14-min package is valid — no conflict). Used 26.0 (major floor) not 26.5, so it covers all 26.x. SDK stays macosx26.5 (latest). Standard SwiftUI controls now adopt macOS 26 Liquid Glass styling without code changes.
+
+Tradeoff (stated, reversible in one line): app is now macOS 26.0+ only. P5 distribution (codesign/DMG) is HITL-blocked so no users are dropped today; if workshop distribution to <26 Macs is needed later, flip project.yml back to 15.0/14.0 + xcodegen generate.
+
+Verify: xcodegen generate → MACOSX_DEPLOYMENT_TARGET=26.0, SDK_NAME=macosx26.5; xcodebuild build → BUILD SUCCEEDED; test → ** TEST SUCCEEDED ** 46/46. No availability-guard churn needed (all APIs used exist in 26).

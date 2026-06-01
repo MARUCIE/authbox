@@ -81,6 +81,7 @@ core, CSPRNG password generation, SwiftData stores only ciphertext, entitlements
 - Replace `gemini-api-config.json` plaintext-key reads with a broker client (ws://127.0.0.1:19876). Touches the LIVE gemini proxy → production system → HITL before wiring.
 
 ## Hard constraints / gotchas
+- **Deployment target = macOS 26.0** (latest, "Tahoe"). Set 2026-06-01: dev/run/test host is macOS 26.5 and only the 26.5 SDK is installed, so 26.0 is the honest floor — the app is built/run/tested on exactly the OS it targets, and standard SwiftUI controls pick up Liquid Glass styling for free. The shared `AuthBoxCrypto` SwiftPM package stays `.macOS(.v14)` (cross-platform with iOS 17); a 26.0 app depending on a 14-min package is valid. To broaden to older Macs (e.g. workshop distribution), flip the three `project.yml` deploymentTarget entries back to "15.0"/"14.0" + `xcodegen generate`.
 - **Manual UX gate**: the real Touch ID + Secure Enclave round-trip cannot run headless. Provision a key + unlock on the Mac to exercise it (Maurice).
 - **Team-deferred entitlements (P1→needs DEVELOPMENT_TEAM)**: app-group `group.com.authbox.shared` + keychain-access-groups + runtime hardened-runtime (ad-hoc disables it). Add when a signing team is configured.
 - Product/module name is `AuthBoxMac` (display name "Auth Box" via CFBundleDisplayName). Test import: `@testable import AuthBoxMac`. Do NOT re-add `PRODUCT_NAME` (breaks TEST_HOST).

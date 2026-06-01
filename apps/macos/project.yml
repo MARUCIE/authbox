@@ -5,7 +5,12 @@ name: AuthBoxMac
 options:
   bundleIdPrefix: com.authbox
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "26.0"   # latest macOS (Tahoe). Dev+run+test host is 26.5; only the
+                    # macOS 26.5 SDK is installed, so 26.0 is the honest floor —
+                    # built/run/tested exactly on the OS it targets. Adopts macOS
+                    # 26 Liquid Glass styling for standard SwiftUI controls.
+                    # To broaden later (e.g. workshop distribution to <26 Macs),
+                    # flip these three entries back to "15.0"/"14.0".
   createIntermediateGroups: true
   groupSortPosition: top
 
@@ -18,7 +23,7 @@ targets:
   AuthBoxMac:
     type: application
     platform: macOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "26.0"
     sources:
       - path: AuthBoxMac
     dependencies:
@@ -49,7 +54,7 @@ targets:
   AuthBoxMacTests:
     type: bundle.unit-test
     platform: macOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "26.0"
     sources:
       - path: AuthBoxMacTests
     dependencies:
