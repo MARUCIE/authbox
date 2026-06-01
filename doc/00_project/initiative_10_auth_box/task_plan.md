@@ -410,11 +410,11 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
 - [x] AuthBoxMacTests/VaultSessionTests.swift: 4 tests PASS (unlock-holds-key / lock-zeroes / deny-on-unwrap-fail / preonboarding-biometric-gate) -> TEST SUCCEEDED rc=0
 
 ### P2 — Vault
-- [ ] Domain/Vault: reuse seed-phrase HD derivation + item model from AuthBoxCrypto/iOS
-- [ ] Core/Storage: SwiftData store holding ciphertext blobs + metadata only
-- [ ] Features/Vault: item list, item detail, add/edit/delete
-- [ ] Features/Vault: password generator + deterministic derivation (seed+site)
-- [ ] Crypto parity: `pnpm run ios:crypto-vectors` passes for macOS
+- [x] Domain/Vault: reuse seed-phrase HD derivation + item model from AuthBoxCrypto/iOS — VaultService.swift (VaultSecret/VaultItem, encrypt via VaultCrypto.encryptVaultItem); VaultSession.provisionAndUnlock(mnemonic:) reuses Seed.mnemonicToSeed → deriveAllKeys.vaultKey
+- [x] Core/Storage: SwiftData store holding ciphertext blobs + metadata only — VaultStore.swift @Model VaultItemRecord (ciphertext/nonce/tag split columns + searchable metadata; plaintext never stored), init(inMemory:) for tests
+- [x] Features/Vault: item list, item detail, add/edit/delete — VaultViews.swift (VaultViewModel + VaultListView + AddItemSheet + ItemDetailView reveal-on-demand, onDisappear clears plaintext); Onboarding/OnboardingView.swift (generate/import 24-word mnemonic → provisionAndUnlock); RootView wired (.vault → VaultListView, LockedView ⇄ OnboardingView on isProvisioned)
+- [x] Features/Vault: password generator + deterministic derivation (seed+site) — PasswordGenerator.swift (random CSPRNG + deterministic via Seed.derivePassword); Generator/GeneratorView.swift (segmented random/deterministic UI)
+- [x] Crypto parity: `pnpm run ios:crypto-vectors` passes for macOS — reference vectors emit clean (M12/M24 valid, vault/sync/auth/agent keys, HKDF, PW_GITHUB=`d$^ton](I(^8R{dprpi%`); macOS links the identical AuthBoxCrypto SwiftPM package as iOS, so deterministic output matches by construction. VaultServiceTests + VaultSessionTests: 11/11 PASS → TEST SUCCEEDED rc=0
 
 ### P3 — Provider Hub
 - [ ] `pnpm run gen:swift-catalog` codegen from credential-catalog.ts → CredentialCatalog.generated.swift

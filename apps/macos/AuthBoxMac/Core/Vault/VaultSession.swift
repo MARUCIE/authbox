@@ -12,6 +12,7 @@
 
 import Foundation
 import Combine
+import AuthBoxCrypto
 #if canImport(AppKit)
 import AppKit
 #endif
@@ -65,6 +66,13 @@ final class VaultSession: ObservableObject {
     /// Test/diagnostic accessor: the live master key, or nil when locked.
     var masterKeyForTesting: [UInt8]? { master?.bytes }
 
+    /// The live vault key (== master key) while unlocked, else nil. Consumed by
+    /// VaultService to encrypt/decrypt items. Never persisted in plaintext.
+    var vaultKey: Data? { master.map { Data($0.bytes) } }
+
+    /// Whether a wrapped master key has been provisioned (vault was set up).
+    var isProvisioned: Bool { ((try? wrappedStore.load()) ?? nil) != nil }
+
     // MARK: - Public API (views call these; they stay synchronous)
 
     func unlock() { Task { await unlockAsync() } }
@@ -110,6 +118,20 @@ final class VaultSession: ObservableObject {
         try keyWrap.provisionIfNeeded()
         let wrapped = try keyWrap.wrap(masterKey: masterKey)
         try wrappedStore.save(wrapped)
+    }
+
+    /// Onboarding: derive the vault key from a BIP-39 mnemonic, wrap it in the
+    /// Secure Enclave, persist the wrapped blob, and enter the unlocked state.
+    /// The mnemonic itself is NEVER stored — it is the user's offline recovery.
+    @discardableResult
+    func provisionAndUnlock(mnemonic: String) throws -> Bool {
+        let seed = Seed.mnemonicToSeed(mnemonic)
+        let keys = Seed.deriveAllKeys(seed: seed)
+        try provision(masterKey: keys.vaultKey)
+        master = SecureBytes(keys.vaultKey)
+        isUnlocked = true
+        armIdleTimer()
+        return true
     }
 
     func resetVault() throws {

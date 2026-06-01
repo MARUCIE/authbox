@@ -7,9 +7,10 @@
 
 import SwiftUI
 
-/// The three fused domains, surfaced as sidebar sections.
+/// The fused domains, surfaced as sidebar sections.
 enum AppSection: String, CaseIterable, Identifiable {
     case vault = "Vault"
+    case generator = "Generator"
     case providers = "AI Providers"
     case authorizations = "Authorizations"
 
@@ -18,6 +19,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .vault: return "key.fill"
+        case .generator: return "dice.fill"
         case .providers: return "cpu"
         case .authorizations: return "person.badge.shield.checkmark"
         }
@@ -26,6 +28,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .vault: return "Passwords & secrets — seed-phrase vault"
+        case .generator: return "Random & deterministic password generation"
         case .providers: return "70+ AI provider keys — .env import, health checks"
         case .authorizations: return "Agent grants, policies, audit — Touch ID gated"
         }
@@ -44,11 +47,30 @@ struct RootView: View {
                         .tag(section)
                 }
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220)
+                .safeAreaInset(edge: .bottom) {
+                    Button { lockState.lock() } label: {
+                        Label("Lock", systemImage: "lock.fill").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered).padding(8)
+                }
             } detail: {
-                PlaceholderDetail(section: selection)
+                NavigationStack { detailView(for: selection) }
             }
-        } else {
+        } else if lockState.isProvisioned {
             LockedView()
+        } else {
+            OnboardingView()
+        }
+    }
+
+    /// Routes each sidebar section to its real feature view. The vault section
+    /// embeds its own master-detail stack via VaultListView's navigationDestination.
+    @ViewBuilder
+    private func detailView(for section: AppSection) -> some View {
+        switch section {
+        case .vault:          VaultListView()
+        case .generator:      GeneratorView()
+        case .providers, .authorizations: PlaceholderDetail(section: section)
         }
     }
 }
