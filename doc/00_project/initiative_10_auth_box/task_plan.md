@@ -444,8 +444,9 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
   - [x] SEC-007 (Medium): duplicate approvalId denied fail-closed (was fail-open-by-hang).
   - [x] SEC-008 (Low): zero derived seed in provisionAndUnlock (defer resetBytes).
   - [x] SEC-009 (Low): withVaultKey re-arms auto-lock timer → activity-based idle.
-- [ ] codesign (Developer ID) + notarize + staple — HITL: needs Maurice's Apple Developer ID cert + DEVELOPMENT_TEAM
-- [ ] DMG packaging; optional Sparkle auto-update — follows codesign
+- [x] DMG packaging (local tier) — `scripts/package-dmg.sh` builds Release ad-hoc .app → hdiutil drag-install .dmg. Verified: dist/AuthBox-0.1.0.dmg (1.7M) mounts with AuthBoxMac.app + /Applications symlink. dist/ gitignored.
+- [ ] codesign (Developer ID) + notarize + staple — HITL: wired as the script's RELEASE tier (activates on AUTHBOX_DEV_ID + AUTHBOX_NOTARY_PROFILE env); needs Maurice's Apple Developer ID cert + notarytool profile + DEVELOPMENT_TEAM in project.yml
+- [ ] optional later: Sparkle auto-update
 
 ### P6 — AI-Fleet integration (bonus, fixes the 2026-06-01 git-key-leak class)
 - [ ] Broker client so gemini-proxy et al. request keys from broker instead of gemini-api-config.json

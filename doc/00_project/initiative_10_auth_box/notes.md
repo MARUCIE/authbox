@@ -1886,3 +1886,15 @@ Change: bumped all three deploymentTarget entries 14.0 → 26.0. AuthBoxCrypto S
 Tradeoff (stated, reversible in one line): app is now macOS 26.0+ only. P5 distribution (codesign/DMG) is HITL-blocked so no users are dropped today; if workshop distribution to <26 Macs is needed later, flip project.yml back to 15.0/14.0 + xcodegen generate.
 
 Verify: xcodegen generate → MACOSX_DEPLOYMENT_TARGET=26.0, SDK_NAME=macosx26.5; xcodebuild build → BUILD SUCCEEDED; test → ** TEST SUCCEEDED ** 46/46. No availability-guard churn needed (all APIs used exist in 26).
+
+## 2026-06-01 · P5 DMG packaging — local tier done, notarize wired (HITL)
+
+`继续` → advanced P5 distribution's in-authority part. P6 (AI-Fleet broker integration) touches the live gemini proxy = hard HITL, untouched.
+
+scripts/package-dmg.sh — two tiers:
+- LOCAL (default, no cert): xcodegen → Release build → ad-hoc .app → hdiutil drag-install .dmg. Built-in hdiutil, no create-dmg dependency (coordination ≤ task). Verified: dist/AuthBox-0.1.0.dmg (1.7M), mounts with AuthBoxMac.app (display name "Auth Box") + /Applications symlink, detaches clean. dist/ already gitignored (.gitignore:6) so the DMG artifact is not committed — only the script.
+- RELEASE (opt-in, HITL): activates iff AUTHBOX_DEV_ID + AUTHBOX_NOTARY_PROFILE env set → codesign --options runtime → notarytool submit --wait → stapler staple. Submits to Apple (outward) so it never runs unless Maurice exports those vars. Decoupled the two codesign layers: ad-hoc (runs on this Mac, Gatekeeper right-click-Open) vs Developer ID + notarize (runs warning-free on others' Macs).
+
+Built app is ad-hoc + hardened-runtime (flags 0x10002 adhoc,runtime), Identifier com.authbox.mac, TeamIdentifier not set (expected for ad-hoc).
+
+Remaining HITL to finish P5: Maurice's Apple Developer ID Application cert + a notarytool keychain profile (`xcrun notarytool store-credentials`) + DEVELOPMENT_TEAM in project.yml (re-enables app-group + keychain-access-groups). Then one command: AUTHBOX_DEV_ID=… AUTHBOX_NOTARY_PROFILE=… scripts/package-dmg.sh.

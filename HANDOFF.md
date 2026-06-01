@@ -72,10 +72,22 @@ core, CSPRNG password generation, SwiftData stores only ciphertext, entitlements
 | SEC-008 | Low | seed/keys not zeroed in provisionAndUnlock | `defer resetBytes` on derived seed |
 | SEC-009 | Low | idle auto-lock timer not activity-based | `withVaultKey` re-arms the timer on each borrow |
 
-### Distribution (HITL-gated)
-1. **codesign (Developer ID)** — needs Maurice's Apple Developer ID cert + `DEVELOPMENT_TEAM` in `project.yml`. Re-enables hardened runtime + app-group + keychain-access-groups (currently ad-hoc, team-deferred). HITL.
-2. **notarize + staple** — `xcrun notarytool` with Maurice's Apple ID app-specific password. HITL.
-3. **DMG packaging** — `create-dmg` or `hdiutil`; optional Sparkle auto-update.
+### Distribution
+- **DMG packaging — DONE (local tier).** `scripts/package-dmg.sh` builds a Release
+  ad-hoc-signed `.app` and wraps it in a drag-install `.dmg` via `hdiutil` (no
+  third-party tool). Verified 2026-06-01: produces `dist/AuthBox-0.1.0.dmg` (1.7M),
+  mounts with `AuthBoxMac.app` + `/Applications` symlink. `dist/` is gitignored.
+  Run: `scripts/package-dmg.sh`.
+- **codesign (Developer ID) + notarize + staple — HITL, wired + waiting.** The
+  same script's RELEASE tier auto-activates when both env vars are set:
+  `AUTHBOX_DEV_ID="Developer ID Application: … (TEAMID)"` and
+  `AUTHBOX_NOTARY_PROFILE=<notarytool keychain profile>`. It then does
+  `codesign --options runtime` → `notarytool submit --wait` → `stapler staple`.
+  This submits to Apple (outward) so it only runs when Maurice exports those vars.
+  Also set `DEVELOPMENT_TEAM` in `project.yml` to re-enable app-group +
+  keychain-access-groups (currently team-deferred). One command once the cert exists:
+  `AUTHBOX_DEV_ID=… AUTHBOX_NOTARY_PROFILE=… scripts/package-dmg.sh`.
+- Optional later: Sparkle auto-update.
 
 ## P6 — AI-Fleet integration (bonus; HITL-gated)
 - Replace `gemini-api-config.json` plaintext-key reads with a broker client (ws://127.0.0.1:19876). Touches the LIVE gemini proxy → production system → HITL before wiring.
