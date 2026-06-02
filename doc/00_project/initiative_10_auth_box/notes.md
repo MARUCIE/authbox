@@ -2105,3 +2105,30 @@ Gate: new `test_allowlist_blocks_attacker_host_and_every_ip_encoding` (10 block 
 allow), `test_allowlist_is_case_and_trailing_dot_normalized`,
 `test_executor_blocks_attacker_base_url_before_sending_key`. Full suite 56 tests,
 0 failures (was 53; +3).
+
+## 2026-06-02 · FIX #2 (release-blocker) — BROKER-AUDIT-01 closed (Keychain head anchor)
+
+AuditLog.verify() proves no RETAINED entry changed, but it is structurally blind
+to a dropped TAIL: an empty file or any valid prefix re-verifies as intact. So an
+attacker could delete/truncate audit-chain.jsonl to erase a malicious "Allow" and
+the UI would still show a green "chain intact" shield (SEC-002 over-claimed).
+
+Fix: persist the chain HEAD (count + last hash) OUTSIDE the file, in the Keychain
+(KeychainAuditHeadAnchor, generic password, AfterFirstUnlockThisDeviceOnly). The
+log-file editor cannot reach it.
+- init(url:) now sets loadedIntegrityOK = verify() && verifyHeadAnchor(); the
+  loaded head must equal the stored anchor → deletion (count 0≠N) and truncation
+  (count M<N) are both caught.
+- append() advances the anchor to the new head.
+- Trust-on-first-use: with no anchor yet (fresh install or pre-anchor upgrade),
+  adopt the current verified head — smooth upgrade, no false alarm on the existing
+  on-disk chain.
+
+Comment at AuditFileStore corrected (it over-claimed "any truncation caught by
+verify()").
+
+Gate: test_suffix_truncation_is_detected (verify()=true on the prefix, but
+loadedIntegrityOK=false), test_full_deletion_is_detected, test_anchor_advances_on_each_append,
+test_trust_on_first_use_adopts_head_when_no_anchor. Existing persistence tests
+updated to inject an in-memory anchor (keeps tests off the real login Keychain).
+Full suite 60 tests, 0 failures (was 56; +4).
