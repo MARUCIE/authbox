@@ -2162,3 +2162,49 @@ go build + vet clean; full module `go test ./...` exit 0 (40 tests / 9 packages)
 Deploy note: set AUTH_BOX_TRUSTED_PROXIES to the edge proxy/LB CIDR(s) in any
 environment that terminates TLS behind a proxy, else real client IPs collapse to
 the proxy IP. Default (empty) is correct for direct-to-app exposure.
+
+## 2026-06-02 · ACCEPTANCE — production-usability visual acceptance (workflow mode)
+
+Goal: full visual acceptance from a production-usability angle, prove the core
+product is closed-loop (闭环). Ran the 15-journey map sequentially (rate-limit-safe;
+a fixed 6-way parallel burst tripped throttling earlier — serialize). Capture via
+chrome-devtools MCP in an isolated browser context; 13 screenshots in
+outputs/reports/code-quality-swarm/screenshots/.
+
+Result: 11/13 headless journeys PASS, 2 HITL (TOTP enrolment needs a real
+authenticator). Two release-blocking contract bugs found live and fixed:
+
+- AUD-CONTRACT-01 (vault): POST /vault/items 500 for every client itemType.
+  Server validItemTypes was off-vocabulary; now matches shared ItemType enum
+  (login/api_key/secure_note/identity/card) + handler returns 400 (not 500) on
+  unknown type. Empty default "credential" -> "login".
+- AUD-CONTRACT-02 (agent): POST /agents 400 for mcp_client. 3-way enum
+  divergence (Go map / shared TS enum / Zod schema) reconciled to
+  {mcp_client,claude,chatgpt,gemini,custom}. Empty default "service" -> "custom".
+  Root cause: the agentType enum was complected across three layers with no
+  single source of truth, so each drifted independently. Recommend a generated
+  contract or a cross-layer enum-parity test.
+
+Dev-stack fixes to make the stack runnable (Makefile): dropped redis from `up`
+(commented out in compose until Phase 4); export AUTH_BOX_HTTP_ADDR=":4010" in
+dev-api so local `go run` binds the port the web hardcodes (apps/web/lib/api.ts
+LOCAL_API_BASE). DB was dirty at version 9 from an interrupted migration; forced
+to 8, re-migrated (009 idempotent) to v10.
+
+Zero-knowledge proven end-to-end: vault_items.encrypted_data is AES-256-GCM
+ciphertext at rest (DB byte inspection), decrypt round-trip returned the
+byte-identical plaintext client-side. Deterministic password derivation
+(Round-Trip-Secret-9f3a2b) reproduced from the same seed+path.
+
+Observations (not fixed, documented): GAP-1 audit chain not wired to mutation
+paths (large feature, not a unilateral change); OBS-1 in-memory session lost on
+hard navigate (security/UX tradeoff — use client-side Link nav); OBS-2 stale
+committed build artifacts in packages/shared/src/*.js (pre-existing, not consumed
+at runtime).
+
+Verify: go build ./... OK, go vet clean, go test ./... = 40 passed / 9 packages,
+shared tsc clean, browser console 0 errors across the session.
+
+Reports: outputs/reports/code-quality-swarm/2026-06-02-production-usability-visual-acceptance.{md,html}
+(.md canonical English / .html Chinese Claude Warm Academic via html-style-router).
+Commit 48d8e3b.
