@@ -1997,3 +1997,84 @@ Findings (minor; no code changed this session):
    navigationDestination(for:) returns empty when the item is gone; consider popping on delete.
 
 No commit (verification only).
+
+## 2026-06-02 · Pre-release adversarial security/quality audit (workflow-orchestrated)
+
+Goal invocation (/goal + workflow). Inferred scope: auth-box code work is complete
+(P0-P5, 50/50 tests, P5 attacker review 9 findings fixed, 3 UX findings fixed by a
+concurrent session at commits 30db413/c2a72ce). Remaining work (signed distribution,
+AI-Fleet integration) is HITL-blocked. So the highest-value non-HITL deliverable before
+distribution = the preamble-mandated pre-release attacker review.
+
+Decision: launch a READ-ONLY, adversarial, multi-surface audit workflow pinned to HEAD
+c2a72ce. Read-only so it does NOT race the concurrent writer. 6 surfaces fanned out, each
+adversarial, High/Critical findings adversarially refuted, P5 already-fixed list excluded.
+
+Surfaces: crypto-ts (packages/crypto/src) | macos-se-vault (SE keystore + VaultSession +
+storage) | broker-policy (AuthorizationBroker + PolicyEngine + AuditLog) | provider-hub
+(SSRF/env/health) | go-api (services/api SRP/TOTP/session/CORS/SQLi/zero-knowledge) |
+web-extension (apps/web + apps/extension token handling, XSS, MV3 messaging).
+
+Deliverable: outputs/reports/code-quality-swarm/2026-06-02-prerelease-security-audit.{md,html}
+NOT done (out of scope / HITL): any source mutation, commit, push, outward comms, the two
+HITL-blocked distribution/integration steps.
+
+## 2026-06-02 · Pre-release audit COMPLETE — report delivered + visually verified
+
+Workflow run wf_6a14fb86-31d (SEQUENTIAL; the first parallel run wf_5832cc57-b6e
+died — all 6 agents hit a transient API server rate-limit after 1-3 tool calls.
+Serializing the surfaces fixed it: 15 agents, 6 surfaces, adversarial verification
+of every High/Critical, 2.17M tokens, ~38 min).
+
+Findings (effective, post-verdict): 1 Critical + 3 High + 10 Medium + 3 Low + 1 Info; 4 REFUTED.
+- Critical (confirmed): AUD-SSRF-01 — provider health-check has no destination-domain
+  allowlist; an imported attacker .env + one "verify" click exfiltrates the plaintext
+  API key to any host. RELEASE-BLOCKER.
+- High (all confirmed): AUD-SSRF-02 (IPv6/alt-encoding SSRF bypass → loopback+metadata),
+  AUD-AUTH-02 (rate-limit keyed on spoofable X-Forwarded-For), BROKER-AUDIT-01 (audit
+  hash-chain misses suffix-truncation/deletion; SEC-002 over-claimed).
+- 4 web-extension Critical/High findings REFUTED by the verifier: MV3 messaging isolation
+  (no externally_connectable, isolated worlds, non-relaying content script) blocks the
+  claimed page->background path. Downgraded to defense-in-depth hardening items.
+- Core crypto + server zero-knowledge invariant + IDOR scoping + deny-by-default broker
+  all audited CLEAN.
+
+Reports (2份制): outputs/reports/code-quality-swarm/2026-06-02-prerelease-security-audit.md
+(EN canonical) + .html (ZH, Claude Warm Academic). HTML visually verified via
+chrome-devtools full-page screenshot:
+outputs/reports/code-quality-swarm/screenshots/2026-06-02-audit-render.png
+(+ state/screenshots/auth-box-prerelease-audit-2026-06-02.png in AI-Fleet).
+
+Distribution gate: fix AUD-SSRF-01 before distribution; AUTH-02 + BROKER-AUDIT-01 same release.
+NOT auto-fixed this turn: source mutation would race the concurrent session active on this
+repo (committed 30db413/c2a72ce during the prior session); fixing is a distinct scope.
+Prioritized fix queue is in the report §Decisions.
+
+## 2026-06-02 · Broker step-up loop closed in code (no Touch ID needed)
+
+The one piece the live computer-use demo could not finish — the broker step-up
+consent loop — required Maurice's physical Touch ID (sudo-type HITL) and he
+declined computer-use re-access. Closed it autonomously at the code level instead.
+
+Coverage gap found: BrokerTests had decision-pipeline tests + a real loopback
+WebSocket round-trip (`test_loopback_websocket_round_trip`), but NONE exercised
+the step-up branch in `AuthorizationBroker.decide` (L140-147:
+evaluate -> pendingApprovalId -> requestApproval -> effect + seal).
+
+Added 3 tests (BrokerTests.swift), biometric seam mocked via
+`engine.onApprovalNeeded -> resolveApproval` (the only unavoidable mock in a CI
+env; register-before-notify in PolicyEngine makes synchronous resolution race-free):
+- test_decide_stepup_approved_is_allowed_and_audited — approve -> allowed +
+  "Approved via step-up" + 1 sealed Fact + chain verifies.
+- test_decide_stepup_denied_is_blocked_and_audited — deny -> fail-closed +
+  "Denied or timed out at step-up" + the rejected attempt is still sealed.
+- test_loopback_websocket_stepup_round_trip — the full closed loop the Touch ID
+  demo would have shown, minus the sensor: real agent client -> ws://127.0.0.1
+  -> step-up consent -> approve -> allowed effect back over the socket + sealed.
+
+Evidence: `xcodebuild test -scheme AuthBoxMac -destination platform=macOS` ->
+53 tests, 0 failures (was 50; +3). Named run of the 3 new tests: all passed
+(socket round-trip 0.054s on a real NWConnection).
+
+Physical-Touch-ID demo remains available any time via scripts/broker-smoke-test.py
+against the running app, but is no longer required to prove the loop closes.

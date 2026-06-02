@@ -25,6 +25,21 @@ final class BrokerTests: XCTestCase {
         return [cap.id: cap]
     }
 
+    /// A capability that REQUIRES Touch ID step-up for each access (action_perm +
+    /// step_up). Mirrors what `addCapability(requireStepUp: true)` builds in the UI.
+    private func stepUpCapability() -> [String: AgentCapability] {
+        let stamp = Date(timeIntervalSince1970: 0)
+        let cap = AgentCapability(id: "agent-1", name: "Test Agent", policies: [
+            AgentPolicy(id: "p-action", agentId: "agent-1", policyType: .action_perm,
+                        rules: PolicyRules(allowedActions: [.read]),
+                        priority: 10, enabled: true, createdAt: stamp, updatedAt: stamp),
+            AgentPolicy(id: "p-stepup", agentId: "agent-1", policyType: .step_up,
+                        rules: PolicyRules(requireApproval: true),
+                        priority: 5, enabled: true, createdAt: stamp, updatedAt: stamp),
+        ], tokenHash: AgentToken.hash(BrokerTests.token))
+        return [cap.id: cap]
+    }
+
     private func authedIntent(_ action: AgentAction) -> AccessIntent {
         AccessIntent(agentId: "agent-1", action: action, token: BrokerTests.token)
     }
@@ -91,6 +106,76 @@ final class BrokerTests: XCTestCase {
         let effect = try await sendIntent(
             AccessIntent(agentId: "agent-1", action: .read, token: BrokerTests.token), toPort: port)
         XCTAssertTrue(effect.allowed, "permitted action returns allowed over the socket")
+    }
+
+    // MARK: - Step-up consent path (approve / deny → effect + audit)
+
+    func test_decide_stepup_approved_is_allowed_and_audited() async {
+        let engine = PolicyEngine()
+        let audit = AuditLog()
+        let broker = AuthorizationBroker(engine: engine, audit: audit, capabilities: stepUpCapability)
+
+        // Stand in for the human's "Allow once" + a SUCCESSFUL Touch ID. The
+        // biometric sensor is the one seam a CI/test env cannot drive; everything
+        // downstream of a positive check — resolve → effect → seal — runs for real.
+        // register-before-notify (PolicyEngine) guarantees the resolver is already
+        // installed when this fires, so resolving synchronously is race-free.
+        var approvalsSeen = 0
+        engine.onApprovalNeeded = { [weak engine] approval in
+            approvalsSeen += 1
+            engine?.resolveApproval(approval.id, approved: true)
+        }
+
+        let effect = await broker.decide(authedIntent(.read))
+        XCTAssertEqual(approvalsSeen, 1, "a step-up policy must raise exactly one consent prompt")
+        XCTAssertTrue(effect.allowed, "approved step-up → allowed")
+        XCTAssertEqual(effect.reason, "Approved via step-up")
+        XCTAssertEqual(audit.facts.count, 1, "the approved decision is sealed into the audit log")
+        XCTAssertTrue(audit.verify())
+    }
+
+    func test_decide_stepup_denied_is_blocked_and_audited() async {
+        let engine = PolicyEngine()
+        let audit = AuditLog()
+        let broker = AuthorizationBroker(engine: engine, audit: audit, capabilities: stepUpCapability)
+
+        // Stand in for the human pressing "Deny" (or a FAILED Touch ID): the
+        // consent resolves false. Deny-by-default must hold and the rejected
+        // attempt must still be sealed (tamper-evident).
+        engine.onApprovalNeeded = { [weak engine] approval in
+            engine?.resolveApproval(approval.id, approved: false)
+        }
+
+        let effect = await broker.decide(authedIntent(.read))
+        XCTAssertFalse(effect.allowed, "denied step-up → blocked, fail-closed")
+        XCTAssertEqual(effect.reason, "Denied or timed out at step-up")
+        XCTAssertEqual(audit.facts.count, 1, "the denied decision is still sealed (tamper-evident)")
+        XCTAssertTrue(audit.verify())
+    }
+
+    /// The full closed loop the live Touch ID demo would have shown, minus the
+    /// physical sensor: a real agent client sends an intent over ws://127.0.0.1,
+    /// the broker raises step-up consent, the consent is approved, and the
+    /// allowed effect travels back over the same socket and is sealed in the audit.
+    func test_loopback_websocket_stepup_round_trip() async throws {
+        let port: UInt16 = 19912
+        let engine = PolicyEngine()
+        let audit = AuditLog()
+        let broker = AuthorizationBroker(engine: engine, audit: audit, capabilities: stepUpCapability)
+
+        engine.onApprovalNeeded = { [weak engine] approval in
+            engine?.resolveApproval(approval.id, approved: true)   // human Touch ID stand-in
+        }
+
+        try broker.start(on: port)
+        try await waitUntil(timeout: 3) { broker.isRunning }
+        defer { broker.stop() }
+
+        let effect = try await sendIntent(authedIntent(.read), toPort: port)
+        XCTAssertTrue(effect.allowed, "approved step-up returns allowed over the socket")
+        XCTAssertEqual(effect.reason, "Approved via step-up")
+        XCTAssertEqual(audit.facts.count, 1, "the socket-driven step-up decision is sealed")
+        XCTAssertTrue(audit.verify())
     }
 
     // MARK: - Helpers
