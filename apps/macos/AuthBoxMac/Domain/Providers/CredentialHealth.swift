@@ -46,9 +46,34 @@ struct URLSessionHealthTransport: HealthTransport {
             req.setValue(v, forHTTPHeaderField: k)
         }
         if request.method == "POST" { req.httpBody = request.body?.data(using: .utf8) }
-        let (data, response) = try await URLSession.shared.data(for: req)
+        // AUD-SSRF-03: URLSession.shared follows 3xx and replays the Authorization
+        // header to the redirect target, re-opening the exfil/DNS-rebinding path the
+        // initial-URL guard closes. An ephemeral session with a redirect-validating
+        // delegate re-checks every hop against the same allowlist (and carries no
+        // shared cookies/cache). The delegate is retained by the session until
+        // invalidation.
+        let session = URLSession(configuration: .ephemeral,
+                                 delegate: SSRFRedirectGuard(), delegateQueue: nil)
+        defer { session.finishTasksAndInvalidate() }
+        let (data, response) = try await session.data(for: req)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         return (code, String(data: data, encoding: .utf8) ?? "")
+    }
+}
+
+/// AUD-SSRF-03: refuse any redirect whose target is not itself an allowlisted
+/// provider host. Returning `nil` to the completion handler stops the redirect,
+/// so the credential is never resent to a 3xx `Location` an attacker controls.
+final class SSRFRedirectGuard: NSObject, URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest,
+                    completionHandler: @escaping (URLRequest?) -> Void) {
+        if let url = request.url?.absoluteString, CredentialHealth.isSafeEndpoint(url) {
+            completionHandler(request)   // allowlisted target → follow
+        } else {
+            completionHandler(nil)       // unsafe target → stop; do not resend the key
+        }
     }
 }
 
@@ -307,40 +332,41 @@ enum CredentialHealth {
     static func hasHealthCheck(_ providerId: String) -> Bool { checks[providerId] != nil }
     static var providers: [String] { Array(checks.keys).sorted() }
 
-    // MARK: - SSRF guard (SEC-004)
+    // MARK: - SSRF guard (SEC-004, hardened per AUD-SSRF-01/02)
 
-    /// Reject probe URLs that could exfiltrate a credential to a non-provider
-    /// endpoint. Two providers (openai `base_url`, posthog `host`) interpolate a
-    /// user-supplied field straight into the URL — a malicious .env could point
-    /// it at the cloud metadata service or an internal host carrying the key.
-    /// We require https and refuse loopback / link-local / private / metadata
-    /// hosts. Legit public provider hosts (incl. self-hosted PostHog over https)
-    /// still pass.
+    /// The only hosts a probe is allowed to reach: the canonical API host of every
+    /// registered provider, plus known regional variants. This is a *positive
+    /// allowlist*, derived once from the registry (each check's URL with empty
+    /// fields yields its default host) and augmented with curated alternates.
+    ///
+    /// Why an allowlist, not a deny-list: the previous deny-list ("not internal ⇒
+    /// safe") let `https://evil.attacker.com/v1/models` through (AUD-SSRF-01) and
+    /// could be walked around with IP encodings — `2130706433`, `0x7f000001`,
+    /// `[::ffff:127.0.0.1]`, `2852039166`→169.254.169.254 (AUD-SSRF-02). A positive
+    /// host allowlist makes that entire bypass class moot: no IP literal in any
+    /// encoding is ever a provider hostname, and an attacker host is simply absent.
+    /// The single residual cost is that a *self-hosted* openai/posthog endpoint must
+    /// be approved out-of-band (UI follow-up) rather than trusted from a .env blob —
+    /// the secure default the audit asked for.
+    static let allowedHosts: Set<String> = {
+        var hosts = Set(checks.values.compactMap { URL(string: $0.url([:]))?.host?.lowercased() })
+        hosts.formUnion([
+            "eu.posthog.com", "us.posthog.com",   // PostHog regional clouds
+        ])
+        return hosts
+    }()
+
+    /// Allow a probe URL only when it is HTTPS and its host is on the provider
+    /// allowlist. Everything else — attacker hosts, every IP-literal encoding,
+    /// loopback/metadata, plain HTTP — is refused before the credential leaves the
+    /// machine. Case- and trailing-dot-normalized so `API.OpenAI.COM` and
+    /// `api.openai.com.` cannot slip past an exact-match set.
     static func isSafeEndpoint(_ urlString: String) -> Bool {
         guard let url = URL(string: urlString),
               url.scheme?.lowercased() == "https",
-              let host = url.host?.lowercased(), !host.isEmpty else { return false }
-
-        if host == "localhost" || host.hasSuffix(".local") || host.hasSuffix(".internal") { return false }
-        if host == "metadata.google.internal" { return false }
-
-        // IPv4 literal: block loopback / private / link-local ranges.
-        let octets = host.split(separator: ".")
-        if octets.count == 4, let o = try? octets.map({ part -> Int in
-            guard let n = Int(part), (0...255).contains(n) else { throw URLError(.badURL) }
-            return n
-        }) {
-            if o[0] == 0 || o[0] == 127 { return false }                 // this-host / loopback
-            if o[0] == 10 { return false }                               // private A
-            if o[0] == 172, (16...31).contains(o[1]) { return false }    // private B
-            if o[0] == 192, o[1] == 168 { return false }                 // private C
-            if o[0] == 169, o[1] == 254 { return false }                 // link-local + metadata
-        }
-
-        // IPv6 loopback / link-local / unique-local literals.
-        if host == "::1" || host.hasPrefix("fe80") || host.hasPrefix("fc") || host.hasPrefix("fd") { return false }
-
-        return true
+              var host = url.host?.lowercased(), !host.isEmpty else { return false }
+        if host.hasSuffix(".") { host.removeLast() }   // fully-qualified trailing dot
+        return allowedHosts.contains(host)
     }
 
     // MARK: - Executor

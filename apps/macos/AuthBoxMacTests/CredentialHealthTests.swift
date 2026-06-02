@@ -102,4 +102,56 @@ final class CredentialHealthTests: XCTestCase {
         XCTAssertFalse(CredentialHealth.isSafeEndpoint("https://192.168.1.1/v1"), "private-C rejected")
         XCTAssertFalse(CredentialHealth.isSafeEndpoint("https://internal.host.local/x"), ".local rejected")
     }
+
+    // MARK: - AUD-SSRF-01/02 — allowlist defeats the whole bypass class
+
+    func test_allowlist_blocks_attacker_host_and_every_ip_encoding() {
+        // AUD-SSRF-01: an arbitrary attacker host must NOT pass just because it is
+        // public + HTTPS. AUD-SSRF-02: no IP-literal encoding may reach loopback or
+        // the cloud metadata service. A positive allowlist refuses all of these at
+        // once — none is a provider hostname.
+        let mustBlock = [
+            "https://evil.attacker.com/v1/models",          // AUD-SSRF-01 — public attacker host
+            "https://api.openai.com.attacker.com/v1/models", // suffix-confusion lookalike
+            "https://2130706433/v1",                         // 127.0.0.1 as decimal int
+            "https://0x7f000001/v1",                         // 127.0.0.1 as hex
+            "https://0177.0.0.1/v1",                         // 127.0.0.1 with octal octet
+            "https://2852039166/latest/meta-data",           // 169.254.169.254 as decimal int
+            "https://[::ffff:127.0.0.1]/v1",                 // IPv4-mapped IPv6 loopback
+            "https://[0:0:0:0:0:0:0:1]/v1",                  // fully-expanded IPv6 loopback
+            "https://[::1]/v1",                              // IPv6 loopback
+            "https://metadata.google.internal/computeMetadata/v1/", // GCP metadata name
+        ]
+        for u in mustBlock {
+            XCTAssertFalse(CredentialHealth.isSafeEndpoint(u), "must block: \(u)")
+        }
+
+        let mustAllow = [
+            "https://api.openai.com/v1/models",
+            "https://app.posthog.com/api/projects/",
+            "https://eu.posthog.com/api/projects/",
+            "https://api.anthropic.com/v1/messages",
+            "https://api.github.com/user",
+        ]
+        for u in mustAllow {
+            XCTAssertTrue(CredentialHealth.isSafeEndpoint(u), "must allow: \(u)")
+        }
+    }
+
+    func test_allowlist_is_case_and_trailing_dot_normalized() {
+        XCTAssertTrue(CredentialHealth.isSafeEndpoint("https://API.OpenAI.COM/v1/models"), "case-folded host allowed")
+        XCTAssertTrue(CredentialHealth.isSafeEndpoint("https://api.openai.com./v1/models"), "FQDN trailing dot allowed")
+    }
+
+    func test_executor_blocks_attacker_base_url_before_sending_key() async {
+        // AUD-SSRF-01 end-to-end: a crafted .env points openai's base_url at an
+        // attacker host over HTTPS. Even though the (fake) transport would 200, the
+        // guard must refuse before the bearer key is sent.
+        let r = await CredentialHealth.check(
+            providerId: "openai",
+            fields: ["base_url": "https://evil.attacker.com/v1", "api_key": "sk-secret"],
+            transport: FakeTransport(status: 200, body: ""), now: fixedNow)
+        XCTAssertEqual(r.status, .error)
+        XCTAssertTrue(r.message.contains("blocked"), "attacker base_url must be refused")
+    }
 }

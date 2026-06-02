@@ -2078,3 +2078,30 @@ Evidence: `xcodebuild test -scheme AuthBoxMac -destination platform=macOS` ->
 
 Physical-Touch-ID demo remains available any time via scripts/broker-smoke-test.py
 against the running app, but is no longer required to prove the loop closes.
+
+## 2026-06-02 · FIX #1 (release-blocker) — AUD-SSRF-01/02/03 closed (allowlist)
+
+Replaced the deny-list `isSafeEndpoint` (CredentialHealth.swift) with a positive
+provider-host ALLOWLIST derived from the registry (each check's URL with empty
+fields → its default host) + curated regional variants (eu/us.posthog.com).
+
+- AUD-SSRF-01 (Critical): `https://evil.attacker.com/...` is no longer "safe just
+  because it is public+HTTPS" — it is simply absent from the allowlist → blocked
+  before the bearer key is sent.
+- AUD-SSRF-02 (High): every IP-literal encoding the deny-list missed (2130706433,
+  0x7f000001, 0177.0.0.1, 2852039166→metadata, [::ffff:127.0.0.1], [0:0:0:0:0:0:0:1],
+  [::1]) is moot — no IP literal is ever a provider hostname. Bypass class eliminated,
+  not enumerated.
+- AUD-SSRF-03 (Medium): added `SSRFRedirectGuard: URLSessionTaskDelegate` + ephemeral
+  session; a 3xx whose Location is not allowlisted is NOT followed, so the key is
+  never replayed to an attacker-controlled redirect / DNS-rebind target.
+
+Behavior change (secure default, acceptable pre-distribution): a self-hosted
+openai base_url / posthog host is now blocked unless its host is allowlisted.
+Re-enabling custom endpoints needs explicit out-of-band approval (UI follow-up) —
+the key cannot be trusted to a host that came from the same .env blob.
+
+Gate: new `test_allowlist_blocks_attacker_host_and_every_ip_encoding` (10 block + 5
+allow), `test_allowlist_is_case_and_trailing_dot_normalized`,
+`test_executor_blocks_attacker_base_url_before_sending_key`. Full suite 56 tests,
+0 failures (was 53; +3).
