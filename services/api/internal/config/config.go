@@ -20,6 +20,9 @@ type Config struct {
 	AllowedOrigins []string
 	AuthRateLimit  int
 	TOTPSecretKey  []byte
+	// TrustedProxies are CIDRs/IPs whose X-Forwarded-For is honored (AUD-AUTH-02).
+	// Empty = trust no proxy; the real socket peer keys rate-limiting/auditing.
+	TrustedProxies []string
 }
 
 func Load() Config {
@@ -51,7 +54,19 @@ func Load() Config {
 		AllowedOrigins: origins,
 		AuthRateLimit:  getEnvInt("AUTH_BOX_AUTH_RATE_LIMIT", 5),
 		TOTPSecretKey:  totpSecretKey,
+		TrustedProxies: parseCSV(getEnv("AUTH_BOX_TRUSTED_PROXIES", "")),
 	}
+}
+
+// parseCSV splits a comma-separated list, trimming blanks. Empty input → nil.
+func parseCSV(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func loadTOTPSecretKey(env string) []byte {

@@ -180,36 +180,65 @@ func TestRateLimiter_RejectedRequestsDoNotExtendWindow(t *testing.T) {
 	}
 }
 
-func TestRateLimiter_XForwardedFor(t *testing.T) {
+// AUD-AUTH-02: rotating X-Forwarded-For from an UNTRUSTED peer must not mint a
+// fresh rate-limit bucket — the real socket peer is the key, so the gate holds.
+func TestRateLimiter_SpoofedXFFFromUntrustedPeerDoesNotEscapeLimit(t *testing.T) {
+	SetTrustedProxies(nil) // trust no proxy
 	rl := NewRateLimiter(1, 1*time.Minute)
 	handler := rl.Handler(okHandler())
 
-	// Request with X-Forwarded-For
+	// First request from a fixed socket peer, with an attacker-set XFF.
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.RemoteAddr = "10.0.0.99:12345"
-	req.Header.Set("X-Forwarded-For", "203.0.113.50, 10.0.0.1")
-
+	req.RemoteAddr = "203.0.113.9:12345"
+	req.Header.Set("X-Forwarded-For", "1.1.1.1")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != 200 {
-		t.Errorf("want 200, got %d", rr.Code)
+		t.Errorf("first request: want 200, got %d", rr.Code)
 	}
 
-	// Same X-Forwarded-For: should be rate limited
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if rr.Code != 429 {
-		t.Errorf("want 429, got %d", rr.Code)
-	}
-
-	// Different X-Forwarded-For: should pass
+	// Rotate the spoofed header: must STILL be limited (same socket peer).
 	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
-	req2.RemoteAddr = "10.0.0.99:12345"
-	req2.Header.Set("X-Forwarded-For", "198.51.100.1")
+	req2.RemoteAddr = "203.0.113.9:12345"
+	req2.Header.Set("X-Forwarded-For", "2.2.2.2")
 	rr2 := httptest.NewRecorder()
 	handler.ServeHTTP(rr2, req2)
-	if rr2.Code != 200 {
-		t.Errorf("different XFF: want 200, got %d", rr2.Code)
+	if rr2.Code != http.StatusTooManyRequests {
+		t.Errorf("rotated XFF from untrusted peer must stay limited: want 429, got %d", rr2.Code)
+	}
+}
+
+// Behind a trusted proxy, distinct real clients (distinct leftmost XFF) get
+// distinct buckets, while the same client stays limited.
+func TestRateLimiter_TrustedProxyKeysOnRealClient(t *testing.T) {
+	SetTrustedProxies([]string{"10.0.0.0/8"})
+	defer SetTrustedProxies(nil)
+	rl := NewRateLimiter(1, 1*time.Minute)
+	handler := rl.Handler(okHandler())
+
+	// Client A via the proxy: first ok, second limited.
+	reqA := httptest.NewRequest(http.MethodGet, "/", nil)
+	reqA.RemoteAddr = "10.0.0.7:12345"
+	reqA.Header.Set("X-Forwarded-For", "203.0.113.50, 10.0.0.7")
+	rrA := httptest.NewRecorder()
+	handler.ServeHTTP(rrA, reqA)
+	if rrA.Code != 200 {
+		t.Errorf("client A first: want 200, got %d", rrA.Code)
+	}
+	rrA2 := httptest.NewRecorder()
+	handler.ServeHTTP(rrA2, reqA)
+	if rrA2.Code != http.StatusTooManyRequests {
+		t.Errorf("client A second: want 429, got %d", rrA2.Code)
+	}
+
+	// Client B (different real client) via the same proxy: still allowed.
+	reqB := httptest.NewRequest(http.MethodGet, "/", nil)
+	reqB.RemoteAddr = "10.0.0.7:12345"
+	reqB.Header.Set("X-Forwarded-For", "198.51.100.1, 10.0.0.7")
+	rrB := httptest.NewRecorder()
+	handler.ServeHTTP(rrB, reqB)
+	if rrB.Code != 200 {
+		t.Errorf("client B first: want 200, got %d", rrB.Code)
 	}
 }
 

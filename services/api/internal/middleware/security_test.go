@@ -171,25 +171,39 @@ func TestClientIP_RemoteAddr(t *testing.T) {
 	}
 }
 
-func TestClientIP_XForwardedFor(t *testing.T) {
+// AUD-AUTH-02: a non-proxy client cannot spoof its identity via X-Forwarded-For.
+func TestClientIP_IgnoresXFFFromUntrustedPeer(t *testing.T) {
+	SetTrustedProxies(nil) // default posture: trust no proxy
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.RemoteAddr = "10.0.0.1:12345"
-	req.Header.Set("X-Forwarded-For", "203.0.113.50, 10.0.0.1, 10.0.0.2")
+	req.RemoteAddr = "203.0.113.9:12345"
+	req.Header.Set("X-Forwarded-For", "10.0.0.1, 127.0.0.1") // attacker-supplied
 
-	ip := ClientIP(req)
-	if ip != "203.0.113.50" {
-		t.Errorf("want first XFF entry 203.0.113.50, got %s", ip)
+	if ip := ClientIP(req); ip != "203.0.113.9" {
+		t.Errorf("untrusted peer must use socket IP 203.0.113.9, got %s", ip)
 	}
 }
 
-func TestClientIP_SingleXForwardedFor(t *testing.T) {
+// When the direct peer IS a trusted proxy, XFF is read right-to-left and the
+// first non-trusted hop is the real client.
+func TestClientIP_HonorsXFFFromTrustedProxy(t *testing.T) {
+	SetTrustedProxies([]string{"10.0.0.0/8"})
+	defer SetTrustedProxies(nil)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.RemoteAddr = "10.0.0.1:12345"
-	req.Header.Set("X-Forwarded-For", "198.51.100.1")
+	req.RemoteAddr = "10.0.0.7:12345"                           // edge proxy in 10/8
+	req.Header.Set("X-Forwarded-For", "203.0.113.50, 10.0.0.99") // client, then our hop
 
-	ip := ClientIP(req)
-	if ip != "198.51.100.1" {
-		t.Errorf("want 198.51.100.1, got %s", ip)
+	if ip := ClientIP(req); ip != "203.0.113.50" {
+		t.Errorf("trusted proxy must surface real client 203.0.113.50, got %s", ip)
+	}
+}
+
+// IPv6 RemoteAddr must have its port stripped correctly ([::1]:p → ::1).
+func TestClientIP_IPv6RemoteAddr(t *testing.T) {
+	SetTrustedProxies(nil)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "[2001:db8::1]:443"
+	if ip := ClientIP(req); ip != "2001:db8::1" {
+		t.Errorf("want 2001:db8::1, got %s", ip)
 	}
 }
 

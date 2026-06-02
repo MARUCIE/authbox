@@ -140,6 +140,11 @@ func main() {
 	auditHandler := handler.NewAuditHandler(auditService)
 	healthHandler := handler.NewHealthHandler(cfg)
 
+	// AUD-AUTH-02: configure the trusted-proxy allowlist before serving. Empty =
+	// trust no proxy; X-Forwarded-For is then ignored and the real socket peer keys
+	// rate-limiting/auditing, so header rotation cannot defeat the per-IP gate.
+	appmw.SetTrustedProxies(cfg.TrustedProxies)
+
 	// Rate limiters
 	authLimiter := appmw.NewRateLimiter(cfg.AuthRateLimit, 1*time.Minute)
 	protectedLimiter := appmw.NewRateLimiter(120, 1*time.Minute)
@@ -147,7 +152,9 @@ func main() {
 	// Router
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	// NOTE: chi's middleware.RealIP is deliberately NOT used — it rewrites
+	// RemoteAddr from X-Forwarded-For/X-Real-IP unconditionally, which an attacker
+	// can spoof. appmw.ClientIP is the single, trusted-proxy-aware authority instead.
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
 	r.Use(appmw.SecurityHeaders)

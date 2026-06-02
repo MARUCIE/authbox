@@ -2132,3 +2132,33 @@ loadedIntegrityOK=false), test_full_deletion_is_detected, test_anchor_advances_o
 test_trust_on_first_use_adopts_head_when_no_anchor. Existing persistence tests
 updated to inject an in-memory anchor (keeps tests off the real login Keychain).
 Full suite 60 tests, 0 failures (was 56; +4).
+
+## 2026-06-02 · FIX #3 (release-blocker) — AUD-AUTH-02 closed (trusted-proxy XFF)
+
+Two compounded defects nullified all per-IP rate-limiting:
+1. chi `middleware.RealIP` (main.go) rewrote RemoteAddr from X-Forwarded-For/
+   X-Real-IP unconditionally — the spoofable header became "the IP".
+2. ClientIP() then returned the leftmost XFF verbatim. Either way, rotating the
+   header gave a fresh limiter bucket per request → the gate did nothing.
+
+Fix:
+- Removed chi RealIP from the router. appmw.ClientIP is now the single client-IP
+  authority.
+- ClientIP honors XFF ONLY when the direct socket peer is in a configured
+  trusted-proxy CIDR allowlist (net/netip); otherwise the header is ignored and
+  the socket peer keys rate-limiting/auditing. Behind a trusted proxy the XFF
+  chain is read right-to-left, skipping trusted hops, to find the real client.
+- Also fixed an IPv6 bug: RemoteAddr port-strip used strings.Cut(":") (broke
+  "[::1]:p"); now net.SplitHostPort.
+- Config: AUTH_BOX_TRUSTED_PROXIES (comma-separated CIDRs/IPs), default empty =
+  trust no proxy. Wired via appmw.SetTrustedProxies(cfg.TrustedProxies) at startup.
+
+Tests inverted from encoding the vuln to asserting the fix:
+- TestRateLimiter_SpoofedXFFFromUntrustedPeerDoesNotEscapeLimit (the report's gate)
+- TestRateLimiter_TrustedProxyKeysOnRealClient
+- TestClientIP_IgnoresXFFFromUntrustedPeer / _HonorsXFFFromTrustedProxy / _IPv6RemoteAddr
+go build + vet clean; full module `go test ./...` exit 0 (40 tests / 9 packages).
+
+Deploy note: set AUTH_BOX_TRUSTED_PROXIES to the edge proxy/LB CIDR(s) in any
+environment that terminates TLS behind a proxy, else real client IPs collapse to
+the proxy IP. Default (empty) is correct for direct-to-app exposure.
