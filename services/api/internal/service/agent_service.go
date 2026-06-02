@@ -127,7 +127,7 @@ func (s *AgentService) CreateAgent(ctx context.Context, userID uuid.UUID, req Cr
 
 	agentType := req.AgentType
 	if agentType == "" {
-		agentType = "service"
+		agentType = "custom" // canonical catch-all; "service" was off-vocabulary
 	}
 
 	apiKey, apiKeyHash, err := generateAPIKey()

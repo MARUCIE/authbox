@@ -22,11 +22,11 @@ dev: up migrate ## Start infra + run migrations + web dev server
 	@pnpm turbo run dev --filter=@authbox/web
 
 dev-api: up migrate ## Start infra + run migrations + Go API (local, hot reload not included)
-	@cd services/api && AUTH_BOX_DB_DSN="$(DB_DSN)" AUTH_BOX_ALLOWED_ORIGINS="http://localhost:3010,http://localhost:3000" go run cmd/api/main.go
+	@cd services/api && AUTH_BOX_DB_DSN="$(DB_DSN)" AUTH_BOX_HTTP_ADDR=":4010" AUTH_BOX_ALLOWED_ORIGINS="http://localhost:3010,http://localhost:3000" go run cmd/api/main.go
 
 dev-full: up migrate ## Start infra + migrations + API + web (requires two terminals or background)
 	@echo "Starting Go API in background..."
-	@cd services/api && AUTH_BOX_DB_DSN="$(DB_DSN)" AUTH_BOX_ALLOWED_ORIGINS="http://localhost:3010,http://localhost:3000" go run cmd/api/main.go &
+	@cd services/api && AUTH_BOX_DB_DSN="$(DB_DSN)" AUTH_BOX_HTTP_ADDR=":4010" AUTH_BOX_ALLOWED_ORIGINS="http://localhost:3010,http://localhost:3000" go run cmd/api/main.go &
 	@sleep 2
 	@echo "Starting web dev server..."
 	@pnpm turbo run dev --filter=@authbox/web
@@ -55,9 +55,9 @@ clean: ## Remove build artifacts
 
 # ─── Docker ───────────────────────────────────────────────────────────────────
 
-up: ## Start Docker services (postgres, redis, api)
+up: ## Start Docker services (postgres; redis returns in Phase 4)
 	@echo "Starting $(PROJECT_NAME) infrastructure..."
-	@docker compose -f $(COMPOSE_FILE) up -d postgres redis
+	@docker compose -f $(COMPOSE_FILE) up -d postgres
 	@echo "Waiting for services..."
 	@sleep 3
 	@docker compose -f $(COMPOSE_FILE) ps

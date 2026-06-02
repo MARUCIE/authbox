@@ -147,7 +147,7 @@ export const VaultSchema = z.object({
 
 // ─── Agent ──────────────────────────────────────────────────────────
 
-const AgentTypeEnum = z.enum(['claude', 'chatgpt', 'gemini', 'custom']);
+const AgentTypeEnum = z.enum(['mcp_client', 'claude', 'chatgpt', 'gemini', 'custom']);
 const AgentStatusEnum = z.enum(['active', 'suspended', 'revoked']);
 
 export const AgentSchema = z.object({

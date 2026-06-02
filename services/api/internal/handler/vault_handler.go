@@ -168,6 +168,11 @@ func (h *VaultHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.ItemType != "" && !service.IsValidItemType(req.ItemType) {
+		writeError(w, http.StatusBadRequest, "invalid itemType", "BAD_REQUEST")
+		return
+	}
+
 	resp, err := h.vaultService.CreateItem(r.Context(), userID, req)
 	if err != nil {
 		slog.Error("create item failed", "error", err)

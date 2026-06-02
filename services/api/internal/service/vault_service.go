@@ -81,12 +81,23 @@ func itemToResponse(item *domain.VaultItem) ItemResponse {
 }
 
 // validItemTypes is the allowed set of vault item types.
+// Canonical set — must match the shared ItemType enum
+// (packages/shared/src/types/vault.ts). The web client sends "login" for
+// passwords and "api_key" for keys; the server previously diverged with
+// "credential"/"note" and rejected every password create with 500.
 var validItemTypes = map[string]bool{
-	"credential": true,
-	"note":       true,
-	"card":       true,
-	"identity":   true,
-	"api_key":    true,
+	"login":       true,
+	"api_key":     true,
+	"secure_note": true,
+	"identity":    true,
+	"card":        true,
+}
+
+// IsValidItemType reports whether t is an allowed vault item type. Exported so
+// the handler can reject bad input with 400 before reaching the service (the
+// valid set stays single-sourced here).
+func IsValidItemType(t string) bool {
+	return validItemTypes[t]
 }
 
 func (s *VaultService) CreateItem(ctx context.Context, userID uuid.UUID, req ItemRequest) (*ItemResponse, error) {
@@ -105,7 +116,7 @@ func (s *VaultService) CreateItem(ctx context.Context, userID uuid.UUID, req Ite
 
 	itemType := req.ItemType
 	if itemType == "" {
-		itemType = "credential"
+		itemType = "login"
 	}
 	if !validItemTypes[itemType] {
 		return nil, errors.New("invalid itemType")

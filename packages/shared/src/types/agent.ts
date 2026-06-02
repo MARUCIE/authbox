@@ -1,6 +1,7 @@
 import type { ItemType } from './vault';
 
 export enum AgentType {
+  MCPClient = 'mcp_client',
   Claude = 'claude',
   ChatGPT = 'chatgpt',
   Gemini = 'gemini',

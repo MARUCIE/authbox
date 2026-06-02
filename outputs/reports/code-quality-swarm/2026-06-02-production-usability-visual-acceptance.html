@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<!-- generated-by: html-style-router | style-id: claude-warm-academic -->
+<html lang="zh-CN" data-style-id="claude-warm-academic">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generated-by" content="html-style-router · claude-warm-academic">
+<title>Auth Box 生产可用性视觉验收报告 · 2026-06-02</title>
+<style>
+  :root {
+    --claude-paper: #F7F4EF;
+    --claude-card: #FFFFFF;
+    --claude-ink: #2B2722;
+    --claude-ink-soft: #5C544B;
+    --claude-muted: #8A8077;
+    --claude-accent: #C7642F;
+    --claude-accent-soft: #E8B894;
+    --claude-line: #E6DFD4;
+    --claude-pass: #3F7A52;
+    --claude-fix: #C7642F;
+    --claude-gap: #B5852A;
+    --claude-crit: #B23B36;
+    --page-max: 1040px;
+    --page-gutter-total: clamp(32px, 6vw, 96px);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--claude-paper);
+    color: var(--claude-ink);
+    font-family: "Iowan Old Style", "Palatino Linotype", "Songti SC", "Source Han Serif SC", Georgia, serif;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .html-frame {
+    width: min(var(--page-max), calc(100% - var(--page-gutter-total)));
+    margin-inline: auto;
+  }
+  .cover { background: linear-gradient(160deg, #F0E9DE 0%, #F7F4EF 60%); padding: 72px 0 56px; border-bottom: 1px solid var(--claude-line); }
+  .cover > .html-frame { margin-inline: auto; }
+  .eyebrow { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--claude-accent); margin: 0 0 14px; }
+  h1 { font-size: clamp(30px, 4.5vw, 44px); line-height: 1.18; margin: 0 0 18px; font-weight: 600; letter-spacing: normal; }
+  .cover .lede { font-size: 18px; color: var(--claude-ink-soft); max-width: 64ch; margin: 0; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 26px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--claude-muted); }
+  .verdict { display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; padding: 10px 18px; background: var(--claude-card); border: 1px solid var(--claude-line); border-left: 4px solid var(--claude-pass); border-radius: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 13.5px; color: var(--claude-ink); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--claude-pass); display: inline-block; }
+  main { padding: 56px 0 24px; }
+  section { margin-bottom: 52px; }
+  h2 { font-size: 25px; font-weight: 600; margin: 0 0 8px; letter-spacing: normal; }
+  h2 .num { color: var(--claude-accent); font-family: ui-monospace, Menlo, monospace; font-size: 16px; margin-right: 10px; }
+  .sub { color: var(--claude-muted); font-size: 14.5px; margin: 0 0 24px; }
+  h3 { font-size: 18px; font-weight: 600; margin: 30px 0 10px; }
+  p { margin: 0 0 14px; color: var(--claude-ink-soft); }
+  strong { color: var(--claude-ink); font-weight: 600; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.88em; background: #EFE9DF; color: #6B4A2E; padding: 1px 6px; border-radius: 4px; }
+  .lead-list { list-style: none; padding: 0; margin: 0; counter-reset: lead; }
+  .lead-list li { position: relative; padding: 16px 18px 16px 56px; background: var(--claude-card); border: 1px solid var(--claude-line); border-radius: 10px; margin-bottom: 12px; }
+  .lead-list li::before { counter-increment: lead; content: counter(lead); position: absolute; left: 16px; top: 16px; width: 26px; height: 26px; border-radius: 50%; background: var(--claude-accent); color: #fff; font-family: ui-monospace, Menlo, monospace; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 14px; background: var(--claude-card); border: 1px solid var(--claude-line); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--claude-line); vertical-align: top; }
+  th { background: #F0E9DE; font-weight: 600; color: var(--claude-ink); font-size: 12.5px; letter-spacing: 0.02em; }
+  tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+  .tag { display: inline-block; padding: 1px 9px; border-radius: 20px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  .t-pass { background: #E3EEE6; color: var(--claude-pass); }
+  .t-fix  { background: #F6E6D7; color: var(--claude-fix); }
+  .t-gap  { background: #F5ECD3; color: var(--claude-gap); }
+  .t-crit { background: #F4DEDC; color: var(--claude-crit); }
+  .t-hitl { background: #E7E2DA; color: var(--claude-ink-soft); }
+  .callout { background: var(--claude-card); border: 1px solid var(--claude-line); border-left: 4px solid var(--claude-accent); border-radius: 10px; padding: 20px 22px; margin: 18px 0; }
+  .callout.crit { border-left-color: var(--claude-crit); }
+  .callout.gap { border-left-color: var(--claude-gap); }
+  .callout h3 { margin-top: 0; }
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+  .steps li { position: relative; padding: 8px 0 8px 34px; color: var(--claude-ink-soft); border-bottom: 1px dashed var(--claude-line); }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 8px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--claude-accent); color: var(--claude-accent); font-family: ui-monospace, Menlo, monospace; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  figure { margin: 22px 0; }
+  figure img { width: 100%; border: 1px solid var(--claude-line); border-radius: 10px; display: block; box-shadow: 0 2px 14px rgba(43,39,34,0.06); }
+  figcaption { font-size: 13px; color: var(--claude-muted); margin-top: 8px; font-family: ui-monospace, Menlo, monospace; }
+  .shot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  @media (max-width: 720px) { .shot-grid { grid-template-columns: 1fr; } }
+  footer { text-align: center; padding: 60px 20px 40px; color: #9B9B9D; font-size: 13px; line-height: 2.2; border-top: 1px solid var(--claude-line); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="html-frame">
+    <p class="eyebrow">Production-Usability Visual Acceptance · code-quality</p>
+    <h1>Auth Box 生产可用性<br>视觉验收报告</h1>
+    <p class="lede">以「生产可用性」视角，在真实 Chrome 会话中对 Web 应用做端到端视觉验收：每条用户旅程都用一次<strong>加密往返或服务器状态校验</strong>来验收，而不是只看表单是否渲染。过程中发现并修复 2 个发布级阻断缺陷，并用直接检查存储密文的方式<strong>端到端证明了零知识架构</strong>。</p>
+    <div class="meta-row">
+      <span>日期 2026-06-02</span>
+      <span>Web localhost:3010 → API localhost:4010</span>
+      <span>驱动 chrome-devtools MCP（真实像素）</span>
+      <span>覆盖 11/13 headless · 2 HITL</span>
+    </div>
+    <div class="verdict"><span class="dot"></span> 结论：核心产品闭环 PASS（修复 2 个契约缺陷后）· 零知识架构端到端证明 · 2 项完整性缺口已记录</div>
+  </div>
+</header>
+
+<main class="html-frame">
+
+  <section>
+    <h2><span class="num">01</span>核心结论</h2>
+    <p class="sub">Conclusion-first：先给结论，再展开证据。</p>
+    <ol class="lead-list">
+      <li><strong>零知识闭环是真的，不是营销话术。</strong>浏览器中输入的密码在客户端经 AES-256-GCM（高级加密标准-伽罗瓦计数器模式）加密，以不透明密文 POST（提交）到服务端，落库为 191 字节、<strong>无任何明文泄漏</strong>（直接 grep 真实数据库行验证）。经过「锁定 → 重新解锁」后，密文在浏览器解回<strong>逐字节一致</strong>的明文 <code>Round-Trip-Secret-9f3a2b</code>。服务器从不见明文，客户端完美往返。</li>
+      <li><strong>发现并修复 2 个发布级客户端↔服务端契约缺陷。</strong>每次保存密码都返回 HTTP 500（<code>itemType</code> 枚举不一致：客户端发 <code>login</code>，服务端只认 <code>credential</code>）；每次注册 MCP-client / ChatGPT 类型 AI 代理都返回 HTTP 400（<code>agentType</code> 枚举不一致）。两者均已对齐到共享规范枚举，修复后闭环通过（201 Created）。</li>
+      <li><strong>开发栈本身在 3 个维度是坏的</strong>（<code>make up</code> 残留 redis 引用；本地 API 绑 <code>:8080</code> 而 Web 硬编码 <code>:4010</code>；迁移在 v9 处于 dirty 状态）。全部修复，<code>make dev</code> / <code>make dev-api</code> 现在可产出可用栈。</li>
+      <li><strong>13 条 headless（无人值守可测）旅程中 11 条深度验证 PASS。</strong>剩余 2 条（TOTP 登录二次验证、TOTP 启用）是真正的 HITL（人工介入）门——需要真实验证器应用的一次性验证码，无法无人值守测试。</li>
+      <li><strong>整个会话零控制台错误/警告</strong>（注册 → 登录 → 增删改查 → 锁定/解锁 → 派生 → 代理 → 审计 → 全部 6 个保险库分区）。</li>
+      <li><strong>2 项完整性缺口</strong>（非回归）：哈希链审计机制可用且能校验，但<strong>没有任何服务为用户行为写入审计事件</strong>，导致「全程审计」这一卖点在常规使用下处于空转；会话令牌仅存于内存（一个刻意的安全/体验权衡——硬刷新会登出用户）。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>环境搭建：测试前必须先修的 3 个基建缺陷</h2>
+    <p class="sub">在跑任何旅程之前，开发栈起不来——这本身就是 3 个真实缺陷。</p>
+    <table>
+      <thead><tr><th>编号</th><th>缺陷</th><th>根因</th><th>修复</th></tr></thead>
+      <tbody>
+        <tr><td><code>ENV-1</code></td><td><code>make up</code> 报 <code>no such service: redis</code></td><td>compose 已注释掉 <code>redis</code> 服务（标注 Phase 4），但 <code>up</code> 目标仍执行 <code>up -d postgres redis</code></td><td><code>Makefile</code> <code>up</code>：从 compose 调用中移除 <code>redis</code>（仅 postgres）</td></tr>
+        <tr><td><code>ENV-2</code></td><td>Web（:3010）调用 :4010，但本地 API 绑 :8080</td><td><code>apps/web/lib/api.ts</code> 硬编码 <code>LOCAL_API_BASE=:4010</code>；<code>4010:8080</code> 映射<strong>只</strong>在 docker；<code>make dev-api</code> 跑 <code>go run</code> 未设 <code>AUTH_BOX_HTTP_ADDR</code> → 默认 :8080</td><td><code>Makefile</code> <code>dev-api</code>：导出 <code>AUTH_BOX_HTTP_ADDR=":4010"</code></td></tr>
+        <tr><td><code>ENV-3</code></td><td><code>make migrate</code> 报 <code>Dirty database version 9</code></td><td>前次迁移被中断，golang-migrate 留下 <code>dirty=true</code>；009 的两个索引缺失</td><td>将 bookkeeping 表强制为 <code>version=8, dirty=false</code> 后重跑迁移（009 是幂等 <code>CREATE INDEX IF NOT EXISTS</code>），干净到达 v10</td></tr>
+      </tbody>
+    </table>
+    <p>Postgres 以既有容器 <code>authbox-postgres</code> 运行于宿主端口 <strong>5410</strong>。<code>vault_items.item_type</code> 是自由 <code>VARCHAR(50)</code>、无 CHECK 约束，故服务端 <code>validItemTypes</code> map 是唯一关卡——修 map 即可，无需迁移。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>发现并修复的缺陷</h2>
+    <p class="sub">两个同类的「客户端↔服务端枚举契约漂移」缺陷，都在真实点击中暴露。</p>
+
+    <div class="callout crit">
+      <h3><span class="tag t-crit">CRITICAL</span> &nbsp;AUD-CONTRACT-01 — 每次保存密码都 HTTP 500</h3>
+      <p><strong>现象</strong>：新建任意密码项 → 红字「failed to create item」；<code>POST /api/v1/vault/items</code> → <strong>500</strong>。API 日志：<code>create item failed error="invalid itemType"</code>。请求体是规范的零知识密文（<code>encryptedData</code>/<code>nonce</code>/<code>tag</code>，无明文），<code>itemType:"login"</code>。</p>
+      <p><strong>根因</strong>：枚举漂移。规范 <code>packages/shared/.../vault.ts</code> 的 <code>ItemType</code> = <code>{login, api_key, secure_note, identity, card}</code>；客户端正确发 <code>login</code>；服务端 <code>validItemTypes</code> 却漂移成 <code>{credential, note, card, identity, api_key}</code>——拒绝 <code>login</code> 与 <code>secure_note</code>，且空值默认是非规范的 <code>credential</code>。</p>
+      <p><strong>修复</strong>：服务端 map 对齐规范 + 空值默认改 <code>login</code> + 新增导出 <code>IsValidItemType</code>；handler 在调用 service 前校验 <code>itemType</code> 并返回 <strong>400</strong>（此前所有 service 错误一律 500——把客户端输入错误误报成了内部错误）。<strong>验证</strong>：修复后 <code>POST /vault/items</code> → <strong>201 Created</strong>。</p>
+    </div>
+
+    <div class="callout">
+      <h3><span class="tag t-fix">HIGH · FIXED</span> &nbsp;AUD-CONTRACT-02 — MCP-client / ChatGPT 代理注册 HTTP 400</h3>
+      <p><strong>现象</strong>：注册类型为「MCP Client」（UI 默认值 + 旗舰用例）的代理 → 红字「invalid agentType」；<code>POST /api/v1/agents</code> → <strong>400</strong>。</p>
+      <p><strong>根因</strong>：三方枚举漂移。客户端 <code>{mcp_client(默认), claude, chatgpt, gemini, custom}</code>；规范枚举 + Zod <code>{claude, chatgpt, gemini, custom}</code>；服务端 <code>{claude, gpt, gemini, custom}</code>。于是 <code>mcp_client</code> 无人接受，且服务端用 <code>gpt</code> 而别处都用 <code>chatgpt</code>——选 ChatGPT 也会失败。</p>
+      <p><strong>修复（把四层统一到一个词表 <code>{mcp_client, claude, chatgpt, gemini, custom}</code>）</strong>：服务端 map 加 <code>mcp_client</code>、改 <code>gpt</code>→<code>chatgpt</code>；service 空值默认 <code>service</code>→<code>custom</code>；规范 <code>AgentType</code> 枚举 + Zod 加 <code>mcp_client</code>（把旗舰类型提升为一等公民——从 UI 删除该选项会抹掉产品旗舰用例，故选择「提升」而非「删除」）。<strong>验证</strong>：修复后 <code>POST /agents</code> → <strong>201</strong>，代理 <code>active</code>、类型 <code>mcp_client</code>、API 密钥一次性展示、默认拒绝（无策略=无访问）。</p>
+    </div>
+    <p>设计旁注：代理端点本就正确返回 400，而 vault-items 端点返回 500。vault_handler 的修复使其与 agent_handler 既有约定一致。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span>逐旅程验收结果</h2>
+    <p class="sub">每条旅程的「闭环证明」是一次加密往返或服务器状态校验，不是渲染检查。</p>
+    <table>
+      <thead><tr><th>旅程</th><th>结论</th><th>闭环证明</th></tr></thead>
+      <tbody>
+        <tr><td>J0 营销落地页</td><td><span class="tag t-pass">PASS</span></td><td>Hero / 三大支柱 / How-It-Works / 4 个信任徽章 / 页脚均渲染；Get Started→/create，Sign In→/login</td></tr>
+        <tr><td>J1 SRP 注册仪式</td><td><span class="tag t-pass">PASS</span></td><td><code>POST /auth/register</code> <strong>201</strong>；跳转 <code>/login?registered=true</code> + 成功横幅 = 账户在服务端落地（SRP verifier + 加密保险库密钥被接受）</td></tr>
+        <tr><td>J2 SRP 登录 → 解锁</td><td><span class="tag t-pass">PASS</span></td><td>login/init 200 → login/verify 200（服务器证明 M2 双向认证通过）→ vault/sync 200；到达 /passwords「Vault Unlocked」= 保险库密钥在浏览器解密</td></tr>
+        <tr><td>J3 密码增删改查往返</td><td><span class="tag t-fix">PASS（修 01 后）</span></td><td><code>POST /vault/items</code> 201；<strong>服务端仅存 191 字节不透明密文，零明文泄漏（DB grep）</strong>；客户端显示解密明文</td></tr>
+        <tr><td>J4 助记词建库（BIP39）</td><td><span class="tag t-pass">PASS</span></td><td>「Generate Recovery Phrase」生成恰好 24 个互异 BIP39 词 + 备份警告</td></tr>
+        <tr><td>J6 确定性密码派生</td><td><span class="tag t-pass">PASS</span></td><td>github.com→<code>k-1Pu4Uc*d;JZUe(d+68</code>；stripe.com→不同；github.com 再次→一致 = 确定性</td></tr>
+        <tr><td>J7 注册 AI 代理 + 一次性密钥</td><td><span class="tag t-fix">PASS（修 02 后）</span></td><td><code>POST /agents</code> 201；密钥一次性展示；默认拒绝（0 策略=无访问）；MCP WebSocket 配置渲染</td></tr>
+        <tr><td>J8 授权（OAuth/API 连接）</td><td><span class="tag t-pass">PASS（渲染）</span></td><td>空状态 +「客户端加密所有令牌」文案；渲染干净</td></tr>
+        <tr><td>J9 API 密钥（.env 导入）</td><td><span class="tag t-pass">PASS（渲染）</span></td><td>空状态 +「70+ 提供商」；<code>api_key</code> 类型现在通过与 <code>login</code> 相同的已修复校验</td></tr>
+        <tr><td>J10 审计日志 + 哈希链校验</td><td><span class="tag t-pass">PASS（机制）</span> <span class="tag t-gap">GAP</span></td><td><code>GET /audit/verify</code> 200 →「Chain Integrity Verified」。但 0 事件——见 GAP-1</td></tr>
+        <tr><td>J11 设置：会话 + Unstoppable Mode</td><td><span class="tag t-pass">PASS</span></td><td><code>GET /auth/sessions</code> 列出我 2 次真实登录会话 + 准确时间戳 + Revoke；Unstoppable Mode 面板；2FA「未启用」</td></tr>
+        <tr><td>J12 锁定 → 重新解锁往返</td><td><span class="tag t-pass">PASS</span></td><td>锁定（密钥擦除）+ 重新解锁后：vault/key + vault/sync（仅密文）→ 解密<strong>逐字节一致</strong></td></tr>
+        <tr><td>J13 2FA 登录（TOTP 二次验证）</td><td><span class="tag t-hitl">HITL</span></td><td>需真实验证器一次性码——无法无人值守</td></tr>
+        <tr><td>J14 启用 TOTP 2FA（扫码/验证）</td><td><span class="tag t-hitl">HITL</span></td><td>需真实验证器一次性码——无法无人值守</td></tr>
+      </tbody>
+    </table>
+    <p>Headless 覆盖：<strong>11/13 PASS，2/13 HITL</strong>。Web 端无任何 Touch ID/生物识别（生物识别属 macOS 原生界面，不在本次范围）。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span>零知识闭环（核心证明）</h2>
+    <ol class="steps">
+      <li>浏览器：输入密码 <code>Round-Trip-Secret-9f3a2b</code>、名称 <code>GitHub Acceptance</code>、备注 <code>zk-roundtrip-marker</code>。</li>
+      <li>客户端在浏览器内 AES-256-GCM 加密；<code>POST /vault/items</code> 只携带 <code>{itemType, encryptedData, nonce, tag}</code>——<strong>链路上无明文</strong>。</li>
+      <li>服务端落库行 <code>c04f5f34-…</code>：<code>item_type='login'</code>、191 字节不透明密文 + nonce + tag。<strong>对存储字节 grep <code>GitHub</code> / <code>Round-Trip-Secret</code> / <code>acceptance-user</code> / 标记 → 零命中。</strong></li>
+      <li>锁定保险库（内存密钥擦除），再用主密码重新解锁：<code>GET /vault/key</code> 返回加密保险库密钥，<code>GET /vault/sync</code> 只返回密文 blob。</li>
+      <li>浏览器内解密 → 揭示密码 <strong><code>Round-Trip-Secret-9f3a2b</code></strong>，与原始<strong>逐字节一致</strong>。</li>
+    </ol>
+    <div class="callout">
+      <p style="margin:0;">这种不对称——服务器持有不透明 blob，客户端把它往返成精确明文——就是零知识架构在运转的证据，而且是通过<strong>检查真实存储字节</strong>证明的，不是相信一个渲染出来的表单。</p>
+    </div>
+    <div class="shot-grid">
+      <figure><img src="screenshots/J3-item-created.png" alt="J3 item created"><figcaption>J3 — 密码项创建成功（修复 01 后），计数「1 item」</figcaption></figure>
+      <figure><img src="screenshots/J12-roundtrip-decrypted.png" alt="J12 round-trip decrypted"><figcaption>J12 — 锁定/重新解锁后逐字节一致解密 Round-Trip-Secret-9f3a2b</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span>缺口与观察（非回归，已记录、未修）</h2>
+
+    <div class="callout gap">
+      <h3><span class="tag t-gap">HIGH</span> &nbsp;GAP-1 — 审计日志未接入任何变更路径</h3>
+      <p>营销宣称「篡改可证、哈希链校验的<strong>全部</strong>保险库与代理活动日志」。哈希链基建扎实且有单测（<code>audit_repo_chain_test.go</code>），<code>GET /audit/verify</code> 可用。<strong>但只有 <code>AuditService.LogEvent</code> 写事件，其他服务（vault/auth/agent）既不持有审计写入依赖也不调用它。</strong>注册、登录、增删改查、代理注册都产生了 <strong>0 条审计事件</strong>。</p>
+      <p>影响：「全程审计」卖点在常规用户活动下空转。未在本次修复：把审计接入每条变更路径 + 定义事件分类法是一项实质功能 + 产品设计决策，超出验收范围，建议立专项。<br><code>check: grep -rl "auditRepo\|LogEvent" services/api/internal/service/ → 仅 audit_service.go</code></p>
+    </div>
+
+    <div class="callout">
+      <h3><span class="tag t-hitl">INFO</span> &nbsp;OBS-1 — 会话仅存内存；硬刷新即登出</h3>
+      <p>会话令牌 + 保险库密钥存于客户端内存（无 cookie / sessionStorage）。客户端路由（侧栏链接）保留会话；整页刷新或直接深链导航会回退到 <code>/login</code>。对保险库而言这是可辩护的安全/体验权衡（不持久化令牌 = 更小的 XSS 窃取面），但值得一个明确产品决策 + 可能加一个「刷新后已登出」提示。</p>
+    </div>
+
+    <div class="callout">
+      <h3><span class="tag t-hitl">INFO · 既有</span> &nbsp;OBS-2 — <code>packages/shared/src/</code> 下提交了陈旧编译产物</h3>
+      <p><code>tsc</code> 输出到 <code>dist/</code>（<code>outDir: ./dist</code>），但 <code>src/</code> 下也提交了陈旧 <code>.js</code>/<code>.d.ts</code>。重建后 <code>dist/</code> 已正确；<code>src/*.js</code> 残留是既有卫生问题（与本次无关），且运行时不消费。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">07</span>验证状态与变更文件</h2>
+    <table>
+      <tbody>
+        <tr><th>go build ./...（services/api）</th><td><span class="tag t-pass">OK</span></td></tr>
+        <tr><th>go test service + handler</th><td><span class="tag t-pass">8 passed, 0 failed</span></td></tr>
+        <tr><th>浏览器控制台（全程，error+warn）</th><td><span class="tag t-pass">0 messages</span></td></tr>
+        <tr><th>CORS 预检（origin :3010）</th><td>Allow-Credentials: true + 精确 origin（非 <code>*</code>）——带凭证的零知识 API 的正确配置</td></tr>
+        <tr><th>关键网络状态码</th><td>register 201 · login init/verify 200/200 · vault sync 200 · item create 201（修后）· agent create 201（修后）· audit verify 200</td></tr>
+      </tbody>
+    </table>
+    <h3>变更文件</h3>
+    <table>
+      <tbody>
+        <tr><td><code>Makefile</code></td><td>up：移除 redis；dev-api：<code>AUTH_BOX_HTTP_ADDR=:4010</code></td></tr>
+        <tr><td><code>services/api/.../service/vault_service.go</code></td><td>validItemTypes 对齐规范 + 默认 login + IsValidItemType</td></tr>
+        <tr><td><code>services/api/.../handler/vault_handler.go</code></td><td>无效 itemType 返回 400（而非 500）</td></tr>
+        <tr><td><code>services/api/.../handler/agent_handler.go</code></td><td>validAgentTypes：+mcp_client，gpt→chatgpt</td></tr>
+        <tr><td><code>services/api/.../service/agent_service.go</code></td><td>空值默认 service→custom</td></tr>
+        <tr><td><code>packages/shared/src/types/agent.ts</code></td><td>AgentType += MCPClient = 'mcp_client'</td></tr>
+        <tr><td><code>packages/shared/src/validation/index.ts</code></td><td>Zod AgentTypeEnum += 'mcp_client'</td></tr>
+      </tbody>
+    </table>
+    <h3>后续行动</h3>
+    <table>
+      <thead><tr><th>行动</th><th>负责</th><th>优先级</th></tr></thead>
+      <tbody>
+        <tr><td>把 LogEvent 接入 vault/auth/agent 变更路径 + 定义事件分类法（GAP-1）</td><td>backend</td><td><span class="tag t-gap">High</span></td></tr>
+        <tr><td>定义会话持久化预期行为；加「刷新已登出」提示或持久化硬化令牌（OBS-1）</td><td>product + frontend</td><td>Medium</td></tr>
+        <tr><td>加契约测试：断言客户端 ItemType/AgentType 枚举 == 服务端有效集合（防止 01/02 回归）</td><td>backend + shared</td><td><span class="tag t-gap">High</span></td></tr>
+        <tr><td>清理 <code>packages/shared/src/</code> 下陈旧构建残留（OBS-2）</td><td>build</td><td>Low</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">08</span>验收截图存档</h2>
+    <p class="sub">真实像素截图，经 chrome-devtools MCP 在隔离浏览器上下文中采集。</p>
+    <div class="shot-grid">
+      <figure><img src="screenshots/J0-landing.png" alt="J0"><figcaption>J0 — 营销落地页</figcaption></figure>
+      <figure><img src="screenshots/J1-register-success.png" alt="J1"><figcaption>J1 — SRP 注册成功（201 + 成功横幅）</figcaption></figure>
+      <figure><img src="screenshots/J2-vault-unlocked.png" alt="J2"><figcaption>J2 — SRP 登录后保险库解锁</figcaption></figure>
+      <figure><img src="screenshots/J6-derive-deterministic.png" alt="J6"><figcaption>J6 — 确定性密码派生</figcaption></figure>
+      <figure><img src="screenshots/J7-agent-apikey-revealed.png" alt="J7"><figcaption>J7 — AI 代理注册 + 一次性 API 密钥 + 默认拒绝</figcaption></figure>
+      <figure><img src="screenshots/J11-settings-sessions.png" alt="J11"><figcaption>J11 — 设置：2 个真实会话 + Unstoppable Mode</figcaption></figure>
+      <figure><img src="screenshots/J10-audit-chain-verified.png" alt="J10"><figcaption>J10 — 审计哈希链校验通过（0 事件，见 GAP-1）</figcaption></figure>
+      <figure><img src="screenshots/J4-seedphrase-24words.png" alt="J4"><figcaption>J4 — 24 词 BIP39 助记词生成</figcaption></figure>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auth Box v2 — Production-Usability Visual Acceptance</p>
+  <p>Maurice | maurice_wen@proton.me</p>
+  <p style="font-size:12px; margin-top:8px;">2026-06-02 · 真实 Chrome 会话 · chrome-devtools MCP · 数据来源：localhost:3010 / :4010 实跑 + DB 字节直检</p>
+</footer>
+
+</body>
+</html>

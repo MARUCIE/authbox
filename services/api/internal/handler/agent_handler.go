@@ -15,8 +15,12 @@ import (
 )
 
 // Valid enums for agent and policy types.
+// Must match the web client's AGENT_TYPES (apps/web/.../agents/page.tsx) and the
+// shared AgentType enum. The server previously diverged: it lacked "mcp_client"
+// (the UI default + flagship MCP use case) and used "gpt" where every other layer
+// uses "chatgpt" — so registering an MCP-client or ChatGPT agent failed with 400.
 var validAgentTypes = map[string]bool{
-	"claude": true, "gpt": true, "gemini": true, "custom": true,
+	"mcp_client": true, "claude": true, "chatgpt": true, "gemini": true, "custom": true,
 }
 var validPolicyTypes = map[string]bool{
 	"item_scope": true, "action_perm": true, "rate_limit": true, "time_window": true, "step_up": true,
