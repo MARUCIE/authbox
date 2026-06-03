@@ -482,13 +482,14 @@ first), reusing the existing BIP-39 seed. Architecture: WALLET_ARCHITECTURE.md.
 - [x] migration 011_wallet_accounts (wallet_accounts + wallet_addresses, NUMERIC(40,0) for wei; no secret columns)
 - [x] shared build clean; migration applied (version 11); tables verified
 
-### Phase 3 — API (read / watch-only) [QUEUED]
-- [ ] Go domain + repo: WalletAccount/WalletAddress (services/api/internal/domain + repository)
-- [ ] Go service + handler: account CRUD (create from xpub, list, delete) with enum validation matching shared
-- [ ] Wallet enum-parity test (Go) — guard cross-layer drift
-- [ ] Balance provider: BTC via mempool.space/Blockstream, ETH via public RPC (watch-only, server-side fetch)
-- [ ] GET /wallet/accounts/:id/balance returns confirmed/unconfirmed (real indexer call)
-- [ ] Routes wired in router; go build + go test green
+### Phase 3 — API (read / watch-only) [DONE]
+- [x] Go domain + repo: WalletAccount/WalletAddress (domain/wallet.go + repository/pg/wallet_repo.go; NUMERIC via ::text/::numeric)
+- [x] Go service + handler: account CRUD + addresses (create from xpub, list, delete) with enum validation → 400
+- [x] Wallet enum-parity test (Go) — guards cross-layer drift (3 tests green)
+- [x] Balance provider: BTC via mempool.space, ETH via publicnode RPC (watch-only, fixed trusted base URLs, SSRF-guarded)
+- [x] GET /wallet/accounts/:id/balance returns confirmed/unconfirmed (real indexer call; live test proves real data)
+- [x] Routes wired in main.go; go build + vet clean; go test ./... 43 passed / 9 packages
+- [x] Full closed-loop e2e (scripts/wallet-e2e-test.mjs): SRP register→login→create→addresses→REAL balance (57 BTC)→delete, 14/14
 
 ### Phase 4 — Web UI [QUEUED]
 - [ ] apps/web wallet screens: account list, receive address + QR, balance display

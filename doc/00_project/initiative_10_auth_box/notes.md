@@ -2208,3 +2208,40 @@ shared tsc clean, browser console 0 errors across the session.
 Reports: outputs/reports/code-quality-swarm/2026-06-02-production-usability-visual-acceptance.{md,html}
 (.md canonical English / .html Chinese Claude Warm Academic via html-style-router).
 Commit 48d8e3b.
+
+## 2026-06-03 · Crypto Wallet Phase 3 — watch-only API + real balance (closed loop)
+
+Added the Go API layer that makes the wallet usable and proved the full loop
+end-to-end with real auth and real on-chain data.
+
+Layer (mirrors agent/vault patterns):
+- domain/wallet.go: WalletAccount/WalletAddress (no private-key field) + WalletRepository.
+- repository/pg/wallet_repo.go: pgx CRUD. NUMERIC read as ::text / written as
+  ::numeric so Go sees a decimal string (wei overflows int64; big.Int sums it).
+- service/wallet_service.go: CRUD + RefreshBalance (sums address balances via the
+  provider, persists confirmed total). Exported IsValidCoin/Network/BtcScriptType.
+- service/balance_provider.go: real watch-only balance fetch. BTC = mempool.space,
+  ETH = ethereum publicnode RPC. Base URLs from a fixed (coin,network) map (no
+  user input → no SSRF); address format-validated + URL-escaped before the path.
+- handler/wallet_handler.go: account CRUD + addresses + balance; off-vocabulary
+  enums rejected 400 (not 500).
+- Routes under /api/v1/wallet/accounts wired in main.go (protected group).
+
+Cross-layer enum guard (the 2026-06-02 lesson applied): wallet_service_test.go
+pins the Go coin/network/scriptType vocabularies to the canonical sets shared
+with TS + Zod. 3 parity tests green.
+
+Verification (all real, no stubs):
+- go build ./... OK; go vet clean; go test ./... = 43 passed / 9 packages.
+- Live indexer test (WALLET_LIVE_TEST=1): BTC genesis 5,720,783,243 sats; ETH
+  Foundation 9,774,452,722,498,812,330,011 wei — the latter (9.77e21) exceeds
+  int64, empirically validating NUMERIC(40,0)/big.Int/string.
+- Full closed-loop e2e (scripts/wallet-e2e-test.mjs, 14/14): SRP register → login
+  → create account (xpub stored, watch-only) → invalid coin 400 → list → store
+  derived + funded address → GET balance = 5,720,783,243 sats via the real
+  indexer through the whole stack → 401 without auth → delete → 404 after.
+
+Security held: no private key or seed in any wallet table, request, or response.
+Server is watch-only; it returned real balances without ever being able to spend.
+
+Next: Phase 4 (web UI) + Phase 5 (client-side tx sign, testnet-first, mainnet HITL).

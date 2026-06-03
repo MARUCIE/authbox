@@ -122,6 +122,7 @@ func main() {
 	agentRepo := pg.NewAgentRepository(pool)
 	connRepo := pg.NewConnectionRepository(pool)
 	auditRepo := pg.NewAuditRepository(pool)
+	walletRepo := pg.NewWalletRepository(pool)
 
 	// Services
 	totpService := service.NewTOTPService(userRepo, cfg.TOTPSecretKey)
@@ -130,6 +131,7 @@ func main() {
 	agentService := service.NewAgentService(agentRepo)
 	connService := service.NewConnectionService(connRepo)
 	auditService := service.NewAuditService(auditRepo)
+	walletService := service.NewWalletService(walletRepo, service.NewBalanceProvider())
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService, cfg.AuthRateLimit)
@@ -138,6 +140,7 @@ func main() {
 	agentHandler := handler.NewAgentHandler(agentService)
 	connectionHandler := handler.NewConnectionHandler(connService)
 	auditHandler := handler.NewAuditHandler(auditService)
+	walletHandler := handler.NewWalletHandler(walletService)
 	healthHandler := handler.NewHealthHandler(cfg)
 
 	// AUD-AUTH-02: configure the trusted-proxy allowlist before serving. Empty =
@@ -242,6 +245,17 @@ func main() {
 			r.Route("/audit", func(r chi.Router) {
 				r.Get("/", auditHandler.ListEvents)
 				r.Get("/verify", auditHandler.VerifyChain)
+			})
+
+			r.Route("/wallet/accounts", func(r chi.Router) {
+				r.Post("/", walletHandler.CreateAccount)
+				r.Get("/", walletHandler.ListAccounts)
+				r.Route("/{id}", func(r chi.Router) {
+					r.Delete("/", walletHandler.DeleteAccount)
+					r.Get("/balance", walletHandler.Balance)
+					r.Post("/addresses", walletHandler.AddAddress)
+					r.Get("/addresses", walletHandler.ListAddresses)
+				})
 			})
 		})
 	})
