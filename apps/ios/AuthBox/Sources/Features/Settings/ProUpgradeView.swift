@@ -1,5 +1,21 @@
 import SwiftUI
 
+/// Small "PRO" pill shown next to Pro-gated controls for free users.
+struct ProLockBadge: View {
+    var body: some View {
+        Text("PRO")
+            .font(.system(size: 9, weight: .heavy))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                LinearGradient(colors: [.orange, .yellow],
+                               startPoint: .leading, endPoint: .trailing)
+            )
+            .clipShape(Capsule())
+    }
+}
+
 struct ProUpgradeView: View {
     @ObservedObject var proManager = ProManager.shared
     @Environment(\.dismiss) var dismiss
@@ -33,6 +49,25 @@ struct ProUpgradeView: View {
 
                     // Feature comparison
                     VStack(spacing: 0) {
+                        // Column headers
+                        HStack {
+                            Text("Feature")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("FREE")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.secondary)
+                                .frame(width: 50)
+                            Text("PRO")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.blue)
+                                .frame(width: 70)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        Divider()
+
                         featureRow("Unlimited Passwords", free: true, pro: true)
                         Divider()
                         featureRow("Seed Phrase Recovery", free: true, pro: true)
@@ -60,10 +95,11 @@ struct ProUpgradeView: View {
                     .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
                     .padding(.horizontal)
 
-                    // Price
+                    // Price (real StoreKit localized price once the product loads)
                     VStack(spacing: 8) {
-                        Text("$29")
+                        Text(proManager.displayPrice ?? "$29")
                             .font(.system(size: 48, weight: .bold))
+                            .contentTransition(.numericText())
                         Text("One-time purchase. No subscription.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -88,7 +124,7 @@ struct ProUpgradeView: View {
                                     ProgressView().tint(.white)
                                 } else {
                                     Image(systemName: "crown.fill")
-                                    Text("Upgrade to Pro — $29")
+                                    Text("Upgrade to Pro — \(proManager.displayPrice ?? "$29")")
                                 }
                             }
                             .primaryButton()
@@ -115,6 +151,7 @@ struct ProUpgradeView: View {
                     Button("Close") { dismiss() }
                 }
             }
+            .task { await proManager.loadProduct() }
         }
     }
 

@@ -2384,3 +2384,29 @@ movement (watch-only; keys derived in-memory, never persisted/transmitted).
 
 Next (queued, not blocking): web 5b broadcast relay + 5c Send UI (HITL-gated for
 mainnet); WALLET_ARCHITECTURE.md/.html companion.
+
+---
+
+## 2026-06-03 · Paywall + iOS payment 打通
+
+Task "设计付费墙，打通ios的支付体系". Found the payment system already exists in code
+(ProManager StoreKit 2 + ProUpgradeView) — not greenfield. Made it work end-to-end
+and proved it.
+
+Built: Configuration.storekit, AuthBoxTests unit target + shared scheme, dynamic
+StoreKit price on the paywall, first wired gate (Cloud Sync → paywall), entitlement
+logic tests, regression-robust UI test, PAYMENT_IAP_ARCHITECTURE.md/.html.
+
+Hard-won lesson (Apple regression): on iOS 26.5 simulator, `xcodebuild test` from the
+CLI does NOT sync the `.storekit` config to the StoreKit daemon — `Product.products`
+returns 0 and `SKTestSession.buyProduct` throws `notEntitled`. Verified empirically
+after ruling out invalid UUID, config version, the Bundle.main-vs-test-bundle trap
+(fixed via `SKTestSession(contentsOf:)`), and scheme/SKTestSession conflict. Workaround:
+run in Xcode IDE (Cmd+U, DVTDevice sync), an iOS 26.1 sim, or a device sandbox. So the
+real-StoreKit tests `XCTSkipIf` honestly and the entitlement logic is proven separately
+and deterministically. Candidate memory: "iOS 26.5 sim + xcodebuild CLI breaks StoreKit
+.storekit sync — XCTSkip the round-trip, prove entitlement logic via @testable".
+
+打通 status: app's half PROVEN (3 unit tests), Apple's StoreKit half verified-pending
+IDE/device (2 tests skip + auto-run when unblocked). Paywall shows $29 fallback under the
+regression. Visual: paywall-r{1,2,3}-*.png + payment-doc-r{1,2}.png.

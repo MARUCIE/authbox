@@ -35,6 +35,16 @@ final class AppState: ObservableObject {
             WalletAccountStore.save([])
         }
 
+        #if DEBUG
+        // UI-test hook: clear the cached Pro entitlement so the paywall starts
+        // from the free state. StoreKit's currentEntitlements remains the real
+        // source of truth; this only resets the local cache flag.
+        if ProcessInfo.processInfo.arguments.contains("--reset-pro") {
+            UserDefaults.standard.removeObject(forKey: "authbox_pro_unlocked")
+            ProManager.shared.isPro = false
+        }
+        #endif
+
         if KeychainManager.hasSeed() {
             vaultState = .locked
         } else {

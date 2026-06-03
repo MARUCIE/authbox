@@ -67,7 +67,23 @@ struct SettingsView: View {
                 // Sync
                 Section {
                     Toggle(isOn: $cloudSyncEnabled) {
-                        Label("Cloud Sync", systemImage: "cloud")
+                        Label {
+                            HStack(spacing: 6) {
+                                Text("Cloud Sync")
+                                if !proManager.isPro { ProLockBadge() }
+                            }
+                        } icon: {
+                            Image(systemName: "cloud")
+                        }
+                    }
+                    .onChange(of: cloudSyncEnabled) { _, isOn in
+                        // Multi-device sync is a Pro feature. A free user toggling
+                        // it on hits the paywall; the toggle snaps back until they
+                        // upgrade. canUseFeature is the single source of truth.
+                        if isOn && !proManager.canUseFeature(.multiDeviceSync) {
+                            cloudSyncEnabled = false
+                            showProUpgrade = true
+                        }
                     }
 
                     HStack {

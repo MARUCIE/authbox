@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-style-id="html-document-style">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generated-by" content="html-style-router/html-document-style (Claude Warm Academic Humanism)">
+<title>Auth Box iOS 支付架构</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700;800&family=Noto+Serif+SC:wght@400;700&family=Source+Sans+3:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --claude-page-max:1100px;
+  --claude-page-gutter-total:clamp(32px,6vw,96px);
+
+  --bg-primary:#F3F0E9;
+  --bg-card:#FFFFFF;
+  --bg-card-hover:#FAF8F4;
+  --bg-warm:#EDE8DD;
+
+  --border:rgba(44,44,46,0.08);
+  --border-strong:rgba(44,44,46,0.15);
+
+  --text-primary:#2C2C2E;
+  --text-secondary:#5C5C5E;
+  --text-muted:#858587;
+
+  --accent:#D67052;
+  --accent-glow:rgba(214,112,82,0.08);
+  --accent-light:rgba(214,112,82,0.06);
+  --mustard:#F0B857;
+  --mustard-light:rgba(240,184,87,0.10);
+  --green:#4A9D6E;
+  --green-light:rgba(74,157,110,0.08);
+  --amber:#D4943A;
+  --red:#C44536;
+  --navy:#1B3A5C;
+  --navy-light:rgba(27,58,92,0.06);
+
+  --font-serif:'Crimson Pro','Noto Serif SC','Songti SC','SimSun',serif;
+  --font:'Source Sans 3','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --mono:'JetBrains Mono','SF Mono','Fira Code',monospace;
+
+  --radius:10px;
+  --radius-sm:6px;
+  --shadow-sm:0 1px 3px rgba(44,44,46,0.04),0 1px 2px rgba(44,44,46,0.02);
+  --shadow-md:0 2px 8px rgba(44,44,46,0.06),0 4px 16px rgba(44,44,46,0.04);
+  --shadow-lg:0 4px 12px rgba(44,44,46,0.08),0 8px 32px rgba(44,44,46,0.06);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  font-family:var(--font);
+  line-height:1.85;
+  letter-spacing:0.02em;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:'palt' 1;
+}
+
+.frame{
+  width:min(var(--claude-page-max),calc(100% - var(--claude-page-gutter-total)));
+  margin-inline:auto;
+}
+
+/* ── Cover ── */
+.cover{
+  background:linear-gradient(160deg,#2C2C2E 0%,#1B3A5C 100%);
+  color:#fff;
+  padding-block:64px 40px;
+  padding-inline:0;
+  margin-bottom:0;
+}
+.cover .badge{
+  display:inline-block;
+  background:rgba(255,255,255,0.10);
+  color:var(--mustard);
+  padding:7px 20px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  font-family:var(--mono);
+  margin-bottom:24px;
+}
+.cover h1{
+  font-family:var(--font-serif);
+  font-weight:800;
+  font-size:3.2rem;
+  line-height:1.15;
+  margin-bottom:18px;
+}
+.cover .subtitle{
+  font-size:1.12rem;
+  color:rgba(255,255,255,0.85);
+  max-width:880px;
+  margin-bottom:40px;
+}
+.herostats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:20px;
+  border-top:1px solid rgba(255,255,255,0.14);
+  padding-top:32px;
+}
+.herostats .stat .num{
+  font-family:var(--font-serif);
+  font-weight:700;
+  font-size:2.2rem;
+  color:#fff;
+  line-height:1.1;
+}
+.herostats .stat .lab{
+  font-size:0.82rem;
+  color:rgba(255,255,255,0.7);
+  margin-top:6px;
+}
+
+/* ── Body ── */
+main.frame{padding-block:32px 80px;}
+main.frame > section{margin-bottom:72px;}
+
+.secnum{
+  font-family:var(--mono);
+  font-size:0.8rem;
+  font-weight:600;
+  color:var(--accent);
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+h2{
+  font-family:var(--font-serif);
+  font-weight:700;
+  font-size:1.85rem;
+  margin:8px 0 22px;
+  line-height:1.25;
+}
+h3{
+  font-family:var(--font-serif);
+  font-weight:700;
+  font-size:1.25rem;
+  margin:0 0 10px;
+}
+p{margin-bottom:16px;font-size:1rem;color:var(--text-primary);}
+p.lead{color:var(--text-secondary);}
+strong{font-weight:700;}
+.muted{color:var(--text-secondary);}
+code{
+  font-family:var(--mono);
+  font-size:0.86em;
+  background:var(--bg-warm);
+  color:var(--navy);
+  padding:2px 7px;
+  border-radius:4px;
+  word-break:break-all;
+}
+
+/* Cards */
+.card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  padding:26px 28px;
+}
+.card-grid{display:grid;gap:20px;}
+.card-grid-2{grid-template-columns:repeat(2,1fr);}
+.card-grid-3{grid-template-columns:repeat(3,1fr);}
+
+/* Tables */
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow-sm);
+  font-size:0.92rem;
+}
+th,td{
+  text-align:left;
+  padding:13px 18px;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+}
+th{
+  background:var(--bg-warm);
+  font-weight:700;
+  font-size:0.82rem;
+  letter-spacing:0.04em;
+  color:var(--text-secondary);
+}
+tr:last-child td{border-bottom:none;}
+td code{background:var(--accent-glow);color:var(--accent);}
+td.free{color:var(--green);font-weight:700;}
+td.pro{color:var(--navy);font-weight:700;}
+td.no{color:var(--text-muted);}
+/* html-style-router: html-document-style — feature matrix: center + narrow the
+   FREE/PRO comparison columns so the ✓ / — read as a scannable column,
+   mirroring the iOS paywall table. */
+table.matrix th:nth-child(2),table.matrix td:nth-child(2),
+table.matrix th:nth-child(3),table.matrix td:nth-child(3){
+  text-align:center;width:16%;
+}
+
+/* Blockquote */
+blockquote{
+  background:var(--bg-card);
+  border-left:3px solid var(--accent);
+  padding:24px 28px;
+  border-radius:0 var(--radius) var(--radius) 0;
+  box-shadow:var(--shadow-sm);
+  font-size:0.98rem;
+  line-height:1.9;
+  color:var(--text-secondary);
+}
+blockquote strong{color:var(--text-primary);}
+blockquote.warn{border-left-color:var(--amber);}
+
+/* Status pills */
+.pill{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:0.72rem;
+  font-weight:600;
+  padding:3px 11px;
+  border-radius:var(--radius-sm);
+  letter-spacing:0.04em;
+}
+.pill-done{background:var(--green-light);color:var(--green);}
+.pill-skip{background:var(--mustard-light);color:var(--amber);}
+.pill-block{background:rgba(196,69,54,0.08);color:var(--red);}
+
+ul.clean{list-style:none;}
+ul.clean li{
+  position:relative;
+  padding-left:22px;
+  margin-bottom:9px;
+  font-size:0.96rem;
+  color:var(--text-secondary);
+}
+ul.clean li::before{
+  content:'';
+  position:absolute;
+  left:2px;top:11px;
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--accent);
+  opacity:0.55;
+}
+
+.codeblock{
+  background:#23231f;
+  color:#E8E6DF;
+  font-family:var(--mono);
+  font-size:0.84rem;
+  line-height:1.7;
+  padding:20px 24px;
+  border-radius:var(--radius);
+  overflow-x:auto;
+  white-space:pre;
+}
+
+footer{
+  text-align:center;
+  padding:60px 20px 40px;
+  color:var(--text-muted);
+  font-size:13px;
+  line-height:2.2;
+}
+
+@media (max-width:768px){
+  .herostats{grid-template-columns:repeat(2,1fr);}
+  .card-grid-2,.card-grid-3{grid-template-columns:1fr;}
+  .cover h1{font-size:2.4rem;}
+}
+@media print{
+  body{background:#fff;}
+  section{break-inside:avoid;}
+  .card{box-shadow:none;border:1px solid #ddd;}
+}
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="frame">
+    <span class="badge">Auth Box · 支付架构</span>
+    <h1>一次性买断的 Pro 内购</h1>
+    <p class="subtitle">用 StoreKit 2（苹果应用内购买框架）直连，把 Auth Box 的 Pro 升级做成一次性买断（非订阅）。授权状态由设备端的 StoreKit 与本地缓存共同决定，无需任何后端。本文记录架构、测试策略，以及一处 iOS 26.5 模拟器的苹果工具链回归（regression，回归缺陷）及其真机验证路径。</p>
+    <div class="herostats">
+      <div class="stat"><div class="num">$29</div><div class="lab">一次买断，无订阅</div></div>
+      <div class="stat"><div class="num">StoreKit 2</div><div class="lab">直连，不用 RevenueCat</div></div>
+      <div class="stat"><div class="num">3 / 5</div><div class="lab">授权逻辑测试全绿</div></div>
+      <div class="stat"><div class="num">R1·R2·R3</div><div class="lab">付费墙像素视觉验证</div></div>
+    </div>
+  </div>
+</section>
+
+<main class="frame">
+
+  <section>
+    <div class="secnum">01 — 决策</div>
+    <h2>StoreKit 2 直连，一次性非消耗品</h2>
+    <p class="lead">苹果<strong>强制要求</strong>：解锁数字功能必须走 In-App Purchase（IAP，应用内购买）；对同一项权益用 Stripe（支付平台）刷卡会在 App Review（应用审核）被拒。RevenueCat（内购聚合 SaaS）是 StoreKit 之上的封装层，并非替代方案——它为单一一次性商品额外引入了服务端依赖与厂商抽成，而我们并不需要。因此 App 直接与 <strong>StoreKit 2</strong> 对话。</p>
+    <table>
+      <thead><tr><th>选择项</th><th>取值</th><th>理由</th></tr></thead>
+      <tbody>
+        <tr><td>框架</td><td>StoreKit 2（<code>Product</code> / <code>Transaction</code> / <code>VerificationResult</code>）</td><td>第一方、async/await、设备端票据验证</td></tr>
+        <tr><td>商品</td><td><code>com.authbox.pro</code></td><td>单一 SKU（库存单位）</td></tr>
+        <tr><td>类型</td><td>非消耗品（Non-Consumable）、一次性</td><td>「$29 买断，无订阅」——契合隐私优先、不做循环扣费的定位</td></tr>
+        <tr><td>价格</td><td>$29.99（App Store 价格档）/ <code>$29</code> 兜底</td><td>付费墙读取真实本地化价格；产品解析前显示 <code>$29</code> 兜底</td></tr>
+        <tr><td>后端</td><td>无</td><td>App 为本地优先（local-first）；授权存于 StoreKit + 本地缓存标记</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="secnum">02 — 产品模型</div>
+    <h2>Pro 解锁什么</h2>
+    <p>免费层始终可用：无限本地密码、助记词恢复、Face ID 解锁、Apple 密码导入、密码生成器，以及最多 5 个 API 密钥（API keys，接口密钥）。Pro 一次性买断解锁其余能力。矩阵的唯一真相源是 <code>ProManager.canUseFeature(_:)</code> 与 <code>ProFeature</code> 枚举；付费墙的对比表必须与该枚举逐项一致。</p>
+    <!-- html-style-router: html-document-style -->
+    <table class="matrix">
+      <thead><tr><th>能力</th><th>免费</th><th>Pro</th></tr></thead>
+      <tbody>
+        <tr><td>无限本地密码</td><td class="free">✓</td><td class="pro">✓</td></tr>
+        <tr><td>助记词恢复</td><td class="free">✓</td><td class="pro">✓</td></tr>
+        <tr><td>Face ID 解锁</td><td class="free">✓</td><td class="pro">✓</td></tr>
+        <tr><td>密码生成器</td><td class="free">✓</td><td class="pro">✓</td></tr>
+        <tr><td>API 密钥</td><td class="free">5 个</td><td class="pro">无限</td></tr>
+        <tr><td>多设备同步</td><td class="no">—</td><td class="pro">✓</td></tr>
+        <tr><td>13 个导入来源</td><td class="no">—</td><td class="pro">✓</td></tr>
+        <tr><td>MCP Agent Gateway（智能体网关）</td><td class="no">—</td><td class="pro">✓</td></tr>
+        <tr><td>Arweave 备份（去中心化永久存储）</td><td class="no">—</td><td class="pro">✓</td></tr>
+        <tr><td>审计日志</td><td class="no">—</td><td class="pro">✓</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="secnum">03 — 授权流</div>
+    <h2><code>unlock()</code> 是所有 StoreKit 路径的唯一汇聚点</h2>
+    <p class="lead">购买、后台交易更新、启动时校验、恢复购买——四条路径最终都汇聚到同一个 <code>unlock()</code>。验证是严格的：只有 <code>VerificationResult.verified</code> 分支才解锁，<code>.unverified</code> 直接抛错。</p>
+    <div class="codeblock">启动  ProManager.init():
+        isPro = UserDefaults["authbox_pro_unlocked"]   // 缓存读取
+        Task { loadProduct(); verifyEntitlement() }
+
+付费墙点击 → ProManager.purchase()
+   ├─ loadProduct()           → Product.products(for: ["com.authbox.pro"])
+   ├─ product.purchase()      → StoreKit 购买弹窗（苹果）
+   ├─ checkVerified(result)   → 仅 .verified 分支
+   ├─ transaction.finish()
+   └─ unlock() ───────────────┐
+                              │
+后台 Transaction.updates ──────┤→ unlock()   // 带外购买 / 续期
+启动 Transaction.currentEntitlements ─┤→ unlock()   // verifyEntitlement
+恢复 AppStore.sync() → verifyEntitlement() ┘
+
+unlock(): isPro = true ; UserDefaults["authbox_pro_unlocked"] = true
+          → 每个 canUseFeature(.pro*) 返回 true
+          → 缓存让授权熬过下次冷启动</div>
+    <div class="card-grid card-grid-2" style="margin-top:24px">
+      <div class="card"><h3>关键文件 · 逻辑</h3>
+        <ul class="clean" style="margin:0">
+          <li><code>ProManager.swift</code> — StoreKit 2 逻辑、授权、特性门控</li>
+          <li><code>ProUpgradeView.swift</code> — 付费墙 UI（皇冠、FREE/PRO 矩阵、动态价格、CTA 按钮）</li>
+        </ul>
+      </div>
+      <div class="card"><h3>关键文件 · 接线</h3>
+        <ul class="clean" style="margin:0">
+          <li><code>SettingsView.swift</code> — 首个已接线门控：免费用户拨动 Cloud Sync（云同步）开关会回弹并弹出付费墙</li>
+          <li><code>Configuration.storekit</code> — 本地 StoreKit 测试配置（<code>com.authbox.pro</code>、<code>$29.99</code>）</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="secnum">04 — 测试策略</div>
+    <h2>两半分开验证：App 拥有的一半，苹果拥有的一半</h2>
+    <p class="lead">支付系统天然分为「App 负责的授权逻辑」与「苹果负责的 StoreKit 往返」。两者独立验证，互不掩盖。</p>
+    <div class="card-grid card-grid-2">
+      <div class="card">
+        <h3><span class="pill pill-done">始终运行</span> 授权逻辑（App 的一半）</h3>
+        <p class="muted" style="font-size:0.94rem">驱动<strong>真实</strong>的 <code>ProManager</code> 方法（无 stub，无桩），断言整套系统：</p>
+        <ul class="clean" style="margin:0">
+          <li><code>testFreeTierGating</code> — 免费/Pro 矩阵与付费墙一致</li>
+          <li><code>testUnlockFlipsEntireSystem</code> — 调用真实 <code>unlock()</code> 后 <code>isPro</code> 翻转、六项 Pro 全开、缓存标记按 <code>init()</code> 读取的同一键持久化</li>
+          <li><code>testCachedEntitlementSurvivesRelaunch</code> — 已购用户冷启动后凭本地缓存仍为 Pro，无需重连 StoreKit</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><span class="pill pill-skip">回归下跳过</span> StoreKit 往返（苹果的一半）</h3>
+        <p class="muted" style="font-size:0.94rem">完整跑通 API：<code>Product.products</code> → <code>purchase()</code> → <code>currentEntitlements</code> → <code>unlock()</code>。</p>
+        <ul class="clean" style="margin:0">
+          <li><code>testRealStoreKitPurchaseUnlocksPro</code></li>
+          <li><code>testRealStoreKitRestoreReDetectsEntitlement</code></li>
+        </ul>
+        <p class="muted" style="font-size:0.94rem;margin-top:10px">当运行时无法交付产品时，两者 <code>XCTSkipIf</code><strong>跳过（而非失败）</strong>并注明回归原因；一旦环境能同步配置，它们立刻转为真实端到端证明。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="secnum">05 — 已知阻塞</div>
+    <h2>iOS 26.5 模拟器 + <code>xcodebuild test</code> 命令行</h2>
+    <p class="lead">在公开的 <strong>iOS 26.5</strong> 模拟器运行时下，通过 <code>xcodebuild test</code> <strong>命令行</strong>跑测试，<strong>不会</strong>把 <code>.storekit</code> 配置同步到模拟器的 StoreKit 守护进程。2026-06-03 在 Xcode 26.5（build 17F42）实测：</p>
+    <div class="card-grid card-grid-3" style="margin-bottom:20px">
+      <div class="card"><h3 style="color:var(--red)">产品为空</h3><p class="muted" style="margin:0;font-size:0.94rem"><code>Product.products(for:)</code> 返回 <code>count = 0</code>，且不抛错。</p></div>
+      <div class="card"><h3 style="color:var(--red)">购买被拒</h3><p class="muted" style="margin:0;font-size:0.94rem"><code>SKTestSession.buyProduct</code> 抛出 <code>notEntitled</code>。</p></div>
+      <div class="card"><h3 style="color:var(--green)">非我方缺陷</h3><p class="muted" style="margin:0;font-size:0.94rem"><code>.storekit</code> 确已打包、<code>SKTestSession</code> 确已创建——配置只是没到达守护进程。</p></div>
+    </div>
+    <blockquote class="warn"><strong>这是苹果工具链回归，不是配置或代码缺陷。</strong>Xcode IDE（Cmd+U）走的是内部 DVTDevice 同步路径，公开命令行并不触发该路径。这也解释了为何在排除了 UUID、配置版本号、bundle 路径、scheme 冲突等所有我方可控原因后，症状依旧——根因在外部环境。</blockquote>
+    <h3 style="margin-top:28px">如何跑真实 StoreKit 证明</h3>
+    <table>
+      <thead><tr><th>路径</th><th>做法</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Xcode IDE</strong></td><td>打开 <code>apps/ios/AuthBox.xcodeproj</code>，按 Cmd+U。IDE 会同步配置，两个跳过的测试转为真实运行。</td></tr>
+        <tr><td><strong>iOS 26.1 模拟器</strong></td><td>安装较旧运行时并指向它；该版本命令行同步可用。</td></tr>
+        <tr><td><strong>真机沙盒</strong></td><td>用团队签名，在 App Store Connect 建好商品（或经 Run scheme 挂载 <code>.storekit</code>），用沙盒 Apple ID 购买。</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:18px">Run scheme 在 <code>LaunchAction</code> 中保留对 <code>Configuration.storekit</code> 的引用，所以在 IDE 里手动 Run（Cmd+R）即可看到真实价格与可用的购买弹窗。</p>
+  </section>
+
+  <section>
+    <div class="secnum">06 — 验证证据</div>
+    <h2>2026-06-03 · iOS 26.5 模拟器 · 命令行</h2>
+    <div class="card-grid card-grid-3">
+      <div class="card"><h3>单元测试</h3><p class="muted" style="margin:0;font-size:0.94rem"><code>AuthBoxTests</code>：<strong>5 测试，3 通过，2 跳过，0 失败</strong>——授权逻辑已证，StoreKit 往返带回归说明跳过。</p></div>
+      <div class="card"><h3>UI 测试</h3><p class="muted" style="margin:0;font-size:0.94rem"><code>PaywallFlowUITests</code>：<strong>通过</strong>——付费墙完整渲染，Cloud Sync 门控对免费用户回弹。</p></div>
+      <div class="card"><h3>像素视觉</h3><p class="muted" style="margin:0;font-size:0.94rem"><code>paywall-r{1,2,3}-*.png</code>（1206×2622）。R3 显示付费墙与 <code>$29</code> 兜底价（回归下符合预期；真机/IDE/26.1 显示真实本地化价格）。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="secnum">07 — 上架前清单</div>
+    <h2>App Store Connect 提交前</h2>
+    <ul class="clean">
+      <li>在 App Store Connect 创建非消耗品 <code>com.authbox.pro</code>，价格档 $29.99</li>
+      <li>本地化展示名「Auth Box Pro」+ 描述（与 <code>Configuration.storekit</code> 对齐）</li>
+      <li>在 Xcode IDE / 真机上跑两个 <code>testRealStoreKit*</code> 测试——确认它们不再跳过</li>
+      <li>真机沙盒完成一次购买 + 恢复购买</li>
+      <li>核对付费墙显示真实本地化价格（而非 <code>$29</code> 兜底）</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auth Box v1.0 — iOS 支付 / 内购架构</p>
+  <p>Maurice | maurice_wen@proton.me</p>
+  <p style="font-size:12px;margin-top:8px;">2026-06-03 生成 · 数据来源：apps/ios 实测（Xcode 26.5 / iOS 26.5 模拟器）</p>
+</footer>
+
+</body>
+</html>

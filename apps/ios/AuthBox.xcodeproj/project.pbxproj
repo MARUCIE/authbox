@@ -9,14 +9,17 @@
 /* Begin PBXBuildFile section */
 		01218936AAE5B02C2498E6DB /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933912DC8BDEBECBFB1EC59 /* OnboardingView.swift */; };
 		0F3E80196C9FA9B41D9262A4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0491051A1129271332322C4 /* Assets.xcassets */; };
+		1EBBAE6BFBA7CFA60DDDDD4F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6354D55A183C6F1BD4A26DD2 /* Foundation.framework */; };
 		20857714C58C09270A264045 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 564CD4322321E1DCA3FE9B42 /* APIConfig.swift */; };
 		2D47F52CD1505D228D478A2B /* WalletAccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9359B4B3B43C54F92C282CC2 /* WalletAccountStore.swift */; };
 		306D7EE82A7FB535784B3E6F /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A7EDE3B1F01F9224C8814A /* DesignTokens.swift */; };
 		3885869DFD24AE148A7F0CF6 /* UnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30365E671CECC0F45176DDA /* UnlockView.swift */; };
+		4031A5680ECFE3130D628676 /* PaywallFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFD1EC731E55D352C5096B2C /* PaywallFlowUITests.swift */; };
 		4075231182794BE36D97B3B5 /* VaultStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25457DEDC1B58F1AEC124FF2 /* VaultStore.swift */; };
 		419AA0567D01AE3B5DDCBAC7 /* AuthBoxCrypto in Frameworks */ = {isa = PBXBuildFile; productRef = 6860AFFC36E9C1D23BD6D0B2 /* AuthBoxCrypto */; };
 		435716AF4792748563445515 /* VaultItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7301F5DB5A2405088E0882F9 /* VaultItem.swift */; };
 		4B951FD5D79E825E057306FA /* AuthBoxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7788940A50C88A6C78C16F0E /* AuthBoxApp.swift */; };
+		51476978B8713A0E9F24E7E3 /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 580F5D1962DEBE9223732745 /* Configuration.storekit */; };
 		62815CDF2407D50AB921E6FD /* FullFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A5082D8E9AFF93F8F4AFA0F /* FullFlowUITests.swift */; };
 		6BB4D073D295ED131343E99C /* ProUpgradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75BC3A0656D6BA5B0C94B060 /* ProUpgradeView.swift */; };
 		6C5591B309387254063D891E /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490FB0481CAA69DD98E45F2B /* APIClient.swift */; };
@@ -25,6 +28,7 @@
 		7A1E52B5C91BF1D63FCD3AA6 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9992B6535CB44C5744EC701A /* AppState.swift */; };
 		7CEB3BC1BFDC545F68096FD2 /* VaultItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C59D1ECBFBFF4D711D47452 /* VaultItemDetailView.swift */; };
 		8284623BA514D0926EA68AE4 /* WalletFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67E44E746A244144FFD56B31 /* WalletFlowUITests.swift */; };
+		82C0BF2821C66E345E419B60 /* ProPurchaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91725A433390BEBBDE2A93C4 /* ProPurchaseTests.swift */; };
 		8EB3C81AA63C1C9FA5025C8A /* CreateVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE5181C9AB60B355781CB8F /* CreateVaultView.swift */; };
 		90B93A2FE15B521038C2AD2D /* RestoreVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256BB33EBC64E852BCF18BE8 /* RestoreVaultView.swift */; };
 		911F3184853C7A177FD5BFF5 /* CredentialProviderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A29053C8F7FCB44B62759D0 /* CredentialProviderViewController.swift */; };
@@ -37,10 +41,18 @@
 		BE525A885B954D904DF8DD0E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762C32E40BCB88C987FBF62D /* SettingsView.swift */; };
 		D3FECD5700E935B4B850A333 /* WalletBalanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B83836B37037E3B7ED1FF5E /* WalletBalanceService.swift */; };
 		D607D7267D680E993ABB3CBD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D938D9F5A1DC26A77BA4D2C /* ContentView.swift */; };
+		FD7BAF0EBDD9B1AE0DA2068B /* StoreKitTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F41CAC693E3416E6E8FBCA52 /* StoreKitTest.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		36EE64BE0E7F86F080C45999 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C03A58FC327CE731CECBF9C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F47516145352EB1819205E70;
+			remoteInfo = AuthBox;
+		};
+		C40B6ECAA8B5892ACA331253 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3C03A58FC327CE731CECBF9C /* Project object */;
 			proxyType = 1;
@@ -57,13 +69,16 @@
 		2A5082D8E9AFF93F8F4AFA0F /* FullFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullFlowUITests.swift; sourceTree = "<group>"; };
 		37AF9E7C3C2A5B438704562C /* AutoFillExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AutoFillExtension.entitlements; sourceTree = "<group>"; };
 		3EBCDCB079B83DA83692C250 /* AuthBoxUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AuthBoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4159889D0E8904554F5F2421 /* AuthBoxTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AuthBoxTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		46B9852529903A6380BB25DB /* ProManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProManager.swift; sourceTree = "<group>"; };
 		490FB0481CAA69DD98E45F2B /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		4B83836B37037E3B7ED1FF5E /* WalletBalanceService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalletBalanceService.swift; sourceTree = "<group>"; };
 		564CD4322321E1DCA3FE9B42 /* APIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfig.swift; sourceTree = "<group>"; };
+		580F5D1962DEBE9223732745 /* Configuration.storekit */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = Configuration.storekit; sourceTree = "<group>"; };
 		5B8D5AC5185BA3F40BB38813 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		5C59D1ECBFBFF4D711D47452 /* VaultItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultItemDetailView.swift; sourceTree = "<group>"; };
 		5D938D9F5A1DC26A77BA4D2C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		6354D55A183C6F1BD4A26DD2 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		67E44E746A244144FFD56B31 /* WalletFlowUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalletFlowUITests.swift; sourceTree = "<group>"; };
 		6BE5181C9AB60B355781CB8F /* CreateVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateVaultView.swift; sourceTree = "<group>"; };
 		7301F5DB5A2405088E0882F9 /* VaultItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultItem.swift; sourceTree = "<group>"; };
@@ -75,6 +90,7 @@
 		86485461B687596F258F78E7 /* AuthBoxCrypto */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AuthBoxCrypto; path = AuthBoxCrypto; sourceTree = SOURCE_ROOT; };
 		8933912DC8BDEBECBFB1EC59 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		8A29053C8F7FCB44B62759D0 /* CredentialProviderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialProviderViewController.swift; sourceTree = "<group>"; };
+		91725A433390BEBBDE2A93C4 /* ProPurchaseTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProPurchaseTests.swift; sourceTree = "<group>"; };
 		9359B4B3B43C54F92C282CC2 /* WalletAccountStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalletAccountStore.swift; sourceTree = "<group>"; };
 		9992B6535CB44C5744EC701A /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		A2F531B9F121B8AB302441D2 /* VaultListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultListView.swift; sourceTree = "<group>"; };
@@ -83,10 +99,21 @@
 		C9A7EDE3B1F01F9224C8814A /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		D4F1AD56FFAC70CFE9ACD68A /* WalletView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalletView.swift; sourceTree = "<group>"; };
 		E30365E671CECC0F45176DDA /* UnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockView.swift; sourceTree = "<group>"; };
+		EFD1EC731E55D352C5096B2C /* PaywallFlowUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaywallFlowUITests.swift; sourceTree = "<group>"; };
+		F41CAC693E3416E6E8FBCA52 /* StoreKitTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKitTest.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/StoreKitTest.framework; sourceTree = DEVELOPER_DIR; };
 		FFAE050AF0954A48E04C86F2 /* AuthBox.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AuthBox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		2993509B5685E30E63938B7D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1EBBAE6BFBA7CFA60DDDDD4F /* Foundation.framework in Frameworks */,
+				FD7BAF0EBDD9B1AE0DA2068B /* StoreKitTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5E75C84AEB2074ACE5940C12 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -130,6 +157,7 @@
 			children = (
 				B0491051A1129271332322C4 /* Assets.xcassets */,
 				16DB7B24E683AE4B5D815742 /* Sources */,
+				580F5D1962DEBE9223732745 /* Configuration.storekit */,
 			);
 			path = AuthBox;
 			sourceTree = "<group>";
@@ -151,6 +179,8 @@
 				ADFDE5C634DC2C276E3455CD /* AutoFillExtension */,
 				F9EA73A73AAE95941841816E /* Packages */,
 				25231EFE4ED42274E475BB2C /* Products */,
+				2A81FDEFA88D50D1A2BA243C /* Frameworks */,
+				46CBF6BEBF0A245F8F2615FD /* AuthBoxTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -160,8 +190,17 @@
 				FFAE050AF0954A48E04C86F2 /* AuthBox.app */,
 				3EBCDCB079B83DA83692C250 /* AuthBoxUITests.xctest */,
 				247C70E70C4FCAEEFF75F54B /* AutoFillExtension.appex */,
+				4159889D0E8904554F5F2421 /* AuthBoxTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		2A81FDEFA88D50D1A2BA243C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7CC8AAF28D1A3E15C524A044 /* iOS */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		4045C33D3B83B979CC229F04 /* Onboarding */ = {
@@ -186,6 +225,15 @@
 			path = Features;
 			sourceTree = "<group>";
 		};
+		46CBF6BEBF0A245F8F2615FD /* AuthBoxTests */ = {
+			isa = PBXGroup;
+			children = (
+				91725A433390BEBBDE2A93C4 /* ProPurchaseTests.swift */,
+			);
+			name = AuthBoxTests;
+			path = AuthBoxTests;
+			sourceTree = "<group>";
+		};
 		493723488F11451E197BA4AC /* Wallet */ = {
 			isa = PBXGroup;
 			children = (
@@ -202,6 +250,7 @@
 			children = (
 				2A5082D8E9AFF93F8F4AFA0F /* FullFlowUITests.swift */,
 				67E44E746A244144FFD56B31 /* WalletFlowUITests.swift */,
+				EFD1EC731E55D352C5096B2C /* PaywallFlowUITests.swift */,
 			);
 			path = AuthBoxUITests;
 			sourceTree = "<group>";
@@ -215,6 +264,15 @@
 				A2F531B9F121B8AB302441D2 /* VaultListView.swift */,
 			);
 			path = Vault;
+			sourceTree = "<group>";
+		};
+		7CC8AAF28D1A3E15C524A044 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				6354D55A183C6F1BD4A26DD2 /* Foundation.framework */,
+				F41CAC693E3416E6E8FBCA52 /* StoreKitTest.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 		8E3CFBEC82C48BFB8735F044 /* Network */ = {
@@ -286,6 +344,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		64F0D0B7B27D272C4745FFDF /* AuthBoxTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E59B92098F0AC72050BB0CCF /* Build configuration list for PBXNativeTarget "AuthBoxTests" */;
+			buildPhases = (
+				8B8EED71671DDD60667A7AA5 /* Sources */,
+				2993509B5685E30E63938B7D /* Frameworks */,
+				54AF9E33348DC00BED0BB873 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C72EB6F0F751C51BF551EF91 /* PBXTargetDependency */,
+			);
+			name = AuthBoxTests;
+			productName = AuthBoxTests;
+			productReference = 4159889D0E8904554F5F2421 /* AuthBoxTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		AB26429E45F3489CC2594F32 /* AuthBoxUITests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A1F6F033C1AE29ED53667CD6 /* Build configuration list for PBXNativeTarget "AuthBoxUITests" */;
@@ -382,11 +458,20 @@
 				F47516145352EB1819205E70 /* AuthBox */,
 				AB26429E45F3489CC2594F32 /* AuthBoxUITests */,
 				DB46DCBDAF42447C600586D5 /* AutoFillExtension */,
+				64F0D0B7B27D272C4745FFDF /* AuthBoxTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		54AF9E33348DC00BED0BB873 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				51476978B8713A0E9F24E7E3 /* Configuration.storekit in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D5D1CCAB7EB1FA72B1182ABA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -443,12 +528,27 @@
 			files = (
 				62815CDF2407D50AB921E6FD /* FullFlowUITests.swift in Sources */,
 				8284623BA514D0926EA68AE4 /* WalletFlowUITests.swift in Sources */,
+				4031A5680ECFE3130D628676 /* PaywallFlowUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8B8EED71671DDD60667A7AA5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				82C0BF2821C66E345E419B60 /* ProPurchaseTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		C72EB6F0F751C51BF551EF91 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = AuthBox;
+			target = F47516145352EB1819205E70 /* AuthBox */;
+			targetProxy = C40B6ECAA8B5892ACA331253 /* PBXContainerItemProxy */;
+		};
 		CBEC1B03340E931B30FED6C6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F47516145352EB1819205E70 /* AuthBox */;
@@ -541,6 +641,23 @@
 			};
 			name = Debug;
 		};
+		1B236BAFFF6B6C426E542219 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.authbox.tests;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AuthBox.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AuthBox";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		3CF036AAA33F72CE4F218DB6 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -559,6 +676,22 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
+		};
+		54278516906C24C19F535C3E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.authbox.tests;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AuthBox.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AuthBox";
+			};
+			name = Debug;
 		};
 		547AECA6C5F704E02D57B547 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -746,6 +879,15 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
+		};
+		E59B92098F0AC72050BB0CCF /* Build configuration list for PBXNativeTarget "AuthBoxTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B236BAFFF6B6C426E542219 /* Release */,
+				54278516906C24C19F535C3E /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 

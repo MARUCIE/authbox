@@ -574,3 +574,53 @@ iOS wallet, 3 rounds, real iPhone 17 simulator pixels (XCUITest-driven, inspecte
 mnemonic (BTC bc1qcr8te4…306fyu at m/84'/0'/0'/0/0, ETH 0x9858…Eda94 at
 m/44'/60'/0'/0/0), byte-for-byte matching the web @scure stack; balances are real
 mempool.space / publicnode round-trips (returned real 0, not a stub).
+
+## 2026-06-03 · 设计付费墙 + 打通 iOS 支付体系
+
+Task: "设计付费墙，打通ios的支付体系". NOT greenfield — `ProManager`/`ProUpgradeView`
+already existed (StoreKit 2 direct, `com.authbox.pro` $29 one-time non-consumable).
+Scope was: make the existing system work end-to-end + prove it.
+
+- [x] Paywall design: `ProUpgradeView` — crown, FREE/PRO comparison matrix, dynamic
+      StoreKit price (real `displayPrice`, `$29` fallback), MCP Agent Gateway highlighted.
+- [x] First wired gate: `SettingsView` Cloud Sync toggle springs back + opens the paywall
+      for free users (`canUseFeature(.multiDeviceSync)`).
+- [x] `ProManager.loadProduct()` + `@Published product` + `displayPrice` — paywall reads
+      the real localized price (price display doubles as product-loaded proof).
+- [x] Local StoreKit config `apps/ios/AuthBox/Configuration.storekit` (`com.authbox.pro`, `$29.99`).
+- [x] New unit test target `AuthBoxTests` (TEST_HOST = AuthBox.app) + shared scheme.
+- [x] `AuthBoxTests/ProPurchaseTests.swift` — entitlement logic proven deterministically
+      via the REAL ProManager methods: free/Pro matrix, `unlock()` flips the whole system +
+      persists, cache survives relaunch. `unlock()`/`verifyEntitlement()` made `internal`
+      (@testable seam; not security-sensitive — vault crypto is elsewhere).
+- [x] Real StoreKit round-trip tests (`testRealStoreKit*`) `XCTSkipIf` under the iOS 26.5
+      regression; auto-run as e2e proof in Xcode IDE / iOS 26.1 / device.
+- [x] Diagnosed (empirically, not assumed) the iOS 26.5 simulator + `xcodebuild test` CLI
+      Apple regression: `.storekit` config never syncs to the StoreKit daemon →
+      `Product.products` count=0, `buyProduct` throws `notEntitled`. Ruled out UUID / config
+      version / bundle path / scheme conflict first; root cause is external tooling.
+- [x] `PaywallFlowUITests` — paywall structural + visual proof (renders, Cloud Sync gate fires).
+- [x] Docs (2份制): `PAYMENT_IAP_ARCHITECTURE.md` (canonical) + `.html` (Chinese, Claude Warm
+      Academic, 2-round pixel-verified).
+
+Tests (2026-06-03, iOS 26.5 sim, CLI): `AuthBoxTests` 5 tests → 3 pass / 2 skip / 0 fail.
+`PaywallFlowUITests` → pass.
+
+## Visual Verification — paywall + payment
+
+iOS paywall, real iPhone 17 simulator pixels (XCUITest-driven, inspected by reading each PNG):
+
+- R1 Settings upsell banner — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/paywall-r1-settings-banner.png`
+- R2 Cloud Sync gate fires → paywall — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/paywall-r2-gate-triggered.png`
+- R3 paywall rendered (crown + full FREE/PRO matrix + price + CTA) — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/paywall-r3-paywall-rendered.png`
+
+Payment doc HTML, real browser pixels (chrome-devtools, inspected):
+
+- R1 baseline — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/payment-doc-r1.png`
+- R2 centered feature matrix — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/payment-doc-r2.png`
+
+打通 status: the app's entitlement half is PROVEN deterministically (unlock → full
+matrix + persistence + relaunch cache). The StoreKit round-trip (Apple's half) is blocked
+ONLY by the iOS 26.5 CLI regression and is verified-pending Xcode IDE / device — the real
+tests skip honestly and auto-run when unblocked. Paywall price shows `$29` fallback under
+the regression (real `$29.99` renders on device). See PAYMENT_IAP_ARCHITECTURE.md §5-7.
