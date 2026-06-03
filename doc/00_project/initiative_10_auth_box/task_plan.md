@@ -737,3 +737,24 @@ Tests (iOS 26.5 sim): AuthBoxTests/VaultSyncCodecTests 4/4 → TEST SUCCEEDED.
 
 Still entitlement/device-gated (deferred, honestly): the CloudKit transport + cross-device
 iCloud-Keychain seed sync. The cryptographic boundary they ride on is now proven ahead of them.
+
+## 2026-06-03 · Web TOTP generation (cross-platform parity)
+
+The 2FA feature spans iOS + web; web already stored `totpSecret` + imported `otpAuth` but had
+no generator. Completed the missing half by porting the proven Swift engine.
+
+- [x] `packages/crypto/src/totp.ts` — functional TS port of `TOTP.swift` (`@noble/hashes`,
+      synchronous): `totpCode`/`hotpCode`/`totpSecondsRemaining`/`formatCode`/`parseOtpauth`/
+      `toOtpauthURI`/`base32Decode`/`base32Encode`. Exported from `index.ts`.
+- [x] `totp.test.ts` — 16 tests, incl. all 18 RFC 6238 Appendix B vectors (SHA1/256/512,
+      8-digit), the SAME vectors the Swift `TOTPTests` uses → cross-platform parity proof
+      (a secret produces identical codes on iOS and web). Plus base32 RFC 4648, otpauth parse,
+      otpauthURI round-trip.
+- [x] `password-detail.tsx` — live `TotpRow` (per-second `useEffect`/`setInterval`, mirror of
+      iOS `TimelineView`), reads `data.otpAuth`/`data.totpSecret`, blue mono code + countdown +
+      copy. The web vault now shows the same rotating code as iOS.
+
+Tests: `@authbox/crypto` vitest 96/96 (incl. 16 TOTP) · `apps/web` `tsc --noEmit` 0 errors.
+Deferred (honest): a live render screenshot needs the running authenticated web app with a
+real vault item carrying a TOTP — auth/data-gated, not logic-gated. Engine + parity proven,
+component typechecked.

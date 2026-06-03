@@ -67,3 +67,15 @@ export {
   type BuildEthTxParams,
   type SignedEthTransaction,
 } from "./wallet-tx";
+export {
+  totpCode,
+  hotpCode,
+  totpSecondsRemaining,
+  formatCode,
+  parseOtpauth,
+  toOtpauthURI,
+  base32Decode,
+  base32Encode,
+  type TOTPParams,
+  type OTPAlgorithm,
+} from "./totp";

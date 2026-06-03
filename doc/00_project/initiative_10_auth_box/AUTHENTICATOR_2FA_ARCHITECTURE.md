@@ -125,9 +125,14 @@ Screenshots: `totp-import-r{1,2,3}-*.png`.
   paid Apple Developer iCloud container and is only verifiable on a real device
   signed into iCloud — out of reach of the simulator, like the StoreKit half of
   the payment task.
-- **Web code generation** — the web already stores `totpSecret` and imports
-  `otpAuth`, but has no generator yet. A TS port of `TOTP.swift` into
-  `packages/crypto` would light up the same live code on the web vault.
+- **Web code generation** — DONE at the engine + UI layer. `packages/crypto/src/totp.ts`
+  is a functional TS port of `TOTP.swift` (`@noble/hashes`, same RFC 6238 spec), proven by
+  `totp.test.ts` against the **same 18 Appendix B vectors** the Swift suite uses — a
+  cross-platform parity proof (identical codes on iOS and web). `password-detail.tsx` renders
+  a live `TotpRow` (per-second tick via `useEffect`/`setInterval`, mirror of the iOS
+  `TimelineView`), reading `data.otpAuth`/`data.totpSecret`. Verified: crypto suite 96/96 +
+  `tsc --noEmit` clean across the web app. Deferred: a live render screenshot needs the
+  running authenticated web app with a real vault item (auth/data-gated, not logic-gated).
 - **SHA256/SHA512 + 8-digit issuers** — already supported by the engine; surface
   them in the add UI if a service needs a non-default profile.
 

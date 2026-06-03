@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { parseOtpauth, totpCode, totpSecondsRemaining, formatCode } from '@authbox/crypto';
 import { Button } from '@/components/ui/button';
 import type { DecryptedVaultItem } from '@/lib/vault-store';
 
@@ -19,6 +20,57 @@ function isSafeURL(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Live TOTP code with a per-second countdown — the web mirror of the iOS
+ * `TOTPCodeView`. The code is a pure function of the current time (re-derived
+ * each tick via the proven `@authbox/crypto` engine), never stored or stale.
+ */
+function TotpRow({
+  raw,
+  copiedField,
+  onCopy,
+}: {
+  raw: string;
+  copiedField: string | null;
+  onCopy: (value: string, field: string) => void;
+}) {
+  const params = useMemo(() => parseOtpauth(raw), [raw]);
+  const [now, setNow] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!params) return null;
+  const code = totpCode(params, now);
+  const remaining = totpSecondsRemaining(params, now);
+
+  return (
+    <div className="group">
+      <label className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
+        One-Time Password{params.issuer ? ` -- ${params.issuer}` : ''}
+      </label>
+      <div className="flex items-center gap-2 mt-1">
+        <p className="flex-1 text-lg font-mono text-blue-600 dark:text-blue-400 tabular-nums">
+          {formatCode(code)}
+        </p>
+        <span
+          className={`text-xs tabular-nums w-7 text-right ${remaining <= 5 ? 'text-[var(--destructive)]' : 'text-[var(--muted-foreground)]'}`}
+        >
+          {remaining}s
+        </span>
+        <button
+          onClick={() => onCopy(code, 'totp')}
+          className="text-xs px-2 py-1 rounded border border-[var(--border)] hover:bg-[var(--accent)] transition-colors opacity-0 group-hover:opacity-100"
+        >
+          {copiedField === 'totp' ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function PasswordDetail({ item, onEdit, onDelete, onClose }: PasswordDetailProps) {
@@ -132,6 +184,19 @@ export function PasswordDetail({ item, onEdit, onDelete, onClose }: PasswordDeta
             </div>
           );
         })}
+
+        {/* One-time password (2FA) */}
+        {(() => {
+          const totpRaw =
+            typeof data.otpAuth === 'string'
+              ? data.otpAuth
+              : typeof data.totpSecret === 'string'
+                ? data.totpSecret
+                : undefined;
+          return totpRaw ? (
+            <TotpRow raw={totpRaw} copiedField={copiedField} onCopy={copyToClipboard} />
+          ) : null;
+        })()}
 
         {/* Metadata */}
         <div className="pt-4 border-t border-[var(--border)] space-y-2">

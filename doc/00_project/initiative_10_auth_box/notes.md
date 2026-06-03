@@ -2509,3 +2509,23 @@ browser, so the chrome/playwright tool chain does not apply here.
 
 Both functional assertions (XCTAssert on the section headers, codes, and imported item) and
 the pixel inspection agree. Visual verification complete.
+
+## 2026-06-03 · Web TOTP generation — cross-platform parity
+
+iCloud sync hit a real entitlement wall, so "继续" pivoted to the next provable atom of the
+same feature: the 2FA generator on web (web had storage + import, no generation). Ported the
+proven Swift engine to TS rather than re-deriving — `packages/crypto/src/totp.ts`, functional
+style with `@noble/hashes` (matches seed.ts/vault-crypto.ts; synchronous HMAC-SHA1/256/512).
+
+The key discipline: the success criterion isn't "it compiles," it's "the 18 RFC 6238 Appendix
+B vectors produce the SAME bytes as the Swift suite." `totp.test.ts` asserts exactly those —
+so it's a cross-platform parity proof: a secret stored in either client generates identical
+codes (both compute the same function of secret+time). 96/96 crypto vitest pass.
+
+`password-detail.tsx` gained a live `TotpRow` — the React mirror of the iOS `TimelineView`
+code (pure function of `now`, re-derived each second via `useEffect`/`setInterval`). Reads
+`data.otpAuth`/`data.totpSecret`. `apps/web` `tsc --noEmit` clean (0 errors).
+
+Honest verification ceiling: engine unit-proven + component typechecked; a live browser
+render needs the running authenticated web app with a real TOTP-carrying vault item
+(auth/data-gated, like device-gated iOS). Not faked as done — flagged in the doc.
