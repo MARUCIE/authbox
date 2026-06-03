@@ -121,6 +121,31 @@ exact-timestamp ties (live wins), and a mixed multi-item merge sorted determinis
 merge core and the crypto codec — the two parts that don't need CloudKit — are now both green;
 only the network round-trip and cross-device Keychain remain entitlement-gated.
 
+**And the CloudKit wire layer (2026-06-03)** — `AuthBoxCryptoTests/VaultBlobCodecTests`, 5 tests
+pass against `VaultBlobCodec`, which maps a vault item ↔ a `CKRecord` carrying only ciphertext.
+`CKRecord` instantiates offline, so this is provable without a container: round-trip preserves
+payload + id (restored from `recordName`) + `updatedAt`; the record's `ciphertext`/`nonce`/`tag`
+fields contain **no plaintext** (password, TOTP secret, username all absent — zero-knowledge on
+the wire asserted directly); encryption is non-deterministic; a wrong key fails to decode. The
+three CloudKit-free layers — merge (`VaultSyncReconciler`), crypto codec (`VaultStore`), and wire
+mapping (`VaultBlobCodec`) — are all proven; the `CKSyncEngine` orchestration that drives them is
+the only part that needs the live container + device.
+
+### Seed-sync security finding (2026-06-03)
+
+The seed is stored with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` + a `.biometryCurrentSet`
+access control (`KeychainManager.storeSeed`). That is **fundamentally incompatible** with
+`kSecAttrSynchronizable` (iCloud Keychain): a synchronizable item can be neither *ThisDeviceOnly*
+nor biometry-bound. §3's "one-line flip to synchronizable" would in reality be a **downgrade** of
+the master secret's protection (dropping the per-access Face ID gate + device-only binding).
+
+SOTA-secure resolution adopted: **sync the encrypted blobs via CloudKit; keep the seed biometric +
+device-local.** Cross-device seed transfer uses §3 option (b) — manual mnemonic re-entry on device
+B (the "max paranoia" path) — preserving the strong on-device protection. iCloud-Keychain seed sync
+(§3 option (a), the seamless "sign in → vault appears" UX) stays an **explicit opt-in** for later,
+traded against the weaker protection, never a silent default. So `KeychainManager` is left untouched
+by sync work, which also avoids the risky synchronizable-attribute migration.
+
 ## 6. Open decisions (block implementation)
 
 1. **iCloud container availability** — is there a paid Apple Developer account for
