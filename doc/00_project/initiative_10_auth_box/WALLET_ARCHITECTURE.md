@@ -1,6 +1,7 @@
 # Auth Box — Crypto Wallet Architecture
 
-Status: Phase 1 shipped (crypto foundation). Phases 2–5 queued.
+Status: Phases 1–4 + 5a shipped on web; full native parity shipped on iOS.
+Mainnet broadcast (5b) + Send UI (5c) queued behind a HITL fund-movement gate.
 Owner: Maurice. Last updated: 2026-06-03.
 
 ## 1. Goal
@@ -67,41 +68,144 @@ derives the vault key.
 
 ## 6. Library choices (audited, no hand-rolled curve crypto)
 
+### Web (`packages/crypto`, TypeScript)
+
 | Concern | Library | Why |
 |---------|---------|-----|
 | BIP-32 HD derivation | `@scure/bip32` | audited; same author as the in-use `@noble/hashes` |
 | secp256k1 | `@noble/curves` | audited reference impl across the ecosystem |
-| BTC addresses / PSBT | `@scure/btc-signer` | correct bech32/base58check + future signing |
+| BTC addresses / PSBT / signing | `@scure/btc-signer` | correct bech32/base58check + `selectUTXO` coin selection |
+| ETH tx build / EIP-1559 / signing | `micro-eth-signer` | paulmillr, audited, same @noble/@scure ecosystem; avoids hand-rolled RLP |
 | keccak256 | `@noble/hashes/sha3` | already a dependency |
 
+### iOS (`apps/ios/AuthBoxCrypto`, Swift)
+
+| Concern | Library / impl | Why |
+|---------|----------------|-----|
+| secp256k1 | `swift-secp256k1` 0.21 (`libsecp256k1` C product) | the same libsecp256k1 reference C library; no Swift-side curve math |
+| SHA-256/512, HMAC | CryptoKit | first-party, hardware-backed |
+| keccak256 / RIPEMD-160 / bech32 / base58check | vendored (`Keccak256` / `RIPEMD160` / `Bech32` / `Base58Check`) | CryptoKit lacks Keccak and RIPEMD-160; each is anchored to public vectors |
+
 Hand-rolling secp256k1 child-key derivation is precisely where wallets acquire
-CVEs (constant-time scalar add, `IL ≥ n` retry). BIP-39 phrase logic stays
-hand-rolled (bit manipulation only); curve math is delegated.
+CVEs (constant-time scalar add, `IL ≥ n` retry). On both platforms the curve math
+is delegated to the audited libsecp256k1 lineage; only BIP-39 phrase logic and the
+hash/encoding primitives (pure bit manipulation) are hand-written, against vectors.
 
-## 7. Verification (Phase 1)
+iOS gotcha worth recording: libsecp256k1's *static* context lacks the `ecmult_gen`
+table, so `pubkey_create` aborts — the wrapper must build a context with
+`secp256k1_context_create(SECP256K1_CONTEXT_NONE)`; the static singleton is marked
+`nonisolated(unsafe)` for Swift 6 concurrency.
 
-`packages/crypto/src/__tests__/wallet.test.ts` — 14 tests, all green.
-Three are **external interoperability anchors** (published iancoleman.io/bip39
-vectors for the `abandon … about` mnemonic): BTC bip84 `bc1qcr8te4kr609…`,
-BTC bip44 `1LqBGSKuX5yYU…`, ETH `0x9858EfFD232B40…`. Matching them proves the
-derivation is importable into standard wallets. Remaining tests cover
-change/account/testnet regression, determinism, xpub format, EIP-55 casing, and
-private-key↔public-key↔address consistency.
+## 7. Cross-platform parity (the 打通 contract)
 
-## 8. Phased delivery
+Web and iOS derive from the same seed and **must** produce identical addresses.
+The Swift stack (`apps/ios/AuthBoxCrypto/Sources/AuthBoxCrypto/Wallet.swift`)
+mirrors the TypeScript stack (`packages/crypto/src/wallet.ts`) step for step:
+"Bitcoin seed" master → hardened + non-hardened CKDpriv
+(`childPriv = (IL + parentPriv) mod n`, where
+`IL = HMAC-SHA512(chainCode, compressedParentPubkey ‖ index)`) → BIP-84 P2WPKH /
+BIP-44 P2PKH / ETH EIP-55 → account xpub.
+
+Parity is proven against shared external anchors for the public all-zeros
+`abandon … about` mnemonic — both platforms emit, byte-for-byte:
+
+| Coin | Path | Address |
+|------|------|---------|
+| BTC native segwit | `m/84'/0'/0'/0/0` | `bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu` |
+| BTC legacy | `m/44'/0'/0'/0/0` | `1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA` |
+| ETH | `m/44'/60'/0'/0/0` | `0x9858EfFD232B4033E47d90003D41EC34EcaEda94` |
+
+Because both sides anchor to the *same external vectors* (not to each other), a
+drift on either platform fails its own test suite independently — the parity is a
+property of two independent implementations agreeing with the standard, not of one
+copying the other.
+
+## 8. Transaction signing (Phase 5a — web, fund-safe)
+
+`packages/crypto/src/wallet-tx.ts` adds client-side build + sign (no broadcast):
+
+- `buildBtcTransaction` — `@scure/btc-signer` `selectUTXO(..., 'default', { … })`
+  for coin selection + change, P2WPKH `witnessUtxo` / P2PKH `nonWitnessUtxo`,
+  per-input derive → sign → `fill(0)` the private key in `finally`. Returns
+  `{ hex, txid, fee, vsize }`; `txid` is big-endian display order.
+- `buildEthTransaction` — `micro-eth-signer` `Transaction.prepare({type:'eip1559'})`
+  `.signBy(priv)`. The recovered `sender` is asserted equal to the independently
+  derived address (throws on mismatch rather than hand back a tx spending an
+  unexpected key); the private key is zeroed in `finally`.
+
+Recorded finding: `micro-eth-signer` ECDSA is **hedged** (extra entropy on the
+RFC6979 nonce → non-deterministic but valid signatures that recover the same
+sender), whereas `@scure/btc-signer` signs deterministically. The tests assert the
+right invariant per coin — validity + sender-recovery for ETH, determinism for
+BTC. Keys are derived locally, used once, and zeroed; nothing here touches the
+network. **Broadcast is deliberately not built** — that is Phase 5b, behind HITL.
+
+## 9. Server surface (Go API, watch-only)
+
+`services/api` exposes a watch-only account surface under `/wallet/accounts`
+(chi router, pgx repo). It stores xpub + addresses + cached balance; it holds no
+key material and cannot sign.
+
+| Method | Route | Handler |
+|--------|-------|---------|
+| POST | `/wallet/accounts` | `CreateAccount` (register an account by xpub + metadata) |
+| GET | `/wallet/accounts` | `ListAccounts` |
+| DELETE | `/wallet/accounts/{id}` | `DeleteAccount` |
+| GET | `/wallet/accounts/{id}/balance` | `Balance` (via public indexers) |
+| POST | `/wallet/accounts/{id}/addresses` | `AddAddress` |
+| GET | `/wallet/accounts/{id}/addresses` | `ListAddresses` |
+
+Balances come from `balance_provider.go` → mempool.space (BTC) / publicnode RPC
+(ETH). The server is a convenience indexer, never a custodian.
+
+## 10. iOS app integration (local-first, no server round-trip)
+
+The iOS app is **local-first** and does not use the Go wallet API. `APIClient` is
+dead code there (no login flow is wired; the vault is Keychain seed + SwiftData,
+fully on-device). Rebuilding an absent auth flow merely to fetch a balance would
+be net-negative, so the iOS wallet derives client-side and queries the **same
+public indexers directly** (`WalletBalanceService`: mempool.space / publicnode).
+This is strictly stronger zero-knowledge than the web path — no address list ever
+leaves the device to our own server — and is consistent with the local-first
+vault.
+
+Persistence (`WalletAccountStore`, UserDefaults) holds only the **public account
+descriptor** (coin / network / scriptType / index / label) — no keys, no
+addresses. The receive address is re-derived live from the in-memory seed whenever
+the vault is unlocked, so the at-rest footprint carries nothing sensitive.
+
+## 11. Verification
+
+- **Web crypto**: `packages/crypto/src/__tests__/wallet.test.ts` (derivation) +
+  `wallet-tx.test.ts` (signing) green; full crypto suite **80/80**. Three external
+  iancoleman.io/bip39 anchors prove standard-wallet importability; signing tests
+  anchor on the same mnemonic (ETH sigs recover `0x9858…Eda94`, BTC inputs owned
+  by `bc1qcr8te4…306fyu`).
+- **iOS crypto**: `WalletTests` **13/13**; iOS derives the identical canonical
+  addresses (anchored to the iancoleman vectors + the TS reference) — the
+  cross-platform 打通 proof.
+- **iOS visual verification (3 rounds, real iPhone-17 simulator pixels)**:
+  `AuthBoxUITests/WalletFlowUITests` (xcodebuild test PASSED). A DEBUG-only
+  `--wallet-demo-seed` hook boots an unlocked vault from the public test mnemonic
+  so the screens render the canonical, real-on-chain addresses. Seven inspected
+  PNGs in `state/screenshots/authbox-ios-uxmap/`: empty state (R1), BTC add +
+  derived address + live balance (R2), ETH EIP-55 + multi-coin list + balance (R3).
+
+## 12. Phased delivery (actual state)
 
 - **Phase 0 — Architecture** (this doc). DONE.
-- **Phase 1 — Crypto foundation** (`wallet.ts` + tests, offline/deterministic). DONE.
-- **Phase 2 — Schema + shared types**: migration `011_wallet_accounts`, shared
-  `Wallet*` types + Zod schemas (watch-only metadata: coin, network, xpub,
-  derivation path, label, cached balance). No private material in the schema.
-- **Phase 3 — API (read)**: account CRUD + balance/history via public indexers
-  (BTC: mempool.space/Blockstream; ETH: public RPC/Etherscan). Watch-only.
-- **Phase 4 — Web UI**: wallet accounts, receive addresses + QR, balances.
-- **Phase 5 — Transactions**: client-side build/sign/broadcast. **Testnet-first;
-  mainnet fund movement is HITL-gated** per the safety rules.
+- **Phase 1 — Crypto foundation** (`wallet.ts` + tests). DONE.
+- **Phase 2 — Schema + shared types** (`Wallet*` types + Zod, watch-only). DONE.
+- **Phase 3 — API (read)**: account CRUD + balance via public indexers. DONE.
+- **Phase 4 — Web UI**: accounts, receive addresses, balances. DONE.
+- **Phase 5a — Signing (web)**: client-side build/sign, no broadcast. DONE (fund-safe).
+- **iOS 5a/5b/5c — Native parity + local-first UI + 3-round visual verify**. DONE.
+- **Phase 5b — Broadcast relay**: Go forwards signed bytes to fixed trusted
+  endpoints (never signs); testnet-first live proof. QUEUED — HITL.
+- **Phase 5c — Send UI**: amount/fee/confirm; **mainnet fund movement HITL-gated**
+  per the safety rules. QUEUED — HITL.
 
-## 9. Non-goals (this iteration)
+## 13. Non-goals (this iteration)
 
 - Custodial holding of any kind.
 - Server-side key storage or server-side signing.

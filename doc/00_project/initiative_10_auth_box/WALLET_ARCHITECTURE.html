@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-style-id="html-document-style">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generated-by" content="html-style-router/html-document-style (Claude Warm Academic Humanism)">
+<title>Auth Box 加密钱包架构</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700;800&family=Noto+Serif+SC:wght@400;700&family=Source+Sans+3:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --claude-page-max:1100px;
+  --claude-page-gutter-total:clamp(32px,6vw,96px);
+
+  --bg-primary:#F3F0E9;
+  --bg-card:#FFFFFF;
+  --bg-card-hover:#FAF8F4;
+  --bg-warm:#EDE8DD;
+
+  --border:rgba(44,44,46,0.08);
+  --border-strong:rgba(44,44,46,0.15);
+
+  --text-primary:#2C2C2E;
+  --text-secondary:#5C5C5E;
+  --text-muted:#858587;
+
+  --accent:#D67052;
+  --accent-glow:rgba(214,112,82,0.08);
+  --accent-light:rgba(214,112,82,0.06);
+  --mustard:#F0B857;
+  --mustard-light:rgba(240,184,87,0.10);
+  --green:#4A9D6E;
+  --green-light:rgba(74,157,110,0.08);
+  --amber:#D4943A;
+  --red:#C44536;
+  --navy:#1B3A5C;
+  --navy-light:rgba(27,58,92,0.06);
+
+  --font-serif:'Crimson Pro','Noto Serif SC','Songti SC','SimSun',serif;
+  --font:'Source Sans 3','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --mono:'JetBrains Mono','SF Mono','Fira Code',monospace;
+
+  --radius:10px;
+  --radius-sm:6px;
+  --shadow-sm:0 1px 3px rgba(44,44,46,0.04),0 1px 2px rgba(44,44,46,0.02);
+  --shadow-md:0 2px 8px rgba(44,44,46,0.06),0 4px 16px rgba(44,44,46,0.04);
+  --shadow-lg:0 4px 12px rgba(44,44,46,0.08),0 8px 32px rgba(44,44,46,0.06);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  font-family:var(--font);
+  line-height:1.85;
+  letter-spacing:0.02em;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:'palt' 1;
+}
+
+.frame{
+  width:min(var(--claude-page-max),calc(100% - var(--claude-page-gutter-total)));
+  margin-inline:auto;
+}
+
+/* ── Cover ── */
+.cover{
+  background:linear-gradient(160deg,#2C2C2E 0%,#1B3A5C 100%);
+  color:#fff;
+  padding-block:64px 40px;
+  padding-inline:0;
+  margin-bottom:0;
+}
+.cover .badge{
+  display:inline-block;
+  background:rgba(255,255,255,0.10);
+  color:var(--mustard);
+  padding:7px 20px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  font-family:var(--mono);
+  margin-bottom:24px;
+}
+.cover h1{
+  font-family:var(--font-serif);
+  font-weight:800;
+  font-size:3.2rem;
+  line-height:1.15;
+  margin-bottom:18px;
+}
+.cover .subtitle{
+  font-size:1.12rem;
+  color:rgba(255,255,255,0.85);
+  max-width:880px;
+  margin-bottom:40px;
+}
+.herostats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:20px;
+  border-top:1px solid rgba(255,255,255,0.14);
+  padding-top:32px;
+}
+.herostats .stat .num{
+  font-family:var(--font-serif);
+  font-weight:700;
+  font-size:2.2rem;
+  color:#fff;
+  line-height:1.1;
+}
+.herostats .stat .lab{
+  font-size:0.82rem;
+  color:rgba(255,255,255,0.7);
+  margin-top:6px;
+}
+
+/* ── Body ── */
+main.frame{padding-block:32px 80px;}
+main.frame > section{margin-bottom:72px;}
+
+.secnum{
+  font-family:var(--mono);
+  font-size:0.8rem;
+  font-weight:600;
+  color:var(--accent);
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+h2{
+  font-family:var(--font-serif);
+  font-weight:700;
+  font-size:1.85rem;
+  margin:8px 0 22px;
+  line-height:1.25;
+}
+h3{
+  font-family:var(--font-serif);
+  font-weight:700;
+  font-size:1.25rem;
+  margin:0 0 10px;
+}
+p{margin-bottom:16px;font-size:1rem;color:var(--text-primary);}
+p.lead{color:var(--text-secondary);}
+strong{font-weight:700;}
+.muted{color:var(--text-secondary);}
+code{
+  font-family:var(--mono);
+  font-size:0.86em;
+  background:var(--bg-warm);
+  color:var(--navy);
+  padding:2px 7px;
+  border-radius:4px;
+  word-break:break-all;
+}
+
+/* Cards */
+.card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  padding:26px 28px;
+}
+.card-grid{display:grid;gap:20px;}
+.card-grid-2{grid-template-columns:repeat(2,1fr);}
+.card-grid-3{grid-template-columns:repeat(3,1fr);}
+
+/* Tables */
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow-sm);
+  font-size:0.92rem;
+}
+th,td{
+  text-align:left;
+  padding:13px 18px;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+}
+th{
+  background:var(--bg-warm);
+  font-weight:700;
+  font-size:0.82rem;
+  letter-spacing:0.04em;
+  color:var(--text-secondary);
+}
+tr:last-child td{border-bottom:none;}
+td code{background:var(--accent-glow);color:var(--accent);}
+
+/* Blockquote */
+blockquote{
+  background:var(--bg-card);
+  border-left:3px solid var(--accent);
+  padding:24px 28px;
+  border-radius:0 var(--radius) var(--radius) 0;
+  box-shadow:var(--shadow-sm);
+  font-size:0.98rem;
+  line-height:1.9;
+  color:var(--text-secondary);
+}
+blockquote strong{color:var(--text-primary);}
+
+/* Status pills */
+.pill{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:0.72rem;
+  font-weight:600;
+  padding:3px 11px;
+  border-radius:var(--radius-sm);
+  letter-spacing:0.04em;
+}
+.pill-done{background:var(--green-light);color:var(--green);}
+.pill-hitl{background:var(--mustard-light);color:var(--amber);}
+
+/* Phase list */
+.phase{
+  display:flex;
+  gap:16px;
+  align-items:flex-start;
+  padding:14px 0;
+  border-bottom:1px solid var(--border);
+}
+.phase:last-child{border-bottom:none;}
+.phase .body{flex:1;}
+.phase .body .t{font-weight:600;}
+.phase .body .d{font-size:0.9rem;color:var(--text-secondary);}
+
+ul.clean{list-style:none;}
+ul.clean li{
+  position:relative;
+  padding-left:22px;
+  margin-bottom:9px;
+  font-size:0.96rem;
+  color:var(--text-secondary);
+}
+ul.clean li::before{
+  content:'';
+  position:absolute;
+  left:2px;top:11px;
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--accent);
+  opacity:0.55;
+}
+
+.codeblock{
+  background:#23231f;
+  color:#E8E6DF;
+  font-family:var(--mono);
+  font-size:0.84rem;
+  line-height:1.7;
+  padding:20px 24px;
+  border-radius:var(--radius);
+  overflow-x:auto;
+  white-space:pre;
+}
+
+footer{
+  text-align:center;
+  padding:60px 20px 40px;
+  color:var(--text-muted);
+  font-size:13px;
+  line-height:2.2;
+}
+
+@media (max-width:768px){
+  .herostats{grid-template-columns:repeat(2,1fr);}
+  .card-grid-2,.card-grid-3{grid-template-columns:1fr;}
+  .cover h1{font-size:2.4rem;}
+}
+@media print{
+  body{background:#fff;}
+  section{break-inside:avoid;}
+  .card{box-shadow:none;border:1px solid #ddd;}
+}
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="frame">
+    <span class="badge">Auth Box · 钱包架构</span>
+    <h1>自托管多币种加密钱包</h1>
+    <p class="subtitle">在不削弱零知识金库（zero-knowledge vault，零知识保险库）安全模型的前提下，把 Auth Box 升级为同时也是一个自托管（self-custodial，私钥自持）的比特币 / 以太坊钱包。Web 与 iOS 从同一助记词派生出完全一致的地址，服务端始终 watch-only（只读观察）。</p>
+    <div class="herostats">
+      <div class="stat"><div class="num">1</div><div class="lab">一个种子，两棵独立 HD 树</div></div>
+      <div class="stat"><div class="num">Web + iOS</div><div class="lab">跨平台逐字节一致</div></div>
+      <div class="stat"><div class="num">80 + 13</div><div class="lab">加密测试全绿（web + iOS）</div></div>
+      <div class="stat"><div class="num">3 轮</div><div class="lab">iOS 真机像素视觉验证</div></div>
+    </div>
+  </div>
+</section>
+
+<main class="frame">
+
+  <section>
+    <div class="secnum">01 — 目标</div>
+    <h2>钱包是种子的新派生分支，而非外挂的密钥</h2>
+    <p class="lead">把 Auth Box 从「零知识金库 + AI 密钥中枢（agent broker，代理密钥代办）」升级为<strong>同时也是一个自托管多币种加密钱包</strong>，先支持比特币与以太坊 / EVM（Ethereum Virtual Machine，以太坊虚拟机）。核心约束：不引入任何新的托管风险，不改变既有的零知识安全姿态。</p>
+  </section>
+
+  <section>
+    <div class="secnum">02 — 核心洞察</div>
+    <h2>种子本就是钱包种子</h2>
+    <p>Auth Box 已经在保护一个 <strong>BIP-39 的 24 词助记词</strong>（<code>packages/crypto/src/seed.ts</code>）。其 <code>mnemonicToSeed</code> 完全符合 BIP-39 规范（PBKDF2-HMAC-SHA512，盐 <code>"mnemonic"</code>，2048 次迭代，64 字节输出）。因此用户手里已有的这串短语<strong>本身</strong>就是一个标准钱包种子 —— 加密钱包不是一个外挂的新秘密，而是用户已经掌控的那颗种子上的一条新派生分支。</p>
+  </section>
+
+  <section>
+    <div class="secnum">03 — 密钥树</div>
+    <h2>一个种子，两棵密码学独立的 HD 树</h2>
+    <table>
+      <thead><tr><th>树</th><th>HMAC 密钥</th><th>派生方式</th><th>用途</th><th>互操作</th></tr></thead>
+      <tbody>
+        <tr><td>Auth Box 内部树</td><td><code>"authbox seed"</code></td><td>自定义、仅硬化（<code>deriveKey</code>）</td><td>金库 / 同步 / 代理 / 密码密钥</td><td>无（刻意）</td></tr>
+        <tr><td>钱包树</td><td><code>"Bitcoin seed"</code></td><td>标准 BIP-32</td><td>BTC / ETH 密钥</td><td>完整（BIP-44/84）</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:18px">两棵树虽共享同一颗种子，却因 HMAC 密钥不同而<strong>密码学独立</strong>（密钥材料完全不相交）。内部树保持自定义结构（其密钥是用于 AES/HKDF 的对称秘密，无需互操作）；钱包树保持<strong>标准</strong>，使同一串助记词能在 Electrum / MetaMask / Ledger 中恢复出完全相同的地址。「不锁定」是硬性要求 —— 这正是自托管的全部价值所在。</p>
+  </section>
+
+  <section>
+    <div class="secnum">04 — 派生标准</div>
+    <h2>双密码学体系，扩展即参数化</h2>
+    <table>
+      <thead><tr><th>币种</th><th>标准</th><th>路径</th><th>地址</th></tr></thead>
+      <tbody>
+        <tr><td>BTC 原生隔离见证（默认）</td><td>BIP-84</td><td><code>m/84'/0'/0'/{change}/{i}</code></td><td>bech32 <code>bc1…</code>（P2WPKH）</td></tr>
+        <tr><td>BTC 传统</td><td>BIP-44</td><td><code>m/44'/0'/0'/{change}/{i}</code></td><td>base58 <code>1…</code>（P2PKH）</td></tr>
+        <tr><td>ETH / EVM</td><td>BIP-44</td><td><code>m/44'/60'/0'/{change}/{i}</code></td><td>EIP-55 <code>0x…</code></td></tr>
+        <tr><td>测试网（任意）</td><td>—</td><td>coin_type <code>1'</code>（SLIP-44）</td><td><code>tb1…</code> 等</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:18px">已实现的两个币种横跨两种密码学体系（UTXO/secp256k1+hash160 与账户/secp256k1+keccak）。新增 BTC 类币（LTC、DOGE）只是网络版本字节的改动；新增 EVM 链则复用同一个 ETH 地址不变。扩展是参数化，而非新的密码学。</p>
+  </section>
+
+  <section>
+    <div class="secnum">05 — 安全模型</div>
+    <h2>自托管 + watch-only 服务器</h2>
+    <p class="lead">金库的零知识属性原样延伸到钱包：</p>
+    <div class="card-grid card-grid-3" style="margin-bottom:20px">
+      <div class="card"><h3>私钥永不离开设备</h3><p class="muted" style="margin:0;font-size:0.94rem">私钥在客户端从种子派生，签名在本地完成，服务端从不接触密钥材料。</p></div>
+      <div class="card"><h3>服务器只读观察</h3><p class="muted" style="margin:0;font-size:0.94rem">服务端只持久化账户级 <strong>xpub</strong>（扩展公钥）与派生地址 —— 够扫描余额与历史，永远不够花费。</p></div>
+      <div class="card"><h3>服务器无法动资金</h3><p class="muted" style="margin:0;font-size:0.94rem">与金库同一信任边界：服务端被完全攻陷只泄露公开地址与余额（隐私损失），而非托管权。</p></div>
+    </div>
+    <blockquote><strong>威胁模型说明：</strong>从保护金库的同一颗种子派生钱包密钥，意味着种子一旦泄露，金库与资金同失。这是「单种子」模型的固有性质（与每一个硬件钱包完全相同），并未改变既有姿态 —— 种子本就是皇冠上的宝石，因为它早已派生出金库密钥。</blockquote>
+  </section>
+
+  <section>
+    <div class="secnum">06 — 库选择</div>
+    <h2>不手搓曲线密码学</h2>
+    <h3 style="margin-bottom:12px">Web（<code>packages/crypto</code>，TypeScript）</h3>
+    <table style="margin-bottom:24px">
+      <thead><tr><th>关注点</th><th>库</th><th>理由</th></tr></thead>
+      <tbody>
+        <tr><td>BIP-32 HD 派生</td><td><code>@scure/bip32</code></td><td>已审计；与在用的 <code>@noble/hashes</code> 同作者</td></tr>
+        <tr><td>secp256k1</td><td><code>@noble/curves</code></td><td>生态内的已审计参考实现</td></tr>
+        <tr><td>BTC 地址 / PSBT / 签名</td><td><code>@scure/btc-signer</code></td><td>正确的 bech32/base58check + <code>selectUTXO</code> 选币</td></tr>
+        <tr><td>ETH 交易构建 / EIP-1559 / 签名</td><td><code>micro-eth-signer</code></td><td>paulmillr 出品、已审计、同 @noble/@scure 生态；免手搓 RLP</td></tr>
+        <tr><td>keccak256</td><td><code>@noble/hashes/sha3</code></td><td>已是依赖项</td></tr>
+      </tbody>
+    </table>
+    <h3 style="margin-bottom:12px">iOS（<code>apps/ios/AuthBoxCrypto</code>，Swift）</h3>
+    <table>
+      <thead><tr><th>关注点</th><th>库 / 实现</th><th>理由</th></tr></thead>
+      <tbody>
+        <tr><td>secp256k1</td><td><code>swift-secp256k1</code> 0.21（<code>libsecp256k1</code> C 产物）</td><td>同一个 libsecp256k1 参考 C 库；Swift 侧无曲线运算</td></tr>
+        <tr><td>SHA-256/512、HMAC</td><td>CryptoKit</td><td>系统一方库、硬件加速</td></tr>
+        <tr><td>keccak256 / RIPEMD-160 / bech32 / base58check</td><td>自带实现（各自对齐公开向量）</td><td>CryptoKit 缺 Keccak 与 RIPEMD-160</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:18px">手搓 secp256k1 的子密钥派生正是钱包染上 CVE 的地方（常量时间标量加、<code>IL ≥ n</code> 重试）。两个平台都把曲线运算委托给已审计的 libsecp256k1 血统；只有 BIP-39 短语逻辑与哈希/编码原语（纯位运算）是手写的，并对齐向量。</p>
+    <blockquote style="margin-top:18px"><strong>iOS 值得记录的坑：</strong>libsecp256k1 的<strong>静态</strong> context 缺少 <code>ecmult_gen</code> 表，导致 <code>pubkey_create</code> 直接 abort —— 封装必须用 <code>secp256k1_context_create(SECP256K1_CONTEXT_NONE)</code> 创建 context；静态单例标注 <code>nonisolated(unsafe)</code> 以满足 Swift 6 并发。</blockquote>
+  </section>
+
+  <section>
+    <div class="secnum">07 — 跨平台一致性</div>
+    <h2>打通契约：同一种子 → 同一地址</h2>
+    <p>Web 与 iOS 从同一颗种子派生，<strong>必须</strong>产出完全相同的地址。Swift 栈（<code>Wallet.swift</code>）逐步镜像 TypeScript 栈（<code>wallet.ts</code>）：「Bitcoin seed」主密钥 → 硬化 + 非硬化 CKDpriv（<code>childPriv = (IL + parentPriv) mod n</code>，其中 <code>IL = HMAC-SHA512(chainCode, 压缩父公钥 ‖ index)</code>）→ BIP-84 P2WPKH / BIP-44 P2PKH / ETH EIP-55 → 账户 xpub。</p>
+    <p>一致性以公开的 all-zeros 助记词（<code>abandon … about</code>）的<strong>共享外部锚点</strong>来证明，两个平台逐字节产出：</p>
+    <table>
+      <thead><tr><th>币种</th><th>路径</th><th>地址</th></tr></thead>
+      <tbody>
+        <tr><td>BTC 原生隔离见证</td><td><code>m/84'/0'/0'/0/0</code></td><td><code>bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu</code></td></tr>
+        <tr><td>BTC 传统</td><td><code>m/44'/0'/0'/0/0</code></td><td><code>1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA</code></td></tr>
+        <tr><td>ETH</td><td><code>m/44'/60'/0'/0/0</code></td><td><code>0x9858EfFD232B4033E47d90003D41EC34EcaEda94</code></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:18px">因为两侧都锚定<strong>同一组外部向量</strong>（而非互相对照），任一平台的漂移都会独立地令自己的测试套件失败 —— 一致性是「两个独立实现都符合标准」的属性，而非「一个抄另一个」。</p>
+  </section>
+
+  <section>
+    <div class="secnum">08 — 交易签名（Phase 5a · web · 无资金风险）</div>
+    <h2>本地构建 + 签名，刻意不广播</h2>
+    <p><code>packages/crypto/src/wallet-tx.ts</code> 加入了客户端构建 + 签名（不广播）：</p>
+    <ul class="clean">
+      <li><code>buildBtcTransaction</code> —— 用 <code>@scure/btc-signer</code> 的 <code>selectUTXO</code> 选币 + 找零，P2WPKH 用 <code>witnessUtxo</code> / P2PKH 用 <code>nonWitnessUtxo</code>，逐输入「派生 → 签名 → 在 <code>finally</code> 中 <code>fill(0)</code> 清零私钥」。返回 <code>{ hex, txid, fee, vsize }</code>；<code>txid</code> 为大端展示序。</li>
+      <li><code>buildEthTransaction</code> —— 用 <code>micro-eth-signer</code> 的 <code>Transaction.prepare({type:'eip1559'}).signBy(priv)</code>。恢复出的 <code>sender</code> 被断言等于独立派生的地址（不匹配则抛错，而非交回一笔花费了意外密钥的交易）；私钥在 <code>finally</code> 中清零。</li>
+    </ul>
+    <blockquote style="margin-top:18px"><strong>记录的发现：</strong><code>micro-eth-signer</code> 的 ECDSA 是<strong>对冲式（hedged）</strong>的（在 RFC6979 nonce 上加额外熵 → 非确定但有效、且恢复出同一 sender），而 <code>@scure/btc-signer</code> 是确定性签名。测试因此按币种断言正确的不变量 —— ETH 断言「有效 + sender 可恢复」，BTC 断言「确定性」。密钥本地派生、用一次、清零；这里全程不触网。<strong>广播被刻意不实现</strong> —— 那是 Phase 5b，须经 HITL（Human-In-The-Loop，人工在环）。</blockquote>
+  </section>
+
+  <section>
+    <div class="secnum">09 — 服务端</div>
+    <h2>Go API（watch-only）</h2>
+    <p><code>services/api</code> 在 <code>/wallet/accounts</code> 下暴露只读观察的账户接口（chi 路由、pgx 仓储）。它存 xpub + 地址 + 缓存余额；不持有任何密钥材料，无法签名。</p>
+    <table>
+      <thead><tr><th>方法</th><th>路由</th><th>处理器</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST</code></td><td><code>/wallet/accounts</code></td><td><code>CreateAccount</code>（按 xpub + 元数据登记账户）</td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/accounts</code></td><td><code>ListAccounts</code></td></tr>
+        <tr><td><code>DELETE</code></td><td><code>/wallet/accounts/{id}</code></td><td><code>DeleteAccount</code></td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/accounts/{id}/balance</code></td><td><code>Balance</code>（经公共索引器）</td></tr>
+        <tr><td><code>POST</code></td><td><code>/wallet/accounts/{id}/addresses</code></td><td><code>AddAddress</code></td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/accounts/{id}/addresses</code></td><td><code>ListAddresses</code></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:18px">余额来自 <code>balance_provider.go</code> → mempool.space（BTC）/ publicnode RPC（ETH）。服务端是便利索引器，从不是托管方。</p>
+  </section>
+
+  <section>
+    <div class="secnum">10 — iOS 集成</div>
+    <h2>local-first，无服务端往返</h2>
+    <p>iOS app 是 <strong>local-first（本地优先）</strong> 的，不使用 Go 钱包 API。<code>APIClient</code> 在 iOS 上是死代码（未接入登录流；金库本就是 Keychain seed + SwiftData，完全在设备上）。仅为取一个余额而重建一套缺席的认证流是净负收益，因此 iOS 钱包客户端派生，并<strong>直连同一组公共索引器</strong>（<code>WalletBalanceService</code>：mempool.space / publicnode）。这比 web 路径的零知识更强 —— 地址列表从不离开设备到自家服务器 —— 且与 local-first 金库一致。</p>
+    <p>持久化（<code>WalletAccountStore</code>，UserDefaults）只存<strong>公开账户描述符</strong>（币种 / 网络 / 脚本类型 / 索引 / 标签）—— 无密钥、无地址。收款地址在金库解锁时由内存中的种子实时重新派生，于是静态落盘的足迹不含任何敏感物。</p>
+  </section>
+
+  <section>
+    <div class="secnum">11 — 验证</div>
+    <h2>测试 + 真机像素三轮</h2>
+    <div class="card-grid card-grid-3">
+      <div class="card">
+        <h3>Web 加密</h3>
+        <p class="muted" style="font-size:0.94rem;margin:0">派生 + 签名测试全绿，加密套件 <strong>80/80</strong>。三个 iancoleman.io/bip39 外部锚点证明可导入标准钱包；签名测试锚定同一助记词（ETH 签名恢复 <code>0x9858…Eda94</code>，BTC 输入归属 <code>bc1qcr8te4…306fyu</code>）。</p>
+      </div>
+      <div class="card">
+        <h3>iOS 加密</h3>
+        <p class="muted" style="font-size:0.94rem;margin:0"><code>WalletTests</code> <strong>13/13</strong>；iOS 派生出完全相同的标准地址（锚定 iancoleman 向量 + TS 参考）—— 这就是跨平台「打通」的证据。</p>
+      </div>
+      <div class="card">
+        <h3>iOS 视觉验证（3 轮）</h3>
+        <p class="muted" style="font-size:0.94rem;margin:0"><code>WalletFlowUITests</code>（xcodebuild test PASSED）在 iPhone 17 模拟器跑真机像素。DEBUG 专用 <code>--wallet-demo-seed</code> 从公开测试助记词直接进入已解锁金库，渲染标准且链上真实的地址。7 张已逐图核对的 PNG。</p>
+      </div>
+    </div>
+    <table style="margin-top:20px">
+      <thead><tr><th>轮次</th><th>截图</th><th>核验点</th></tr></thead>
+      <tbody>
+        <tr><td>R1</td><td><code>wallet-r1-empty.png</code></td><td>Wallet 标签页可达 + 真实空状态</td></tr>
+        <tr><td>R2</td><td><code>wallet-r2-btc-detail.png</code></td><td><code>bc1qcr8te4…306fyu</code> @ <code>m/84'/0'/0'/0/0</code> + 真实 mempool.space 余额往返</td></tr>
+        <tr><td>R3</td><td><code>wallet-r3-eth-detail.png</code> / <code>wallet-r3-multicoin-list.png</code></td><td><code>0x9858…Eda94</code>（EIP-55）@ <code>m/44'/60'/0'/0/0</code> + 多币种并列</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="secnum">12 — 分阶段交付</div>
+    <h2>真实状态</h2>
+    <div class="card">
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 0 — 架构</div><div class="d">本文档。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 1 — 加密基础</div><div class="d"><code>wallet.ts</code> + 测试。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 2 — Schema + 共享类型</div><div class="d"><code>Wallet*</code> 类型 + Zod，watch-only 元数据。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 3 — API（读）</div><div class="d">账户 CRUD + 经公共索引器查余额。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 4 — Web UI</div><div class="d">账户、收款地址、余额。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 5a — 签名（web）</div><div class="d">客户端构建/签名，不广播（无资金风险）。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">iOS 5a/5b/5c — 原生一致性 + local-first UI + 3 轮视觉验证</div><div class="d">同一种子 → 同一地址，真机像素核对。</div></div></div>
+      <div class="phase"><span class="pill pill-hitl">HITL</span><div class="body"><div class="t">Phase 5b — 广播中继</div><div class="d">Go 把已签字节转发至固定可信端点（自身从不签名）；测试网优先的实链证明。排队中。</div></div></div>
+      <div class="phase"><span class="pill pill-hitl">HITL</span><div class="body"><div class="t">Phase 5c — 发送 UI</div><div class="d">金额/手续费/确认；<strong>主网资金移动须经 HITL 门</strong>。排队中。</div></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="secnum">13 — 非目标</div>
+    <h2>本轮明确不做</h2>
+    <ul class="clean">
+      <li>任何形式的托管持币。</li>
+      <li>服务端存储密钥或服务端签名。</li>
+      <li>DeFi / 兑换 / 跨链桥。</li>
+      <li>隐私币或非 secp256k1 链（Solana 等）—— 延后。</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auth Box · 加密钱包架构</p>
+  <p>Maurice | maurice_wen@proton.me</p>
+  <p style="font-size:12px;margin-top:8px;">2026-06-03 生成 · 数据来源：auth-box 仓库代码与测试（git 已核对）</p>
+</footer>
+
+</body>
+</html>
