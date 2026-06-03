@@ -58,3 +58,12 @@ export {
   type WalletAccount,
   type DeriveAddressOptions,
 } from "./wallet";
+export {
+  buildBtcTransaction,
+  buildEthTransaction,
+  type BtcSpendableUtxo,
+  type BuildBtcTxParams,
+  type SignedBtcTransaction,
+  type BuildEthTxParams,
+  type SignedEthTransaction,
+} from "./wallet-tx";

@@ -2291,3 +2291,39 @@ Other findings (documented, not fixed — see PAGE_MAP.md ledger):
 
 Next: Phase 5 (client-side tx build/sign — BTC PSBT + ETH EIP-1559, testnet-first,
 mainnet HITL).
+
+## 2026-06-03 · Phase 5a — client-side transaction signing layer
+
+Delivered the SPEND-side crypto, offline only (no broadcast = no fund movement):
+`packages/crypto/src/wallet-tx.ts`.
+
+- buildBtcTransaction(seed, {utxos, to, amountSats, changeAddress, feeRateSatPerVb,
+  network, scriptType}) -> {hex, txid, fee, vsize}. Coin selection + change + fee
+  via @scure/btc-signer `selectUTXO` (strategy 'default', BIP-69). p2wpkh by
+  witnessUtxo; legacy p2pkh requires per-input prevTxHex (nonWitnessUtxo). Each
+  candidate input's key is derived, used to sign, and `fill(0)`-ed in `finally`.
+  txid is BE display-order (block-explorer convention) -- no manual reversal.
+- buildEthTransaction(seed, {to, amountWei, nonce, gasLimit, maxFeePerGas,
+  maxPriorityFeePerGas, chainId, data?, account/change/index, network}) ->
+  {hex(0x02...), hash, sender}. micro-eth-signer@0.18 `Transaction.prepare(eip1559)`
+  -> `signBy`. Recovered `sender` is asserted == independently-derived address
+  (throws on mismatch rather than hand back a tx spending an unexpected key).
+  Private key zeroed in `finally`.
+- Security: keys derived locally, used once, zeroed; nothing network-touching.
+  Broadcast is the next-iteration server relay (forwards bytes it cannot sign).
+- Dep added: micro-eth-signer (paulmillr, audited, same @noble/@scure ecosystem
+  already in use) -- avoids hand-rolling RLP/EIP-1559 where wallets get CVEs.
+
+Tests: `wallet-tx.test.ts` 14/14; full crypto suite 80/80; tsc + build clean.
+Anchored on the canonical all-zeros seed: ETH signatures recover to
+0x9858EfFD232B4033E47d90003D41EC34EcaEda94, BTC inputs owned by
+bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu.
+
+Real finding: @noble/micro-eth-signer ECDSA is HEDGED (extra entropy on the
+RFC6979 nonce -> non-deterministic but valid signatures; recovers same sender),
+while @scure/btc-signer signs deterministically. Tests assert the right
+invariant per coin (validity + sender-recovery for ETH; determinism for BTC).
+
+Next: 5b broadcast relay (Go POST /wallet/broadcast -> mempool.space / publicnode,
+fixed trusted endpoints, never signs; live TESTNET proof), then 5c Send UI +
+mainnet HITL gate.

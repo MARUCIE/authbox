@@ -491,17 +491,34 @@ first), reusing the existing BIP-39 seed. Architecture: WALLET_ARCHITECTURE.md.
 - [x] Routes wired in main.go; go build + vet clean; go test ./... 43 passed / 9 packages
 - [x] Full closed-loop e2e (scripts/wallet-e2e-test.mjs): SRP register→login→create→addresses→REAL balance (57 BTC)→delete, 14/14
 
-### Phase 4 — Web UI [IN PROGRESS]
+### Phase 4 — Web UI [DONE]
 - [x] apps/web lib/api.ts walletApi typed client (createAccount/list/delete/addAddress/listAddresses/balance); web tsc --noEmit clean
-- [ ] apps/web/(vault)/wallet/page.tsx: account list, receive address + QR, balance display (reuse existing vault design system)
-- [ ] client-side derivation lib via @authbox/crypto deriveAccount/deriveAddress from the unlocked seed; never send private keys
-- [ ] nav entry to surface /wallet
-- [ ] 3-round HTML/visual polish + chrome-devtools screenshot verification
+- [x] apps/web/(vault)/wallet/page.tsx: account list, receive address + safety chip, balance display (Vault Onyx design system)
+- [x] client-side derivation via @authbox/crypto deriveAccount/deriveAddress from on-demand mnemonic; only xpub + address leave the device
+- [x] nav entry to surface /wallet ((vault)/layout.tsx navItems)
+- [x] visual verification: BTC + ETH accounts created live in browser; derived addrs match audited package + external BIP-84/EIP-55 anchors (PAGE_MAP.md Evidence; screenshots authbox-uxmap/13..19)
 
-### Phase 5 — Transactions (HITL / testnet-first) [QUEUED]
-- [ ] BTC PSBT build + sign (client) via @scure/btc-signer; ETH EIP-1559 tx sign
-- [ ] Broadcast relay endpoint (server forwards signed tx; never signs)
-- [ ] Testnet end-to-end first; mainnet fund movement HITL-gated
+### Phase 5 — Transactions (HITL / testnet-first) [IN PROGRESS]
+
+#### 5a — Crypto signing layer (offline, no broadcast = no fund movement) [DONE]
+- [x] add micro-eth-signer@0.18.1 (paulmillr, audited, same @noble/@scure ecosystem) for EIP-1559 RLP
+- [x] packages/crypto/src/wallet-tx.ts: buildBtcTransaction — selectUTXO coin-selection + change + fee (BIP-69), p2wpkh (+p2pkh via nonWitnessUtxo), derive per-input key → sign → zeroize in finally
+- [x] wallet-tx.ts: buildEthTransaction — EIP-1559 prepare→signBy, recovered-sender == derived-address self-check, zeroize private key in finally
+- [x] export from packages/crypto index.ts
+- [x] wallet-tx.test.ts: 14 tests — ETH sender-recovery anchored to canonical 0x9858…Eda94 + hedged-signature invariant + BTC mainnet/testnet build+finalize + insufficient-funds/bound checks + key-hygiene; finding: @noble ETH sigs are hedged (non-deterministic, valid), @scure BTC sigs deterministic
+- [x] tsc clean + full crypto vitest green (80/80) + build emit clean
+
+#### 5b — Broadcast relay (server forwards, never signs) [QUEUED]
+- [ ] Go: POST /wallet/broadcast {coin,network,rawTxHex} → mempool.space (BTC) / publicnode eth_sendRawTransaction (ETH); fixed trusted endpoints (SSRF-safe); returns txid
+- [ ] enum/network validation → 400; Go test + live TESTNET broadcast proof (no mainnet)
+
+#### 5c — Send UI + HITL gate [QUEUED]
+- [ ] wallet page Send dialog: to / amount / fee-rate; build+sign client-side; show fee + total before confirm; testnet badge
+- [ ] mainnet HITL gate: explicit double-confirm + network/amount warning before any mainnet broadcast
+- [ ] 3-round visual polish + chrome-devtools screenshots
+
+### Deferred companion
+- [ ] WALLET_ARCHITECTURE.html (2份制 Chinese companion via html-style-router, Claude Warm Academic) — produce at a doc milestone
 
 ### Deferred companion
 - [ ] WALLET_ARCHITECTURE.html (2份制 Chinese companion via html-style-router, Claude Warm Academic) — produce at a doc milestone
