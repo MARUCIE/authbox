@@ -130,9 +130,26 @@ Screenshots: `totp-import-r{1,2,3}-*.png`.
   `totp.test.ts` against the **same 18 Appendix B vectors** the Swift suite uses — a
   cross-platform parity proof (identical codes on iOS and web). `password-detail.tsx` renders
   a live `TotpRow` (per-second tick via `useEffect`/`setInterval`, mirror of the iOS
-  `TimelineView`), reading `data.otpAuth`/`data.totpSecret`. Verified: crypto suite 96/96 +
-  `tsc --noEmit` clean across the web app. Deferred: a live render screenshot needs the
-  running authenticated web app with a real vault item (auth/data-gated, not logic-gated).
+  `TimelineView`), reading `data.otpAuth`/`data.totpSecret`. Deferred: a live render screenshot
+  needs the running authenticated web app with a real vault item (auth/data-gated, not
+  logic-gated).
+- **Web import + migration** — DONE. `packages/crypto/src/otp-migration.ts` is the TS port of
+  `OTPImport.swift`: `parseOTPImport(raw)` handles a Google Authenticator
+  `otpauth-migration://offline?data=...` export (base64 + the same minimal dependency-free
+  `ProtobufReader` — varint + length-delimited, unknown fields skipped, HOTP/MD5 accounts
+  dropped), a single `otpauth://` URI, or a newline-separated list. Proven by
+  `otp-migration.test.ts` — 10 tests with an in-test protobuf **encoder** (the decoder's mirror
+  image) plus the **same RFC 6238 anchor (287082)** the iOS suite uses, so the decode is
+  non-coincident on both wire format and HMAC. The web `ImportDialog` now offers a "Paste
+  authenticator export" textarea alongside the file upload; pasted accounts convert to the same
+  `LoginImportItem[]` and flow through the existing preview/import path. Fixed a latent drop in
+  the same change: `handleImport` never forwarded `otpAuth` to `createVaultItem`, so CSV/JSON
+  imports (Bitwarden/LastPass/Apple) that parse a 2FA secret were silently losing it on write.
+  Verified: crypto suite **106 passed / 2 skipped**, `tsc --noEmit` clean on the changed web
+  files (the lone `globals.css` side-effect error is a pre-existing bare-`tsc` artifact,
+  proven independent by a stash-bisect). Deferred: a live import screenshot is auth-gated like
+  the render path. Web QR-camera scan is a follow-up (browser `getUserMedia` + a QR decoder);
+  the paste path already covers the migration payload a scan would yield.
 - **SHA256/SHA512 + 8-digit issuers** — already supported by the engine; surface
   them in the add UI if a service needs a non-default profile.
 

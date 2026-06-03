@@ -79,3 +79,4 @@ export {
   type TOTPParams,
   type OTPAlgorithm,
 } from "./totp";
+export { parseOTPImport, parseMigration } from "./otp-migration";

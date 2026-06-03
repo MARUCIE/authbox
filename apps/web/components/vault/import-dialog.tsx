@@ -11,6 +11,25 @@ import {
   type ImportResult,
 } from '@/lib/import-parsers';
 import { createVaultItem } from '@/lib/vault-service';
+import { parseOTPImport, toOtpauthURI } from '@authbox/crypto';
+
+/**
+ * Map a Google Authenticator `otpauth-migration://` export, a single
+ * `otpauth://` URI, or a newline-separated list into the same
+ * `LoginImportItem[]` the file importers produce — so the preview/import flow
+ * stays identical. Each account becomes a login item carrying only its TOTP
+ * secret (re-serialized to a canonical `otpauth://` URI for storage).
+ */
+function parseAuthenticatorExport(raw: string): LoginImportItem[] {
+  return parseOTPImport(raw).map((params) => ({
+    name: params.issuer || params.account || 'Authenticator',
+    username: params.account ?? '',
+    password: '',
+    uri: '',
+    notes: '',
+    otpAuth: toOtpauthURI(params),
+  }));
+}
 
 interface ImportDialogProps {
   open: boolean;
@@ -32,6 +51,7 @@ export function ImportDialog({ open, onClose, onComplete }: ImportDialogProps) {
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [parseError, setParseError] = useState<string | null>(null);
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0, errors: 0 });
+  const [pasteText, setPasteText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reset = useCallback(() => {
@@ -41,6 +61,7 @@ export function ImportDialog({ open, onClose, onComplete }: ImportDialogProps) {
     setSelectedItems(new Set());
     setParseError(null);
     setImportProgress({ done: 0, total: 0, errors: 0 });
+    setPasteText('');
   }, []);
 
   const handleClose = useCallback(() => {
@@ -83,6 +104,20 @@ export function ImportDialog({ open, onClose, onComplete }: ImportDialogProps) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
+  function handlePasteImport() {
+    setParseError(null);
+    const items = parseAuthenticatorExport(pasteText);
+    if (items.length === 0) {
+      setParseError(
+        'No 2FA accounts found. Paste an otpauth:// link or a Google Authenticator otpauth-migration:// export.',
+      );
+      return;
+    }
+    setParsedItems(items);
+    setSelectedItems(new Set(items.map((_, i) => i)));
+    setStep('preview');
+  }
+
   async function handleImport() {
     const itemsToImport = parsedItems.filter((_, i) => selectedItems.has(i));
     if (itemsToImport.length === 0) return;
@@ -99,6 +134,10 @@ export function ImportDialog({ open, onClose, onComplete }: ImportDialogProps) {
           password: item.password,
           uri: item.uri,
           notes: item.notes,
+          // Forward the TOTP secret so imported/migrated 2FA accounts keep
+          // generating codes (CSV/JSON parsers and the authenticator-export
+          // paste path both populate otpAuth).
+          ...(item.otpAuth ? { otpAuth: item.otpAuth } : {}),
         });
       } catch {
         errors++;
@@ -171,6 +210,40 @@ export function ImportDialog({ open, onClose, onComplete }: ImportDialogProps) {
             >
               Choose File
             </Button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--border)]" />
+            <span className="text-xs text-[var(--muted-foreground)]">or import 2FA accounts</span>
+            <div className="h-px flex-1 bg-[var(--border)]" />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="import-otp" className="text-sm font-medium">
+              Paste authenticator export
+            </label>
+            <textarea
+              id="import-otp"
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              rows={3}
+              placeholder="otpauth://totp/... or otpauth-migration://offline?data=..."
+              className="w-full rounded-lg border border-[var(--input)] bg-transparent px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)]"
+            />
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Paste a single otpauth:// link, several lines, or a Google Authenticator
+              &ldquo;Export accounts&rdquo; QR payload (otpauth-migration://).
+            </p>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePasteImport}
+                disabled={pasteText.trim().length === 0}
+              >
+                Parse accounts
+              </Button>
+            </div>
           </div>
 
           {parseError && (
