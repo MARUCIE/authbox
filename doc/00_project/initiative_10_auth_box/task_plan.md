@@ -459,3 +459,46 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
 - [ ] Migrate AI-Fleet provider keys → broker; remove from git-tracked config (HITL: touches live proxy)
 
 Gate per phase: pnpm typecheck && pnpm test (TS) + xcodebuild build/test (Swift) + UX-map manual evidence in notes.md.
+
+## 2026-06-03 · Crypto Wallet Upgrade — Atomic Execution Queue
+
+Goal: upgrade Auth Box into also a self-custodial multi-coin wallet (BTC + ETH
+first), reusing the existing BIP-39 seed. Architecture: WALLET_ARCHITECTURE.md.
+
+### Phase 0 — Architecture [DONE]
+- [x] Ultra Think derivation/security model → WALLET_ARCHITECTURE.md
+- [x] Decide: standard BIP-32/44/84 branch off existing BIP-39 seed; watch-only server; audited libs
+
+### Phase 1 — Crypto foundation (offline, deterministic) [DONE]
+- [x] Install @scure/bip32, @scure/btc-signer, @noble/curves, @scure/base
+- [x] packages/crypto/src/wallet.ts: deriveAccount/deriveAddress/derivePrivateKey + BTC(segwit+legacy)/ETH/testnet/xpub
+- [x] ethAddressFromPublicKey with EIP-55 checksum
+- [x] wallet.test.ts: 14 tests incl. 3 external interop anchors (iancoleman vectors) — all green
+- [x] export from packages/crypto index; tsc clean
+
+### Phase 2 — Schema + shared types (watch-only) [DONE]
+- [x] packages/shared/src/types/wallet.ts (Coin/BtcScriptType/WalletNetwork + WalletAccount/Address)
+- [x] Zod schemas in validation/index.ts (enums parity with TS + Go)
+- [x] migration 011_wallet_accounts (wallet_accounts + wallet_addresses, NUMERIC(40,0) for wei; no secret columns)
+- [x] shared build clean; migration applied (version 11); tables verified
+
+### Phase 3 — API (read / watch-only) [QUEUED]
+- [ ] Go domain + repo: WalletAccount/WalletAddress (services/api/internal/domain + repository)
+- [ ] Go service + handler: account CRUD (create from xpub, list, delete) with enum validation matching shared
+- [ ] Wallet enum-parity test (Go) — guard cross-layer drift
+- [ ] Balance provider: BTC via mempool.space/Blockstream, ETH via public RPC (watch-only, server-side fetch)
+- [ ] GET /wallet/accounts/:id/balance returns confirmed/unconfirmed (real indexer call)
+- [ ] Routes wired in router; go build + go test green
+
+### Phase 4 — Web UI [QUEUED]
+- [ ] apps/web wallet screens: account list, receive address + QR, balance display
+- [ ] derive addresses client-side via @authbox/crypto; never send private keys
+- [ ] 3-round HTML/visual polish + chrome-devtools screenshot verification
+
+### Phase 5 — Transactions (HITL / testnet-first) [QUEUED]
+- [ ] BTC PSBT build + sign (client) via @scure/btc-signer; ETH EIP-1559 tx sign
+- [ ] Broadcast relay endpoint (server forwards signed tx; never signs)
+- [ ] Testnet end-to-end first; mainnet fund movement HITL-gated
+
+### Deferred companion
+- [ ] WALLET_ARCHITECTURE.html (2份制 Chinese companion via html-style-router, Claude Warm Academic) — produce at a doc milestone

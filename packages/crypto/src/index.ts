@@ -45,3 +45,16 @@ export {
   decryptVaultItem,
   type VaultKeyBundle,
 } from "./vault-crypto";
+export {
+  deriveAccount,
+  deriveAddress,
+  derivePrivateKey,
+  deriveAddressFromMnemonic,
+  ethAddressFromPublicKey,
+  type Coin,
+  type BtcScriptType,
+  type WalletNetwork,
+  type WalletAddress,
+  type WalletAccount,
+  type DeriveAddressOptions,
+} from "./wallet";

@@ -277,8 +277,62 @@ export const AuditQuerySchema = z.object({
   offset: z.number().int().nonnegative().optional(),
 });
 
+// ─── Wallet ─────────────────────────────────────────────────────────
+// Enum vocabularies MUST match packages/shared/src/types/wallet.ts and the Go
+// API. Guarded by the wallet enum-parity test.
+
+const CoinEnum = z.enum(['btc', 'eth']);
+const BtcScriptTypeEnum = z.enum(['p2wpkh', 'p2pkh']);
+const WalletNetworkEnum = z.enum(['mainnet', 'testnet']);
+
+// Smallest-unit balances are decimal strings (wei exceeds JS safe integers).
+const decimalString = z.string().regex(/^\d+$/, 'must be a non-negative integer string');
+// Account-level or full BIP-44/84 path, e.g. m/84'/0'/0' or m/44'/60'/0'/0/0
+const derivationPath = z.string().regex(/^m(\/\d+'?)+$/, 'invalid BIP-32 derivation path');
+
+export const CreateWalletAccountRequestSchema = z.object({
+  coin: CoinEnum,
+  network: WalletNetworkEnum.optional(),
+  scriptType: BtcScriptTypeEnum.optional(),
+  accountIndex: z.number().int().nonnegative().optional(),
+  derivationPath,
+  xpub: z.string().min(1).max(256),
+  label: z.string().max(255).optional(),
+});
+
+export const WalletAccountSchema = z.object({
+  id: uuid,
+  userId: uuid,
+  coin: CoinEnum,
+  network: WalletNetworkEnum,
+  scriptType: BtcScriptTypeEnum.optional(),
+  accountIndex: z.number().int().nonnegative(),
+  derivationPath,
+  xpub: z.string().min(1),
+  label: z.string(),
+  cachedBalance: decimalString,
+  cachedBalanceAt: isoDate.optional(),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+
+export const WalletAddressSchema = z.object({
+  id: uuid,
+  accountId: uuid,
+  address: z.string().min(1).max(128),
+  derivationPath,
+  change: z.union([z.literal(0), z.literal(1)]),
+  addressIndex: z.number().int().nonnegative(),
+  publicKey: z.string().regex(/^[0-9a-fA-F]{66}$/, 'compressed public key hex'),
+  cachedBalance: decimalString,
+  createdAt: isoDate,
+});
+
 // ─── Inferred types (for use when you want Zod-derived types) ───────
 
+export type ValidatedCreateWalletAccountRequest = z.infer<typeof CreateWalletAccountRequestSchema>;
+export type ValidatedWalletAccount = z.infer<typeof WalletAccountSchema>;
+export type ValidatedWalletAddress = z.infer<typeof WalletAddressSchema>;
 export type ValidatedSRPRegisterRequest = z.infer<typeof SRPRegisterRequestSchema>;
 export type ValidatedSRPLoginInitRequest = z.infer<typeof SRPLoginInitRequestSchema>;
 export type ValidatedSRPLoginVerifyRequest = z.infer<typeof SRPLoginVerifyRequestSchema>;
