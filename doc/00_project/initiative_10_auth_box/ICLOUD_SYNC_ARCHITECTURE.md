@@ -28,6 +28,13 @@ Last updated: 2026-06-04
 >   (group.com.authbox.shared)`, `autofill-credential-provider = true`.
 > - **Settings toggle wired**: the previously-decorative "Cloud Sync" toggle now drives
 >   `AppState.isSyncEnabled` (off by default, Pro-gated), which builds/tears-down the engine.
+> - **Runtime smoke test (simulator)**: launched with `-authbox.sync.enabled YES
+>   --totp-demo-seed`, the app unlocks the vault, adds an item, and `startSyncIfEnabled()`
+>   builds the engine + instantiates `CKSyncEngine` + enqueues the item — and the process
+>   stays alive with **zero crash reports**. This proves the `@MainActor` engine + `@Published`
+>   toggle + `@Sendable` record-provider closure are runtime-sound, beyond compile-time. The
+>   simulator has no iCloud account, so no network send is attempted (expected) — that leg is
+>   the device acceptance below.
 >
 > **Remaining — the live CloudKit round-trip (on-device acceptance, Maurice-gated).** The
 > physical-device UI cannot be driven by automation, so this last step is manual: on the
