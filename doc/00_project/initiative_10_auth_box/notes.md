@@ -2491,3 +2491,21 @@ Verification (iOS 26.5 sim): AuthBoxCrypto 16/16 · app BUILD SUCCEEDED · AuthB
 Visual: totp-import-r{1,2,3}-*.png (r2 inspected — "1 account found", Acme/bob@acme.com, code
 "246 174"). 打通 status: scan/import/migrate fully closed on iOS. iCloud/绑定: design-only,
 ICLOUD_SYNC_ARCHITECTURE.md, entitlement-blocked.
+
+## Visual Verification — 2026-06-03 (fresh, post-/goal)
+
+Per the visual-verification gate, re-ran the two UI tests to regenerate device-pixel
+screenshots with a fresh mtime (≥ goal creation) and inspected them directly. iOS app →
+the canonical visual surface is XCUITest screenshots (real iPhone 17 simulator), not a web
+browser, so the chrome/playwright tool chain does not apply here.
+
+- Re-run: `TOTPFlowUITests/testTOTPCodeDisplaysOnItemDetail` + `TOTPImportFlowUITests/testImportFromPastedOtpauthLink` → TEST SUCCEEDED (both pass).
+- Inspected `totp-r2-live-code.png` (mtime 20:04): the item detail shows the "One-Time
+  Password" section with issuer "GitHub", live blue code **"517 888"**, a countdown ring at
+  **"29"**, and a copy button — the Google/Microsoft Authenticator experience, confirmed in pixels.
+- Inspected `totp-import-r2-preview.png` (mtime 20:04): the importer shows "1 account found"
+  with Acme / bob@acme.com and a live code — the scan/import/migrate surface, confirmed in pixels.
+- Fresh artifacts: `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/totp-r{1,2,3}-*.png` + `totp-import-r{1,2,3}-*.png`.
+
+Both functional assertions (XCTAssert on the section headers, codes, and imported item) and
+the pixel inspection agree. Visual verification complete.
