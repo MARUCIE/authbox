@@ -1,7 +1,27 @@
 # Auth Box — iCloud Sync & Account Binding Architecture (design)
 
-Status: DESIGN ONLY — blocked on a paid Apple Developer iCloud (CloudKit) container.
+Status: FOUNDATION SHIPPED + CORE APP ON DEVICE — one Apple-ID action away from live sync.
 Last updated: 2026-06-03
+
+> **2026-06-03 device milestone**: the core app (live TOTP, QR scan, import, Google
+> Authenticator migration — no iCloud yet) is **installed and launched on a physical
+> iPhone 17 Pro Max** (`com.authbox.app`, team `35HKS5847W`). The device-signing pipeline
+> is therefore proven end-to-end: device paired + registered, cert/team resolved,
+> `xcrun devicectl device install app` + `process launch` both succeeded. The build used a
+> CLI entitlements override (`CODE_SIGN_ENTITLEMENTS=AuthBox/AuthBox-Dev.entitlements`, the
+> empty dict) to bypass the app-group/autofill/iCloud capabilities, which the CLI cannot
+> register on an existing App ID. The tracked entitlements files are unchanged.
+>
+> The only remaining gate for iCloud is **§6 decision 1 → resolved**: a paid Apple Developer
+> membership exists. What is left is a single Apple-ID action — enable the iCloud (CloudKit)
+> capability and **create the container `iCloud.com.authbox.vault`** — which `-allowProvisioningUpdates`
+> empirically *cannot* do for an existing App ID (verified: build fails with
+> "Provisioning profile … doesn't match the entitlements file's value for the
+> com.apple.developer.icloud-container-identifiers entitlement"). It must be done in Xcode's
+> Signing & Capabilities (or the Developer portal). The same one action re-provisions the
+> app-group + autofill capabilities, restoring the full entitlements. The `CKSyncEngine`
+> orchestration is intentionally written *after* the container exists, so it is tested live
+> rather than blind — the three CloudKit-free layers below are already proven.
 Scope: design the SOTA way to sync the vault across a user's Apple devices and
 bind it to their iCloud identity, without breaking Auth Box's zero-knowledge model.
 
@@ -148,9 +168,11 @@ by sync work, which also avoids the risky synchronizable-attribute migration.
 
 ## 6. Open decisions (block implementation)
 
-1. **iCloud container availability** — is there a paid Apple Developer account for
-   Auth Box with (or able to create) a CloudKit container? Without it, iCloud sync
-   cannot be enabled at all; the work stays design-only.
+1. **iCloud container availability** — ✅ **RESOLVED 2026-06-03**: a paid Apple Developer
+   membership exists (team `35HKS5847W`). The container `iCloud.com.authbox.vault` is not
+   yet created; creating it + enabling the CloudKit capability is the one remaining
+   Apple-ID action (Xcode Signing & Capabilities or the portal — the CLI cannot register
+   it on the existing App ID). Once it exists, the `CKSyncEngine` step (§7.3) is unblocked.
 2. **Meaning of 绑定** — confirm it means **(A) binding the vault to the iCloud
    account for cross-device sync** (this document's assumption). Alternatives that
    change scope: (B) biometric binding to unlock — already implemented
