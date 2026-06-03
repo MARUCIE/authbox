@@ -33,13 +33,15 @@ final class AppState: ObservableObject {
     private var syncEngine: VaultSyncEngine?
 
     /// Whether zero-knowledge iCloud sync is on. Off by default — the user opts in.
-    /// Persisted as a plain bool (it carries no secret).
+    /// Persisted as a plain bool (it carries no secret). `@Published` so the Settings
+    /// toggle observes it; `didSet` persists and starts/stops the engine. The initializer
+    /// default does not trigger `didSet`, so the engine is only built on unlock or on an
+    /// explicit user toggle — never before the vault key exists.
     private let syncEnabledKey = "authbox.sync.enabled"
-    var isSyncEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: syncEnabledKey) }
-        set {
-            UserDefaults.standard.set(newValue, forKey: syncEnabledKey)
-            if newValue { startSyncIfEnabled() } else { syncEngine?.stop(); syncEngine = nil }
+    @Published var isSyncEnabled: Bool = UserDefaults.standard.bool(forKey: "authbox.sync.enabled") {
+        didSet {
+            UserDefaults.standard.set(isSyncEnabled, forKey: syncEnabledKey)
+            if isSyncEnabled { startSyncIfEnabled() } else { syncEngine?.stop(); syncEngine = nil }
         }
     }
 

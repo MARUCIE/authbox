@@ -5,7 +5,6 @@ struct SettingsView: View {
     @State private var showDeleteConfirm = false
     @State private var showProUpgrade = false
     @State private var faceIDEnabled = true
-    @State private var cloudSyncEnabled = false
     @ObservedObject var proManager = ProManager.shared
 
     var body: some View {
@@ -66,40 +65,45 @@ struct SettingsView: View {
 
                 // Sync
                 Section {
-                    Toggle(isOn: $cloudSyncEnabled) {
+                    Toggle(isOn: Binding(
+                        get: { appState.isSyncEnabled },
+                        set: { isOn in
+                            // Multi-device sync is a Pro feature. A free user toggling
+                            // it on hits the paywall and the engine stays off until they
+                            // upgrade. canUseFeature is the single source of truth.
+                            if isOn && !proManager.canUseFeature(.multiDeviceSync) {
+                                showProUpgrade = true
+                            } else {
+                                appState.isSyncEnabled = isOn
+                            }
+                        }
+                    )) {
                         Label {
                             HStack(spacing: 6) {
-                                Text("Cloud Sync")
+                                Text("iCloud Sync")
                                 if !proManager.isPro { ProLockBadge() }
                             }
                         } icon: {
                             Image(systemName: "cloud")
                         }
                     }
-                    .onChange(of: cloudSyncEnabled) { _, isOn in
-                        // Multi-device sync is a Pro feature. A free user toggling
-                        // it on hits the paywall; the toggle snaps back until they
-                        // upgrade. canUseFeature is the single source of truth.
-                        if isOn && !proManager.canUseFeature(.multiDeviceSync) {
-                            cloudSyncEnabled = false
-                            showProUpgrade = true
-                        }
-                    }
 
                     HStack {
                         Label {
-                            Text("Server")
+                            Text("Status")
                         } icon: {
-                            Image(systemName: "cloud.fill")
-                                .foregroundStyle(.secondary)
+                            Image(systemName: appState.isSyncEnabled ? "cloud.fill" : "cloud")
+                                .foregroundStyle(appState.isSyncEnabled ? .blue : .secondary)
                         }
                         Spacer()
-                        Text("Not Connected")
+                        Text(appState.isSyncEnabled ? "iCloud — end-to-end encrypted" : "Off")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 } header: {
                     Text("Sync")
+                } footer: {
+                    Text("Only AES-256-GCM ciphertext is stored in iCloud. Your seed phrase and vault key never leave this device.")
                 }
 
                 // About
