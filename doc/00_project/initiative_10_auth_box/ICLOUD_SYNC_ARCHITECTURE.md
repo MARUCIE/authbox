@@ -94,10 +94,17 @@ Same class of blocker as the StoreKit half of the payment task:
 - The entitlement itself needs the paid membership + portal configuration before the
   app will even launch with iCloud enabled.
 
-So the encryption/serialization layer can be unit-tested on-device-independently
-(encrypt VaultItem → blob → decrypt → equal, which `VaultCrypto` already supports),
+So the encryption/serialization layer can be unit-tested on-device-independently,
 but the **CloudKit round-trip and the cross-device Keychain sync are device + account
 + entitlement gated** and verify-pending, exactly like the real-StoreKit tests.
+
+**Proven now (2026-06-03)** — `AuthBoxTests/VaultSyncCodecTests`, 4 tests pass against the
+existing `VaultStore.encryptForSync` / `decryptFromSync` codec (no entitlement needed):
+full round-trip preserves every field incl. the `otpauth` 2FA secret; the encrypted blob
+contains **no plaintext** (the zero-knowledge property asserted directly); encryption is
+non-deterministic (fresh AES-GCM nonce); a wrong vault key cannot decrypt (GCM tag fails).
+The cryptographic boundary the CloudKit transport will ride on is therefore verified ahead
+of the entitlement.
 
 ## 6. Open decisions (block implementation)
 
@@ -115,10 +122,12 @@ but the **CloudKit round-trip and the cross-device Keychain sync are device + ac
 1. Add the iCloud/CloudKit capability + container to `AuthBox.entitlements` (+ Dev).
 2. `KeychainManager`: make the seed item synchronizable (iCloud Keychain).
 3. `VaultSyncEngine` (new): `CKSyncEngine` over `VaultItemBlob` records; encrypt on
-   push with `VaultCrypto.encryptVaultItem`, decrypt on pull; last-write-wins.
+   push with `VaultStore.encryptForSync`, decrypt on pull with `decryptFromSync`;
+   last-write-wins. (The encrypt/decrypt codec is DONE and proven — step 5a below.)
 4. Wire SwiftData local store ↔ sync engine; surface sync state + a manual toggle in
    Settings (off by default until the user opts in).
-5. Prove: unit-test the blob round-trip in-sim; CloudKit round-trip + cross-device
+5. Prove: (a) **DONE** — blob round-trip + zero-knowledge unit tests in-sim
+   (`AuthBoxTests/VaultSyncCodecTests`, 4 pass). (b) CloudKit round-trip + cross-device
    Keychain on real devices (XCTSkip in-sim, auto-run on device), with screenshots.
 6. Then produce the Chinese `.html` companion (2份制) and the 3-round visual polish.
 

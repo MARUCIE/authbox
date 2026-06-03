@@ -718,3 +718,22 @@ parse/import chain proven via the paste path that feeds the same `OTPImport.pars
 Remaining from the 5-part ask — iCloud sync + 绑定 (account binding): a separate architecture
 initiative. Blocked on a paid Apple Developer iCloud (CloudKit) container, unverifiable in the
 simulator. SOTA zero-knowledge design captured in ICLOUD_SYNC_ARCHITECTURE.md.
+
+## 2026-06-03 · iCloud sync — zero-knowledge codec proven (blocker decomposed)
+
+iCloud sync is entitlement-blocked (no CloudKit container), but the blocker decomposes: the
+crypto codec is unblocked and verifiable now. Reuse-before-invent: the codec already existed
+(`VaultStore.encryptForSync`/`decryptFromSync`) but was untested dead code — so the atom was
+to PROVE it, not rebuild it.
+
+- [x] `AuthBoxTests/VaultSyncCodecTests` — 4 tests pass (no iCloud entitlement needed):
+      - round-trip preserves every field incl. the `otpauth` 2FA secret;
+      - encrypted blob contains NO plaintext (zero-knowledge asserted directly on cipher bytes);
+      - encryption is non-deterministic (fresh AES-GCM nonce per call);
+      - a wrong vault key cannot decrypt (GCM tag verification fails).
+- [x] Registered into AuthBoxTests target (ruby xcodeproj). ICLOUD_SYNC_ARCHITECTURE.md §5/§7 updated.
+
+Tests (iOS 26.5 sim): AuthBoxTests/VaultSyncCodecTests 4/4 → TEST SUCCEEDED.
+
+Still entitlement/device-gated (deferred, honestly): the CloudKit transport + cross-device
+iCloud-Keychain seed sync. The cryptographic boundary they ride on is now proven ahead of them.

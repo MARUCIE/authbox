@@ -40,6 +40,7 @@
 		B10B9B10104A63D3818BCF9C /* GeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2146A47D60E552F8E5379123 /* GeneratorView.swift */; };
 		B153F37AAACFD34D7BCBF9BA /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8D5AC5185BA3F40BB38813 /* KeychainManager.swift */; };
 		B8B2DA93785C9CF9191CFF96 /* AuthBoxCrypto in Frameworks */ = {isa = PBXBuildFile; productRef = 0582B5CB8DB91166E0B0AF0B /* AuthBoxCrypto */; };
+		BB4A573A4844796F5C8A431C /* VaultSyncCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9E4F4DFB85B26B33CC61D52 /* VaultSyncCodecTests.swift */; };
 		BE525A885B954D904DF8DD0E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762C32E40BCB88C987FBF62D /* SettingsView.swift */; };
 		C156012F0C85B3A19EAEF4A9 /* ImportTOTPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85E43B64D9EC017E33532D47 /* ImportTOTPView.swift */; };
 		D3FECD5700E935B4B850A333 /* WalletBalanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B83836B37037E3B7ED1FF5E /* WalletBalanceService.swift */; };
@@ -109,6 +110,7 @@
 		E30365E671CECC0F45176DDA /* UnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockView.swift; sourceTree = "<group>"; };
 		EFD1EC731E55D352C5096B2C /* PaywallFlowUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaywallFlowUITests.swift; sourceTree = "<group>"; };
 		F41CAC693E3416E6E8FBCA52 /* StoreKitTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKitTest.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/StoreKitTest.framework; sourceTree = DEVELOPER_DIR; };
+		F9E4F4DFB85B26B33CC61D52 /* VaultSyncCodecTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VaultSyncCodecTests.swift; sourceTree = "<group>"; };
 		FFAE050AF0954A48E04C86F2 /* AuthBox.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AuthBox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -237,6 +239,7 @@
 			isa = PBXGroup;
 			children = (
 				91725A433390BEBBDE2A93C4 /* ProPurchaseTests.swift */,
+				F9E4F4DFB85B26B33CC61D52 /* VaultSyncCodecTests.swift */,
 			);
 			name = AuthBoxTests;
 			path = AuthBoxTests;
@@ -553,6 +556,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				82C0BF2821C66E345E419B60 /* ProPurchaseTests.swift in Sources */,
+				BB4A573A4844796F5C8A431C /* VaultSyncCodecTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
