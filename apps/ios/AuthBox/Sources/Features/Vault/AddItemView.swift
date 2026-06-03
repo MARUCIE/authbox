@@ -15,6 +15,7 @@ struct AddItemView: View {
     @State private var showPasswordGenerator = false
     @State private var showPassword = false
     @State private var otpauth = ""
+    @State private var showScanner = false
 
     var body: some View {
         NavigationStack {
@@ -79,6 +80,12 @@ struct AddItemView: View {
                         .autocorrectionDisabled()
                         .font(.system(.body, design: .monospaced))
 
+                    Button {
+                        showScanner = true
+                    } label: {
+                        Label("Scan QR code", systemImage: "qrcode.viewfinder")
+                    }
+
                     if !otpauth.isEmpty {
                         if let totp = TOTP.parse(otpauth) {
                             Label("Valid · code \(totp.formattedCode())", systemImage: "checkmark.seal.fill")
@@ -119,6 +126,22 @@ struct AddItemView: View {
             .sheet(isPresented: $showPasswordGenerator) {
                 SitePasswordSheet(site: uri.isEmpty ? title : uri) { generated in
                     password = generated
+                }
+            }
+            .sheet(isPresented: $showScanner) {
+                NavigationStack {
+                    QRScannerView { scanned in
+                        otpauth = scanned
+                        showScanner = false
+                    }
+                    .ignoresSafeArea()
+                    .navigationTitle("Scan QR")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { showScanner = false }
+                        }
+                    }
                 }
             }
         }

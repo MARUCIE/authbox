@@ -672,3 +672,49 @@ iOS, real iPhone 17 simulator pixels (XCUITest-driven, inspected by reading each
 打通 status: fully closed on iOS. The code generation is proven against the published RFC
 6238 reference values, so a secret stored in Auth Box is guaranteed identical to what Google
 Authenticator / Microsoft Authenticator would show. See AUTHENTICATOR_2FA_ARCHITECTURE.md.
+
+## 2026-06-03 · Scan / import / migrate 2FA accounts
+
+Goal: "二维码扫描添加和导入,迁移等都要支持" — scan a QR, import a list, migrate from
+another authenticator. All three reduce to parsing a string into `[TOTP]`, so one surface.
+
+- [x] `AuthBoxCrypto/OTPImport.swift` — unified `parse(_:)` handling a Google
+      Authenticator `otpauth-migration://offline?data=...` export, a single `otpauth://`
+      URI, or a newline-separated list (invalid entries skipped).
+- [x] Minimal dependency-free protobuf reader (`ProtobufReader`: varint + length-delimited;
+      unknown fields skipped) decodes the migration `MigrationPayload`. No SwiftProtobuf.
+      HOTP / MD5 accounts skipped (time-based + unsupported); algorithm/digits mapped to TOTP.
+- [x] `TOTP.otpauthURI()` + `TOTP.base32Encode` — serialize a scanned/migrated account
+      (which has no original URI) back to a canonical `otpauth://` URI for `VaultItem.otpauth`,
+      round-tripping through `TOTP.parse` for display.
+- [x] `QRScannerView` (AVFoundation `AVCaptureMetadataOutput`, `.qr`) — camera scanner;
+      `nonisolated` delegate hops to `@MainActor` (Swift 6 strict concurrency). Camera usage
+      declared via `INFOPLIST_KEY_NSCameraUsageDescription` (project generates Info.plist).
+- [x] `ImportTOTPView` (vault toolbar → "Scan & Import 2FA") — scan or paste, live preview of
+      every account found with a live code, batch import. Vault toolbar "+" is now a Menu
+      (New Password / Scan & Import 2FA). `AddItemView` Two-Factor section gains "Scan QR code".
+- [x] New files registered into AuthBox + AuthBoxUITests targets via the ruby `xcodeproj` gem
+      (explicit refs, objectVersion 77, no FileSystemSynchronized groups).
+- [x] Engine proof `AuthBoxCryptoTests/OTPMigrationTests` — 9 tests pass. The protobuf decode
+      is anchored on the RFC 6238 code "287082" (a mis-handled secret byte would change it).
+- [x] iOS surface proof `AuthBoxUITests/TOTPImportFlowUITests` — paste → "1 account found"
+      preview → Import → account appears in vault. Existing `testAddFlowValidatesAuthenticatorKey`
+      updated for the new toolbar Menu.
+
+Tests (2026-06-03, iOS 26.5 sim): AuthBoxCrypto 16/16 (TOTPTests 7 + OTPMigrationTests 9) ·
+app BUILD SUCCEEDED · AuthBoxUITests 3/3 (TOTPFlowUITests 2 + TOTPImportFlowUITests 1).
+
+## Visual Verification — scan / import / migrate
+
+iOS, real iPhone 17 simulator pixels (XCUITest-driven, inspected by reading the PNG):
+
+- R1 import sheet (Scan QR + paste) — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/totp-import-r1-sheet.png`
+- R2 live preview "1 account found" (Acme / bob@acme.com / code "246 174") — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/totp-import-r2-preview.png`
+- R3 imported account in the vault — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/totp-import-r3-in-vault.png`
+
+打通 status: scan / import / migrate fully closed on iOS (camera capture device-only;
+parse/import chain proven via the paste path that feeds the same `OTPImport.parse`).
+
+Remaining from the 5-part ask — iCloud sync + 绑定 (account binding): a separate architecture
+initiative. Blocked on a paid Apple Developer iCloud (CloudKit) container, unverifiable in the
+simulator. SOTA zero-knowledge design captured in ICLOUD_SYNC_ARCHITECTURE.md.

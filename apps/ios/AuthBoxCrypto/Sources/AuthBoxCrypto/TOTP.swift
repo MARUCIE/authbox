@@ -134,9 +134,59 @@ public struct TOTP: Equatable {
                     algorithm: algo, issuer: issuer, account: account)
     }
 
+    /// Render this account back into a canonical `otpauth://totp/...` URI. Lets a
+    /// scanned/migrated account (which may have no original URI string) be stored
+    /// in `VaultItem.otpauth` and re-parsed for display — a clean round-trip.
+    public func otpauthURI() -> String {
+        let secretB32 = TOTP.base32Encode(secret)
+
+        var label = ""
+        if let issuer, !issuer.isEmpty, let account, !account.isEmpty {
+            label = "\(issuer):\(account)"
+        } else if let account, !account.isEmpty {
+            label = account
+        } else if let issuer, !issuer.isEmpty {
+            label = issuer
+        }
+
+        var items = [URLQueryItem(name: "secret", value: secretB32)]
+        if let issuer, !issuer.isEmpty { items.append(URLQueryItem(name: "issuer", value: issuer)) }
+        items.append(URLQueryItem(name: "digits", value: String(digits)))
+        items.append(URLQueryItem(name: "period", value: String(period)))
+        items.append(URLQueryItem(name: "algorithm", value: algorithm.rawValue))
+
+        var comps = URLComponents()
+        comps.scheme = "otpauth"
+        comps.host = "totp"
+        comps.path = "/" + label
+        comps.queryItems = items
+        return comps.string ?? "otpauth://totp/?secret=\(secretB32)"
+    }
+
     // MARK: - Base32 (RFC 4648, no padding required)
 
     private static let base32Alphabet = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
+
+    /// Encode raw bytes as an RFC 4648 base32 string (uppercase, no padding —
+    /// `base32Decode` tolerates the missing `=`). Inverse of `base32Decode`.
+    public static func base32Encode(_ data: Data) -> String {
+        guard !data.isEmpty else { return "" }
+        var output = ""
+        var bits = 0
+        var value = 0
+        for byte in data {
+            value = (value << 8) | Int(byte)
+            bits += 8
+            while bits >= 5 {
+                bits -= 5
+                output.append(base32Alphabet[(value >> bits) & 0x1f])
+            }
+        }
+        if bits > 0 {
+            output.append(base32Alphabet[(value << (5 - bits)) & 0x1f])
+        }
+        return output
+    }
 
     /// Decode an RFC 4648 base32 string (case-insensitive, padding and spaces
     /// tolerated) into raw bytes. Returns nil on an invalid character.

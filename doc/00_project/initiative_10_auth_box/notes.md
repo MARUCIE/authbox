@@ -2450,3 +2450,44 @@ Verification (iOS 26.5 sim): `AuthBoxCryptoTests/TOTPTests` 7/7 pass (RFC 6238 p
 `AuthBoxUITests/TOTPFlowUITests` 2/2 pass · app BUILD SUCCEEDED · no test references the
 changed `VaultItemPayload`. Visual: totp-r{1,2,3,4}-*.png (r2 shows live "108 658" + ring).
 打通 status: fully closed on iOS. Doc: AUTHENTICATOR_2FA_ARCHITECTURE.md (canonical EN only).
+
+---
+
+## 2026-06-03 · Scan / import / migrate 2FA
+
+Request: "二维码扫描添加和导入,迁移等都要支持,还有icloud同步和绑定等." Decomposed into two
+unlike halves rather than one block:
+- **Scan + import + migrate** — first principles: Google Authenticator's "Export/Transfer"
+  QR is `otpauth-migration://offline?data=<base64 protobuf>` carrying N accounts, so all three
+  collapse to "parse a string → `[TOTP]`." Provable now, built + proven this turn.
+- **iCloud sync + 绑定** — heavier, touches the zero-knowledge model, and genuinely can't be
+  enabled or verified here (no iCloud entitlement; CloudKit needs a paid Apple Developer
+  container + a real device signed into iCloud). Design-only this turn; flagged as a credentials/
+  resource blocker, same shape as the StoreKit half of the payment task.
+
+Engineering notes:
+- Hand-rolled a minimal protobuf wire reader (varint + length-delimited, unknown fields skipped)
+  instead of adding SwiftProtobuf — ~70 lines, zero deps, fully testable; matches the codebase's
+  TOTP "implement the standard by hand" posture. Decoder proven two non-coincident ways: an
+  in-test encoder that writes the raw wire format (tag = field<<3|wireType) AND the decoded
+  secret reproducing the RFC 6238 code 287082 through the already-proven engine. A byte error in
+  secret handling would break the second anchor.
+- `TOTP.otpauthURI()` + `base32Encode` close the round-trip: a migration-decoded account has no
+  source URI, so we re-serialize it to canonical `otpauth://` for `VaultItem.otpauth`, which the
+  detail view re-parses — no new storage shape, the display path is unchanged.
+- Swift 6 strict concurrency caught a real bug: a `@MainActor` `UIViewController` can't satisfy
+  the `nonisolated` `AVCaptureMetadataOutputObjectsDelegate` requirement directly. Fix = mark the
+  delegate method `nonisolated`, then `Task { @MainActor in handleScan(...) }` before touching
+  isolated state. The compiler, not a runtime crash, surfaced it.
+- Camera permission under `GENERATE_INFOPLIST_FILE=YES`: no plist file to edit — set
+  `INFOPLIST_KEY_NSCameraUsageDescription` as a build setting (added to both configs via the ruby
+  xcodeproj gem, alongside registering the 2 app files + 1 UI test into their explicit-ref targets).
+- The vault toolbar "+" became a Menu (New Password / Scan & Import 2FA). This broke the existing
+  `testAddFlowValidatesAuthenticatorKey` (it tapped the trailing nav button expecting the add sheet,
+  now gets the menu) — caught by the test run, fixed by routing through the menu. A UI affordance
+  change rippling into an existing test is exactly what the UI suite is for.
+
+Verification (iOS 26.5 sim): AuthBoxCrypto 16/16 · app BUILD SUCCEEDED · AuthBoxUITests 3/3.
+Visual: totp-import-r{1,2,3}-*.png (r2 inspected — "1 account found", Acme/bob@acme.com, code
+"246 174"). 打通 status: scan/import/migrate fully closed on iOS. iCloud/绑定: design-only,
+ICLOUD_SYNC_ARCHITECTURE.md, entitlement-blocked.

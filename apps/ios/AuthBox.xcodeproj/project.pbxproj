@@ -29,6 +29,7 @@
 		7CEB3BC1BFDC545F68096FD2 /* VaultItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C59D1ECBFBFF4D711D47452 /* VaultItemDetailView.swift */; };
 		8284623BA514D0926EA68AE4 /* WalletFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67E44E746A244144FFD56B31 /* WalletFlowUITests.swift */; };
 		82C0BF2821C66E345E419B60 /* ProPurchaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91725A433390BEBBDE2A93C4 /* ProPurchaseTests.swift */; };
+		839702B031663DAA06A6B3ED /* TOTPImportFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6088DB733B6ABD3BFB94CEAA /* TOTPImportFlowUITests.swift */; };
 		8C7620E135566717943CD357 /* TOTPFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EEC8EB784B09181F4370E35 /* TOTPFlowUITests.swift */; };
 		8EB3C81AA63C1C9FA5025C8A /* CreateVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE5181C9AB60B355781CB8F /* CreateVaultView.swift */; };
 		90B93A2FE15B521038C2AD2D /* RestoreVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256BB33EBC64E852BCF18BE8 /* RestoreVaultView.swift */; };
@@ -40,8 +41,10 @@
 		B153F37AAACFD34D7BCBF9BA /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8D5AC5185BA3F40BB38813 /* KeychainManager.swift */; };
 		B8B2DA93785C9CF9191CFF96 /* AuthBoxCrypto in Frameworks */ = {isa = PBXBuildFile; productRef = 0582B5CB8DB91166E0B0AF0B /* AuthBoxCrypto */; };
 		BE525A885B954D904DF8DD0E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762C32E40BCB88C987FBF62D /* SettingsView.swift */; };
+		C156012F0C85B3A19EAEF4A9 /* ImportTOTPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85E43B64D9EC017E33532D47 /* ImportTOTPView.swift */; };
 		D3FECD5700E935B4B850A333 /* WalletBalanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B83836B37037E3B7ED1FF5E /* WalletBalanceService.swift */; };
 		D607D7267D680E993ABB3CBD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D938D9F5A1DC26A77BA4D2C /* ContentView.swift */; };
+		DA6512BC6EF5634C728C2385 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B8AFDE51929AAC64FC89A2 /* QRScannerView.swift */; };
 		FD7BAF0EBDD9B1AE0DA2068B /* StoreKitTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F41CAC693E3416E6E8FBCA52 /* StoreKitTest.framework */; };
 /* End PBXBuildFile section */
 
@@ -63,6 +66,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		01B8AFDE51929AAC64FC89A2 /* QRScannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		2146A47D60E552F8E5379123 /* GeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorView.swift; sourceTree = "<group>"; };
 		247C70E70C4FCAEEFF75F54B /* AutoFillExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AutoFillExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		25457DEDC1B58F1AEC124FF2 /* VaultStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultStore.swift; sourceTree = "<group>"; };
@@ -80,6 +84,7 @@
 		5B8D5AC5185BA3F40BB38813 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		5C59D1ECBFBFF4D711D47452 /* VaultItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultItemDetailView.swift; sourceTree = "<group>"; };
 		5D938D9F5A1DC26A77BA4D2C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		6088DB733B6ABD3BFB94CEAA /* TOTPImportFlowUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TOTPImportFlowUITests.swift; sourceTree = "<group>"; };
 		6354D55A183C6F1BD4A26DD2 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		67E44E746A244144FFD56B31 /* WalletFlowUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalletFlowUITests.swift; sourceTree = "<group>"; };
 		6BE5181C9AB60B355781CB8F /* CreateVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateVaultView.swift; sourceTree = "<group>"; };
@@ -89,6 +94,7 @@
 		7788940A50C88A6C78C16F0E /* AuthBoxApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthBoxApp.swift; sourceTree = "<group>"; };
 		82A343F37FB434DFF98147FC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		84B13F79CC916EB73E2A039B /* LaunchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchScreen.swift; sourceTree = "<group>"; };
+		85E43B64D9EC017E33532D47 /* ImportTOTPView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImportTOTPView.swift; sourceTree = "<group>"; };
 		86485461B687596F258F78E7 /* AuthBoxCrypto */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AuthBoxCrypto; path = AuthBoxCrypto; sourceTree = SOURCE_ROOT; };
 		8933912DC8BDEBECBFB1EC59 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		8A29053C8F7FCB44B62759D0 /* CredentialProviderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialProviderViewController.swift; sourceTree = "<group>"; };
@@ -254,6 +260,7 @@
 				67E44E746A244144FFD56B31 /* WalletFlowUITests.swift */,
 				EFD1EC731E55D352C5096B2C /* PaywallFlowUITests.swift */,
 				3EEC8EB784B09181F4370E35 /* TOTPFlowUITests.swift */,
+				6088DB733B6ABD3BFB94CEAA /* TOTPImportFlowUITests.swift */,
 			);
 			path = AuthBoxUITests;
 			sourceTree = "<group>";
@@ -265,6 +272,8 @@
 				E30365E671CECC0F45176DDA /* UnlockView.swift */,
 				5C59D1ECBFBFF4D711D47452 /* VaultItemDetailView.swift */,
 				A2F531B9F121B8AB302441D2 /* VaultListView.swift */,
+				01B8AFDE51929AAC64FC89A2 /* QRScannerView.swift */,
+				85E43B64D9EC017E33532D47 /* ImportTOTPView.swift */,
 			);
 			path = Vault;
 			sourceTree = "<group>";
@@ -522,6 +531,8 @@
 				A604694B0CE4AC4819341F48 /* WalletView.swift in Sources */,
 				D3FECD5700E935B4B850A333 /* WalletBalanceService.swift in Sources */,
 				2D47F52CD1505D228D478A2B /* WalletAccountStore.swift in Sources */,
+				DA6512BC6EF5634C728C2385 /* QRScannerView.swift in Sources */,
+				C156012F0C85B3A19EAEF4A9 /* ImportTOTPView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -533,6 +544,7 @@
 				8284623BA514D0926EA68AE4 /* WalletFlowUITests.swift in Sources */,
 				4031A5680ECFE3130D628676 /* PaywallFlowUITests.swift in Sources */,
 				8C7620E135566717943CD357 /* TOTPFlowUITests.swift in Sources */,
+				839702B031663DAA06A6B3ED /* TOTPImportFlowUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -803,6 +815,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Auth Box";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Auth Box uses the camera to scan 2FA QR codes when you add or import an authenticator account.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock your vault with Face ID";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -829,6 +842,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Auth Box";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Auth Box uses the camera to scan 2FA QR codes when you add or import an authenticator account.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock your vault with Face ID";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

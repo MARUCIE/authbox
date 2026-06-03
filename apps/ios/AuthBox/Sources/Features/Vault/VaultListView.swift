@@ -4,6 +4,7 @@ struct VaultListView: View {
     @EnvironmentObject var appState: AppState
     @State private var searchText = ""
     @State private var showAddItem = false
+    @State private var showImport = false
     @State private var selectedTab: Tab = .passwords
 
     enum Tab {
@@ -71,8 +72,17 @@ struct VaultListView: View {
             .navigationTitle("Vault")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showAddItem = true
+                    Menu {
+                        Button {
+                            showAddItem = true
+                        } label: {
+                            Label("New Password", systemImage: "plus")
+                        }
+                        Button {
+                            showImport = true
+                        } label: {
+                            Label("Scan & Import 2FA", systemImage: "qrcode.viewfinder")
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -88,6 +98,9 @@ struct VaultListView: View {
             }
             .sheet(isPresented: $showAddItem) {
                 AddItemView()
+            }
+            .sheet(isPresented: $showImport) {
+                ImportTOTPView()
             }
         }
     }

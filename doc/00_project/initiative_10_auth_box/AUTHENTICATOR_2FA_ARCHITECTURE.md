@@ -83,11 +83,48 @@ field by intent.
   (r2 shows the live code "108 658" + countdown ring).
 - App builds clean; no existing test depends on the changed `VaultItemPayload`.
 
-## 6. Follow-ups (not blocking)
+## 6. Import, scan, and migrate accounts
 
-- **QR scan** — the signature authenticator add flow. `parse(_:)` already accepts
-  the QR payload (`otpauth://`); the remaining piece is an AVFoundation camera
-  scanner. Device-only (the simulator has no camera), so it was deferred.
+Scan, import, and migrate are one problem — parse a string into `[TOTP]` — so
+they share one surface (`AuthBoxCrypto/OTPImport.swift`):
+
+| Input | Source | Handling |
+|-------|--------|----------|
+| `otpauth-migration://offline?data=...` | Google Authenticator "Export / Transfer accounts" QR | base64 → protobuf `MigrationPayload` → many `TOTP` |
+| single `otpauth://totp/...` | a service's 2FA QR / pasted link | `TOTP.parse` → one `TOTP` |
+| newline-separated list | pasted export | each line → `TOTP`, invalid skipped |
+
+- **Migration protobuf** is decoded by a minimal, dependency-free wire-format
+  reader (`ProtobufReader`: varint + length-delimited only; unknown fields
+  skipped so newer exports degrade gracefully). No SwiftProtobuf dependency —
+  same "implement the standard by hand, stay testable" posture as `TOTP`.
+  Algorithm/digit/type enums are mapped to `TOTP`; HOTP and MD5 accounts are
+  skipped (Auth Box is time-based, MD5 is unsupported).
+- **Round-trip storage**: a decoded/scanned account has no original URI string,
+  so `TOTP.otpauthURI()` (+ `base32Encode`) serializes it back to a canonical
+  `otpauth://` URI for `VaultItem.otpauth`, which re-parses for display.
+- **UI**: `ImportTOTPView` (vault toolbar → "Scan & Import 2FA") offers a camera
+  scan **or** a paste field, previews every account found with a live code, and
+  imports them in one tap. `AddItemView`'s Two-Factor section also has a "Scan
+  QR code" button for single-account add. `QRScannerView` wraps an AVFoundation
+  `AVCaptureMetadataOutput` (`.qr`); camera usage is declared via
+  `INFOPLIST_KEY_NSCameraUsageDescription`.
+
+Verification: `AuthBoxCryptoTests/OTPMigrationTests` — 9 tests (migration single/
+multi/skip-HOTP-MD5/malformed, single & multiline otpauth, base32 RFC 4648
+vector, `otpauthURI` round-trip tied to the RFC code). `AuthBoxUITests/
+TOTPImportFlowUITests` — the paste→preview→import→appears-in-vault chain (the
+scanner feeds the same `OTPImport.parse`, so the camera-less path proves the UI).
+Screenshots: `totp-import-r{1,2,3}-*.png`.
+
+## 7. Follow-ups (not blocking)
+
+- **iCloud sync + account binding** — see `ICLOUD_SYNC_ARCHITECTURE.md`. The SOTA
+  zero-knowledge design (sync AES-256-GCM blobs via a CloudKit private database,
+  vault key never leaves the device) is decided, but enabling CloudKit needs a
+  paid Apple Developer iCloud container and is only verifiable on a real device
+  signed into iCloud — out of reach of the simulator, like the StoreKit half of
+  the payment task.
 - **Web code generation** — the web already stores `totpSecret` and imports
   `otpAuth`, but has no generator yet. A TS port of `TOTP.swift` into
   `packages/crypto` would light up the same live code on the web vault.

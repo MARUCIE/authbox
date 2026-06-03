@@ -56,14 +56,13 @@ final class TOTPFlowUITests: XCTestCase {
         app.launch()
         sleep(2)
 
-        // Open the add sheet.
-        let addButton = app.buttons["Add"].firstMatch
-        if !addButton.waitForExistence(timeout: 3) {
-            // Fall back to the nav "+" if not labeled "Add".
-            app.navigationBars.buttons.element(boundBy: app.navigationBars.buttons.count - 1).tap()
-        } else {
-            addButton.tap()
-        }
+        // Open the add menu (trailing nav-bar button) and choose New Password.
+        let navBar = app.navigationBars["Vault"]
+        XCTAssertTrue(navBar.waitForExistence(timeout: 8), "Vault screen should be visible")
+        navBar.buttons.element(boundBy: navBar.buttons.count - 1).tap()
+        let newPassword = app.buttons["New Password"].firstMatch
+        XCTAssertTrue(newPassword.waitForExistence(timeout: 3), "Add menu must offer New Password")
+        newPassword.tap()
         sleep(1)
 
         app.textFields["Title"].tap()
