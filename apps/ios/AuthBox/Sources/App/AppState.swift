@@ -28,6 +28,21 @@ final class AppState: ObservableObject {
     /// Local vault store (SwiftData).
     private var store: VaultStore?
 
+    /// iCloud sync orchestration (CKSyncEngine). Built on unlock when sync is enabled,
+    /// torn down on lock. Holds the vault key only in memory, like the rest of AppState.
+    private var syncEngine: VaultSyncEngine?
+
+    /// Whether zero-knowledge iCloud sync is on. Off by default — the user opts in.
+    /// Persisted as a plain bool (it carries no secret).
+    private let syncEnabledKey = "authbox.sync.enabled"
+    var isSyncEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: syncEnabledKey) }
+        set {
+            UserDefaults.standard.set(newValue, forKey: syncEnabledKey)
+            if newValue { startSyncIfEnabled() } else { syncEngine?.stop(); syncEngine = nil }
+        }
+    }
+
     init() {
         let resetForUITests = ProcessInfo.processInfo.arguments.contains("--reset-test-vault")
         if resetForUITests {
@@ -118,6 +133,8 @@ final class AppState: ObservableObject {
     }
 
     func lockVault() {
+        syncEngine?.stop()
+        syncEngine = nil
         vaultKey = nil
         seed = nil
         vaultItems = []
@@ -142,24 +159,54 @@ final class AppState: ObservableObject {
     func addItem(_ item: VaultItem) {
         vaultItems.append(item)
         try? store?.insert(item)
+        syncEngine?.recordLocalUpsert(id: item.id)
     }
 
     func deleteItem(_ item: VaultItem) {
         vaultItems.removeAll { $0.id == item.id }
         try? store?.delete(item)
+        syncEngine?.recordLocalDelete(id: item.id)
     }
 
     func saveChanges() {
         try? store?.save()
     }
 
+    /// Call after editing an existing item's fields in place, so the change syncs.
+    func didEditItem(_ item: VaultItem) {
+        syncEngine?.recordLocalUpsert(id: item.id)
+    }
+
     private func loadItems() {
+        reloadItemsFromStore()
+        startSyncIfEnabled()
+    }
+
+    /// Pure reload of the in-memory item list from the local store. Used both at unlock
+    /// and after a sync pull applies remote changes — the latter must NOT restart sync.
+    private func reloadItemsFromStore() {
         guard let store else { return }
         do {
             vaultItems = try store.fetchAll()
         } catch {
             print("Failed to load vault items: \(error)")
         }
+    }
+
+    // MARK: - iCloud Sync
+
+    /// Build and start the sync engine if the user has opted in and the vault is unlocked.
+    /// Idempotent: `VaultSyncEngine.start()` no-ops when already running.
+    private func startSyncIfEnabled() {
+        guard isSyncEnabled, let vaultKey, syncEngine == nil else {
+            syncEngine?.start()
+            return
+        }
+        let engine = VaultSyncEngine(vaultKey: vaultKey, backend: self)
+        syncEngine = engine
+        engine.start()
+        // Push everything already on this device so a freshly-enabled account converges.
+        engine.enqueueAllLocal(ids: vaultItems.map(\.id))
     }
 
     // MARK: - Password Generation
@@ -220,6 +267,54 @@ final class AppState: ObservableObject {
     private func defaultLabel(coin: Wallet.Coin, index: Int) -> String {
         let name = coin == .btc ? "Bitcoin" : "Ethereum"
         return index == 0 ? name : "\(name) \(index + 1)"
+    }
+}
+
+// MARK: - VaultSyncEngine.VaultBackend
+
+extension AppState: VaultSyncEngine.VaultBackend {
+
+    /// Serialize a local item to the same `VaultItemPayload` JSON the sync codec expects.
+    /// Returns nil if the item no longer exists locally — the engine then drops the push.
+    func localPayloadJSON(for id: UUID) -> String? {
+        guard let item = vaultItems.first(where: { $0.id == id }),
+              let data = try? JSONEncoder().encode(VaultItemPayload(from: item)) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    /// Apply a pulled item, honoring last-write-wins by `updatedAt`. Mutates the existing
+    /// managed object in place when present, otherwise inserts a new one with the id preserved.
+    /// Never re-enqueues a push (no CRUD method is called), so pulls can't loop into pushes.
+    func applyRemoteUpsert(id: UUID, payloadJSON: String, updatedAt: Date?) {
+        guard let payload = try? JSONDecoder().decode(VaultItemPayload.self, from: Data(payloadJSON.utf8)) else { return }
+        if let existing = vaultItems.first(where: { $0.id == id }) {
+            if let remoteAt = updatedAt, remoteAt < existing.updatedAt { return } // local is newer
+            existing.title = payload.title
+            existing.username = payload.username
+            existing.password = payload.password
+            existing.uri = payload.uri
+            existing.notes = payload.notes
+            existing.category = ItemCategory(rawValue: payload.category) ?? .login
+            existing.isFavorite = payload.isFavorite
+            existing.otpauth = payload.otpauth
+            if let remoteAt = updatedAt { existing.updatedAt = remoteAt }
+            try? store?.save()
+        } else {
+            let item = payload.toVaultItem()
+            item.id = id
+            if let remoteAt = updatedAt { item.updatedAt = remoteAt }
+            try? store?.insert(item)
+        }
+    }
+
+    func applyRemoteDelete(id: UUID) {
+        guard let item = vaultItems.first(where: { $0.id == id }) else { return }
+        vaultItems.removeAll { $0.id == id }
+        try? store?.delete(item)
+    }
+
+    func syncDidApplyRemoteChanges() {
+        reloadItemsFromStore()
     }
 }
 

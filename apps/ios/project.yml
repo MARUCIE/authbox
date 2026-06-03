@@ -49,6 +49,13 @@ targets:
         com.apple.security.application-groups:
           - group.com.authbox.shared
         com.apple.developer.authentication-services.autofill-credential-provider: true
+        # Zero-knowledge iCloud sync (CKSyncEngine over VaultItemBlob ciphertext records).
+        # Container provisioned 2026-06-03 on App ID com.authbox.app. Only ciphertext leaves
+        # the device; the seed/vault-key never sync. See ICLOUD_SYNC_ARCHITECTURE.md.
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.authbox.vault
+        com.apple.developer.icloud-services:
+          - CloudKit
 
   AutoFillExtension:
     type: app-extension
