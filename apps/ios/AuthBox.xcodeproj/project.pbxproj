@@ -10,6 +10,7 @@
 		01218936AAE5B02C2498E6DB /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933912DC8BDEBECBFB1EC59 /* OnboardingView.swift */; };
 		0F3E80196C9FA9B41D9262A4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0491051A1129271332322C4 /* Assets.xcassets */; };
 		20857714C58C09270A264045 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 564CD4322321E1DCA3FE9B42 /* APIConfig.swift */; };
+		2D47F52CD1505D228D478A2B /* WalletAccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9359B4B3B43C54F92C282CC2 /* WalletAccountStore.swift */; };
 		306D7EE82A7FB535784B3E6F /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A7EDE3B1F01F9224C8814A /* DesignTokens.swift */; };
 		3885869DFD24AE148A7F0CF6 /* UnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30365E671CECC0F45176DDA /* UnlockView.swift */; };
 		4075231182794BE36D97B3B5 /* VaultStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25457DEDC1B58F1AEC124FF2 /* VaultStore.swift */; };
@@ -23,15 +24,18 @@
 		76AE19192EA5F26E4047430D /* ProManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46B9852529903A6380BB25DB /* ProManager.swift */; };
 		7A1E52B5C91BF1D63FCD3AA6 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9992B6535CB44C5744EC701A /* AppState.swift */; };
 		7CEB3BC1BFDC545F68096FD2 /* VaultItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C59D1ECBFBFF4D711D47452 /* VaultItemDetailView.swift */; };
+		8284623BA514D0926EA68AE4 /* WalletFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67E44E746A244144FFD56B31 /* WalletFlowUITests.swift */; };
 		8EB3C81AA63C1C9FA5025C8A /* CreateVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE5181C9AB60B355781CB8F /* CreateVaultView.swift */; };
 		90B93A2FE15B521038C2AD2D /* RestoreVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256BB33EBC64E852BCF18BE8 /* RestoreVaultView.swift */; };
 		911F3184853C7A177FD5BFF5 /* CredentialProviderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A29053C8F7FCB44B62759D0 /* CredentialProviderViewController.swift */; };
+		A604694B0CE4AC4819341F48 /* WalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F1AD56FFAC70CFE9ACD68A /* WalletView.swift */; };
 		A9780114FE7095C0EFF93A7D /* AddItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD579089E06186BF15B8F23 /* AddItemView.swift */; };
 		B0DC16FA2E08DCC1A2448BCB /* VaultListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2F531B9F121B8AB302441D2 /* VaultListView.swift */; };
 		B10B9B10104A63D3818BCF9C /* GeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2146A47D60E552F8E5379123 /* GeneratorView.swift */; };
 		B153F37AAACFD34D7BCBF9BA /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8D5AC5185BA3F40BB38813 /* KeychainManager.swift */; };
 		B8B2DA93785C9CF9191CFF96 /* AuthBoxCrypto in Frameworks */ = {isa = PBXBuildFile; productRef = 0582B5CB8DB91166E0B0AF0B /* AuthBoxCrypto */; };
 		BE525A885B954D904DF8DD0E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762C32E40BCB88C987FBF62D /* SettingsView.swift */; };
+		D3FECD5700E935B4B850A333 /* WalletBalanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B83836B37037E3B7ED1FF5E /* WalletBalanceService.swift */; };
 		D607D7267D680E993ABB3CBD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D938D9F5A1DC26A77BA4D2C /* ContentView.swift */; };
 /* End PBXBuildFile section */
 
@@ -55,10 +59,12 @@
 		3EBCDCB079B83DA83692C250 /* AuthBoxUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AuthBoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		46B9852529903A6380BB25DB /* ProManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProManager.swift; sourceTree = "<group>"; };
 		490FB0481CAA69DD98E45F2B /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		4B83836B37037E3B7ED1FF5E /* WalletBalanceService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalletBalanceService.swift; sourceTree = "<group>"; };
 		564CD4322321E1DCA3FE9B42 /* APIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfig.swift; sourceTree = "<group>"; };
 		5B8D5AC5185BA3F40BB38813 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		5C59D1ECBFBFF4D711D47452 /* VaultItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultItemDetailView.swift; sourceTree = "<group>"; };
 		5D938D9F5A1DC26A77BA4D2C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		67E44E746A244144FFD56B31 /* WalletFlowUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalletFlowUITests.swift; sourceTree = "<group>"; };
 		6BE5181C9AB60B355781CB8F /* CreateVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateVaultView.swift; sourceTree = "<group>"; };
 		7301F5DB5A2405088E0882F9 /* VaultItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultItem.swift; sourceTree = "<group>"; };
 		75BC3A0656D6BA5B0C94B060 /* ProUpgradeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProUpgradeView.swift; sourceTree = "<group>"; };
@@ -69,11 +75,13 @@
 		86485461B687596F258F78E7 /* AuthBoxCrypto */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AuthBoxCrypto; path = AuthBoxCrypto; sourceTree = SOURCE_ROOT; };
 		8933912DC8BDEBECBFB1EC59 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		8A29053C8F7FCB44B62759D0 /* CredentialProviderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialProviderViewController.swift; sourceTree = "<group>"; };
+		9359B4B3B43C54F92C282CC2 /* WalletAccountStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalletAccountStore.swift; sourceTree = "<group>"; };
 		9992B6535CB44C5744EC701A /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		A2F531B9F121B8AB302441D2 /* VaultListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultListView.swift; sourceTree = "<group>"; };
 		B0491051A1129271332322C4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BDD579089E06186BF15B8F23 /* AddItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddItemView.swift; sourceTree = "<group>"; };
 		C9A7EDE3B1F01F9224C8814A /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		D4F1AD56FFAC70CFE9ACD68A /* WalletView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalletView.swift; sourceTree = "<group>"; };
 		E30365E671CECC0F45176DDA /* UnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockView.swift; sourceTree = "<group>"; };
 		FFAE050AF0954A48E04C86F2 /* AuthBox.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AuthBox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -173,14 +181,27 @@
 				4045C33D3B83B979CC229F04 /* Onboarding */,
 				1CBC22E6E57F7EFCB69E8395 /* Settings */,
 				5878378964D8DC19E2C14B88 /* Vault */,
+				493723488F11451E197BA4AC /* Wallet */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		493723488F11451E197BA4AC /* Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				D4F1AD56FFAC70CFE9ACD68A /* WalletView.swift */,
+				4B83836B37037E3B7ED1FF5E /* WalletBalanceService.swift */,
+				9359B4B3B43C54F92C282CC2 /* WalletAccountStore.swift */,
+			);
+			name = Wallet;
+			path = Wallet;
 			sourceTree = "<group>";
 		};
 		4AF42F8D9AA1A17294A86A01 /* AuthBoxUITests */ = {
 			isa = PBXGroup;
 			children = (
 				2A5082D8E9AFF93F8F4AFA0F /* FullFlowUITests.swift */,
+				67E44E746A244144FFD56B31 /* WalletFlowUITests.swift */,
 			);
 			path = AuthBoxUITests;
 			sourceTree = "<group>";
@@ -277,8 +298,6 @@
 				CBEC1B03340E931B30FED6C6 /* PBXTargetDependency */,
 			);
 			name = AuthBoxUITests;
-			packageProductDependencies = (
-			);
 			productName = AuthBoxUITests;
 			productReference = 3EBCDCB079B83DA83692C250 /* AuthBoxUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -356,6 +375,7 @@
 				43EE61E806AFED3EB9BC3408 /* XCLocalSwiftPackageReference "AuthBoxCrypto" */,
 			);
 			preferredProjectObjectVersion = 77;
+			productRefGroup = 25231EFE4ED42274E475BB2C /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -411,6 +431,9 @@
 				7CEB3BC1BFDC545F68096FD2 /* VaultItemDetailView.swift in Sources */,
 				B0DC16FA2E08DCC1A2448BCB /* VaultListView.swift in Sources */,
 				4075231182794BE36D97B3B5 /* VaultStore.swift in Sources */,
+				A604694B0CE4AC4819341F48 /* WalletView.swift in Sources */,
+				D3FECD5700E935B4B850A333 /* WalletBalanceService.swift in Sources */,
+				2D47F52CD1505D228D478A2B /* WalletAccountStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -419,6 +442,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				62815CDF2407D50AB921E6FD /* FullFlowUITests.swift in Sources */,
+				8284623BA514D0926EA68AE4 /* WalletFlowUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

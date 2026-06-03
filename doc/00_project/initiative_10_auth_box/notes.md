@@ -2327,3 +2327,60 @@ invariant per coin (validity + sender-recovery for ETH; determinism for BTC).
 Next: 5b broadcast relay (Go POST /wallet/broadcast -> mempool.space / publicnode,
 fixed trusted endpoints, never signs; live TESTNET proof), then 5c Send UI +
 mainnet HITL gate.
+
+---
+
+## iOS wallet 打通 + 3-round visual verification (iOS-5a/5b/5c) — 2026-06-03
+
+Goal: `auxbox 的ios端也要同步更新并打通，并进行视觉验证3轮`. Bring the web Phase 4
+watch-only wallet to the iOS app at full cross-platform parity, end-to-end, with
+3 rounds of real-pixel visual verification.
+
+### iOS-5a — native crypto (the 打通 core)
+Built a complete native BIP-32/44/84 stack in AuthBoxCrypto because iOS had Seed
+but no secp256k1/HD derivation:
+- swift-secp256k1 0.21.1 (`libsecp256k1` C product) wrapped by `Secp256k1.swift`.
+  Gotcha: the static context lacks the ecmult_gen table -> pubkey_create aborts;
+  must `secp256k1_context_create(NONE)`. `nonisolated(unsafe)` for the Swift-6
+  static ctx.
+- Vendored primitives CryptoKit lacks: `Keccak256` (ETH), `RIPEMD160` (BTC
+  hash160), `Bech32` (BIP-173), `Base58Check` (legacy + raw xpub).
+- `Wallet.swift` mirrors `packages/crypto/src/wallet.ts` EXACTLY: "Bitcoin seed"
+  master, hardened + NON-hardened CKDpriv (`childPriv = (IL + parentPriv) mod n`
+  via `secp256k1_ec_seckey_tweak_add`), BIP-84 p2wpkh / BIP-44 p2pkh / ETH EIP-55,
+  account xpub.
+- `WalletTests` 13/13; full crypto suite 76/76 on host. iOS derives the canonical
+  addresses byte-for-byte (anchored to iancoleman vectors + the TS @scure
+  reference) — this IS the cross-platform 打通 proof.
+
+### iOS-5b — app integration (LOCAL-FIRST reversal)
+Original plan: APIClient.walletApi -> Go server. APIClient turned out to be DEAD
+CODE (no login flow wired on iOS; vault = Keychain seed + SwiftData, fully local).
+Reversed to local-first: derive client-side, hit public explorers directly
+(mempool.space BTC / publicnode ETH — SAME indexers as Go `balance_provider.go`).
+Stronger zero-knowledge (no address list leaves to our server) and consistent with
+the local-first vault. Files: `WalletBalanceService.swift` (BigInt-safe wei->dec),
+`WalletAccountStore.swift` (public descriptor in UserDefaults — no keys/addresses),
+`AppState` wallet methods (seed stays private), `WalletView.swift` (list + add +
+detail with balance card / receive address / network safety chip / xpub),
+`VaultListView` 4th tab. App BUILD SUCCEEDED on iPhone 17 sim.
+
+### iOS-5c — 3-round visual verification
+Driven by `AuthBoxUITests/WalletFlowUITests` (xcodebuild test, PASSED 40.8s). A
+DEBUG-only `--wallet-demo-seed` launch hook boots straight into an unlocked vault
+from the public all-zeros mnemonic so the screens render the canonical (real-on-
+chain) addresses. 7 real simulator PNGs in `state/screenshots/authbox-ios-uxmap/`,
+each inspected by reading the pixels (not assumed):
+- R1 `wallet-r1-empty` — Wallet tab reachable + true empty state
+- R2 `wallet-r2-btc-detail` — `bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu` @
+  m/84'/0'/0'/0/0 + "0 BTC · Confirmed balance" (real mempool.space round-trip)
+- R3 `wallet-r3-eth-detail` — `0x9858EfFD232B4033E47d90003D41EC34EcaEda94`
+  (EIP-55 checksum) @ m/44'/60'/0'/0/0 + "0 ETH" (real publicnode round-trip);
+  `wallet-r3-multicoin-list` shows BTC + ETH parity in one list.
+
+The on-device addresses match the web wallet's canonical outputs exactly -> the
+iOS side is 打通 (same seed -> same addresses), verified visually 3×. No fund
+movement (watch-only; keys derived in-memory, never persisted/transmitted).
+
+Next (queued, not blocking): web 5b broadcast relay + 5c Send UI (HITL-gated for
+mainnet); WALLET_ARCHITECTURE.md/.html companion.

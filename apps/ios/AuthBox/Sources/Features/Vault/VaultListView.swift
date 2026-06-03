@@ -7,7 +7,7 @@ struct VaultListView: View {
     @State private var selectedTab: Tab = .passwords
 
     enum Tab {
-        case passwords, generator, settings
+        case passwords, generator, wallet, settings
     }
 
     var body: some View {
@@ -23,6 +23,12 @@ struct VaultListView: View {
                     Label("Generator", systemImage: "wand.and.stars")
                 }
                 .tag(Tab.generator)
+
+            WalletView()
+                .tabItem {
+                    Label("Wallet", systemImage: "bitcoinsign.circle.fill")
+                }
+                .tag(Tab.wallet)
 
             SettingsView()
                 .tabItem {

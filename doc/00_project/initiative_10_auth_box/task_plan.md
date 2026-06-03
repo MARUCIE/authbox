@@ -535,17 +535,42 @@ booted, scheme AuthBox, SPM resolves from github.
 - [x] vendor + test primitives: Keccak256.swift (ETH, padding 0x01) / RIPEMD160.swift (BTC hash160) / Bech32.swift (BIP-173 segwit) / Base58Check.swift (legacy + raw xpub) — anchored to public vectors
 - [x] Wallet.swift: standard BIP-32 ("Bitcoin seed", hardened + NON-hardened CKD via secp256k1 tweak) + BIP-44/84 paths + BTC p2wpkh/p2pkh + ETH EIP-55 + account xpub — mirrors packages/crypto/src/wallet.ts EXACTLY
 - [x] WalletTests: 13/13 — iOS derives bc1qcr8te4… / 1LqBGS… / 0x9858…Eda94 / testnet tb1q6rz28… / xpub6CatW… (== web + TS @scure reference) → 打通 proof. Full crypto suite 76/76 green on host
-- [ ] AuthBoxCrypto builds for iOS simulator destination (validated transitively when the app builds in iOS-5b)
+- [x] AuthBoxCrypto builds for iOS simulator destination (validated transitively — app BUILD SUCCEEDED on iPhone 17 sim in iOS-5b, then UITest bundle compiled + ran green in iOS-5c)
 
-#### iOS-5b — App integration (打通 app ↔ server) [QUEUED]
-- [ ] APIClient: walletApi (createAccount/listAccounts/deleteAccount/addAddress/listAddresses/balance) matching Go routes
-- [ ] AppState: wallet methods deriving from in-memory seed (no re-prompt; seed already held when unlocked)
-- [ ] WalletView.swift: account list + add (derive client-side) + receive address + balance (live API) — Vault design tokens
-- [ ] VaultListView: add Wallet tab (4th tab)
-- [ ] build + run on iPhone 17 sim; live create→list→balance round-trip against Go API on :4010
+#### iOS-5b — App integration (打通) [DONE — local-first, see reversal note]
+> ARCHITECTURE REVERSAL: the original plan wired APIClient.walletApi → Go server.
+> On inspection APIClient is DEAD CODE (no login flow is wired on iOS; the vault is
+> Keychain-seed + SwiftData, fully local). Rebuilding an absent auth flow just to
+> fetch a balance would be net-negative. Chose LOCAL-FIRST instead: derive
+> client-side, query public explorers directly (mempool.space BTC / publicnode ETH
+> — the SAME indexers Go's balance_provider.go uses). Stronger zero-knowledge
+> (no address list leaves to our server), consistent with the local-first vault.
+- [x] WalletBalanceService.swift: watch-only balance straight from public explorers (BTC chain_stats funded−spent; ETH eth_getBalance), BigInt-safe wei→decimal
+- [x] WalletAccountStore.swift: public descriptor persistence (coin/network/scriptType/index/label) in UserDefaults — no keys, no addresses; address re-derived live
+- [x] AppState: walletAccounts + addWalletAccount (auto-increment index) / removeWalletAccount / walletReceiveAddress / walletAccountXpub / deriveOptions; seed stays private; DEBUG `--wallet-demo-seed` test hook
+- [x] WalletView.swift: account list + add sheet (coin/network/scriptType) + detail (balance card + receive address + network safety chip + xpub + remove) — Vault design tokens
+- [x] VaultListView: add Wallet tab (4th tab, bitcoinsign.circle.fill)
+- [x] build + run on iPhone 17 sim: BUILD SUCCEEDED; live add→derive→balance round-trip verified in iOS-5c
 
-#### iOS-5c — 3-round visual verification [QUEUED]
-- [ ] R1 build+reachability: Wallet tab visible, empty state, screenshot
-- [ ] R2 add+derive: add BTC+ETH account, derived address shown, screenshot
-- [ ] R3 balance+polish: balance round-trip, network safety chip, multi-coin list, screenshot
-- [ ] each round: xcodebuild screenshot to state/screenshots/authbox-ios-uxmap/; verify pixels not assumptions
+#### iOS-5c — 3-round visual verification [DONE]
+- [x] R1 build+reachability: Wallet tab visible, true empty state → wallet-r1-empty.png
+- [x] R2 add+derive: add BTC account, derived bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu shown + live balance → wallet-r2-{add-sheet-btc,btc-in-list,btc-detail}.png
+- [x] R3 balance+parity: add ETH 0x9858EfFD232B4033E47d90003D41EC34EcaEda94 (EIP-55), multi-coin list, network safety chip, balance round-trip → wallet-r3-{add-sheet-eth,multicoin-list,eth-detail}.png
+- [x] driven by AuthBoxUITests/WalletFlowUITests (xcodebuild test, PASSED 40.8s); 7 real simulator PNGs to state/screenshots/authbox-ios-uxmap/; pixels inspected, not assumed
+
+## Visual Verification
+
+iOS wallet, 3 rounds, real iPhone 17 simulator pixels (XCUITest-driven, inspected by reading each PNG):
+
+- R1 empty state — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/wallet-r1-empty.png`
+- R2 BTC add sheet — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/wallet-r2-add-sheet-btc.png`
+- R2 BTC in list — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/wallet-r2-btc-in-list.png`
+- R2 BTC detail (address + balance) — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/wallet-r2-btc-detail.png`
+- R3 ETH add sheet — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/wallet-r3-add-sheet-eth.png`
+- R3 multi-coin list — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/wallet-r3-multicoin-list.png`
+- R3 ETH detail (EIP-55 address + balance) — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/wallet-r3-eth-detail.png`
+
+打通 proof: iOS derives the EXACT canonical addresses for the public all-zeros test
+mnemonic (BTC bc1qcr8te4…306fyu at m/84'/0'/0'/0/0, ETH 0x9858…Eda94 at
+m/44'/60'/0'/0/0), byte-for-byte matching the web @scure stack; balances are real
+mempool.space / publicnode round-trips (returned real 0, not a stub).

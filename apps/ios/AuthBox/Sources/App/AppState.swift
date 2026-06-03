@@ -16,6 +16,9 @@ final class AppState: ObservableObject {
     @Published var vaultState: VaultState = .empty
     @Published var vaultItems: [VaultItem] = []
 
+    /// Public wallet account descriptors (no keys). Persisted via UserDefaults.
+    @Published var walletAccounts: [WalletAccountDescriptor] = []
+
     /// In-memory vault key (never persisted to disk).
     private var vaultKey: Data?
 
@@ -29,6 +32,7 @@ final class AppState: ObservableObject {
         let resetForUITests = ProcessInfo.processInfo.arguments.contains("--reset-test-vault")
         if resetForUITests {
             KeychainManager.deleteSeed()
+            WalletAccountStore.save([])
         }
 
         if KeychainManager.hasSeed() {
@@ -46,6 +50,20 @@ final class AppState: ObservableObject {
         } catch {
             print("VaultStore init failed: \(error)")
         }
+
+        // Wallet account descriptors are public metadata — safe to load eagerly.
+        walletAccounts = WalletAccountStore.load()
+
+        #if DEBUG
+        // UI-test hook: boot straight into an unlocked vault derived from the
+        // public all-zeros BIP-39 test mnemonic, so wallet screens show the
+        // canonical (and real-on-chain) addresses without driving onboarding.
+        if ProcessInfo.processInfo.arguments.contains("--wallet-demo-seed") {
+            let demoMnemonic =
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+            try? createVault(mnemonic: demoMnemonic, masterPassword: "TestPassword123!")
+        }
+        #endif
     }
 
     // MARK: - Vault Lifecycle
@@ -120,6 +138,59 @@ final class AppState: ObservableObject {
     func derivePassword(site: String, options: DerivePasswordOptions = .init()) -> String? {
         guard let seed else { return nil }
         return Seed.derivePassword(seed: seed, site: site, options: options)
+    }
+
+    // MARK: - Wallet
+
+    /// Add a watch-only wallet account. The descriptor is public; the address is
+    /// derived live and never persisted.
+    func addWalletAccount(coin: Wallet.Coin, network: Wallet.WalletNetwork,
+                          scriptType: Wallet.BtcScriptType, label: String) {
+        let nextIndex = walletAccounts
+            .filter { $0.coin == coin.rawValue && $0.network == network.rawValue }
+            .map(\.accountIndex)
+            .max().map { $0 + 1 } ?? 0
+        let descriptor = WalletAccountDescriptor(
+            coin: coin.rawValue,
+            network: network.rawValue,
+            scriptType: coin == .btc ? scriptType.rawValue : Wallet.BtcScriptType.p2wpkh.rawValue,
+            accountIndex: nextIndex,
+            label: label.isEmpty ? defaultLabel(coin: coin, index: nextIndex) : label
+        )
+        walletAccounts.append(descriptor)
+        WalletAccountStore.save(walletAccounts)
+    }
+
+    func removeWalletAccount(_ descriptor: WalletAccountDescriptor) {
+        walletAccounts.removeAll { $0.id == descriptor.id }
+        WalletAccountStore.save(walletAccounts)
+    }
+
+    /// Derive the first receive address for an account. Returns nil when locked.
+    func walletReceiveAddress(for descriptor: WalletAccountDescriptor) -> Wallet.WalletAddress? {
+        guard let seed, let coin = Wallet.Coin(rawValue: descriptor.coin) else { return nil }
+        return Wallet.deriveAddress(seed: seed, coin: coin, options: deriveOptions(for: descriptor))
+    }
+
+    /// Account-level xpub (watch-only). Returns nil when locked.
+    func walletAccountXpub(for descriptor: WalletAccountDescriptor) -> String? {
+        guard let seed, let coin = Wallet.Coin(rawValue: descriptor.coin) else { return nil }
+        return Wallet.deriveAccount(seed: seed, coin: coin, options: deriveOptions(for: descriptor)).xpub
+    }
+
+    private func deriveOptions(for descriptor: WalletAccountDescriptor) -> Wallet.DeriveOptions {
+        Wallet.DeriveOptions(
+            account: descriptor.accountIndex,
+            change: 0,
+            index: 0,
+            scriptType: Wallet.BtcScriptType(rawValue: descriptor.scriptType) ?? .p2wpkh,
+            network: Wallet.WalletNetwork(rawValue: descriptor.network) ?? .mainnet
+        )
+    }
+
+    private func defaultLabel(coin: Wallet.Coin, index: Int) -> String {
+        let name = coin == .btc ? "Bitcoin" : "Ethereum"
+        return index == 0 ? name : "\(name) \(index + 1)"
     }
 }
 
