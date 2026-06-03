@@ -73,6 +73,25 @@ final class AppState: ObservableObject {
                 "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
             try? createVault(mnemonic: demoMnemonic, masterPassword: "TestPassword123!")
         }
+
+        // UI-test hook: unlocked vault with one login carrying a TOTP secret, so
+        // the detail screen shows a live authenticator code. The base32 secret
+        // GEZD…OJQ decodes to the RFC 6238 SHA1 seed "12345678901234567890".
+        if ProcessInfo.processInfo.arguments.contains("--totp-demo-seed") {
+            if vaultState != .unlocked {
+                let demoMnemonic =
+                    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+                try? createVault(mnemonic: demoMnemonic, masterPassword: "TestPassword123!")
+            }
+            let demo = VaultItem(
+                title: "GitHub",
+                username: "alice@acme.com",
+                uri: "https://github.com",
+                category: .login,
+                otpauth: "otpauth://totp/GitHub:alice@acme.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GitHub&digits=6&period=30&algorithm=SHA1"
+            )
+            addItem(demo)
+        }
         #endif
     }
 

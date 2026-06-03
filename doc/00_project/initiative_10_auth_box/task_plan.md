@@ -624,3 +624,51 @@ matrix + persistence + relaunch cache). The StoreKit round-trip (Apple's half) i
 ONLY by the iOS 26.5 CLI regression and is verified-pending Xcode IDE / device — the real
 tests skip honestly and auto-run when unblocked. Paywall price shows `$29` fallback under
 the regression (real `$29.99` renders on device). See PAYMENT_IAP_ARCHITECTURE.md §5-7.
+
+## 2026-06-03 · Built-in Authenticator (TOTP / 2FA)
+
+Goal: "还要支持2次验证，如 authenticator 和微软的 authenticator" — store TOTP secrets in
+the vault and generate the rotating 6-digit codes, byte-for-byte compatible with Google
+Authenticator and Microsoft Authenticator (the 1Password / Bitwarden 2FA pattern).
+
+- [x] Engine `AuthBoxCrypto/TOTP.swift` — RFC 6238 (TOTP) over RFC 4226 (HOTP) on CryptoKit
+      HMAC; SHA1 (default) / SHA256 / SHA512; 6 or 8 digits; 30s period; raw-`Data` secret
+      decoupled from base32 so RFC vectors and base32/URI parsing are each provable alone.
+- [x] `TOTP.parse(_:)` accepts a full `otpauth://totp/...` URI or a bare base32 key;
+      `base32Decode` (RFC 4648, case/padding/space tolerant); `formattedCode` + `secondsRemaining`.
+- [x] Storage: one field `VaultItem.otpauth: String = ""` (property default → SwiftData
+      lightweight migration of pre-2FA stores); mirrored in `VaultItemPayload`; stored exactly
+      like `password` (TOTP secret is as sensitive as the password, never weaker handling).
+- [x] UI display (`VaultItemDetailView`): "One-Time Password" section with a live code via
+      `TimelineView(.periodic(by:1))` (pure function of time, never stored/stale), issuer label,
+      draining countdown ring (red ≤5s), tap-to-copy.
+- [x] UI add (`AddItemView`): "Two-Factor (Authenticator)" section; live `TOTP.parse` validation
+      (`Valid · code 123 456` / warning); footer names Google/Microsoft Authenticator.
+- [x] `AppState --totp-demo-seed` DEBUG hook (GitHub login carrying the RFC 6238 SHA1 seed).
+- [x] Engine proof `AuthBoxCryptoTests/TOTPTests` — 7 tests pass, incl. all 18 RFC 6238
+      Appendix B vectors (6 timestamps × SHA1/256/512, 8-digit) byte-for-byte. This is the
+      canonical proof the codes equal Google/MS Authenticator output.
+- [x] iOS surface proof `AuthBoxUITests/TOTPFlowUITests` — 2 tests pass (live code on detail;
+      add-flow validation). Registered into the UI-test target via the ruby `xcodeproj` gem.
+- [x] Doc `AUTHENTICATOR_2FA_ARCHITECTURE.md` (canonical EN). No `.html` companion — feature
+      note, not an architecture/planning/global doc (coordination ≤ task complexity).
+
+Tests (2026-06-03, iOS 26.5 sim): `TOTPTests` 7/7 pass · `TOTPFlowUITests` 2/2 pass · app
+BUILD SUCCEEDED · no existing test depends on the changed `VaultItemPayload`.
+
+Follow-ups (not blocking, noted not done): QR-code scan add-flow (device-only, AVFoundation,
+no simulator camera); web-side code generation (web already stores `totpSecret` + imports
+`otpAuth`, only the generator is missing — a TS port of `TOTP.swift`).
+
+## Visual Verification — authenticator (TOTP)
+
+iOS, real iPhone 17 simulator pixels (XCUITest-driven, inspected by reading each PNG):
+
+- R1 vault list (demo seeded) — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/totp-r1-vault-list.png`
+- R2 live code on detail (GitHub item, "108 658" + countdown ring) — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/totp-r2-live-code.png`
+- R3 code still rendering as it ticks — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/totp-r3-code-ticking.png`
+- R4 add-flow validates an entered base32 key — `/Users/mauricewen/00-AI-Fleet/state/screenshots/authbox-ios-uxmap/totp-r4-add-validates.png`
+
+打通 status: fully closed on iOS. The code generation is proven against the published RFC
+6238 reference values, so a secret stored in Auth Box is guaranteed identical to what Google
+Authenticator / Microsoft Authenticator would show. See AUTHENTICATOR_2FA_ARCHITECTURE.md.

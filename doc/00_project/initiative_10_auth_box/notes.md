@@ -2410,3 +2410,43 @@ and deterministically. Candidate memory: "iOS 26.5 sim + xcodebuild CLI breaks S
 打通 status: app's half PROVEN (3 unit tests), Apple's StoreKit half verified-pending
 IDE/device (2 tests skip + auto-run when unblocked). Paywall shows $29 fallback under the
 regression. Visual: paywall-r{1,2,3}-*.png + payment-doc-r{1,2}.png.
+
+---
+
+## 2026-06-03 · Built-in authenticator (TOTP / 2FA)
+
+Request: "还要支持2次验证，如 authenticator 和微软的 authenticator." Read as (A): Auth Box
+itself becomes the authenticator — store the TOTP secret next to the password and generate
+the rotating 6-digit code (the 1Password / Bitwarden 2FA feature). Reading (B) — an external
+authenticator gates the app — was rejected: the cited apps are TOTP *generators*, and Auth
+Box is a vault, so its natural job is to hold and generate. Stated the (A)/(B) choice
+explicitly per the autonomous-SOTA highest principle (pick the SOTA reading, don't fork back
+to the user on a reversible call).
+
+Design discipline — prove the spec, not the UI:
+- Built the RFC 6238 engine FIRST and proved it against the published Appendix B vectors
+  (18 values) BEFORE touching SwiftUI. The "compatible with Google/Microsoft Authenticator"
+  claim is therefore not a vibe — it's the literal reference test passing byte-for-byte.
+  Those apps and Auth Box compute the same function of (secret, time), so identical secret →
+  identical code is a mathematical guarantee, not an integration we'd have to mock.
+- Secret stored as raw `Data`, decoupled from base32. This let the RFC vectors (raw ASCII
+  seeds) and the base32/otpauth path each be tested on their own half — two-halves discipline,
+  same shape as the payment task's entitlement-vs-StoreKit split.
+- `TimelineView(.periodic(by:1))` makes the on-screen code a pure function of `context.date`.
+  No timer state, no stale code, no manual invalidation — the view layer can't drift from the
+  engine because it recomputes every redraw.
+
+Scope decision (coordination ≤ task): iOS end-to-end (the active platform); engine in the
+shared crypto package; web already has the `totpSecret` field + `otpAuth` importers, so web
+code-generation is a noted TS-port follow-up, not in-scope churn. QR-scan add-flow deferred
+(device-only camera; the simulator has none, so it'd be untestable here).
+
+SwiftData migration gotcha: adding `otpauth` needed a property-level default (`= ""`) — an
+@Model stored property with no default fails lightweight migration of an existing on-device
+store. Mirrored the field into `VaultItemPayload` (the Codable sync wire format) so the two
+shapes stay in parity even though sync is currently dead code.
+
+Verification (iOS 26.5 sim): `AuthBoxCryptoTests/TOTPTests` 7/7 pass (RFC 6238 proven) ·
+`AuthBoxUITests/TOTPFlowUITests` 2/2 pass · app BUILD SUCCEEDED · no test references the
+changed `VaultItemPayload`. Visual: totp-r{1,2,3,4}-*.png (r2 shows live "108 658" + ring).
+打通 status: fully closed on iOS. Doc: AUTHENTICATOR_2FA_ARCHITECTURE.md (canonical EN only).

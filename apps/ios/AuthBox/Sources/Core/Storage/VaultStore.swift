@@ -107,6 +107,7 @@ struct VaultItemPayload: Codable {
     let notes: String
     let category: String
     let isFavorite: Bool
+    let otpauth: String
 
     init(from item: VaultItem) {
         self.title = item.title
@@ -116,6 +117,7 @@ struct VaultItemPayload: Codable {
         self.notes = item.notes
         self.category = item.category.rawValue
         self.isFavorite = item.isFavorite
+        self.otpauth = item.otpauth
     }
 
     func toVaultItem() -> VaultItem {
@@ -126,7 +128,8 @@ struct VaultItemPayload: Codable {
             uri: uri,
             notes: notes,
             category: ItemCategory(rawValue: category) ?? .login,
-            isFavorite: isFavorite
+            isFavorite: isFavorite,
+            otpauth: otpauth
         )
     }
 }

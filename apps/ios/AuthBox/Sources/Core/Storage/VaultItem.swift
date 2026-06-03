@@ -16,6 +16,11 @@ final class VaultItem {
     var updatedAt: Date
     var isFavorite: Bool
 
+    /// Authenticator (2FA) secret as an `otpauth://` URI or a bare base32 secret.
+    /// Empty when the item has no associated TOTP. The default value keeps
+    /// SwiftData lightweight migration happy for stores created before 2FA.
+    var otpauth: String = ""
+
     init(
         title: String,
         username: String = "",
@@ -23,7 +28,8 @@ final class VaultItem {
         uri: String = "",
         notes: String = "",
         category: ItemCategory = .login,
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        otpauth: String = ""
     ) {
         self.id = UUID()
         self.title = title
@@ -35,6 +41,7 @@ final class VaultItem {
         self.createdAt = Date()
         self.updatedAt = Date()
         self.isFavorite = isFavorite
+        self.otpauth = otpauth
     }
 }
 

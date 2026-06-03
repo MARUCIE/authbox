@@ -14,6 +14,7 @@ struct AddItemView: View {
     @State private var isFavorite = false
     @State private var showPasswordGenerator = false
     @State private var showPassword = false
+    @State private var otpauth = ""
 
     var body: some View {
         NavigationStack {
@@ -71,6 +72,30 @@ struct AddItemView: View {
                         .textContentType(.URL)
                 }
 
+                // Two-factor (TOTP / authenticator)
+                Section {
+                    TextField("otpauth:// link or secret key", text: $otpauth, axis: .vertical)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(.system(.body, design: .monospaced))
+
+                    if !otpauth.isEmpty {
+                        if let totp = TOTP.parse(otpauth) {
+                            Label("Valid · code \(totp.formattedCode())", systemImage: "checkmark.seal.fill")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        } else {
+                            Label("Not a valid otpauth link or base32 key", systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                } header: {
+                    Text("Two-Factor (Authenticator)")
+                } footer: {
+                    Text("Paste the otpauth:// link or the base32 setup key from Google Authenticator, Microsoft Authenticator, or any 2FA service. The rotating 6-digit code then appears on the saved item.")
+                }
+
                 // Notes
                 Section("Notes") {
                     TextEditor(text: $notes)
@@ -107,7 +132,8 @@ struct AddItemView: View {
             uri: uri,
             notes: notes,
             category: category,
-            isFavorite: isFavorite
+            isFavorite: isFavorite,
+            otpauth: otpauth.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         appState.addItem(item)
         dismiss()

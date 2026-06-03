@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthBoxCrypto
 
 struct VaultItemDetailView: View {
     let item: VaultItem
@@ -87,6 +88,13 @@ struct VaultItemDetailView: View {
                 }
             }
 
+            // One-time password (2FA)
+            if let totp = TOTP.parse(item.otpauth) {
+                Section("One-Time Password") {
+                    TOTPCodeView(totp: totp)
+                }
+            }
+
             // Website
             if !item.uri.isEmpty {
                 Section("Website") {
@@ -145,6 +153,68 @@ struct VaultItemDetailView: View {
         withAnimation(.easeInOut(duration: 0.2)) { copiedField = field }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation { if copiedField == field { copiedField = nil } }
+        }
+    }
+}
+
+// MARK: - One-Time Password Row
+
+/// Live TOTP code with a per-second countdown ring. `TimelineView` redraws every
+/// second, so the code is always a pure function of the current time — never
+/// stored, never stale. Tap to copy the raw (un-spaced) code.
+private struct TOTPCodeView: View {
+    let totp: TOTP
+    @State private var copied = false
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let remaining = totp.secondsRemaining(at: context.date)
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let issuer = totp.issuer, !issuer.isEmpty {
+                        Text(issuer)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(totp.formattedCode(at: context.date))
+                        .font(.system(.title2, design: .monospaced))
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.blue)
+                        .contentTransition(.numericText())
+                        .monospacedDigit()
+                }
+
+                Spacer()
+
+                // Countdown ring: drains over the period, turns red in the last 5s.
+                ZStack {
+                    Circle()
+                        .stroke(Color(.systemGray5), lineWidth: 3)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(remaining) / CGFloat(totp.period))
+                        .stroke(remaining <= 5 ? Color.red : Color.blue,
+                                style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    Text("\(remaining)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                .frame(width: 30, height: 30)
+
+                Button {
+                    UIPasteboard.general.string = totp.code(at: context.date)
+                    withAnimation(.easeInOut(duration: 0.2)) { copied = true }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation { copied = false }
+                    }
+                } label: {
+                    Image(systemName: copied ? "checkmark.circle.fill" : "doc.on.doc")
+                        .foregroundStyle(copied ? .green : .blue)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.vertical, 2)
         }
     }
 }
