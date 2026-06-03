@@ -520,5 +520,32 @@ first), reusing the existing BIP-39 seed. Architecture: WALLET_ARCHITECTURE.md.
 ### Deferred companion
 - [ ] WALLET_ARCHITECTURE.html (2份制 Chinese companion via html-style-router, Claude Warm Academic) — produce at a doc milestone
 
-### Deferred companion
-- [ ] WALLET_ARCHITECTURE.html (2份制 Chinese companion via html-style-router, Claude Warm Academic) — produce at a doc milestone
+## 2026-06-03 · iOS wallet parity — sync the wallet to apps/ios + 打通 + 3-round visual verify
+
+Goal: bring the web Phase 4 wallet (reachable, watch-only, client-side derivation
++ balance) to the iOS app at full cross-platform parity (SAME seed → SAME
+addresses), make it work end-to-end against the live Go API, verify visually 3×.
+Feasibility gate: iOS AuthBoxCrypto has Seed but NO secp256k1/BIP-32 → native
+wallet derivation must be built. Toolchain confirmed: Xcode 26.5, iPhone 17 sim
+booted, scheme AuthBox, SPM resolves from github.
+
+#### iOS-5a — Native crypto foundation (the 打通 core) [DONE]
+- [x] add swift-secp256k1 0.21.1 (libsecp256k1 C product, swift-tools 6.0, no traits) to AuthBoxCrypto/Package.swift; resolved + pinned in Package.resolved
+- [x] Secp256k1.swift: wrapper over libsecp256k1 C API (pubkey-from-seckey, seckey tweak-add, pubkey parse/serialize/tweak-add). NOTE: static context lacks ecmult_gen → must use secp256k1_context_create(NONE); nonisolated(unsafe) for Swift-6
+- [x] vendor + test primitives: Keccak256.swift (ETH, padding 0x01) / RIPEMD160.swift (BTC hash160) / Bech32.swift (BIP-173 segwit) / Base58Check.swift (legacy + raw xpub) — anchored to public vectors
+- [x] Wallet.swift: standard BIP-32 ("Bitcoin seed", hardened + NON-hardened CKD via secp256k1 tweak) + BIP-44/84 paths + BTC p2wpkh/p2pkh + ETH EIP-55 + account xpub — mirrors packages/crypto/src/wallet.ts EXACTLY
+- [x] WalletTests: 13/13 — iOS derives bc1qcr8te4… / 1LqBGS… / 0x9858…Eda94 / testnet tb1q6rz28… / xpub6CatW… (== web + TS @scure reference) → 打通 proof. Full crypto suite 76/76 green on host
+- [ ] AuthBoxCrypto builds for iOS simulator destination (validated transitively when the app builds in iOS-5b)
+
+#### iOS-5b — App integration (打通 app ↔ server) [QUEUED]
+- [ ] APIClient: walletApi (createAccount/listAccounts/deleteAccount/addAddress/listAddresses/balance) matching Go routes
+- [ ] AppState: wallet methods deriving from in-memory seed (no re-prompt; seed already held when unlocked)
+- [ ] WalletView.swift: account list + add (derive client-side) + receive address + balance (live API) — Vault design tokens
+- [ ] VaultListView: add Wallet tab (4th tab)
+- [ ] build + run on iPhone 17 sim; live create→list→balance round-trip against Go API on :4010
+
+#### iOS-5c — 3-round visual verification [QUEUED]
+- [ ] R1 build+reachability: Wallet tab visible, empty state, screenshot
+- [ ] R2 add+derive: add BTC+ETH account, derived address shown, screenshot
+- [ ] R3 balance+polish: balance round-trip, network safety chip, multi-coin list, screenshot
+- [ ] each round: xcodebuild screenshot to state/screenshots/authbox-ios-uxmap/; verify pixels not assumptions
