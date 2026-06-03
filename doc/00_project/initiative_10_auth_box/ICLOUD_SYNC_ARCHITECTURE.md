@@ -1,27 +1,42 @@
 # Auth Box — iCloud Sync & Account Binding Architecture (design)
 
-Status: FOUNDATION SHIPPED + CORE APP ON DEVICE — one Apple-ID action away from live sync.
-Last updated: 2026-06-03
+Status: SYNC ENGINE SHIPPED + FULLY-PROVISIONED APP ON DEVICE — live CloudKit round-trip is the only remaining (on-device) acceptance step.
+Last updated: 2026-06-04
 
-> **2026-06-03 device milestone**: the core app (live TOTP, QR scan, import, Google
-> Authenticator migration — no iCloud yet) is **installed and launched on a physical
-> iPhone 17 Pro Max** (`com.authbox.app`, team `35HKS5847W`). The device-signing pipeline
-> is therefore proven end-to-end: device paired + registered, cert/team resolved,
-> `xcrun devicectl device install app` + `process launch` both succeeded. The build used a
-> CLI entitlements override (`CODE_SIGN_ENTITLEMENTS=AuthBox/AuthBox-Dev.entitlements`, the
-> empty dict) to bypass the app-group/autofill/iCloud capabilities, which the CLI cannot
-> register on an existing App ID. The tracked entitlements files are unchanged.
+> **2026-06-04 sync-engine milestone**: `VaultSyncEngine` (`CKSyncEngine`, iOS 17+) is
+> written, compiles clean under Swift 6 *complete* strict concurrency, is wired into
+> `AppState`, and the **fully-provisioned app is installed and launched on the physical
+> iPhone 17 Pro Max** (`com.authbox.app`, team `35HKS5847W`). What changed vs. the
+> 2026-06-03 milestone:
 >
-> The only remaining gate for iCloud is **§6 decision 1 → resolved**: a paid Apple Developer
-> membership exists. What is left is a single Apple-ID action — enable the iCloud (CloudKit)
-> capability and **create the container `iCloud.com.authbox.vault`** — which `-allowProvisioningUpdates`
-> empirically *cannot* do for an existing App ID (verified: build fails with
-> "Provisioning profile … doesn't match the entitlements file's value for the
-> com.apple.developer.icloud-container-identifiers entitlement"). It must be done in Xcode's
-> Signing & Capabilities (or the Developer portal). The same one action re-provisions the
-> app-group + autofill capabilities, restoring the full entitlements. The `CKSyncEngine`
-> orchestration is intentionally written *after* the container exists, so it is tested live
-> rather than blind — the three CloudKit-free layers below are already proven.
+> - **`VaultSyncEngine`** (`AuthBox/Sources/Core/Sync/VaultSyncEngine.swift`): pushes
+>   ciphertext blobs on local CRUD, applies pulls with last-write-wins by `updatedAt`,
+>   persists `CKSyncEngine.State` in `UserDefaults`. It drives the three already-proven
+>   CloudKit-free layers (`VaultBlobCodec` + `VaultSyncReconciler` + `VaultItemPayload`
+>   codec). The `recordProvider` (a `@Sendable async` closure) is fed a pre-built
+>   `[CKRecord.ID: CKRecord]` snapshot computed on the main actor, so it crosses no actor
+>   boundary — the Swift-6-correct pattern (CKRecord is `@unchecked Sendable`).
+> - **App Group provisioned autonomously**: `group.com.authbox.shared` was registered and
+>   assigned to App ID `com.authbox.app` via browser-use on the Developer portal (the iCloud
+>   container `iCloud.com.authbox.vault` was assigned in the prior session). Zero manual
+>   action from Maurice — the only human-only gate (portal login) was already satisfied.
+> - **Full canonical entitlements now build for device**: the tracked `project.yml` declares
+>   iCloud (container + CloudKit) alongside the existing app-group + autofill. `xcodebuild
+>   -allowProvisioningUpdates` SUCCEEDED with no override hack; `codesign -d --entitlements`
+>   on the installed binary confirms all four: `icloud-container-identifiers =
+>   (iCloud.com.authbox.vault)`, `icloud-services = (CloudKit)`, `application-groups =
+>   (group.com.authbox.shared)`, `autofill-credential-provider = true`.
+> - **Settings toggle wired**: the previously-decorative "Cloud Sync" toggle now drives
+>   `AppState.isSyncEnabled` (off by default, Pro-gated), which builds/tears-down the engine.
+>
+> **Remaining — the live CloudKit round-trip (on-device acceptance, Maurice-gated).** The
+> physical-device UI cannot be driven by automation, so this last step is manual: on the
+> iPhone, unlock Pro (sync is a Pro feature), enable Settings → iCloud Sync, add a vault
+> item, and confirm an encrypted `VaultItemBlob` record appears in the CloudKit Console for
+> container `iCloud.com.authbox.vault` (private DB, `Vault` zone) — and that its fields are
+> ciphertext only (no plaintext title/password/otpauth). A second device signed into the
+> same Apple ID then converges. This is *acceptance*, not a unit test, exactly like the
+> real-StoreKit path; the codec/reconciler layers are unit-tested ahead of it.
 Scope: design the SOTA way to sync the vault across a user's Apple devices and
 bind it to their iCloud identity, without breaking Auth Box's zero-knowledge model.
 
