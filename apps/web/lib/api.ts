@@ -554,4 +554,84 @@ export const settingsApi = {
   },
 };
 
+// Wallet API (watch-only). Private keys are derived in the browser from the seed
+// and never sent here; this client only ever transmits xpub + public addresses.
+type WalletAccountDTO = {
+  id: string;
+  coin: string;
+  network: string;
+  scriptType?: string;
+  accountIndex: number;
+  derivationPath: string;
+  xpub: string;
+  label: string;
+  cachedBalance: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const walletApi = {
+  createAccount(
+    token: string,
+    body: {
+      coin: 'btc' | 'eth';
+      network?: 'mainnet' | 'testnet';
+      scriptType?: 'p2wpkh' | 'p2pkh';
+      accountIndex?: number;
+      derivationPath: string;
+      xpub: string;
+      label?: string;
+    },
+  ) {
+    return request<WalletAccountDTO>('/api/v1/wallet/accounts', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(body),
+    });
+  },
+
+  listAccounts(token: string) {
+    return request<{ accounts: WalletAccountDTO[] }>('/api/v1/wallet/accounts', { token });
+  },
+
+  deleteAccount(token: string, id: string) {
+    return request<{ deleted: boolean }>(`/api/v1/wallet/accounts/${id}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+
+  addAddress(
+    token: string,
+    accountId: string,
+    body: { address: string; derivationPath: string; change: 0 | 1; addressIndex: number; publicKey: string },
+  ) {
+    return request<{ id: string; address: string; cachedBalance: string }>(
+      `/api/v1/wallet/accounts/${accountId}/addresses`,
+      { method: 'POST', token, body: JSON.stringify(body) },
+    );
+  },
+
+  listAddresses(token: string, accountId: string) {
+    return request<{
+      addresses: Array<{
+        id: string;
+        address: string;
+        derivationPath: string;
+        change: number;
+        addressIndex: number;
+        publicKey: string;
+        cachedBalance: string;
+      }>;
+    }>(`/api/v1/wallet/accounts/${accountId}/addresses`, { token });
+  },
+
+  balance(token: string, accountId: string) {
+    return request<{ coin: string; network: string; confirmed: string; unconfirmed: string }>(
+      `/api/v1/wallet/accounts/${accountId}/balance`,
+      { token },
+    );
+  },
+};
+
 export { ApiError };

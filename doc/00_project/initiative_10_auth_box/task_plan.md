@@ -491,9 +491,11 @@ first), reusing the existing BIP-39 seed. Architecture: WALLET_ARCHITECTURE.md.
 - [x] Routes wired in main.go; go build + vet clean; go test ./... 43 passed / 9 packages
 - [x] Full closed-loop e2e (scripts/wallet-e2e-test.mjs): SRP register→login→create→addresses→REAL balance (57 BTC)→delete, 14/14
 
-### Phase 4 — Web UI [QUEUED]
-- [ ] apps/web wallet screens: account list, receive address + QR, balance display
-- [ ] derive addresses client-side via @authbox/crypto; never send private keys
+### Phase 4 — Web UI [IN PROGRESS]
+- [x] apps/web lib/api.ts walletApi typed client (createAccount/list/delete/addAddress/listAddresses/balance); web tsc --noEmit clean
+- [ ] apps/web/(vault)/wallet/page.tsx: account list, receive address + QR, balance display (reuse existing vault design system)
+- [ ] client-side derivation lib via @authbox/crypto deriveAccount/deriveAddress from the unlocked seed; never send private keys
+- [ ] nav entry to surface /wallet
 - [ ] 3-round HTML/visual polish + chrome-devtools screenshot verification
 
 ### Phase 5 — Transactions (HITL / testnet-first) [QUEUED]
