@@ -147,9 +147,21 @@ Screenshots: `totp-import-r{1,2,3}-*.png`.
   imports (Bitwarden/LastPass/Apple) that parse a 2FA secret were silently losing it on write.
   Verified: crypto suite **106 passed / 2 skipped**, `tsc --noEmit` clean on the changed web
   files (the lone `globals.css` side-effect error is a pre-existing bare-`tsc` artifact,
-  proven independent by a stash-bisect). Deferred: a live import screenshot is auth-gated like
-  the render path. Web QR-camera scan is a follow-up (browser `getUserMedia` + a QR decoder);
-  the paste path already covers the migration payload a scan would yield.
+  proven independent by a stash-bisect), and a full `next build` compiles + prerenders 17/17
+  pages. Deferred: a live import screenshot is auth-gated like the render path.
+- **Web QR-camera scan** — DONE. `components/vault/qr-scanner.tsx` is the web mirror of the iOS
+  `QRScannerView`: `@zxing/browser`'s `BrowserQRCodeReader.decodeFromVideoDevice` wraps
+  getUserMedia + the frame loop + QR decode (works across browsers without a hand-rolled canvas
+  pump), and the decoded string is fed to the same proven `parseOTPImport` — so a single
+  service QR and a Google Authenticator export QR both flow through one path. The `ImportDialog`
+  upload step now has a "Scan QR code" button (a `scan` step) beside the paste field; a scanned
+  non-OTP QR parses to nothing and drops back with an error. Camera failures (denied permission,
+  no camera, insecure non-HTTPS context) surface inline; the paste path is the universal
+  fallback. The decode-to-accounts core is proven headlessly (the 106-test crypto suite); the
+  camera seam itself is verified by construction + `next build` (no SSR crash — the browser-only
+  zxing code is gated behind `'use client'` + `useEffect`), with a live camera scan deferred
+  (needs a real camera + authed app), the same honesty ceiling as the iOS scanner whose UI test
+  feeds `OTPImport.parse` directly.
 - **SHA256/SHA512 + 8-digit issuers** — already supported by the engine; surface
   them in the add UI if a service needs a non-default profile.
 

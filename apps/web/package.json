@@ -12,6 +12,7 @@
   "dependencies": {
     "@authbox/crypto": "workspace:*",
     "@authbox/shared": "workspace:*",
+    "@zxing/browser": "^0.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
     "lucide-react": "^0.473.0",

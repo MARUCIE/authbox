@@ -12,6 +12,7 @@ import {
 } from '@/lib/import-parsers';
 import { createVaultItem } from '@/lib/vault-service';
 import { parseOTPImport, toOtpauthURI } from '@authbox/crypto';
+import { QrScanner } from '@/components/vault/qr-scanner';
 
 /**
  * Map a Google Authenticator `otpauth-migration://` export, a single
@@ -37,7 +38,7 @@ interface ImportDialogProps {
   onComplete: (count: number) => void;
 }
 
-type ImportStep = 'upload' | 'preview' | 'importing' | 'done';
+type ImportStep = 'upload' | 'scan' | 'preview' | 'importing' | 'done';
 
 const FORMAT_OPTIONS: { value: ImportFormat | 'auto'; label: string; description: string }[] = [
   { value: 'auto', label: 'Auto-detect', description: 'Detect format from file content' },
@@ -104,18 +105,30 @@ export function ImportDialog({ open, onClose, onComplete }: ImportDialogProps) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  function handlePasteImport() {
+  // Shared by the paste field and the camera scan: a string -> accounts -> preview.
+  function loadAccounts(raw: string): boolean {
     setParseError(null);
-    const items = parseAuthenticatorExport(pasteText);
+    const items = parseAuthenticatorExport(raw);
     if (items.length === 0) {
       setParseError(
-        'No 2FA accounts found. Paste an otpauth:// link or a Google Authenticator otpauth-migration:// export.',
+        'No 2FA accounts found. Paste or scan an otpauth:// link or a Google Authenticator otpauth-migration:// export.',
       );
-      return;
+      return false;
     }
     setParsedItems(items);
     setSelectedItems(new Set(items.map((_, i) => i)));
     setStep('preview');
+    return true;
+  }
+
+  function handlePasteImport() {
+    loadAccounts(pasteText);
+  }
+
+  function handleScanResult(text: string) {
+    // A scanned non-OTP QR (e.g. a URL) parses to nothing: fall back to the
+    // upload step so the error message is visible.
+    if (!loadAccounts(text)) setStep('upload');
   }
 
   async function handleImport() {
@@ -234,7 +247,17 @@ export function ImportDialog({ open, onClose, onComplete }: ImportDialogProps) {
               Paste a single otpauth:// link, several lines, or a Google Authenticator
               &ldquo;Export accounts&rdquo; QR payload (otpauth-migration://).
             </p>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setParseError(null);
+                  setStep('scan');
+                }}
+              >
+                Scan QR code
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -265,6 +288,10 @@ export function ImportDialog({ open, onClose, onComplete }: ImportDialogProps) {
             </Button>
           </div>
         </div>
+      )}
+
+      {step === 'scan' && (
+        <QrScanner onResult={handleScanResult} onCancel={() => setStep('upload')} />
       )}
 
       {step === 'preview' && (
