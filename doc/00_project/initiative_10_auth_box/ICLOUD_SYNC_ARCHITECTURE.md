@@ -47,8 +47,15 @@ encrypted it before handing it over)
 - **Sync engine**: `CKSyncEngine` (modern) or zone change-tokens — push local changes,
   pull remote, both directions are opaque blobs.
 - **Conflict resolution**: last-write-wins on `updatedAt` for v1 (a vault item is
-  small and edited rarely); upgrade to field-level merge only if needed.
-- **Delete**: tombstone via CloudKit record deletion; local delete mirrors up.
+  small and edited rarely); upgrade to field-level merge only if needed. This merge
+  decision — the bug-prone heart of any sync engine — is now implemented and proven
+  ahead of the transport as a pure value type, `AuthBoxCrypto/VaultSyncReconciler`
+  (see §5).
+- **Delete**: tombstone via CloudKit record deletion; local delete mirrors up. The
+  reconciler models each side as `live(updatedAt)` / `tombstone(deletedAt)` and emits
+  per-id `push`/`pull` actions; two tombstones converge with no action, an edit racing
+  an older delete resurrects (push), and exact-timestamp ties keep the live side
+  (a vault credential is costlier to silently lose than to keep one beat).
 
 ## 3. Account binding (绑定)
 
@@ -106,6 +113,14 @@ non-deterministic (fresh AES-GCM nonce); a wrong vault key cannot decrypt (GCM t
 The cryptographic boundary the CloudKit transport will ride on is therefore verified ahead
 of the entitlement.
 
+**Also proven now (2026-06-03)** — `AuthBoxCryptoTests/VaultSyncReconcilerTests`, 15 tests
+pass, exercising the pure `VaultSyncReconciler.reconcile(local:remote:)` across every state
+pair: live-only push/pull, tombstone-only no-op, live-vs-live LWW both directions, the
+edit/delete conflicts (newer edit resurrects, newer delete wins), both-tombstoned convergence,
+exact-timestamp ties (live wins), and a mixed multi-item merge sorted deterministically. The
+merge core and the crypto codec — the two parts that don't need CloudKit — are now both green;
+only the network round-trip and cross-device Keychain remain entitlement-gated.
+
 ## 6. Open decisions (block implementation)
 
 1. **iCloud container availability** — is there a paid Apple Developer account for
@@ -123,12 +138,17 @@ of the entitlement.
 2. `KeychainManager`: make the seed item synchronizable (iCloud Keychain).
 3. `VaultSyncEngine` (new): `CKSyncEngine` over `VaultItemBlob` records; encrypt on
    push with `VaultStore.encryptForSync`, decrypt on pull with `decryptFromSync`;
-   last-write-wins. (The encrypt/decrypt codec is DONE and proven — step 5a below.)
+   last-write-wins via `VaultSyncReconciler`. (Both the encrypt/decrypt codec AND the
+   reconcile core are DONE and proven ahead of the entitlement — steps 5a/5c below;
+   what remains here is the `CKSyncEngine` plumbing that maps CloudKit records ↔
+   `SyncState` and ships the blobs the reconciler selects.)
 4. Wire SwiftData local store ↔ sync engine; surface sync state + a manual toggle in
    Settings (off by default until the user opts in).
 5. Prove: (a) **DONE** — blob round-trip + zero-knowledge unit tests in-sim
    (`AuthBoxTests/VaultSyncCodecTests`, 4 pass). (b) CloudKit round-trip + cross-device
    Keychain on real devices (XCTSkip in-sim, auto-run on device), with screenshots.
+   (c) **DONE** — the pure merge/conflict logic (`AuthBoxCryptoTests/VaultSyncReconcilerTests`,
+   15 pass). Only (b) is entitlement/device-gated.
 6. Then produce the Chinese `.html` companion (2份制) and the 3-round visual polish.
 
 ---
