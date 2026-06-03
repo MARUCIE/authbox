@@ -2245,3 +2245,49 @@ Security held: no private key or seed in any wallet table, request, or response.
 Server is watch-only; it returned real balances without ever being able to spend.
 
 Next: Phase 4 (web UI) + Phase 5 (client-side tx sign, testnet-first, mainnet HITL).
+
+## 2026-06-03 · Phase 4 web UI + visual-verification UX walk
+
+Goal: open visual verification, walk the real user journey, find 卡点, fix
+comprehensively. Built the page map (PAGE_MAP.md) first, then walked every route
+with real browser screenshots (state/screenshots/authbox-uxmap/).
+
+Primary 卡点 = GAP-WALLET: the wallet feature (P1-P3) had no web page and no nav
+entry — unreachable. Fixed:
+- app/(vault)/wallet/page.tsx: account list (multi-coin, friendly subtitles),
+  empty state, add-account dialog with on-demand mnemonic → client-side
+  BIP-32/44/84 derivation → watch-only create (xpub + first address only),
+  detail panel (balance card w/ cached↔live freshness badge, receive address w/
+  coin·network safety chip + "only send X on Y" helper, addresses list, derive-
+  next, xpub, delete). Loading skeleton avoids empty-state FOUC.
+- (vault)/layout.tsx: Wallet nav item (between AI Agents and Audit Log).
+
+Seed handling: the mnemonic is requested per-derivation and dropped from React
+state immediately (cleared in finally). Never persisted, never sent — only xpub
+and public addresses leave the browser. Zero-knowledge + watch-only preserved.
+
+Verification (real browser, real derivation, no fabrication):
+- BTC 24-word abandon…art m/84'/0'/0'/0/0 → bc1qzmtrqsfuaf6l6kkcsseumq26ukaphfj9skkug6,
+  byte-for-byte equal to @authbox/crypto (node cross-check).
+- BTC 12-word abandon…about → bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu (BIP-84 vector).
+- ETH 12-word abandon…about m/44'/60'/0'/0/0 → 0x9858EfFD232B4033E47d90003D41EC34EcaEda94
+  (EIP-55), produced live in the browser.
+- UI CRUD cycle: create BTC+ETH → multi-coin list → refresh balance (cached→live,
+  watch-only endpoint round-trip) → delete both → empty state. Test data cleaned up.
+- crypto vitest wallet.test.ts 14/14; web tsc clean (wallet); eslint clean.
+
+Other findings (documented, not fixed — see PAGE_MAP.md ledger):
+- GAP-SESSION-PERSIST: hard refresh → /login. BY DESIGN (layout.tsx:31 "no
+  sessionStorage"); a zero-knowledge vault refuses to persist the session token.
+  Changing it weakens security → needs an explicit architecture decision.
+- GAP-ONBOARDING-SEED: /register makes a random vault key (no mnemonic); /create
+  derives it from the seed. "Your vault seed is your wallet" only holds for
+  /create users. Architectural, out of scope.
+- GAP-LANDING-WALLET / NOTE-DEVTOOLS-OVERLAP: low / non-issues.
+
+3-round visual polish (per standing rule): R1 build+derive-verify, R2 fund-safety
+(network chip, balance freshness, loading skeleton), R3 list information design
+(coin · script-type · path) + ETH derivation verify. Screenshot per round.
+
+Next: Phase 5 (client-side tx build/sign — BTC PSBT + ETH EIP-1559, testnet-first,
+mainnet HITL).
