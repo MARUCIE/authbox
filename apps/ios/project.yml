@@ -79,6 +79,22 @@ targets:
           - group.com.authbox.shared
         com.apple.developer.authentication-services.autofill-credential-provider: true
 
+  AuthBoxTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - AuthBoxTests
+    dependencies:
+      - target: AuthBox
+      - package: AuthBoxCrypto
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_BUNDLE_IDENTIFIER: com.authbox.app.tests
+        # Hosted unit tests: `@testable import AuthBox` needs the app as the test host.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AuthBox.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AuthBox"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
   AuthBoxUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -91,3 +107,29 @@ targets:
         GENERATE_INFOPLIST_FILE: true
         PRODUCT_BUNDLE_IDENTIFIER: com.authbox.app.uitests
         TEST_TARGET_NAME: AuthBox
+
+# Declared here so `xcodegen generate` reproduces the shared scheme deterministically.
+# Previously the scheme was a hand-committed file that every regenerate deleted, which
+# orphaned the AuthBoxTests unit tests (target was never in project.yml either).
+schemes:
+  AuthBox:
+    build:
+      targets:
+        AuthBox: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      # Lets the StoreKit round-trip tests sync the local product catalog when run
+      # from the Xcode IDE (Cmd+U). The deterministic entitlement tests don't need it;
+      # the CLI runtime doesn't sync it (iOS 26.5 regression) so those tests XCTSkipIf.
+      storeKitConfiguration: AuthBoxTests/Configuration.storekit
+      targets:
+        - AuthBoxTests
+        - AuthBoxUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

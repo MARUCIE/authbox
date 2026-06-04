@@ -1,0 +1,41 @@
+{
+  "identifier" : "E30B9D73-E316-4C7B-A37D-381017D07938",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "29.99",
+      "familyShareable" : false,
+      "internalID" : "9E278260-E921-4ACF-B488-66402BEE323D",
+      "localizations" : [
+        {
+          "description" : "Unlock every AuthBox Pro capability: MCP Gateway, unlimited API keys, multi-device iCloud sync, Arweave backup, all importers, and the audit log.",
+          "displayName" : "AuthBox Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.authbox.pro",
+      "referenceName" : "AuthBox Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "com.authbox.app",
+    "_developerTeamID" : "35HKS5847W",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

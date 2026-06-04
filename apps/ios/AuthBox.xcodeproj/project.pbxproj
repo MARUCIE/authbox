@@ -10,6 +10,7 @@
 		01218936AAE5B02C2498E6DB /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933912DC8BDEBECBFB1EC59 /* OnboardingView.swift */; };
 		0590E9EF4EC4054A72E2F83C /* WalletFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0A4251F77DF2FA3C40ECDE /* WalletFlowUITests.swift */; };
 		0F3E80196C9FA9B41D9262A4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0491051A1129271332322C4 /* Assets.xcassets */; };
+		204A8C673BA7B7B02A708C27 /* AuthBoxCrypto in Frameworks */ = {isa = PBXBuildFile; productRef = 3201996CEDE9572A233A0549 /* AuthBoxCrypto */; };
 		20857714C58C09270A264045 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 564CD4322321E1DCA3FE9B42 /* APIConfig.swift */; };
 		306D7EE82A7FB535784B3E6F /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A7EDE3B1F01F9224C8814A /* DesignTokens.swift */; };
 		3885869DFD24AE148A7F0CF6 /* UnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30365E671CECC0F45176DDA /* UnlockView.swift */; };
@@ -30,6 +31,7 @@
 		8EB3C81AA63C1C9FA5025C8A /* CreateVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE5181C9AB60B355781CB8F /* CreateVaultView.swift */; };
 		90B93A2FE15B521038C2AD2D /* RestoreVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256BB33EBC64E852BCF18BE8 /* RestoreVaultView.swift */; };
 		911F3184853C7A177FD5BFF5 /* CredentialProviderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A29053C8F7FCB44B62759D0 /* CredentialProviderViewController.swift */; };
+		91CC1A884DBBBC511EBF2470 /* ProPurchaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA5DD618469A8B72EE97951 /* ProPurchaseTests.swift */; };
 		959139764FF42DEAEEA13DC4 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DF0B53A5DBDB526BB7ED9F1 /* QRScannerView.swift */; };
 		A9780114FE7095C0EFF93A7D /* AddItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD579089E06186BF15B8F23 /* AddItemView.swift */; };
 		AA5D7116F39EC7F791AEFD5D /* TOTPFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B87B9C145CA532AC0447EF36 /* TOTPFlowUITests.swift */; };
@@ -42,10 +44,19 @@
 		B153F37AAACFD34D7BCBF9BA /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8D5AC5185BA3F40BB38813 /* KeychainManager.swift */; };
 		B8B2DA93785C9CF9191CFF96 /* AuthBoxCrypto in Frameworks */ = {isa = PBXBuildFile; productRef = 0582B5CB8DB91166E0B0AF0B /* AuthBoxCrypto */; };
 		BE525A885B954D904DF8DD0E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762C32E40BCB88C987FBF62D /* SettingsView.swift */; };
+		C17B8774D2E420E08D2FD2A7 /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = E47200C3742DE5ADB5D3D464 /* Configuration.storekit */; };
 		D607D7267D680E993ABB3CBD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D938D9F5A1DC26A77BA4D2C /* ContentView.swift */; };
+		E59C773597503019C4EA1EA8 /* VaultSyncCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ACADFDBCFD89B9C6DFB96B7 /* VaultSyncCodecTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		2F4CD40B5D4DFC196C53A234 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C03A58FC327CE731CECBF9C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F47516145352EB1819205E70;
+			remoteInfo = AuthBox;
+		};
 		36EE64BE0E7F86F080C45999 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3C03A58FC327CE731CECBF9C /* Project object */;
@@ -66,6 +77,7 @@
 		3EBCDCB079B83DA83692C250 /* AuthBoxUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AuthBoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		46B9852529903A6380BB25DB /* ProManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProManager.swift; sourceTree = "<group>"; };
 		490FB0481CAA69DD98E45F2B /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		4ACADFDBCFD89B9C6DFB96B7 /* VaultSyncCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultSyncCodecTests.swift; sourceTree = "<group>"; };
 		4F0A4251F77DF2FA3C40ECDE /* WalletFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletFlowUITests.swift; sourceTree = "<group>"; };
 		564CD4322321E1DCA3FE9B42 /* APIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfig.swift; sourceTree = "<group>"; };
 		5B8D5AC5185BA3F40BB38813 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
@@ -85,6 +97,7 @@
 		8A29053C8F7FCB44B62759D0 /* CredentialProviderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialProviderViewController.swift; sourceTree = "<group>"; };
 		8DC2C0FE67F502A4FA32FE87 /* TOTPImportFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TOTPImportFlowUITests.swift; sourceTree = "<group>"; };
 		9992B6535CB44C5744EC701A /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		9CA5DD618469A8B72EE97951 /* ProPurchaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProPurchaseTests.swift; sourceTree = "<group>"; };
 		A2F531B9F121B8AB302441D2 /* VaultListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultListView.swift; sourceTree = "<group>"; };
 		A6AAEA125F514CFF0FC6FC1B /* WalletAccountStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletAccountStore.swift; sourceTree = "<group>"; };
 		AD058F5FF06CB1A515EBE91C /* VaultSyncEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultSyncEngine.swift; sourceTree = "<group>"; };
@@ -92,13 +105,23 @@
 		B87B9C145CA532AC0447EF36 /* TOTPFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TOTPFlowUITests.swift; sourceTree = "<group>"; };
 		BDD579089E06186BF15B8F23 /* AddItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddItemView.swift; sourceTree = "<group>"; };
 		C9A7EDE3B1F01F9224C8814A /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		CEF7A085CE6F6F56709E83A3 /* AuthBoxTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AuthBoxTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E30365E671CECC0F45176DDA /* UnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockView.swift; sourceTree = "<group>"; };
+		E47200C3742DE5ADB5D3D464 /* Configuration.storekit */ = {isa = PBXFileReference; path = Configuration.storekit; sourceTree = "<group>"; };
 		EB86925592986B2A164087ED /* WalletBalanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletBalanceService.swift; sourceTree = "<group>"; };
 		EB9C060C854C946AFB27900A /* ImportTOTPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportTOTPView.swift; sourceTree = "<group>"; };
 		FFAE050AF0954A48E04C86F2 /* AuthBox.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AuthBox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		477B50825ACB539EF8FCFC2D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				204A8C673BA7B7B02A708C27 /* AuthBoxCrypto in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5E75C84AEB2074ACE5940C12 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -118,6 +141,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		03F4E694C959F32A7EE4C486 /* AuthBoxTests */ = {
+			isa = PBXGroup;
+			children = (
+				E47200C3742DE5ADB5D3D464 /* Configuration.storekit */,
+				9CA5DD618469A8B72EE97951 /* ProPurchaseTests.swift */,
+				4ACADFDBCFD89B9C6DFB96B7 /* VaultSyncCodecTests.swift */,
+			);
+			path = AuthBoxTests;
+			sourceTree = "<group>";
+		};
 		0998B40BF0C903816F8DD56D /* Generator */ = {
 			isa = PBXGroup;
 			children = (
@@ -169,6 +202,7 @@
 			isa = PBXGroup;
 			children = (
 				1ADB8D16DE6C2C2B3014E31A /* AuthBox */,
+				03F4E694C959F32A7EE4C486 /* AuthBoxTests */,
 				4AF42F8D9AA1A17294A86A01 /* AuthBoxUITests */,
 				ADFDE5C634DC2C276E3455CD /* AutoFillExtension */,
 				F9EA73A73AAE95941841816E /* Packages */,
@@ -180,6 +214,7 @@
 			isa = PBXGroup;
 			children = (
 				FFAE050AF0954A48E04C86F2 /* AuthBox.app */,
+				CEF7A085CE6F6F56709E83A3 /* AuthBoxTests.xctest */,
 				3EBCDCB079B83DA83692C250 /* AuthBoxUITests.xctest */,
 				247C70E70C4FCAEEFF75F54B /* AutoFillExtension.appex */,
 			);
@@ -311,6 +346,27 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		2B9F72B9A416F708FDB1AD5C /* AuthBoxTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4A717B1BA77624EC82593395 /* Build configuration list for PBXNativeTarget "AuthBoxTests" */;
+			buildPhases = (
+				2AE9DA6E0F4FAD2F441AE127 /* Sources */,
+				44BB49BE560903EF5372211A /* Resources */,
+				477B50825ACB539EF8FCFC2D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				272F1DCD54228991D1D6EF8D /* PBXTargetDependency */,
+			);
+			name = AuthBoxTests;
+			packageProductDependencies = (
+				3201996CEDE9572A233A0549 /* AuthBoxCrypto */,
+			);
+			productName = AuthBoxTests;
+			productReference = CEF7A085CE6F6F56709E83A3 /* AuthBoxTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		AB26429E45F3489CC2594F32 /* AuthBoxUITests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A1F6F033C1AE29ED53667CD6 /* Build configuration list for PBXNativeTarget "AuthBoxUITests" */;
@@ -406,6 +462,7 @@
 			projectRoot = "";
 			targets = (
 				F47516145352EB1819205E70 /* AuthBox */,
+				2B9F72B9A416F708FDB1AD5C /* AuthBoxTests */,
 				AB26429E45F3489CC2594F32 /* AuthBoxUITests */,
 				DB46DCBDAF42447C600586D5 /* AutoFillExtension */,
 			);
@@ -413,6 +470,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		44BB49BE560903EF5372211A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C17B8774D2E420E08D2FD2A7 /* Configuration.storekit in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D5D1CCAB7EB1FA72B1182ABA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -424,6 +489,15 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		2AE9DA6E0F4FAD2F441AE127 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91CC1A884DBBBC511EBF2470 /* ProPurchaseTests.swift in Sources */,
+				E59C773597503019C4EA1EA8 /* VaultSyncCodecTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4752A675AEEAE812B82E405A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -481,6 +555,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		272F1DCD54228991D1D6EF8D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F47516145352EB1819205E70 /* AuthBox */;
+			targetProxy = 2F4CD40B5D4DFC196C53A234 /* PBXContainerItemProxy */;
+		};
 		CBEC1B03340E931B30FED6C6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F47516145352EB1819205E70 /* AuthBox */;
@@ -572,6 +651,23 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
+		};
+		2FE8A3D346E1D647FC689613 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.authbox.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AuthBox.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AuthBox";
+			};
+			name = Release;
 		};
 		3CF036AAA33F72CE4F218DB6 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -669,6 +765,23 @@
 			};
 			name = Debug;
 		};
+		959743DD73C772A9F9FD532E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.authbox.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AuthBox.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AuthBox";
+			};
+			name = Debug;
+		};
 		96977714800E8C7C28BE2D56 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -743,6 +856,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		4A717B1BA77624EC82593395 /* Build configuration list for PBXNativeTarget "AuthBoxTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				959743DD73C772A9F9FD532E /* Debug */,
+				2FE8A3D346E1D647FC689613 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		51E390579614A504F50BDA1D /* Build configuration list for PBXProject "AuthBox" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -790,6 +912,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		0582B5CB8DB91166E0B0AF0B /* AuthBoxCrypto */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AuthBoxCrypto;
+		};
+		3201996CEDE9572A233A0549 /* AuthBoxCrypto */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AuthBoxCrypto;
 		};

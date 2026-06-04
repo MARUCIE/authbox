@@ -50,7 +50,10 @@ final class ProPurchaseTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        session.clearTransactions()
+        // XCTest runs tearDown even when setUp threw (e.g. the .storekit fixture is
+        // missing), at which point `session` is still nil. Optional-chain so a setUp
+        // failure surfaces as a clean test failure, not a force-unwrap SIGTRAP crash.
+        session?.clearTransactions()
         session = nil
     }
 
