@@ -21,6 +21,9 @@ final class AuthorizationCenter: ObservableObject {
     let engine: PolicyEngine
     let audit: AuditLog
     private let biometric: BiometricAuthenticating
+    /// Restart-durable home for granted capabilities (token hashes + policies).
+    /// nil ⇒ ephemeral (tests / Application Support unreachable).
+    private let capabilityStore: CapabilityStore?
     private lazy var broker = AuthorizationBroker(
         engine: engine, audit: audit,
         capabilities: { [weak self] in
@@ -29,7 +32,8 @@ final class AuthorizationCenter: ObservableObject {
 
     init(engine: PolicyEngine? = nil,
          audit: AuditLog? = nil,
-         biometric: BiometricAuthenticating = LABiometricAuth()) {
+         biometric: BiometricAuthenticating = LABiometricAuth(),
+         capabilityStore: CapabilityStore? = CapabilityStore.defaultStore()) {
         // PolicyEngine/AuditLog are @MainActor; build them in this isolated init
         // body rather than as default args (which evaluate nonisolated).
         self.engine = engine ?? PolicyEngine()
@@ -43,11 +47,19 @@ final class AuthorizationCenter: ObservableObject {
             self.audit = AuditLog()
         }
         self.biometric = biometric
+        self.capabilityStore = capabilityStore
+        // SEC-001 durability: reload previously granted agents so a wired agent
+        // (its token hash + scoped policies) survives an app restart.
+        self.capabilities = capabilityStore?.load() ?? []
         self.auditValid = self.audit.loadedIntegrityOK
         self.engine.onApprovalNeeded = { [weak self] approval in
             Task { @MainActor in self?.pending.append(approval) }
         }
     }
+
+    /// Seal the current grant set to disk after any add/revoke so it survives a
+    /// restart. No-op when ephemeral (tests).
+    private func persistCapabilities() { capabilityStore?.save(capabilities) }
 
     func startBroker() {
         do { try broker.start(); brokerRunning = broker.isRunning }
@@ -123,6 +135,7 @@ final class AuthorizationCenter: ObservableObject {
         let token = AgentToken.generate()
         capabilities.append(AgentCapability(
             id: agentId, name: name, policies: policies, tokenHash: AgentToken.hash(token)))
+        persistCapabilities()
         return IssuedAgentGrant(agentId: agentId, token: token)
     }
 
@@ -149,6 +162,7 @@ final class AuthorizationCenter: ObservableObject {
 
     func revoke(_ capability: AgentCapability) {
         capabilities.removeAll { $0.id == capability.id }
+        persistCapabilities()
     }
 
     func refreshAudit() {

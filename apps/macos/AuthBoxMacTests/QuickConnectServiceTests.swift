@@ -28,7 +28,8 @@ final class QuickConnectServiceTests: XCTestCase {
         let importer = ProviderImportService(vault: vault)
         let engine = PolicyEngine()
         let audit = AuditLog()                       // in-memory audit chain
-        let center = AuthorizationCenter(engine: engine, audit: audit)
+        // capabilityStore: nil ⇒ ephemeral; this test must not touch the on-disk grant store.
+        let center = AuthorizationCenter(engine: engine, audit: audit, capabilityStore: nil)
         let svc = QuickConnectService(importer: importer, registrar: center)
         return (svc, center, engine, audit, VaultCrypto.generateVaultKey())
     }
