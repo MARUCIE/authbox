@@ -182,6 +182,7 @@ struct AuthorizationsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                quickConnectCard
                 brokerCard
                 if !center.pending.isEmpty { consentSection }
                 grantsSection
@@ -238,6 +239,33 @@ struct AuthorizationsView: View {
             Text("\(quickConnectNote.map { $0 + "\n\n" } ?? "")This bearer token is shown only once. The agent must present it on every request; it is not stored in plaintext.\n\n\(issuedToken ?? "")")
         }
         .onAppear { center.refreshAudit() }
+    }
+
+    /// Headline call-to-action: the one-click "import keys + wire an AI agent" flow.
+    /// Kept as a prominent card (not just a toolbar icon) because it is the primary
+    /// action of this screen.
+    private var quickConnectCard: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "bolt.badge.automatic.fill")
+                .font(.system(size: 28))
+                .foregroundStyle(.tint)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Quick Connect an AI agent").font(.headline)
+                Text("Import all your API keys in one click and wire a scoped agent that can use them — least privilege, Touch ID step-up. Nothing leaves this Mac.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Button {
+                session.noteActivity(); showingQuickConnect = true
+            } label: {
+                Label("Quick Connect", systemImage: "bolt.fill").padding(.horizontal, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .padding(16)
+        .background(.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.tint.opacity(0.25)))
     }
 
     private var brokerCard: some View {
