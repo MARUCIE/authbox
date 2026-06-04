@@ -17,7 +17,14 @@ final class VaultStore {
         let config = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
-            groupContainer: .none  // DEV: restore .identifier("group.com.authbox.shared") when paid team is active
+            groupContainer: .none,  // DEV: restore .identifier("group.com.authbox.shared") when paid team is active
+            // Zero-knowledge invariant: the local SwiftData store must NEVER mirror to CloudKit.
+            // `cloudKitDatabase` defaults to `.automatic`, which silently turns on
+            // NSPersistentCloudKitContainer once the app carries the CloudKit entitlement (added for
+            // CKSyncEngine) — that would sync the PLAINTEXT VaultItem model to iCloud, bypassing the
+            // ciphertext VaultBlobCodec path entirely. `.none` keeps the store local-only; the sole
+            // CloudKit traffic is CKSyncEngine uploading AES-GCM ciphertext blobs. See ICLOUD_SYNC_ARCHITECTURE.md §2.
+            cloudKitDatabase: .none
         )
         modelContainer = try ModelContainer(for: schema, configurations: [config])
         modelContext = modelContainer.mainContext
