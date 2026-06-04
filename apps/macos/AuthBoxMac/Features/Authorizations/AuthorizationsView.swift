@@ -9,6 +9,14 @@
 
 import SwiftUI
 
+/// One credential category already present in the vault, with how many items it
+/// holds — the unit of the "connect to what you already have" summary.
+struct VaultCategorySummary: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let count: Int
+}
+
 @MainActor
 final class AuthorizationCenter: ObservableObject {
     @Published var capabilities: [AgentCapability] = []
@@ -160,6 +168,44 @@ final class AuthorizationCenter: ObservableObject {
         return outcome
     }
 
+    /// Provider-credential categories already present in the on-disk vault.
+    /// Reads metadata only (`VaultService.list()` needs no vault key), so the
+    /// "connect to what you already have" path can ENUMERATE without a file and
+    /// without unlocking — only revealing a secret later needs the key.
+    func existingVaultSummary() -> [VaultCategorySummary] {
+        guard let store = try? VaultStore() else { return [] }
+        let items = (try? VaultService(store: store).list()) ?? []
+        var order: [String] = []
+        var counts: [String: Int] = [:]
+        for it in items where it.providerId != nil {
+            let cat = it.categoryId ?? "unknown"
+            if counts[cat] == nil { order.append(cat) }
+            counts[cat, default: 0] += 1
+        }
+        return order.map { id in
+            VaultCategorySummary(id: id,
+                                 name: CredentialCatalog.category(id)?.name ?? id,
+                                 count: counts[id] ?? 0)
+        }
+    }
+
+    /// The true one-click path: wire an agent to EVERY credential category already
+    /// in the vault. No file to pick, no vault key — only a scoped grant + the
+    /// broker. Returns nil when the vault holds no provider credentials yet.
+    @discardableResult
+    func quickConnectExisting(agentName: String) -> QuickConnectService.Outcome? {
+        let summary = existingVaultSummary()
+        guard !summary.isEmpty else { return nil }
+        let types = summary.map(\.id)
+        let grant = addScopedCapability(
+            name: agentName, allowedItemTypes: types, allowedActions: [.read, .use],
+            maxRequests: 60, windowSeconds: 3600, requireStepUp: true)
+        if !brokerRunning { startBroker() }
+        return QuickConnectService.Outcome(
+            importedCount: summary.reduce(0) { $0 + $1.count },
+            agentId: grant.agentId, token: grant.token, scopedItemTypes: types)
+    }
+
     func revoke(_ capability: AgentCapability) {
         capabilities.removeAll { $0.id == capability.id }
         persistCapabilities()
@@ -178,6 +224,13 @@ struct AuthorizationsView: View {
     @State private var showingQuickConnect = false
     @State private var issuedToken: String?
     @State private var quickConnectNote: String?
+
+    /// Surface a Quick Connect outcome: a one-line summary + the bearer token alert.
+    private func present(_ o: QuickConnectService.Outcome, verb: String) {
+        let cats = o.scopedItemTypes.isEmpty ? "—" : o.scopedItemTypes.joined(separator: ", ")
+        quickConnectNote = "\(verb) \(o.importedCount) credential\(o.importedCount == 1 ? "" : "s") · agent scoped to: \(cats) · broker running on 127.0.0.1:\(String(AuthorizationBroker.port))"
+        issuedToken = o.token
+    }
 
     var body: some View {
         ScrollView {
@@ -207,22 +260,29 @@ struct AuthorizationsView: View {
             }
         }
         .sheet(isPresented: $showingQuickConnect) {
-            QuickConnectSheet(hasVaultKey: session.hasVaultKey) { content, name in
-                session.noteActivity()
-                let outcome = session.withVaultKey { key -> Result<QuickConnectService.Outcome, Error> in
-                    do { return .success(try center.quickConnect(content: content, agentName: name, vaultKey: key)) }
-                    catch { return .failure(error) }
-                }
-                switch outcome {
-                case .success(let o):
-                    quickConnectNote = "Imported \(o.importedCount) credential\(o.importedCount == 1 ? "" : "s") · agent scoped to: \(o.scopedItemTypes.joined(separator: ", ")) · broker running on 127.0.0.1:\(String(AuthorizationBroker.port))"
-                    issuedToken = o.token            // show the bearer token once
-                case .failure(let e):
-                    center.error = "Quick Connect failed: \(e)"
-                case .none:
-                    center.error = "Vault is locked — unlock to import credentials."
-                }
-            }
+            QuickConnectSheet(
+                existing: center.existingVaultSummary(),
+                hasVaultKey: session.hasVaultKey,
+                onConnectExisting: { name in
+                    session.noteActivity()
+                    if let o = center.quickConnectExisting(agentName: name) {
+                        present(o, verb: "Wired")
+                    } else {
+                        center.error = "No credentials in your vault yet — import some first."
+                    }
+                },
+                onImport: { content, name in
+                    session.noteActivity()
+                    let outcome = session.withVaultKey { key -> Result<QuickConnectService.Outcome, Error> in
+                        do { return .success(try center.quickConnect(content: content, agentName: name, vaultKey: key)) }
+                        catch { return .failure(error) }
+                    }
+                    switch outcome {
+                    case .success(let o): present(o, verb: "Imported")
+                    case .failure(let e): center.error = "Quick Connect failed: \(e)"
+                    case .none: center.error = "Vault is locked — unlock to import credentials."
+                    }
+                })
         }
         .alert("Agent token — copy now", isPresented: Binding(
             get: { issuedToken != nil },
@@ -417,18 +477,28 @@ private struct AddGrantSheet: View {
     }
 }
 
-/// One-click "import credentials + wire an AI agent". The operator pastes (or picks)
-/// a .env/JSON config; the sheet previews exactly which provider categories will be
-/// imported and scoped, then a single Connect imports them encrypted, grants ONE
-/// least-privilege agent scoped to those categories, and starts the loopback broker.
-private struct QuickConnectSheet: View {
+/// One-click "wire an AI agent to your credentials". Two paths, primary first:
+///   • If the vault already holds credentials (the common case), the default is a
+///     single Connect that scopes an agent to ALL of them — no file, no typing.
+///   • Otherwise (or to add new keys), an expandable importer pastes/picks a
+///     .env / JSON config, classifies it, and imports it encrypted before wiring.
+/// Either way the agent is least-privilege: read + use, rate-limited, Touch ID
+/// step-up on every access. Nothing leaves this Mac.
+struct QuickConnectSheet: View {
     @Environment(\.dismiss) private var dismiss
+    let existing: [VaultCategorySummary]
     let hasVaultKey: Bool
-    var onConnect: (_ content: String, _ agentName: String) -> Void
+    var onConnectExisting: (_ agentName: String) -> Void
+    var onImport: (_ content: String, _ agentName: String) -> Void
 
     @State private var name = "AI Assistant"
     @State private var content = ""
     @State private var showImporter = false
+    /// Expand the "import new keys" path. Auto-expanded when the vault is empty,
+    /// since then importing is the only way forward.
+    @State private var importing = false
+
+    private var existingCount: Int { existing.reduce(0) { $0 + $1.count } }
 
     /// Live classification of the pasted config — shows scope before granting.
     private var preview: EnvImportResult? {
@@ -442,55 +512,18 @@ private struct QuickConnectSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Quick Connect an AI agent").font(.title2.weight(.semibold)).padding([.top, .horizontal])
-            Text("Paste a .env / JSON config. Keys are auto-classified, imported encrypted into your vault, and one scoped agent is wired to reach exactly those categories — read + use, rate-limited, Touch ID step-up on every access. Nothing leaves this Mac.")
-                .font(.caption).foregroundStyle(.secondary).padding(.horizontal).padding(.top, 2)
-
-            Form {
-                TextField("Agent name", text: $name)
-                Section("Credentials") {
-                    TextEditor(text: $content)
-                        .font(.system(.callout, design: .monospaced))
-                        .frame(height: 120)
-                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
-                    HStack {
-                        Button("Choose .env file…") { showImporter = true }
-                        if content.isEmpty == false { Button("Clear") { content = "" } }
-                    }
-                }
-                if let preview, preview.classified.isEmpty == false {
-                    Section("Will import \(preview.classified.count) · agent scoped to \(scopedCategories.count) categor\(scopedCategories.count == 1 ? "y" : "ies")") {
-                        ForEach(preview.classified) { cred in
-                            HStack {
-                                Text(cred.providerName).font(.body.weight(.medium))
-                                Text(cred.categoryName).font(.caption2)
-                                    .padding(.horizontal, 6).padding(.vertical, 2)
-                                    .background(.tint.opacity(0.15), in: Capsule())
-                                Spacer()
-                                Text("\(cred.fields.count) field\(cred.fields.count == 1 ? "" : "s")")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
+        VStack(alignment: .leading, spacing: 16) {
+            header
+            if existing.isEmpty || importing {
+                importSection
+            } else {
+                existingSection
             }
-            .formStyle(.grouped)
-
-            if hasVaultKey == false {
-                Label("Unlock the vault to import credentials.", systemImage: "lock.fill")
-                    .font(.caption).foregroundStyle(.orange).padding(.horizontal)
-            }
-            HStack {
-                Spacer()
-                Button("Cancel") { dismiss() }
-                Button("Connect") { onConnect(content, name); dismiss() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(name.isEmpty || scopedCategories.isEmpty || hasVaultKey == false)
-            }
-            .padding()
+            footer
         }
-        .frame(width: 480, height: 560)
+        .padding(20)
+        .frame(width: 500)          // height hugs content — no fixed-height void
+        .onAppear { importing = existing.isEmpty }
         .fileImporter(isPresented: $showImporter,
                       allowedContentTypes: [.text, .plainText, .json, .data],
                       allowsMultipleSelection: false) { result in
@@ -501,6 +534,162 @@ private struct QuickConnectSheet: View {
                     content = text
                 }
             }
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "bolt.badge.automatic.fill").font(.system(size: 26)).foregroundStyle(.tint)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Quick Connect an AI agent").font(.title2.weight(.semibold))
+                Text("Give one AI agent least-privilege access to your keys — Touch ID on every use. Nothing leaves this Mac.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    // MARK: - Primary path: connect to what's already in the vault
+
+    private var existingSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("AGENT NAME").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                TextField("Agent name", text: $name).textFieldStyle(.roundedBorder)
+            }
+
+            VStack(alignment: .leading, spacing: 9) {
+                Label {
+                    Text("\(existingCount) credential\(existingCount == 1 ? "" : "s") in your vault · \(existing.count) categor\(existing.count == 1 ? "y" : "ies")")
+                        .font(.subheadline.weight(.semibold))
+                } icon: {
+                    Image(systemName: "key.fill").foregroundStyle(.tint)
+                }
+                FlowChips(items: existing.map { "\($0.name) (\($0.count))" })
+                Label {
+                    Text("This agent gets read + use on all of them — rate-limited, with Touch ID approval on every access.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "checkmark.shield.fill").foregroundStyle(.green)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(.tint.opacity(0.2)))
+
+            Button { importing = true } label: {
+                Label("Import new keys from a .env file instead", systemImage: "plus.circle")
+                    .font(.callout)
+            }
+            .buttonStyle(.link)
+        }
+    }
+
+    // MARK: - Secondary path: import new keys, then wire
+
+    private var importSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("AGENT NAME").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                TextField("Agent name", text: $name).textFieldStyle(.roundedBorder)
+            }
+
+            Text(existing.isEmpty
+                 ? "Your vault is empty. Paste a .env / JSON config below, or choose a file — each line like OPENAI_API_KEY=sk-… is auto-classified and imported encrypted."
+                 : "Paste a .env / JSON config to import new keys; they are auto-classified and imported encrypted before the agent is wired.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+
+            TextEditor(text: $content)
+                .font(.system(.callout, design: .monospaced))
+                .frame(height: 130)
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
+                .overlay(alignment: .topLeading) {
+                    if content.isEmpty {
+                        Text("OPENAI_API_KEY=sk-…\nANTHROPIC_API_KEY=sk-ant-…")
+                            .font(.system(.callout, design: .monospaced)).foregroundStyle(.tertiary)
+                            .padding(.horizontal, 5).padding(.vertical, 8).allowsHitTesting(false)
+                    }
+                }
+
+            HStack {
+                Button { showImporter = true } label: { Label("Choose .env file…", systemImage: "doc.badge.plus") }
+                if content.isEmpty == false { Button("Clear") { content = "" } }
+                Spacer()
+                if existing.isEmpty == false {
+                    Button { importing = false; content = "" } label: { Label("Back", systemImage: "chevron.left") }
+                        .buttonStyle(.link)
+                }
+            }
+
+            if let preview, preview.classified.isEmpty == false {
+                Text("Will import \(preview.classified.count) · scope: \(scopedCategories.joined(separator: ", "))")
+                    .font(.caption.weight(.medium)).foregroundStyle(.tint)
+                FlowChips(items: preview.classified.map(\.providerName))
+            }
+            if hasVaultKey == false {
+                Label("Unlock the vault to import new credentials.", systemImage: "lock.fill")
+                    .font(.caption).foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack {
+            Spacer()
+            Button("Cancel") { dismiss() }
+            if existing.isEmpty || importing {
+                Button("Import & Connect") { onImport(content, name); dismiss() }
+                    .keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
+                    .disabled(name.isEmpty || scopedCategories.isEmpty || hasVaultKey == false)
+            } else {
+                Button("Connect") { onConnectExisting(name); dismiss() }
+                    .keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
+                    .disabled(name.isEmpty)
+            }
+        }
+    }
+}
+
+/// A simple wrapping row of pill chips — used to preview credential categories or
+/// providers without a fixed column count.
+private struct FlowChips: View {
+    let items: [String]
+    var body: some View {
+        FlowLayout(spacing: 6) {
+            ForEach(items, id: \.self) { item in
+                Text(item).font(.caption.weight(.medium))
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(.tint.opacity(0.15), in: Capsule())
+                    .foregroundStyle(.tint)
+            }
+        }
+    }
+}
+
+/// Minimal flow layout (left-to-right wrap) — SwiftUI Layout, no third-party dep.
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for v in subviews {
+            let s = v.sizeThatFits(.unspecified)
+            if x + s.width > maxWidth, x > 0 { x = 0; y += rowHeight + spacing; rowHeight = 0 }
+            x += s.width + spacing
+            rowHeight = max(rowHeight, s.height)
+        }
+        return CGSize(width: maxWidth == .infinity ? x : maxWidth, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
+        for v in subviews {
+            let s = v.sizeThatFits(.unspecified)
+            if x + s.width > bounds.maxX, x > bounds.minX { x = bounds.minX; y += rowHeight + spacing; rowHeight = 0 }
+            v.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(s))
+            x += s.width + spacing
+            rowHeight = max(rowHeight, s.height)
         }
     }
 }

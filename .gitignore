@@ -84,3 +84,6 @@ secrets/
 
 # Security probe scratch (attacker-review artifact, never commit)
 .ssrf_probe/
+
+# Visual-verification / snapshot scratch (render artifacts, never commit)
+state/
