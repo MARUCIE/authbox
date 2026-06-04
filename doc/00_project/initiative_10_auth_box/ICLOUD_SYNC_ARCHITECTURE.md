@@ -35,6 +35,14 @@ Last updated: 2026-06-04
 >   toggle + `@Sendable` record-provider closure are runtime-sound, beyond compile-time. The
 >   simulator has no iCloud account, so no network send is attempted (expected) — that leg is
 >   the device acceptance below.
+> - **Test suite now runs through the scheme + zero-knowledge guard added**: the `AuthBoxTests`
+>   target (orphaned — never in `project.yml`) and a deterministic `schemes:` block are now declared,
+>   so the app-tier sync tests execute via the scheme: `VaultSyncCodecTests` 4 pass, `ProPurchaseTests`
+>   3 deterministic pass + 2 StoreKit-round-trip skip (CLI runtime), plus 20 `AuthBoxCrypto` package
+>   tests. Running them surfaced a real defect: the SwiftData store, once the app carried the CloudKit
+>   entitlement, auto-armed `NSPersistentCloudKitContainer` (`cloudKitDatabase` defaulting to `.automatic`)
+>   — it failed to load AND would have mirrored **plaintext** to CloudKit. Fixed with explicit
+>   `cloudKitDatabase: .none` (§5.6); A/B-verified the store-load error went present → 0.
 >
 > **Remaining — the live CloudKit round-trip (on-device acceptance, Maurice-gated).** The
 > physical-device UI cannot be driven by automation, so this last step is manual: on the
@@ -171,7 +179,16 @@ fields contain **no plaintext** (password, TOTP secret, username all absent — 
 the wire asserted directly); encryption is non-deterministic; a wrong key fails to decode. The
 three CloudKit-free layers — merge (`VaultSyncReconciler`), crypto codec (`VaultStore`), and wire
 mapping (`VaultBlobCodec`) — are all proven; the `CKSyncEngine` orchestration that drives them is
-the only part that needs the live container + device.
+**now written and runtime-proven** (`VaultSyncEngine`, see the 2026-06-04 milestone), so the only
+part still needing a live iCloud account is the network round-trip itself (on-device acceptance).
+
+> **Test runnability fixed (2026-06-04):** these app-tier tests (`AuthBoxTests`) previously could not
+> run — the `AuthBoxTests` target was never declared in `project.yml` and the shared scheme that
+> referenced it was a hand-committed file every `xcodegen generate` deleted. The target + a generated
+> `schemes:` block are now in `project.yml`, so `AuthBoxTests/VaultSyncCodecTests` (4 pass) and
+> `ProPurchaseTests` (3 deterministic pass, 2 StoreKit round-trip skip on the CLI runtime) run through
+> the scheme. The pure `AuthBoxCrypto` package tests (`VaultBlobCodecTests` 5 + `VaultSyncReconcilerTests`
+> 15 = 20 pass) already ran via `swift test`.
 
 ### Seed-sync security finding (2026-06-03)
 
@@ -188,6 +205,30 @@ B (the "max paranoia" path) — preserving the strong on-device protection. iClo
 traded against the weaker protection, never a silent default. So `KeychainManager` is left untouched
 by sync work, which also avoids the risky synchronizable-attribute migration.
 
+### SwiftData CloudKit-mirroring finding (2026-06-04) — `cloudKitDatabase: .none`
+
+Adding the CloudKit entitlement (for `CKSyncEngine`) silently armed a *second, unwanted* CloudKit
+mechanism. `VaultStore`'s `ModelConfiguration` did not specify `cloudKitDatabase`, so it defaulted to
+`.automatic` — which turns on `NSPersistentCloudKitContainer` the moment the app carries the CloudKit
+entitlement. Two consequences surfaced the instant the entitlement landed:
+
+1. **Store-load failure (functional):** `NSPersistentCloudKitContainer` requires every model attribute
+   to be optional or defaulted; `VaultItem` is not, so the store failed to load at runtime
+   (`SwiftDataError.loadIssueModelContainer`, "CloudKit integration requires that all attributes be
+   optional…"). Caught by a real app launch during `AuthBoxTests/VaultSyncCodecTests`, not by compile.
+2. **Zero-knowledge violation (security, the dangerous one):** the naive fix the error message invites —
+   make all attributes optional — would let SwiftData *succeed* at mirroring the **plaintext** `VaultItem`
+   model straight to CloudKit, bypassing `VaultBlobCodec` and uploading every password/TOTP secret in
+   clear. That is the exact opposite of the product's whole security claim.
+
+Resolution: set **`cloudKitDatabase: .none`** explicitly on the `ModelConfiguration`. The local SwiftData
+store is now provably local-only; the sole CloudKit traffic is `CKSyncEngine` uploading AES-GCM ciphertext
+blobs. Verified by an A/B launch: the CloudKit-integration error count went from present → **0** after the
+change, and the app process launches and stays alive. This is the SwiftData-tier counterpart to the
+seed-sync finding: the zero-knowledge boundary is enforced by what we *opt out of*, not only by what we
+encrypt. (Lesson: a capability entitlement can change a default in an unrelated layer — `.automatic` complects
+"has entitlement" with "mirror this store." De-complect by being explicit.)
+
 ## 6. Open decisions (block implementation)
 
 1. **iCloud container availability** — ✅ **RESOLVED 2026-06-03**: a paid Apple Developer
@@ -201,16 +242,18 @@ by sync work, which also avoids the risky synchronizable-attribute migration.
    (`AppState.unlockVault(withBiometrics:)`); (C) binding to the Auth Box *web
    account* (a different, server-side identity) — a separate initiative.
 
-## 7. Implementation plan (once §6 is resolved)
+## 7. Implementation plan (status as of 2026-06-04)
 
-1. Add the iCloud/CloudKit capability + container to `AuthBox.entitlements` (+ Dev).
-2. `KeychainManager`: make the seed item synchronizable (iCloud Keychain).
-3. `VaultSyncEngine` (new): `CKSyncEngine` over `VaultItemBlob` records; encrypt on
-   push with `VaultStore.encryptForSync`, decrypt on pull with `decryptFromSync`;
-   last-write-wins via `VaultSyncReconciler`. (Both the encrypt/decrypt codec AND the
-   reconcile core are DONE and proven ahead of the entitlement — steps 5a/5c below;
-   what remains here is the `CKSyncEngine` plumbing that maps CloudKit records ↔
-   `SyncState` and ships the blobs the reconciler selects.)
+1. ✅ **DONE** — iCloud/CloudKit capability + container in `project.yml` entitlements (+ Dev portal),
+   alongside app-group + autofill; `codesign -d` confirms all four on the device binary.
+2. ❌ **REJECTED (superseded)** — making the seed item synchronizable is *not* done and will not be:
+   per the seed-sync security finding (§5.5), `kSecAttrSynchronizable` is incompatible with the seed's
+   device-only + biometry-bound protection. The seed stays device-local; cross-device transfer is manual
+   mnemonic re-entry. Also note `cloudKitDatabase: .none` on the SwiftData store (§5.6) — the local store
+   must never mirror to CloudKit either.
+3. ✅ **DONE** — `VaultSyncEngine` (`AuthBox/Sources/Core/Sync/VaultSyncEngine.swift`): `CKSyncEngine`
+   over `VaultItemBlob` records; encrypt on push via `VaultBlobCodec`, decrypt on pull, last-write-wins
+   via `VaultSyncReconciler`. Compiles under Swift 6 complete strict concurrency; runtime-smoke-tested.
 4. Wire SwiftData local store ↔ sync engine; surface sync state + a manual toggle in
    Settings (off by default until the user opts in).
 5. Prove: (a) **DONE** — blob round-trip + zero-knowledge unit tests in-sim
