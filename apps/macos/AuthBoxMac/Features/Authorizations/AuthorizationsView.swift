@@ -75,14 +75,44 @@ final class AuthorizationCenter: ObservableObject {
     /// process must present this token on every intent.
     @discardableResult
     func addCapability(name: String, allowedActions: [AgentAction], requireStepUp: Bool) -> String {
+        addScopedCapability(name: name, allowedItemTypes: [],
+                            allowedActions: allowedActions, requireStepUp: requireStepUp).token
+    }
+
+    /// Least-privilege grant: an agent scoped to specific credential types (item
+    /// categories), with action permissions, an optional rate limit, and step-up.
+    /// Used by one-click QuickConnect so an imported batch yields an agent that can
+    /// reach ONLY those credentials — not the whole vault. Returns the bearer token
+    /// (shown once; only its hash is stored). An empty `allowedItemTypes` adds no
+    /// item-scope policy (broad within the other policies), matching `addCapability`.
+    @discardableResult
+    func addScopedCapability(name: String,
+                             allowedItemTypes: [String],
+                             allowedActions: [AgentAction],
+                             maxRequests: Int? = nil,
+                             windowSeconds: Int? = nil,
+                             requireStepUp: Bool) -> IssuedAgentGrant {
         let agentId = "agent_\(name.lowercased().replacingOccurrences(of: " ", with: "_"))_\(capabilities.count)"
         var policies: [AgentPolicy] = []
         let stamp = Date(timeIntervalSince1970: 0)
+        if !allowedItemTypes.isEmpty {
+            // item_scope: deny-by-default narrows to exactly the imported categories.
+            policies.append(AgentPolicy(
+                id: "\(agentId)_scope", agentId: agentId, policyType: .item_scope,
+                rules: PolicyRules(allowedItemTypes: allowedItemTypes),
+                priority: 20, enabled: true, createdAt: stamp, updatedAt: stamp))
+        }
         if !allowedActions.isEmpty {
             policies.append(AgentPolicy(
                 id: "\(agentId)_action", agentId: agentId, policyType: .action_perm,
                 rules: PolicyRules(allowedActions: allowedActions),
                 priority: 10, enabled: true, createdAt: stamp, updatedAt: stamp))
+        }
+        if let maxRequests, let windowSeconds {
+            policies.append(AgentPolicy(
+                id: "\(agentId)_rate", agentId: agentId, policyType: .rate_limit,
+                rules: PolicyRules(maxRequests: maxRequests, windowSeconds: windowSeconds),
+                priority: 8, enabled: true, createdAt: stamp, updatedAt: stamp))
         }
         if requireStepUp {
             policies.append(AgentPolicy(
@@ -93,7 +123,28 @@ final class AuthorizationCenter: ObservableObject {
         let token = AgentToken.generate()
         capabilities.append(AgentCapability(
             id: agentId, name: name, policies: policies, tokenHash: AgentToken.hash(token)))
-        return token
+        return IssuedAgentGrant(agentId: agentId, token: token)
+    }
+
+    /// One-click "import credentials + wire an AI agent + open the gateway".
+    /// Chains the three already-authorized steps into a single operator action:
+    ///   1. import  — classify `content` and store each credential encrypted.
+    ///   2. grant   — register ONE agent scoped (least privilege) to exactly the
+    ///                imported categories: read+use, rate-limited, step-up.
+    ///   3. connect — ensure the loopback broker is running so the agent can present
+    ///                its token immediately; without this it would hold a token with
+    ///                nowhere to call (imported but not 打通).
+    /// `importer` is injectable for tests; in the app it is built from the shared
+    /// on-disk vault store so QuickConnect-imported keys are visible everywhere.
+    @discardableResult
+    func quickConnect(content: String, agentName: String, vaultKey: Data,
+                      importer: ProviderImportService? = nil) throws -> QuickConnectService.Outcome {
+        let imp = importer ?? ProviderImportService(
+            vault: VaultService(store: (try? VaultStore()) ?? (try! VaultStore(inMemory: true))))
+        let outcome = try QuickConnectService(importer: imp, registrar: self)
+            .connect(content: content, agentName: agentName, vaultKey: vaultKey)
+        if !brokerRunning { startBroker() }
+        return outcome
     }
 
     func revoke(_ capability: AgentCapability) {
@@ -110,7 +161,9 @@ struct AuthorizationsView: View {
     @StateObject private var center = AuthorizationCenter()
     @EnvironmentObject private var session: VaultSession
     @State private var showingAdd = false
+    @State private var showingQuickConnect = false
     @State private var issuedToken: String?
+    @State private var quickConnectNote: String?
 
     var body: some View {
         ScrollView {
@@ -125,12 +178,35 @@ struct AuthorizationsView: View {
         .navigationTitle("Authorizations")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Button { session.noteActivity(); showingQuickConnect = true } label: {
+                    Label("Quick Connect", systemImage: "bolt.badge.automatic")
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button { session.noteActivity(); showingAdd = true } label: { Label("Grant agent", systemImage: "plus") }
             }
         }
         .sheet(isPresented: $showingAdd) {
             AddGrantSheet { name, actions, stepUp in
                 issuedToken = center.addCapability(name: name, allowedActions: actions, requireStepUp: stepUp)
+            }
+        }
+        .sheet(isPresented: $showingQuickConnect) {
+            QuickConnectSheet(hasVaultKey: session.hasVaultKey) { content, name in
+                session.noteActivity()
+                let outcome = session.withVaultKey { key -> Result<QuickConnectService.Outcome, Error> in
+                    do { return .success(try center.quickConnect(content: content, agentName: name, vaultKey: key)) }
+                    catch { return .failure(error) }
+                }
+                switch outcome {
+                case .success(let o):
+                    quickConnectNote = "Imported \(o.importedCount) credential\(o.importedCount == 1 ? "" : "s") · agent scoped to: \(o.scopedItemTypes.joined(separator: ", ")) · broker running on 127.0.0.1:\(String(AuthorizationBroker.port))"
+                    issuedToken = o.token            // show the bearer token once
+                case .failure(let e):
+                    center.error = "Quick Connect failed: \(e)"
+                case .none:
+                    center.error = "Vault is locked — unlock to import credentials."
+                }
             }
         }
         .alert("Agent token — copy now", isPresented: Binding(
@@ -141,11 +217,11 @@ struct AuthorizationsView: View {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(t, forType: .string)
                 }
-                issuedToken = nil
+                issuedToken = nil; quickConnectNote = nil
             }
-            Button("Done", role: .cancel) { issuedToken = nil }
+            Button("Done", role: .cancel) { issuedToken = nil; quickConnectNote = nil }
         } message: {
-            Text("This bearer token is shown only once. The agent must present it on every request; it is not stored in plaintext.\n\n\(issuedToken ?? "")")
+            Text("\(quickConnectNote.map { $0 + "\n\n" } ?? "")This bearer token is shown only once. The agent must present it on every request; it is not stored in plaintext.\n\n\(issuedToken ?? "")")
         }
         .onAppear { center.refreshAudit() }
     }
@@ -296,5 +372,93 @@ private struct AddGrantSheet: View {
             .padding()
         }
         .frame(width: 440, height: 420)
+    }
+}
+
+/// One-click "import credentials + wire an AI agent". The operator pastes (or picks)
+/// a .env/JSON config; the sheet previews exactly which provider categories will be
+/// imported and scoped, then a single Connect imports them encrypted, grants ONE
+/// least-privilege agent scoped to those categories, and starts the loopback broker.
+private struct QuickConnectSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let hasVaultKey: Bool
+    var onConnect: (_ content: String, _ agentName: String) -> Void
+
+    @State private var name = "AI Assistant"
+    @State private var content = ""
+    @State private var showImporter = false
+
+    /// Live classification of the pasted config — shows scope before granting.
+    private var preview: EnvImportResult? {
+        content.isEmpty ? nil : EnvParser.parseAndClassify(content)
+    }
+    private var scopedCategories: [String] {
+        guard let preview else { return [] }
+        var seen = Set<String>(); var out: [String] = []
+        for c in preview.classified where seen.insert(c.categoryId).inserted { out.append(c.categoryId) }
+        return out
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Quick Connect an AI agent").font(.title2.weight(.semibold)).padding([.top, .horizontal])
+            Text("Paste a .env / JSON config. Keys are auto-classified, imported encrypted into your vault, and one scoped agent is wired to reach exactly those categories — read + use, rate-limited, Touch ID step-up on every access. Nothing leaves this Mac.")
+                .font(.caption).foregroundStyle(.secondary).padding(.horizontal).padding(.top, 2)
+
+            Form {
+                TextField("Agent name", text: $name)
+                Section("Credentials") {
+                    TextEditor(text: $content)
+                        .font(.system(.callout, design: .monospaced))
+                        .frame(height: 120)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
+                    HStack {
+                        Button("Choose .env file…") { showImporter = true }
+                        if content.isEmpty == false { Button("Clear") { content = "" } }
+                    }
+                }
+                if let preview, preview.classified.isEmpty == false {
+                    Section("Will import \(preview.classified.count) · agent scoped to \(scopedCategories.count) categor\(scopedCategories.count == 1 ? "y" : "ies")") {
+                        ForEach(preview.classified) { cred in
+                            HStack {
+                                Text(cred.providerName).font(.body.weight(.medium))
+                                Text(cred.categoryName).font(.caption2)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(.tint.opacity(0.15), in: Capsule())
+                                Spacer()
+                                Text("\(cred.fields.count) field\(cred.fields.count == 1 ? "" : "s")")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .formStyle(.grouped)
+
+            if hasVaultKey == false {
+                Label("Unlock the vault to import credentials.", systemImage: "lock.fill")
+                    .font(.caption).foregroundStyle(.orange).padding(.horizontal)
+            }
+            HStack {
+                Spacer()
+                Button("Cancel") { dismiss() }
+                Button("Connect") { onConnect(content, name); dismiss() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(name.isEmpty || scopedCategories.isEmpty || hasVaultKey == false)
+            }
+            .padding()
+        }
+        .frame(width: 480, height: 560)
+        .fileImporter(isPresented: $showImporter,
+                      allowedContentTypes: [.text, .plainText, .json, .data],
+                      allowsMultipleSelection: false) { result in
+            if case let .success(urls) = result, let url = urls.first {
+                let access = url.startAccessingSecurityScopedResource()
+                defer { if access { url.stopAccessingSecurityScopedResource() } }
+                if let data = try? Data(contentsOf: url), let text = String(data: data, encoding: .utf8) {
+                    content = text
+                }
+            }
+        }
     }
 }
