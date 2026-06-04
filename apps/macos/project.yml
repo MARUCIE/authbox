@@ -37,6 +37,9 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: "Auth Box"
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.utilities"
+        # App icon (macOS): the shared Auth Box brand mark, derived from the iOS
+        # icon-1024 master into a macOS squircle set (superellipse + margin + shadow).
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Development-team signing (REQUIRED): persistent Secure Enclave keys +
         # keychain-access-groups demand a provisioning-profile-backed signature.
         # Empirically on macOS 26.5, ad-hoc and bare-dev-cert both fail (-34018 /
