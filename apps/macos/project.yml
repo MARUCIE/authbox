@@ -32,7 +32,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.authbox.mac
-        MARKETING_VERSION: "0.1.0"
+        MARKETING_VERSION: "2.0.0"   # product version — kept in sync across all platforms (see /VERSION)
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: "Auth Box"
