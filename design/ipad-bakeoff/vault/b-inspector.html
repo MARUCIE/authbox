@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  Auth Box · Vault · iPad Bake-off · DIRECTION B — "Two-Column + Inspector"
+  ============================================================================
+  Surface : Vault (password + 2FA credential manager, self-custodial)
+  Canvas  : iPad LANDSCAPE 1194 x 834 (this draft renders at exactly that size)
+
+  LAYOUT MODEL (4 zones, left → right):
+    [ rail ]  [ master list ]  [ detail ]  [ inspector (collapsible) ]
+      72px        348px          flex          312px (toggleable)
+
+    · rail        — slim icon-only category navigator (replaces the iPhone
+                    TabView). Vault / Generator / Wallet / Settings + a
+                    per-category filter strip lives here. Lock button at base.
+    · master      — the credential list, grouped by category (Logins,
+                    Servers & Tokens, Payments…). Search + Add at the top.
+    · detail      — the selected credential: title, username/password with
+                    copy, live TOTP code + countdown ring, website, notes.
+    · inspector   — RIGHT-HAND collapsible panel. Surfaces metadata + actions
+                    that the iPhone build buries in scroll: security score,
+                    health chips, breach status, password age, audit log,
+                    favorite/move/delete. Collapses to give detail full focus.
+
+  WHY THIS DIRECTION: optimizes for FOCUS. The two primary columns (list +
+  detail) stay stable; the inspector is the only thing that opens/closes, so
+  the reading surface never reflows. The rail is icons-only so navigation
+  costs near-zero horizontal space.
+
+  ── COLLAPSE TO iPHONE COMPACT (size class hCompact) ──────────────────────
+  On iPhone / compact width the 4 zones collapse to a single navigation stack:
+    1. The slim rail becomes the bottom TabView (Vault / Generator / Wallet /
+       Settings) — exactly today's app. Category filter moves to a horizontal
+       chip scroller pinned under the search bar.
+    2. The master list becomes the root List screen (grouped sections intact).
+    3. Tapping a row PUSHES the detail as a full-screen NavigationStack page
+       (back button returns to the list) — no side-by-side panes.
+    4. The right-hand inspector is NOT a column on compact: its content is
+       appended INLINE to the bottom of the detail scroll (Security, Health,
+       Activity sections) AND/OR offered via a top-right "Inspector" toolbar
+       button that presents it as a `.sheet` / `.inspector(presented:)` modal.
+    On regndtdimensions (iPad portrait / Split View 1/2) the inspector
+    auto-collapses first; the rail+list+detail 3-column survives down to a
+    ~720pt regular width, then degrades to list↔detail two-column.
+  ==========================================================================
+-->
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1194, initial-scale=1">
+<title>Auth Box · Vault · Direction B — Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Vault Onyx tokens (inlined verbatim from design/tokens/vault-onyx.css) ── */
+:root {
+  color-scheme: dark;
+
+  /* ---- Color: Primary Palette ---- */
+  --vo-color-primary: #c3c0ff;
+  --vo-color-primary-container: #3730a3;
+  --vo-color-secondary: #ffb77d;
+  --vo-color-secondary-container: #d97707;
+  --vo-color-tertiary: #68dba9;
+  --vo-color-tertiary-container: #004d34;
+  --vo-color-error: #ffb4ab;
+
+  /* ---- Color: Surface Hierarchy (Dark Mode) ---- */
+  --vo-color-surface: #0b1326;
+  --vo-color-surface-container-lowest: #060e20;
+  --vo-color-surface-container-low: #131b2e;
+  --vo-color-surface-container: #171f33;
+  --vo-color-surface-container-high: #222a3d;
+  --vo-color-surface-container-highest: #2d3449;
+  --vo-color-surface-bright: #31394d;
+
+  /* ---- Color: Outline / Ghost Border ---- */
+  --vo-color-outline-variant: #464553;
+
+  /* ---- Color: Override Colors ---- */
+  --vo-color-override-primary: #3730a3;
+  --vo-color-override-secondary: #d97706;
+  --vo-color-override-tertiary: #059669;
+  --vo-color-override-neutral: #0f172a;
+  --vo-color-neutral: #0f172a;
+
+  /* ---- Color: Material-3 defaults ---- */
+  --vo-color-on-primary: #ffffff;
+  --vo-color-primary-fixed: #c3c0ff;
+
+  /* ---- Typography: Families ---- */
+  --vo-font-display: "Space Grotesk", sans-serif;
+  --vo-font-body: "Inter", "IBM Plex Sans", sans-serif;
+  --vo-font-label: "Inter", sans-serif;
+
+  /* ---- Typography: Sizes ---- */
+  --vo-text-display: 3.5rem;
+  --vo-text-headline: 2rem;
+  --vo-text-title: 1.25rem;
+  --vo-text-body: 0.875rem;
+  --vo-text-label: 0.75rem;
+
+  /* ---- Typography: Weights ---- */
+  --vo-weight-display: 700;
+  --vo-weight-headline: 700;
+  --vo-weight-title: 500;
+  --vo-weight-body: 400;
+  --vo-weight-label: 500;
+
+  /* ---- Typography: Tracking ---- */
+  --vo-tracking-display: -0.02em;
+  --vo-tracking-headline: -0.02em;
+  --vo-tracking-title: -0.01em;
+  --vo-tracking-body: normal;
+  --vo-tracking-label: 0.02em;
+
+  /* ---- Spacing Scale ---- */
+  --vo-space-1: 4px;
+  --vo-space-2: 8px;
+  --vo-space-3: 12px;
+  --vo-space-4: 16px;
+  --vo-space-6: 24px;
+  --vo-space-8: 32px;
+  --vo-space-12: 48px;
+  --vo-space-16: 64px;
+  --vo-space-20: 80px;
+  --vo-space-24: 96px;
+
+  /* ---- Roundness ---- */
+  --vo-radius-xs: 2px;
+  --vo-radius-sm: 4px;
+  --vo-radius-md: 6px;
+  --vo-radius-lg: 8px;
+  --vo-radius-xl: 12px;
+  --vo-radius-full: 9999px;
+
+  /* ---- Elevation / Ambient Shadows ---- */
+  --vo-elev-ambient-low: 0 0 40px 0 rgba(55, 48, 163, 0.04);
+  --vo-elev-ambient-high: 0 0 80px 0 rgba(55, 48, 163, 0.08);
+
+  /* ---- Gradient ---- */
+  --vo-gradient-hero-cta: linear-gradient(135deg, #c3c0ff 0%, #3730a3 100%);
+
+  /* ---- Opacity ---- */
+  --vo-opacity-ghost-border: 0.2;
+  --vo-opacity-modal-glass: 0.6;
+  --vo-opacity-input-focus: 0.4;
+
+  /* ---- Effect ---- */
+  --vo-blur-modal-backdrop: 20px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1194px;
+  height: 834px;
+  background: var(--vo-color-surface-container-lowest);
+  font-family: var(--vo-font-body);
+  color: var(--vo-color-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Ghost border helper: outline_variant at 20% opacity (token rule) */
+.ghost-border { border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border)); }
+
+/* ========================== STAGE ========================== */
+.ipad {
+  width: 1194px;
+  height: 834px;
+  display: grid;
+  grid-template-columns: 72px 348px 1fr 312px;
+  background: var(--vo-color-surface);
+  position: relative;
+}
+
+/* ===================== ZONE 1 · ICON RAIL ===================== */
+.rail {
+  background: var(--vo-color-surface-container-lowest);
+  border-right: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--vo-space-4) 0;
+  gap: var(--vo-space-2);
+}
+.rail-brand {
+  width: 40px; height: 40px;
+  border-radius: var(--vo-radius-lg);
+  background: var(--vo-gradient-hero-cta);
+  display: grid; place-items: center;
+  margin-bottom: var(--vo-space-4);
+  box-shadow: var(--vo-elev-ambient-high);
+}
+.rail-brand svg { width: 22px; height: 22px; }
+.rail-sep {
+  width: 32px; height: 1px;
+  background: rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  margin: var(--vo-space-2) 0;
+}
+.rail-btn {
+  width: 44px; height: 44px;
+  border-radius: var(--vo-radius-lg);
+  display: grid; place-items: center;
+  color: var(--vo-color-surface-bright);
+  background: transparent;
+  border: none; cursor: pointer;
+  position: relative;
+  transition: all .15s ease;
+}
+.rail-btn svg { width: 21px; height: 21px; }
+.rail-btn[data-active="true"] {
+  background: var(--vo-color-surface-container-high);
+  color: var(--vo-color-primary);
+}
+.rail-btn[data-active="true"]::before {
+  content: ""; position: absolute; left: -16px; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 22px; border-radius: var(--vo-radius-full);
+  background: var(--vo-color-primary);
+}
+.rail-spacer { flex: 1; }
+.rail-count {
+  position: absolute; top: 4px; right: 4px;
+  min-width: 16px; height: 16px; padding: 0 3px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-secondary-container);
+  color: var(--vo-color-on-primary);
+  font-size: 10px; font-weight: var(--vo-weight-label);
+  display: grid; place-items: center;
+  font-family: var(--vo-font-label);
+}
+.rail-lock { color: var(--vo-color-secondary); }
+
+/* ===================== ZONE 2 · MASTER LIST ===================== */
+.master {
+  background: var(--vo-color-surface-container-low);
+  border-right: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.master-head {
+  padding: var(--vo-space-4) var(--vo-space-4) var(--vo-space-3);
+  display: flex; flex-direction: column; gap: var(--vo-space-3);
+  border-bottom: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+}
+.master-titlerow { display: flex; align-items: center; justify-content: space-between; }
+.master-title {
+  font-family: var(--vo-font-display);
+  font-size: var(--vo-text-title);
+  font-weight: var(--vo-weight-headline);
+  letter-spacing: var(--vo-tracking-title);
+  color: var(--vo-color-on-primary);
+}
+.master-sub {
+  font-size: var(--vo-text-label);
+  color: var(--vo-color-surface-bright);
+  font-weight: var(--vo-weight-body);
+}
+.add-btn {
+  width: 34px; height: 34px;
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-color-primary-container);
+  color: var(--vo-color-on-primary);
+  border: none; cursor: pointer;
+  display: grid; place-items: center;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.add-btn svg { width: 18px; height: 18px; }
+
+/* search */
+.search {
+  display: flex; align-items: center; gap: var(--vo-space-2);
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-2) var(--vo-space-3);
+}
+.search svg { width: 16px; height: 16px; color: var(--vo-color-surface-bright); flex: none; }
+.search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--vo-color-primary);
+  font-family: var(--vo-font-body);
+  font-size: var(--vo-text-body);
+}
+.search input::placeholder { color: var(--vo-color-surface-bright); }
+.search-kbd {
+  font-family: var(--vo-font-label);
+  font-size: 10px; color: var(--vo-color-surface-bright);
+  border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  border-radius: var(--vo-radius-sm);
+  padding: 1px 5px;
+}
+
+/* category chip filter */
+.chips { display: flex; gap: var(--vo-space-2); flex-wrap: wrap; }
+.chip {
+  font-size: var(--vo-text-label);
+  font-weight: var(--vo-weight-label);
+  font-family: var(--vo-font-label);
+  letter-spacing: var(--vo-tracking-label);
+  padding: 4px var(--vo-space-3);
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-surface-container);
+  color: var(--vo-color-surface-bright);
+  border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  cursor: pointer;
+}
+.chip[data-active="true"] {
+  background: rgba(195, 192, 255, 0.12);
+  color: var(--vo-color-primary);
+  border-color: rgba(195, 192, 255, 0.35);
+}
+
+/* list */
+.list { flex: 1; overflow-y: auto; padding: var(--vo-space-2) var(--vo-space-2) var(--vo-space-6); }
+.list::-webkit-scrollbar { width: 6px; }
+.list::-webkit-scrollbar-thumb { background: var(--vo-color-surface-container-high); border-radius: var(--vo-radius-full); }
+
+.sec-label {
+  font-size: var(--vo-text-label);
+  font-weight: var(--vo-weight-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-surface-bright);
+  padding: var(--vo-space-3) var(--vo-space-3) var(--vo-space-2);
+  font-family: var(--vo-font-label);
+}
+.row {
+  display: flex; align-items: center; gap: var(--vo-space-3);
+  padding: var(--vo-space-3);
+  border-radius: var(--vo-radius-lg);
+  cursor: pointer;
+  position: relative;
+}
+.row:hover { background: var(--vo-color-surface-container); }
+.row[data-active="true"] {
+  background: var(--vo-color-surface-container-high);
+}
+.row[data-active="true"]::after {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px;
+  width: 3px; border-radius: var(--vo-radius-full);
+  background: var(--vo-color-primary);
+}
+.row-icon {
+  width: 36px; height: 36px; flex: none;
+  border-radius: var(--vo-radius-lg);
+  display: grid; place-items: center;
+}
+.row-icon svg { width: 18px; height: 18px; }
+.ic-login   { background: rgba(195, 192, 255, 0.12); color: var(--vo-color-primary); }
+.ic-api     { background: rgba(255, 183, 125, 0.12); color: var(--vo-color-secondary); }
+.ic-card    { background: rgba(104, 219, 169, 0.12); color: var(--vo-color-tertiary); }
+.ic-note    { background: rgba(195, 192, 255, 0.10); color: var(--vo-color-primary); }
+.ic-identity{ background: rgba(55, 48, 163, 0.22); color: var(--vo-color-primary-fixed); }
+.row-body { flex: 1; min-width: 0; }
+.row-title {
+  font-size: var(--vo-text-body);
+  font-weight: var(--vo-weight-title);
+  color: var(--vo-color-on-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.row-sub {
+  font-size: var(--vo-text-label);
+  color: var(--vo-color-surface-bright);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 1px;
+}
+.row-meta { display: flex; align-items: center; gap: var(--vo-space-2); flex: none; }
+.dot-2fa {
+  font-family: var(--vo-font-label);
+  font-size: 9px; font-weight: var(--vo-weight-label);
+  letter-spacing: var(--vo-tracking-label);
+  color: var(--vo-color-tertiary);
+  border: 1px solid rgba(104, 219, 169, 0.3);
+  border-radius: var(--vo-radius-sm);
+  padding: 1px 4px;
+}
+.star { color: var(--vo-color-secondary); }
+.star svg { width: 13px; height: 13px; }
+.warn-dot { width: 7px; height: 7px; border-radius: var(--vo-radius-full); background: var(--vo-color-secondary-container); }
+
+/* ===================== ZONE 3 · DETAIL ===================== */
+.detail {
+  background: var(--vo-color-surface);
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0;
+  position: relative;
+}
+.detail-bar {
+  height: 56px; flex: none;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--vo-space-6);
+  border-bottom: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+}
+.detail-bar-left { display: flex; align-items: center; gap: var(--vo-space-3); }
+.breadcrumb { font-size: var(--vo-text-label); color: var(--vo-color-surface-bright); }
+.breadcrumb b { color: var(--vo-color-primary); font-weight: var(--vo-weight-title); }
+.bar-actions { display: flex; align-items: center; gap: var(--vo-space-2); }
+.bar-btn {
+  height: 34px; padding: 0 var(--vo-space-3);
+  display: flex; align-items: center; gap: 6px;
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-color-surface-container);
+  border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  color: var(--vo-color-primary);
+  font-size: var(--vo-text-label);
+  font-weight: var(--vo-weight-label);
+  font-family: var(--vo-font-label);
+  cursor: pointer;
+}
+.bar-btn svg { width: 15px; height: 15px; }
+.bar-btn.icon-only { width: 34px; padding: 0; justify-content: center; }
+.bar-btn[data-active="true"] {
+  background: rgba(195, 192, 255, 0.14);
+  border-color: rgba(195, 192, 255, 0.35);
+  color: var(--vo-color-primary);
+}
+
+.detail-scroll { flex: 1; overflow-y: auto; padding: var(--vo-space-6); }
+.detail-scroll::-webkit-scrollbar { width: 7px; }
+.detail-scroll::-webkit-scrollbar-thumb { background: var(--vo-color-surface-container-high); border-radius: var(--vo-radius-full); }
+
+/* detail header */
+.dh { display: flex; align-items: center; gap: var(--vo-space-4); margin-bottom: var(--vo-space-6); }
+.dh-icon {
+  width: 56px; height: 56px; flex: none;
+  border-radius: var(--vo-radius-xl);
+  display: grid; place-items: center;
+}
+.dh-icon svg { width: 26px; height: 26px; }
+.dh-title {
+  font-family: var(--vo-font-display);
+  font-size: var(--vo-text-headline);
+  font-weight: var(--vo-weight-headline);
+  letter-spacing: var(--vo-tracking-headline);
+  color: var(--vo-color-on-primary);
+  line-height: 1.1;
+}
+.dh-meta { font-size: var(--vo-text-body); color: var(--vo-color-surface-bright); margin-top: 2px; }
+.dh-meta a { color: var(--vo-color-primary); text-decoration: none; }
+
+/* field card */
+.card {
+  background: var(--vo-color-surface-container);
+  border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  border-radius: var(--vo-radius-xl);
+  padding: var(--vo-space-2) var(--vo-space-4);
+  margin-bottom: var(--vo-space-4);
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.card-label {
+  font-size: var(--vo-text-label);
+  font-weight: var(--vo-weight-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-surface-bright);
+  padding: var(--vo-space-3) 0 var(--vo-space-1);
+  font-family: var(--vo-font-label);
+}
+.field {
+  display: flex; align-items: center; gap: var(--vo-space-3);
+  padding: var(--vo-space-3) 0;
+  border-bottom: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+}
+.field:last-child { border-bottom: none; }
+.field-ic { width: 30px; flex: none; color: var(--vo-color-surface-bright); display: grid; place-items: center; }
+.field-ic svg { width: 17px; height: 17px; }
+.field-body { flex: 1; min-width: 0; }
+.field-k { font-size: var(--vo-text-label); color: var(--vo-color-surface-bright); }
+.field-v {
+  font-size: var(--vo-text-body);
+  color: var(--vo-color-on-primary);
+  margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.field-v.mono { font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em; }
+.field-act { display: flex; align-items: center; gap: var(--vo-space-1); flex: none; }
+.iconbtn {
+  width: 32px; height: 32px;
+  border-radius: var(--vo-radius-md);
+  display: grid; place-items: center;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--vo-color-surface-bright);
+}
+.iconbtn:hover { background: var(--vo-color-surface-container-high); color: var(--vo-color-primary); }
+.iconbtn svg { width: 16px; height: 16px; }
+.iconbtn.copied { color: var(--vo-color-tertiary); }
+
+/* TOTP block */
+.totp { display: flex; align-items: center; gap: var(--vo-space-4); padding: var(--vo-space-4) 0; }
+.totp-body { flex: 1; }
+.totp-issuer { font-size: var(--vo-text-label); color: var(--vo-color-surface-bright); }
+.totp-code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 30px; font-weight: 600;
+  color: var(--vo-color-primary);
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+}
+.ring { width: 46px; height: 46px; flex: none; position: relative; }
+.ring svg { transform: rotate(-90deg); }
+.ring-num {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 12px; color: var(--vo-color-surface-bright);
+  font-family: var(--vo-font-label); font-weight: var(--vo-weight-label);
+}
+
+/* notes */
+.notes {
+  font-size: var(--vo-text-body);
+  color: var(--vo-color-primary);
+  line-height: 1.55;
+  padding: var(--vo-space-3) 0;
+}
+
+/* ===================== ZONE 4 · INSPECTOR ===================== */
+.inspector {
+  background: var(--vo-color-surface-container-low);
+  border-left: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+.insp-head {
+  height: 56px; flex: none;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--vo-space-4);
+  border-bottom: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+}
+.insp-title {
+  font-family: var(--vo-font-display);
+  font-size: var(--vo-text-body);
+  font-weight: var(--vo-weight-title);
+  letter-spacing: var(--vo-tracking-title);
+  color: var(--vo-color-on-primary);
+  text-transform: none;
+}
+.insp-collapse {
+  width: 30px; height: 30px;
+  border-radius: var(--vo-radius-md);
+  display: grid; place-items: center;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--vo-color-surface-bright);
+}
+.insp-collapse svg { width: 17px; height: 17px; }
+.insp-scroll { flex: 1; overflow-y: auto; padding: var(--vo-space-4); }
+.insp-scroll::-webkit-scrollbar { width: 6px; }
+.insp-scroll::-webkit-scrollbar-thumb { background: var(--vo-color-surface-container-high); border-radius: var(--vo-radius-full); }
+
+/* security score gauge */
+.score-card {
+  background: var(--vo-color-surface-container);
+  border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  border-radius: var(--vo-radius-xl);
+  padding: var(--vo-space-4);
+  margin-bottom: var(--vo-space-4);
+  text-align: center;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.score-ring { width: 96px; height: 96px; margin: 0 auto var(--vo-space-3); position: relative; }
+.score-ring svg { transform: rotate(-90deg); }
+.score-val {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.score-num {
+  font-family: var(--vo-font-display);
+  font-size: 28px; font-weight: var(--vo-weight-headline);
+  color: var(--vo-color-tertiary); line-height: 1;
+}
+.score-of { font-size: 10px; color: var(--vo-color-surface-bright); font-family: var(--vo-font-label); }
+.score-label { font-size: var(--vo-text-body); font-weight: var(--vo-weight-title); color: var(--vo-color-on-primary); }
+.score-note { font-size: var(--vo-text-label); color: var(--vo-color-surface-bright); margin-top: 2px; }
+
+/* health chips */
+.insp-section-label {
+  font-size: var(--vo-text-label);
+  font-weight: var(--vo-weight-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-surface-bright);
+  margin: var(--vo-space-4) 0 var(--vo-space-2);
+  font-family: var(--vo-font-label);
+}
+.chip-stack { display: flex; flex-direction: column; gap: var(--vo-space-2); }
+.hchip {
+  display: flex; align-items: center; gap: var(--vo-space-2);
+  padding: var(--vo-space-2) var(--vo-space-3);
+  border-radius: var(--vo-radius-lg);
+  font-size: var(--vo-text-label);
+  font-weight: var(--vo-weight-label);
+  border: 1px solid transparent;
+}
+.hchip svg { width: 15px; height: 15px; flex: none; }
+.hchip.ok   { background: rgba(104, 219, 169, 0.10); color: var(--vo-color-tertiary); border-color: rgba(104, 219, 169, 0.22); }
+.hchip.warn { background: rgba(255, 183, 125, 0.10); color: var(--vo-color-secondary); border-color: rgba(255, 183, 125, 0.24); }
+.hchip.err  { background: rgba(255, 180, 171, 0.10); color: var(--vo-color-error); border-color: rgba(255, 180, 171, 0.24); }
+.hchip span:last-child { color: var(--vo-color-surface-bright); margin-left: auto; font-weight: var(--vo-weight-body); }
+
+/* meta rows */
+.meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--vo-space-2) 0;
+  border-bottom: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  font-size: var(--vo-text-label);
+}
+.meta-row:last-child { border-bottom: none; }
+.meta-k { color: var(--vo-color-surface-bright); }
+.meta-v { color: var(--vo-color-primary); font-weight: var(--vo-weight-label); }
+
+/* action buttons */
+.insp-actions { display: flex; flex-direction: column; gap: var(--vo-space-2); margin-top: var(--vo-space-4); }
+.act {
+  display: flex; align-items: center; gap: var(--vo-space-3);
+  padding: var(--vo-space-3);
+  border-radius: var(--vo-radius-lg);
+  background: var(--vo-color-surface-container);
+  border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  color: var(--vo-color-primary);
+  font-size: var(--vo-text-body);
+  font-weight: var(--vo-weight-label);
+  cursor: pointer;
+}
+.act svg { width: 17px; height: 17px; flex: none; }
+.act.danger { color: var(--vo-color-error); }
+.act.danger:hover { background: rgba(255, 180, 171, 0.08); }
+</style>
+</head>
+<body>
+<div class="ipad" role="application" aria-label="Auth Box Vault — iPad landscape">
+
+  <!-- ════════════ ZONE 1 · ICON RAIL ════════════ -->
+  <nav class="rail" aria-label="Primary">
+    <div class="rail-brand" title="Auth Box">
+      <!-- shield-lock -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 4 5v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5z"/>
+        <rect x="9" y="11" width="6" height="5" rx="1"/>
+        <path d="M10 11V9a2 2 0 0 1 4 0v2"/>
+      </svg>
+    </div>
+
+    <button class="rail-btn" data-active="true" title="Vault">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm3-3h11v2h-2v3h-2v-3h-3.1A5 5 0 1 1 10 11z"/></svg>
+    </button>
+    <button class="rail-btn" title="Generator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 3 1.5 3L9 7.5 6.5 9 5 12 3.5 9 1 7.5 3.5 6z"/><path d="m17 9 1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/><path d="m13 14 1.2 2.4L17 18l-2.8 1.6L13 22l-1.2-2.4L9 18l2.8-1.6z"/></svg>
+    </button>
+    <button class="rail-btn" title="Wallet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.3" fill="currentColor"/></svg>
+    </button>
+    <button class="rail-btn" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 2.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 7 2.6h.1A1.6 1.6 0 0 0 8.1 1.1V1a2 2 0 0 1 4 0v.1A1.6 1.6 0 0 0 15 2.6a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H23a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" transform="scale(0.82) translate(2.6 2.6)"/></svg>
+    </button>
+
+    <div class="rail-spacer"></div>
+
+    <button class="rail-btn rail-lock" title="Lock Vault">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    </button>
+  </nav>
+
+  <!-- ════════════ ZONE 2 · MASTER LIST ════════════ -->
+  <section class="master" aria-label="Credentials">
+    <div class="master-head">
+      <div class="master-titlerow">
+        <div>
+          <div class="master-title">Vault</div>
+          <div class="master-sub">38 items · synced 2 min ago</div>
+        </div>
+        <button class="add-btn" title="Add credential" aria-label="Add credential">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="Search passwords, 2FA…" aria-label="Search">
+        <span class="search-kbd">⌘K</span>
+      </label>
+
+      <div class="chips" role="tablist" aria-label="Category filter">
+        <button class="chip" data-active="true">All</button>
+        <button class="chip">Logins</button>
+        <button class="chip">Servers</button>
+        <button class="chip">Cards</button>
+        <button class="chip">Notes</button>
+      </div>
+    </div>
+
+    <div class="list">
+      <div class="sec-label">Logins · 18</div>
+
+      <div class="row">
+        <div class="row-icon ic-login"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm3-3h11v2h-2v3h-2v-3h-3.1A5 5 0 1 1 10 11z"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">GitHub</div>
+          <div class="row-sub">maurice@proton.me</div>
+        </div>
+        <div class="row-meta"><span class="dot-2fa">2FA</span></div>
+      </div>
+
+      <div class="row" data-active="true">
+        <div class="row-icon ic-login"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm3-3h11v2h-2v3h-2v-3h-3.1A5 5 0 1 1 10 11z"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">Cloudflare Dashboard</div>
+          <div class="row-sub">maurice@zhugeyun.com</div>
+        </div>
+        <div class="row-meta"><span class="dot-2fa">2FA</span><span class="star"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6.5 7 .6-5.3 4.6 1.6 6.8L12 17.3 5.1 20.5l1.6-6.8L1.4 9.1l7-.6z"/></svg></span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-icon ic-login"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm3-3h11v2h-2v3h-2v-3h-3.1A5 5 0 1 1 10 11z"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">Notion</div>
+          <div class="row-sub">maurice@proton.me</div>
+        </div>
+        <div class="row-meta"><span class="warn-dot" title="Reused password"></span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-icon ic-login"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm3-3h11v2h-2v3h-2v-3h-3.1A5 5 0 1 1 10 11z"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">Apple ID</div>
+          <div class="row-sub">maurice_wen@aol.com</div>
+        </div>
+        <div class="row-meta"><span class="dot-2fa">2FA</span></div>
+      </div>
+
+      <div class="sec-label">Servers &amp; Tokens · 9</div>
+
+      <div class="row">
+        <div class="row-icon ic-api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">OpenAI Production Key</div>
+          <div class="row-sub">sk-proj-•••• · api.openai.com</div>
+        </div>
+        <div class="row-meta"><span class="warn-dot" title="Rotate soon"></span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-icon ic-api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">AWS Root — zhugeyun</div>
+          <div class="row-sub">arn:aws:iam::4471•••</div>
+        </div>
+        <div class="row-meta"><span class="dot-2fa">2FA</span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-icon ic-api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">Hetzner CX42 — bastion</div>
+          <div class="row-sub">root@49.13.x.x · ed25519</div>
+        </div>
+        <div class="row-meta"></div>
+      </div>
+
+      <div class="sec-label">Payments · 3</div>
+
+      <div class="row">
+        <div class="row-icon ic-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">Amex Platinum</div>
+          <div class="row-sub">•••• 1009 · exp 09/28</div>
+        </div>
+        <div class="row-meta"></div>
+      </div>
+
+      <div class="sec-label">Wallets · 2</div>
+
+      <div class="row">
+        <div class="row-icon ic-identity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="16.5" cy="12.5" r="1.4" fill="currentColor"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">Ledger — Cold Storage</div>
+          <div class="row-sub">0x71C7•••976F · 24-word seed</div>
+        </div>
+        <div class="row-meta"><span class="dot-2fa" style="color:var(--vo-color-secondary);border-color:rgba(255,183,125,.3)">SEED</span></div>
+      </div>
+
+      <div class="sec-label">Secure Notes · 6</div>
+
+      <div class="row">
+        <div class="row-icon ic-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 13h8M8 17h6"/></svg></div>
+        <div class="row-body">
+          <div class="row-title">Passport &amp; KYC Recovery</div>
+          <div class="row-sub">Encrypted note · 4 fields</div>
+        </div>
+        <div class="row-meta"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════ ZONE 3 · DETAIL ════════════ -->
+  <section class="detail" aria-label="Credential detail">
+    <div class="detail-bar">
+      <div class="detail-bar-left">
+        <span class="breadcrumb">Logins&nbsp; /&nbsp; <b>Cloudflare Dashboard</b></span>
+      </div>
+      <div class="bar-actions">
+        <button class="bar-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/><path d="m21 3-9 9M15 3h6v6"/></svg>
+          Open
+        </button>
+        <button class="bar-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 3 4 10v11h6v-6h4v6h6V10z" fill="none"/><path d="M3 11 12 3l9 8M5 21V11h14v10"/></svg>
+          Edit
+        </button>
+        <!-- inspector toggle (the defining affordance of Direction B) -->
+        <button class="bar-btn icon-only" data-active="true" title="Toggle inspector" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="detail-scroll">
+      <div class="dh">
+        <div class="dh-icon ic-login"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm3-3h11v2h-2v3h-2v-3h-3.1A5 5 0 1 1 10 11z"/></svg></div>
+        <div>
+          <div class="dh-title">Cloudflare Dashboard</div>
+          <div class="dh-meta">Login · <a href="#">dash.cloudflare.com</a></div>
+        </div>
+      </div>
+
+      <!-- credentials -->
+      <div class="card">
+        <div class="card-label">Credentials</div>
+        <div class="field">
+          <div class="field-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg></div>
+          <div class="field-body">
+            <div class="field-k">Username</div>
+            <div class="field-v">maurice@zhugeyun.com</div>
+          </div>
+          <div class="field-act">
+            <button class="iconbtn" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+          <div class="field-body">
+            <div class="field-k">Password</div>
+            <div class="field-v mono">•••••••••••••••• </div>
+          </div>
+          <div class="field-act">
+            <button class="iconbtn" title="Reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <button class="iconbtn copied" title="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- one-time password -->
+      <div class="card">
+        <div class="card-label">One-Time Password</div>
+        <div class="totp">
+          <div class="totp-body">
+            <div class="totp-issuer">Cloudflare · TOTP</div>
+            <div class="totp-code">418&nbsp;703</div>
+          </div>
+          <div class="ring">
+            <svg width="46" height="46" viewBox="0 0 46 46">
+              <circle cx="23" cy="23" r="20" fill="none" stroke="#2d3449" stroke-width="3"/>
+              <circle cx="23" cy="23" r="20" fill="none" stroke="#68dba9" stroke-width="3"
+                      stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="42"/>
+            </svg>
+            <div class="ring-num">19</div>
+          </div>
+          <button class="iconbtn" title="Copy code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+        </div>
+      </div>
+
+      <!-- website -->
+      <div class="card">
+        <div class="card-label">Website</div>
+        <div class="field">
+          <div class="field-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg></div>
+          <div class="field-body">
+            <div class="field-k">URL</div>
+            <div class="field-v">https://dash.cloudflare.com/login</div>
+          </div>
+          <div class="field-act">
+            <button class="iconbtn" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- notes -->
+      <div class="card">
+        <div class="card-label">Notes</div>
+        <div class="notes">Account owner for the zhugeyun.com zone. Billing tied to the Amex Platinum below. Recovery codes stored in “Cloudflare Recovery” secure note. Do not rotate the API token without updating the Workers deploy secret.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════ ZONE 4 · INSPECTOR (collapsible) ════════════ -->
+  <aside class="inspector" aria-label="Inspector">
+    <div class="insp-head">
+      <div class="insp-title">Inspector</div>
+      <button class="insp-collapse" title="Collapse inspector" aria-label="Collapse inspector">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+    </div>
+
+    <div class="insp-scroll">
+      <!-- security score gauge -->
+      <div class="score-card">
+        <div class="score-ring">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="42" fill="none" stroke="#222a3d" stroke-width="7"/>
+            <circle cx="48" cy="48" r="42" fill="none" stroke="#68dba9" stroke-width="7"
+                    stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="34"/>
+          </svg>
+          <div class="score-val">
+            <div class="score-num">87</div>
+            <div class="score-of">/ 100</div>
+          </div>
+        </div>
+        <div class="score-label">Strong</div>
+        <div class="score-note">Above 84% of your vault</div>
+      </div>
+
+      <!-- health chips -->
+      <div class="insp-section-label">Security Health</div>
+      <div class="chip-stack">
+        <div class="hchip ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          <span>Not found in breaches</span><span>HIBP</span>
+        </div>
+        <div class="hchip ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5z"/></svg>
+          <span>Unique — not reused</span><span>0 dup</span>
+        </div>
+        <div class="hchip ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+          <span>2FA enabled (TOTP)</span><span>SHA1</span>
+        </div>
+        <div class="hchip warn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          <span>Last changed 412 days ago</span><span>rotate</span>
+        </div>
+      </div>
+
+      <!-- metadata -->
+      <div class="insp-section-label">Details</div>
+      <div class="meta-row"><span class="meta-k">Strength</span><span class="meta-v">24 chars · 142 bits</span></div>
+      <div class="meta-row"><span class="meta-k">Created</span><span class="meta-v">Mar 14, 2024</span></div>
+      <div class="meta-row"><span class="meta-k">Last used</span><span class="meta-v">Today, 09:41</span></div>
+      <div class="meta-row"><span class="meta-k">Autofill</span><span class="meta-v">2 domains</span></div>
+      <div class="meta-row"><span class="meta-k">Sync</span><span class="meta-v">3 devices</span></div>
+
+      <!-- actions -->
+      <div class="insp-actions">
+        <button class="act">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 3 6.5 7 .6-5.3 4.6 1.6 6.8L12 17.3 5.1 20.5l1.6-6.8L1.4 9.1l7-.6z"/></svg>
+          Remove from Favorites
+        </button>
+        <button class="act">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h5l2 3h9v11a2 2 0 0 1-2 2H4z"/></svg>
+          Move to Collection…
+        </button>
+        <button class="act">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+          Export item (encrypted)
+        </button>
+        <button class="act danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Delete credential
+        </button>
+      </div>
+    </div>
+  </aside>
+
+</div>
+</body>
+</html>

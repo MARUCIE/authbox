@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<!-- generated-by: vault-onyx-design-system (html-style-router BYPASS — reviewed)
+     Reason: native iOS/iPad app-screen bake-off draft bound to the project's fixed
+     design system (design/tokens/vault-onyx.css), NOT an html-style-router genre
+     report. Brand tokens are the single source of truth; the style router does not
+     apply to in-app UI mocks. data-style-id="vault-onyx". -->
+<!--
+  ============================================================================
+  Auth Box — Wallet screen — DIRECTION C: Canvas Dashboard
+  iPad LANDSCAPE bake-off draft · 1194×834 (logical pt) · Vault Onyx dark theme
+  ============================================================================
+
+  SCREEN
+  Wallet — self-custodial, WATCH-ONLY BTC/ETH. No private keys, no signing here;
+  the vault stores xpub/zpub descriptors and derives addresses for receiving only.
+
+  WHAT THIS DEMONSTRATES (vs sibling drafts A=3-col split / B=inspector)
+  Content-first. The WHOLE surface is a scrollable card/grid CANVAS of wallet
+  accounts, optimized for at-a-glance density. Navigation is NOT a permanent
+  column — it is a translucent OVERLAY toolbar pinned to the top (portfolio
+  total + search + add), plus a floating glass FILTER RAIL of chain/smart chips
+  that hovers over the canvas. Tapping an account card opens its DETAIL as a
+  centered POPOVER SHEET over a dimmed, backdrop-blurred canvas
+  (Core Rule 3: modal = surface_bright @ 60% + 20px blur) — the sheet carries
+  the balance card, receive address + safety chips + QR, and the derived-address
+  table. This is the OPPOSITE of a fixed multi-pane split: the canvas owns the
+  space; chrome and detail are summoned on demand. It reads at a glance which
+  accounts hold value, which are fresh, and which need a hardware check — the
+  density iPad's regular size class should actually exploit.
+
+  ── HOW THIS COLLAPSES TO iPhone (compact width class) ─────────────────────
+  On iPhone (.horizontalSizeClass == .compact) the canvas degrades to ONE column:
+    1. The floating overlay toolbar becomes the standard NavigationStack title
+       bar; the portfolio total folds into a single summary header row, and the
+       search field drops below it as the pull-to-reveal .searchable bar. The
+       add (+) button moves to the primary toolbar slot — today's WalletView.
+    2. The horizontal glass filter rail becomes the iOS section-grouped List:
+       each chain chip (Bitcoin / Ethereum) turns back into a Section(header),
+       and the smart chips (有余额 / 收藏 / 硬件) become a leading filter menu.
+    3. The multi-column account-card masonry reflows to a single vertical List
+       of rows (WalletAccountRow: 40pt coin tile + name + chain/derivation tag +
+       balance + fiat) — same data, one card per row.
+    4. The detail POPOVER SHEET becomes a full-screen pushed NavigationLink
+       destination (WalletAccountDetailView) — a grouped List of Sections, not a
+       floating card. The balance card, receive rail (QR + safety chips), and
+       derived-address table stack vertically; copy / share / re-scan / safety
+       affordances are identical, only the container changes popover → push.
+    5. The right-edge "组合脉搏 / portfolio pulse" summary strip is dropped on
+       compact (or folds into one banner above the list), since vertical space
+       is the constraint, not horizontal.
+  i.e. canvas+overlay+popover (regular) → stack+navbar+push (compact). Same data,
+  same affordances, only the layout container adapts.
+  ============================================================================
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1194, initial-scale=1">
+<title>Auth Box · Wallet · 画布仪表盘 (Direction C)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   :root — inlined verbatim from design/tokens/vault-onyx.css
+   ONLY --vo-* custom properties may be used below this block.
+   ============================================================ */
+:root {
+  color-scheme: dark;
+
+  /* ---- Color: Primary Palette ---- */
+  --vo-color-primary: #c3c0ff;
+  --vo-color-primary-container: #3730a3;
+  --vo-color-secondary: #ffb77d;
+  --vo-color-secondary-container: #d97707;
+  --vo-color-tertiary: #68dba9;
+  --vo-color-tertiary-container: #004d34;
+  --vo-color-error: #ffb4ab;
+
+  /* ---- Color: Surface Hierarchy (Dark Mode) ---- */
+  --vo-color-surface: #0b1326;
+  --vo-color-surface-container-lowest: #060e20;
+  --vo-color-surface-container-low: #131b2e;
+  --vo-color-surface-container: #171f33;
+  --vo-color-surface-container-high: #222a3d;
+  --vo-color-surface-container-highest: #2d3449;
+  --vo-color-surface-bright: #31394d;
+
+  /* ---- Color: Outline / Ghost Border ---- */
+  --vo-color-outline-variant: #464553;
+
+  /* ---- Color: Override Colors ---- */
+  --vo-color-override-primary: #3730a3;
+  --vo-color-override-secondary: #d97706;
+  --vo-color-override-tertiary: #059669;
+  --vo-color-override-neutral: #0f172a;
+  --vo-color-neutral: #0f172a;
+
+  /* ---- Color: Material-3 defaults ---- */
+  --vo-color-on-primary: #ffffff;
+  --vo-color-primary-fixed: #c3c0ff;
+
+  /* ---- Typography: Families ---- */
+  --vo-font-display: "Space Grotesk", sans-serif;
+  --vo-font-body: "Inter", "IBM Plex Sans", sans-serif;
+  --vo-font-label: "Inter", sans-serif;
+
+  /* ---- Typography: Sizes ---- */
+  --vo-text-display: 3.5rem;
+  --vo-text-headline: 2rem;
+  --vo-text-title: 1.25rem;
+  --vo-text-body: 0.875rem;
+  --vo-text-label: 0.75rem;
+
+  /* ---- Typography: Weights ---- */
+  --vo-weight-display: 700;
+  --vo-weight-headline: 700;
+  --vo-weight-title: 500;
+  --vo-weight-body: 400;
+  --vo-weight-label: 500;
+
+  /* ---- Typography: Tracking ---- */
+  --vo-tracking-display: -0.02em;
+  --vo-tracking-headline: -0.02em;
+  --vo-tracking-title: -0.01em;
+  --vo-tracking-body: normal;
+  --vo-tracking-label: 0.02em;
+
+  /* ---- Spacing Scale ---- */
+  --vo-space-1: 4px;
+  --vo-space-2: 8px;
+  --vo-space-3: 12px;
+  --vo-space-4: 16px;
+  --vo-space-6: 24px;
+  --vo-space-8: 32px;
+  --vo-space-12: 48px;
+  --vo-space-16: 64px;
+  --vo-space-20: 80px;
+  --vo-space-24: 96px;
+
+  /* ---- Roundness ---- */
+  --vo-radius-xs: 2px;
+  --vo-radius-sm: 4px;
+  --vo-radius-md: 6px;
+  --vo-radius-lg: 8px;
+  --vo-radius-xl: 12px;
+  --vo-radius-full: 9999px;
+
+  /* ---- Elevation / Ambient Shadows ---- */
+  --vo-elev-ambient-low: 0 0 40px 0 rgba(55, 48, 163, 0.04);
+  --vo-elev-ambient-high: 0 0 80px 0 rgba(55, 48, 163, 0.08);
+
+  /* ---- Gradient ---- */
+  --vo-gradient-hero-cta: linear-gradient(135deg, #c3c0ff 0%, #3730a3 100%);
+
+  /* ---- Opacity ---- */
+  --vo-opacity-ghost-border: 0.2;
+  --vo-opacity-modal-glass: 0.6;
+  --vo-opacity-input-focus: 0.4;
+
+  /* ---- Effect ---- */
+  --vo-blur-modal-backdrop: 20px;
+}
+
+/* ============================================================
+   Reset + frame
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--vo-color-surface-container-lowest);
+  font-family: var(--vo-font-body);
+  color: var(--vo-color-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--vo-space-6);
+}
+
+/* The device frame — iPad landscape 1194×834 */
+.ipad {
+  width: 1194px;
+  height: 834px;
+  background: var(--vo-color-surface);
+  border-radius: var(--vo-radius-xl);
+  overflow: hidden;
+  position: relative;
+  box-shadow: var(--vo-elev-ambient-high);
+}
+
+::selection { background: rgba(195, 192, 255, 0.22); }
+
+.scroll { overflow-y: auto; }
+.scroll::-webkit-scrollbar { width: 8px; }
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-full);
+}
+.scroll::-webkit-scrollbar-track { background: transparent; }
+
+.mono { font-variant-numeric: tabular-nums; }
+
+/* ambient indigo bloom on the raw canvas (Core Rule 5 tinted indigo) */
+.ipad::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(70% 50% at 88% -6%, rgba(55, 48, 163, 0.22) 0%, transparent 60%),
+    radial-gradient(60% 45% at 4% 102%, rgba(55, 48, 163, 0.14) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ============================================================
+   CANVAS — the whole scrollable surface owns the space
+   ============================================================ */
+.canvas {
+  position: absolute; inset: 0;
+  padding: 108px var(--vo-space-8) var(--vo-space-8);  /* top pad clears floating toolbar */
+}
+.canvas-inner { display: grid; grid-template-columns: 1fr 252px; gap: var(--vo-space-6); }
+
+/* ── FLOATING OVERLAY TOOLBAR (glass, pinned top) ── */
+.toolbar {
+  position: absolute;
+  top: var(--vo-space-4); left: var(--vo-space-6); right: var(--vo-space-6);
+  z-index: 30;
+  display: flex; align-items: center; gap: var(--vo-space-4);
+  background: rgba(49, 57, 77, 0.6);            /* surface_bright @ 60% */
+  backdrop-filter: blur(var(--vo-blur-modal-backdrop));
+  -webkit-backdrop-filter: blur(var(--vo-blur-modal-backdrop));
+  border: 1px solid rgba(70, 69, 83, 0.2);      /* ghost border 20% */
+  border-radius: var(--vo-radius-xl);
+  padding: var(--vo-space-3) var(--vo-space-4);
+  box-shadow: var(--vo-elev-ambient-high);
+}
+.tb-brand { display: flex; align-items: center; gap: var(--vo-space-3); }
+.brand-mark {
+  width: 34px; height: 34px;
+  border-radius: var(--vo-radius-lg);
+  background: var(--vo-gradient-hero-cta);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.brand-mark svg { width: 18px; height: 18px; }
+.brand-name {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.02rem;
+  letter-spacing: var(--vo-tracking-headline);
+  color: var(--vo-color-primary);
+  line-height: 1.05;
+}
+.brand-sub {
+  font-size: 0.6rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-secondary);
+  font-weight: var(--vo-weight-label);
+}
+.tb-divider { width: 1px; height: 30px; background: rgba(70, 69, 83, 0.4); }
+
+/* portfolio total lives in the toolbar (watch-only signpost) */
+.tb-total { display: flex; flex-direction: column; }
+.tb-total-label {
+  font-size: 0.6rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.55);
+  display: flex; align-items: center; gap: 6px;
+}
+.eye-only {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.56rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-tertiary);
+}
+.eye-only svg { width: 11px; height: 11px; }
+.tb-total-row { display: flex; align-items: baseline; gap: var(--vo-space-3); margin-top: 2px; }
+.tb-total-value {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-display);
+  font-size: 1.4rem;
+  color: var(--vo-color-primary);
+  letter-spacing: var(--vo-tracking-display);
+  line-height: 1;
+}
+.tb-total-delta {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.7rem;
+  color: var(--vo-color-tertiary);
+}
+.tb-total-delta svg { width: 12px; height: 12px; }
+
+.tb-spacer { flex: 1; }
+
+/* search in toolbar */
+.tb-search {
+  display: flex; align-items: center; gap: var(--vo-space-2);
+  background: rgba(45, 52, 73, 0.7);
+  border-radius: var(--vo-radius-md);
+  padding: var(--vo-space-2) var(--vo-space-3);
+  min-width: 268px;
+}
+.tb-search svg { width: 16px; height: 16px; opacity: 0.55; flex-shrink: 0; }
+.tb-search .ph { font-size: var(--vo-text-body); color: rgba(195, 192, 255, 0.5); }
+.tb-search .kbd {
+  margin-left: auto;
+  font-size: 0.64rem;
+  color: rgba(195, 192, 255, 0.4);
+  background: var(--vo-color-surface-container-high);
+  padding: 2px 6px;
+  border-radius: var(--vo-radius-sm);
+  font-family: var(--vo-font-display);
+}
+.tb-icon-btn {
+  width: 38px; height: 38px;
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-color-surface-container-high);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.tb-icon-btn svg { width: 18px; height: 18px; opacity: 0.85; }
+.tb-add {
+  background: var(--vo-gradient-hero-cta);
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.tb-add svg { opacity: 1; }
+
+/* ── FLOATING GLASS FILTER RAIL (chips over canvas) ── */
+.filter-rail {
+  position: absolute;
+  top: 78px; left: var(--vo-space-6);
+  z-index: 25;
+  display: flex; align-items: center; gap: var(--vo-space-2);
+  padding: 5px;
+  background: rgba(49, 57, 77, 0.6);
+  backdrop-filter: blur(var(--vo-blur-modal-backdrop));
+  -webkit-backdrop-filter: blur(var(--vo-blur-modal-backdrop));
+  border: 1px solid rgba(70, 69, 83, 0.2);
+  border-radius: var(--vo-radius-full);
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.glass-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.72rem;
+  font-weight: var(--vo-weight-label);
+  letter-spacing: var(--vo-tracking-label);
+  padding: 6px var(--vo-space-3);
+  border-radius: var(--vo-radius-full);
+  color: rgba(195, 192, 255, 0.66);
+}
+.glass-chip .dot {
+  width: 16px; height: 16px;
+  border-radius: var(--vo-radius-full);
+  display: grid; place-items: center;
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 0.58rem;
+  color: var(--vo-color-on-primary);
+}
+.glass-chip .count {
+  font-size: 0.62rem;
+  color: rgba(195, 192, 255, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+.glass-chip.on {
+  background: rgba(195, 192, 255, 0.16);
+  color: var(--vo-color-primary);
+}
+.glass-chip.on .count { color: var(--vo-color-primary); }
+.rail-sep { width: 1px; height: 18px; background: rgba(70, 69, 83, 0.5); margin: 0 2px; }
+
+/* ============================================================
+   CANVAS — account-card masonry (content-first density)
+   ============================================================ */
+.canvas-main { min-width: 0; }
+
+.canvas-section-label {
+  display: flex; align-items: center; gap: var(--vo-space-2);
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.45);
+  margin: var(--vo-space-2) 2px var(--vo-space-3);
+}
+.canvas-section-label .pill-count {
+  font-family: var(--vo-font-body);
+  text-transform: none; letter-spacing: normal;
+  color: rgba(195, 192, 255, 0.5);
+}
+.canvas-section-label::after {
+  content: ""; flex: 1; height: 1px;
+  background: rgba(70, 69, 83, 0.32);
+  margin-left: var(--vo-space-2);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--vo-space-4);
+  margin-bottom: var(--vo-space-6);
+}
+
+/* account card — the canvas's primary unit */
+.acct-card {
+  background: var(--vo-color-surface-container);
+  border: 1px solid rgba(70, 69, 83, 0.2);   /* ghost border 20% */
+  border-radius: var(--vo-radius-xl);
+  padding: var(--vo-space-4);
+  box-shadow: var(--vo-elev-ambient-low);
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+.acct-card.open {
+  border-color: rgba(195, 192, 255, 0.35);
+}
+.acct-card.open::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 120% at 100% 0%, rgba(55, 48, 163, 0.18) 0%, transparent 55%);
+  pointer-events: none;
+}
+.card-top {
+  display: flex; align-items: center; gap: var(--vo-space-3);
+  position: relative;
+}
+.card-coin {
+  width: 40px; height: 40px;
+  border-radius: var(--vo-radius-full);
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 0.9rem;
+  color: var(--vo-color-on-primary);
+}
+.card-id { min-width: 0; flex: 1; }
+.card-name {
+  font-size: var(--vo-text-body);
+  font-weight: var(--vo-weight-title);
+  color: var(--vo-color-primary);
+  letter-spacing: var(--vo-tracking-title);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card-tag-row {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 3px;
+}
+.tag {
+  font-size: 0.56rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: var(--vo-radius-xs);
+  background: var(--vo-color-surface-container-high);
+  color: rgba(195, 192, 255, 0.62);
+  white-space: nowrap;
+}
+.card-addr {
+  font-family: var(--vo-font-display);
+  font-size: 0.68rem;
+  color: rgba(195, 192, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+.card-fav {
+  width: 26px; height: 26px;
+  border-radius: var(--vo-radius-sm);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.card-fav svg { width: 15px; height: 15px; }
+
+.card-balance {
+  margin-top: var(--vo-space-4);
+  display: flex; align-items: flex-end; justify-content: space-between;
+  position: relative;
+}
+.card-bal-main {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-display);
+  font-size: 1.32rem;
+  color: var(--vo-color-primary);
+  letter-spacing: var(--vo-tracking-display);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.card-bal-main .unit {
+  font-size: 0.74rem;
+  color: rgba(195, 192, 255, 0.55);
+  margin-left: 5px;
+}
+.card-bal-fiat {
+  font-size: 0.72rem;
+  color: rgba(195, 192, 255, 0.55);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.card-delta {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.68rem;
+  padding: 3px var(--vo-space-2);
+  border-radius: var(--vo-radius-full);
+}
+.card-delta.up   { color: var(--vo-color-tertiary); background: rgba(104, 219, 169, 0.1); }
+.card-delta.flat { color: rgba(195, 192, 255, 0.5); background: var(--vo-color-surface-container-high); }
+.card-delta svg { width: 12px; height: 12px; }
+
+/* card footer micro-stats (UTXO / used addrs / next fresh) */
+.card-stats {
+  display: flex; gap: var(--vo-space-4);
+  margin-top: var(--vo-space-4);
+  padding-top: var(--vo-space-3);
+  border-top: 1px solid rgba(70, 69, 83, 0.28);
+  position: relative;
+}
+.cstat { min-width: 0; }
+.cstat-k {
+  font-size: 0.58rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.42);
+}
+.cstat-v {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-title);
+  font-size: 0.78rem;
+  color: var(--vo-color-primary);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 5px;
+}
+.fresh-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-tertiary);
+  flex-shrink: 0;
+}
+.cstat-v.fresh { color: var(--vo-color-tertiary); }
+
+/* small "add account" ghost tile to close the grid */
+.add-tile {
+  border: 1px dashed rgba(70, 69, 83, 0.5);
+  border-radius: var(--vo-radius-xl);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--vo-space-2);
+  color: rgba(195, 192, 255, 0.5);
+  padding: var(--vo-space-6);
+  min-height: 120px;
+}
+.add-tile .plus {
+  width: 38px; height: 38px;
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-color-surface-container-high);
+  display: grid; place-items: center;
+}
+.add-tile .plus svg { width: 18px; height: 18px; }
+.add-tile .at-label { font-size: 0.74rem; font-weight: var(--vo-weight-label); }
+.add-tile .at-sub { font-size: 0.62rem; color: rgba(195, 192, 255, 0.4); }
+
+/* ============================================================
+   CANVAS RIGHT EDGE — portfolio pulse summary strip
+   ============================================================ */
+.pulse-rail { min-width: 0; display: flex; flex-direction: column; gap: var(--vo-space-4); }
+.pulse-card {
+  background: var(--vo-color-surface-container);
+  border: 1px solid rgba(70, 69, 83, 0.2);
+  border-radius: var(--vo-radius-xl);
+  padding: var(--vo-space-4);
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.pulse-card-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.45);
+  margin-bottom: var(--vo-space-3);
+  display: flex; align-items: center; gap: 6px;
+}
+/* allocation bars */
+.alloc-row { margin-bottom: var(--vo-space-3); }
+.alloc-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.alloc-name { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--vo-color-primary); }
+.alloc-name .swatch { width: 9px; height: 9px; border-radius: var(--vo-radius-xs); }
+.alloc-pct { font-size: 0.72rem; color: rgba(195, 192, 255, 0.55); font-variant-numeric: tabular-nums; }
+.alloc-bar {
+  height: 6px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-surface-container-high);
+  overflow: hidden;
+}
+.alloc-fill { height: 100%; border-radius: var(--vo-radius-full); }
+
+/* sync mini-card */
+.sync-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--vo-space-2);
+}
+.pulse {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.66rem;
+  color: var(--vo-color-tertiary);
+}
+.pulse-status-dot {
+  width: 7px; height: 7px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-tertiary);
+  box-shadow: 0 0 0 4px rgba(104, 219, 169, 0.18);
+}
+.sync-meta { font-size: 0.66rem; color: rgba(195, 192, 255, 0.5); line-height: 1.55; }
+
+/* attention list */
+.attn-item {
+  display: flex; align-items: center; gap: var(--vo-space-3);
+  padding: var(--vo-space-2) 0;
+}
+.attn-item + .attn-item { border-top: 1px solid rgba(70, 69, 83, 0.24); }
+.attn-icon {
+  width: 26px; height: 26px;
+  border-radius: var(--vo-radius-sm);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.attn-icon svg { width: 14px; height: 14px; }
+.ai-warn { background: rgba(255, 183, 125, 0.14); color: var(--vo-color-secondary); }
+.ai-ok   { background: rgba(104, 219, 169, 0.14); color: var(--vo-color-tertiary); }
+.attn-body { flex: 1; min-width: 0; }
+.attn-name { font-size: 0.74rem; color: var(--vo-color-primary); font-weight: var(--vo-weight-title); }
+.attn-meta { font-size: 0.62rem; color: rgba(195, 192, 255, 0.5); margin-top: 1px; }
+
+/* ============================================================
+   POPOVER SHEET — account detail over dimmed blurred canvas
+   ============================================================ */
+.scrim {
+  position: absolute; inset: 0; z-index: 40;
+  background: rgba(6, 14, 32, 0.55);
+  backdrop-filter: blur(var(--vo-blur-modal-backdrop));
+  -webkit-backdrop-filter: blur(var(--vo-blur-modal-backdrop));
+  display: grid; place-items: center;
+}
+.sheet {
+  width: 880px; max-height: 752px;
+  background: rgba(49, 57, 77, 0.6);          /* surface_bright @ 60% glass */
+  backdrop-filter: blur(var(--vo-blur-modal-backdrop));
+  -webkit-backdrop-filter: blur(var(--vo-blur-modal-backdrop));
+  border: 1px solid rgba(195, 192, 255, 0.18);
+  border-radius: var(--vo-radius-xl);
+  box-shadow: var(--vo-elev-ambient-high);
+  display: grid;
+  grid-template-columns: 1fr 296px;
+  overflow: hidden;
+}
+.sheet-main {
+  background: var(--vo-color-surface-container-low);
+  padding: var(--vo-space-6) var(--vo-space-6) var(--vo-space-4);
+  min-height: 0;
+  display: flex; flex-direction: column;
+}
+
+/* sheet header */
+.sh-head { display: flex; align-items: center; gap: var(--vo-space-4); margin-bottom: var(--vo-space-4); }
+.sh-coin {
+  width: 52px; height: 52px;
+  border-radius: var(--vo-radius-full);
+  display: grid; place-items: center;
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.15rem;
+  color: var(--vo-color-on-primary);
+  flex-shrink: 0;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.sh-idblock { min-width: 0; flex: 1; }
+.sh-title {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.5rem;
+  letter-spacing: var(--vo-tracking-headline);
+  color: var(--vo-color-primary);
+  display: flex; align-items: center; gap: var(--vo-space-3);
+}
+.watch-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--vo-font-body);
+  font-size: 0.6rem;
+  font-weight: var(--vo-weight-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-tertiary);
+  background: rgba(104, 219, 169, 0.12);
+  padding: 3px var(--vo-space-2);
+  border-radius: var(--vo-radius-full);
+}
+.watch-pill svg { width: 11px; height: 11px; }
+.sh-sub { font-size: var(--vo-text-body); color: var(--vo-color-primary-fixed); opacity: 0.7; margin-top: 4px; }
+.sh-close {
+  width: 34px; height: 34px;
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-color-surface-container-high);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.sh-close svg { width: 16px; height: 16px; opacity: 0.8; }
+
+/* sheet balance card */
+.sh-balance {
+  background: var(--vo-color-surface-container);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-4) var(--vo-space-6);
+  margin-bottom: var(--vo-space-4);
+  position: relative; overflow: hidden;
+}
+.sh-balance::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 120% at 100% 0%, rgba(55, 48, 163, 0.16) 0%, transparent 55%);
+  pointer-events: none;
+}
+.sh-bal-top { display: flex; align-items: flex-start; justify-content: space-between; position: relative; }
+.sh-bal-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.5);
+}
+.sh-bal-coin {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-display);
+  font-size: 2rem;
+  color: var(--vo-color-primary);
+  letter-spacing: var(--vo-tracking-display);
+  margin-top: var(--vo-space-1);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+.sh-bal-coin .unit { font-size: 0.95rem; color: rgba(195, 192, 255, 0.6); margin-left: 6px; }
+.sh-bal-fiat { font-size: var(--vo-text-body); color: rgba(195, 192, 255, 0.7); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.sh-bal-delta {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.72rem;
+  color: var(--vo-color-tertiary);
+  background: rgba(104, 219, 169, 0.1);
+  padding: 4px var(--vo-space-2);
+  border-radius: var(--vo-radius-full);
+  position: relative;
+}
+.sh-bal-delta svg { width: 13px; height: 13px; }
+.sh-bal-split {
+  display: flex; gap: var(--vo-space-6);
+  margin-top: var(--vo-space-4);
+  padding-top: var(--vo-space-3);
+  border-top: 1px solid rgba(70, 69, 83, 0.4);
+  position: relative;
+}
+.split-k {
+  font-size: 0.62rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.45);
+}
+.split-v {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-title);
+  font-size: 0.9rem;
+  color: var(--vo-color-primary);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* sheet derived table */
+.sec-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.42);
+  margin-bottom: var(--vo-space-2);
+  padding-left: 2px;
+  display: flex; align-items: center; gap: var(--vo-space-2);
+}
+.sec-label .pill-count {
+  font-family: var(--vo-font-body);
+  text-transform: none; letter-spacing: normal;
+  color: rgba(195, 192, 255, 0.5);
+}
+.derived-table {
+  background: var(--vo-color-surface-container);
+  border-radius: var(--vo-radius-lg);
+  overflow: hidden;
+  min-height: 0;
+}
+.dt-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 92px 70px 28px;
+  align-items: center;
+  gap: var(--vo-space-3);
+  padding: var(--vo-space-3) var(--vo-space-4);
+}
+.dt-row + .dt-row { border-top: 1px solid rgba(70, 69, 83, 0.28); }
+.dt-row.head {
+  background: var(--vo-color-surface-container-low);
+  padding-top: var(--vo-space-2); padding-bottom: var(--vo-space-2);
+}
+.dt-h {
+  font-size: 0.6rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.45);
+}
+.dt-h.r { text-align: right; }
+.dt-path {
+  font-family: var(--vo-font-display);
+  font-size: 0.72rem;
+  color: var(--vo-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.dt-addr {
+  font-family: var(--vo-font-display);
+  font-size: 0.76rem;
+  color: var(--vo-color-primary);
+  letter-spacing: 0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dt-used { font-size: 0.62rem; color: rgba(195, 192, 255, 0.45); margin-top: 2px; }
+.dt-bal {
+  font-family: var(--vo-font-display);
+  font-size: 0.76rem;
+  color: var(--vo-color-primary);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.dt-bal.zero { color: rgba(195, 192, 255, 0.35); }
+.dt-fiat { font-size: 0.64rem; color: rgba(195, 192, 255, 0.5); text-align: right; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.dt-cnt { font-family: var(--vo-font-display); font-size: 0.76rem; color: var(--vo-color-primary); text-align: right; font-variant-numeric: tabular-nums; }
+.dt-cnt.zero { color: rgba(195, 192, 255, 0.35); }
+.dt-copy {
+  width: 28px; height: 28px;
+  border-radius: var(--vo-radius-sm);
+  background: var(--vo-color-surface-container-high);
+  display: grid; place-items: center;
+}
+.dt-copy svg { width: 14px; height: 14px; opacity: 0.7; }
+
+/* sheet right rail: QR + receive + safety chips */
+.sh-rail {
+  background: var(--vo-color-surface-container);
+  padding: var(--vo-space-6) var(--vo-space-4);
+  display: flex; flex-direction: column; gap: var(--vo-space-3);
+  min-height: 0;
+}
+.rail-title {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.42);
+}
+.qr-wrap {
+  align-self: center;
+  width: 150px; height: 150px;
+  border-radius: var(--vo-radius-lg);
+  background: var(--vo-color-on-primary);
+  padding: var(--vo-space-2);
+  display: grid; place-items: center;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.qr-wrap svg { width: 100%; height: 100%; display: block; }
+.recv-addr-box {
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-3) var(--vo-space-4);
+}
+.recv-addr-label {
+  font-size: 0.62rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.5);
+  margin-bottom: 5px;
+  display: flex; align-items: center; gap: 6px;
+}
+.recv-addr-label .path {
+  margin-left: auto;
+  font-family: var(--vo-font-display);
+  color: var(--vo-color-secondary);
+  text-transform: none; letter-spacing: normal;
+}
+.recv-addr {
+  font-family: var(--vo-font-display);
+  font-size: 0.78rem;
+  color: var(--vo-color-primary);
+  line-height: 1.5;
+  word-break: break-all;
+}
+.recv-actions { display: flex; gap: var(--vo-space-2); margin-top: var(--vo-space-3); }
+.recv-btn {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 0.72rem;
+  font-weight: var(--vo-weight-label);
+  padding: var(--vo-space-2) var(--vo-space-3);
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-color-surface-container-high);
+  color: var(--vo-color-primary);
+}
+.recv-btn.primary { background: var(--vo-gradient-hero-cta); color: var(--vo-color-on-primary); }
+.recv-btn svg { width: 14px; height: 14px; }
+
+.safety-chip {
+  display: flex; align-items: center; gap: var(--vo-space-3);
+  background: var(--vo-color-surface-container-high);
+  border-radius: var(--vo-radius-md);
+  padding: var(--vo-space-2) var(--vo-space-3);
+}
+.safety-icon {
+  width: 26px; height: 26px;
+  border-radius: var(--vo-radius-sm);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.safety-icon svg { width: 14px; height: 14px; }
+.si-ok   { background: rgba(104, 219, 169, 0.14); color: var(--vo-color-tertiary); }
+.si-warn { background: rgba(255, 183, 125, 0.14); color: var(--vo-color-secondary); }
+.safety-body { flex: 1; min-width: 0; }
+.safety-name { font-size: 0.74rem; color: var(--vo-color-primary); font-weight: var(--vo-weight-title); }
+.safety-meta { font-size: 0.62rem; color: rgba(195, 192, 255, 0.5); margin-top: 1px; }
+</style>
+</head>
+<body>
+<div class="ipad">
+
+  <!-- ===================== FLOATING OVERLAY TOOLBAR (glass) ===================== -->
+  <div class="toolbar">
+    <div class="tb-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-on-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">钱包</div>
+        <div class="brand-sub">Self-Custodial Wallet</div>
+      </div>
+    </div>
+
+    <div class="tb-divider"></div>
+
+    <!-- portfolio total — watch-only signpost, lives in the floating chrome -->
+    <div class="tb-total">
+      <div class="tb-total-label">
+        投资组合总值
+        <span class="eye-only">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          仅查看
+        </span>
+      </div>
+      <div class="tb-total-row">
+        <span class="tb-total-value mono">$184,062.40</span>
+        <span class="tb-total-delta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>
+          +2.84% · 24h
+        </span>
+      </div>
+    </div>
+
+    <div class="tb-spacer"></div>
+
+    <div class="tb-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <span class="ph">搜索账户、地址或标签…</span>
+      <span class="kbd">⌘ F</span>
+    </div>
+
+    <div class="tb-icon-btn" title="重新扫描链上">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+    </div>
+    <div class="tb-icon-btn tb-add" title="添加观察账户">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-on-primary)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+    </div>
+  </div>
+
+  <!-- ===================== FLOATING GLASS FILTER RAIL ===================== -->
+  <div class="filter-rail">
+    <span class="glass-chip on">
+      <span class="dot" style="background:var(--vo-color-secondary-container);">₿</span>
+      Bitcoin <span class="count">2</span>
+    </span>
+    <span class="glass-chip on">
+      <span class="dot" style="background:var(--vo-color-primary-container);">Ξ</span>
+      Ethereum <span class="count">3</span>
+    </span>
+    <span class="rail-sep"></span>
+    <span class="glass-chip">有余额</span>
+    <span class="glass-chip">收藏</span>
+    <span class="glass-chip">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      硬件
+    </span>
+  </div>
+
+  <!-- ===================== THE CANVAS (content-first) ===================== -->
+  <div class="canvas scroll">
+    <div class="canvas-inner">
+
+      <!-- account-card masonry -->
+      <main class="canvas-main">
+
+        <div class="canvas-section-label">
+          Bitcoin
+          <span class="pill-count">2 个观察账户 · 仅查看</span>
+        </div>
+
+        <div class="card-grid">
+
+          <!-- card → tapping opens the popover sheet (rendered open below) -->
+          <div class="acct-card open">
+            <div class="card-top">
+              <div class="card-coin" style="background:var(--vo-color-secondary-container);">₿</div>
+              <div class="card-id">
+                <div class="card-name">主账户 · Cold Store</div>
+                <div class="card-tag-row">
+                  <span class="tag">Native SegWit</span>
+                  <span class="card-addr">bc1q…c4lq</span>
+                </div>
+              </div>
+              <div class="card-fav" title="收藏">
+                <svg viewBox="0 0 24 24" fill="var(--vo-color-secondary)" stroke="var(--vo-color-secondary)" stroke-width="1.5" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 18l-6.2 3.3L7 14.2l-5-4.9 6.9-1L12 2z"></path></svg>
+              </div>
+            </div>
+            <div class="card-balance">
+              <div>
+                <div class="card-bal-main mono">2.4187<span class="unit">BTC</span></div>
+                <div class="card-bal-fiat mono">$162,840.18</div>
+              </div>
+              <span class="card-delta up">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>
+                +$4,498
+              </span>
+            </div>
+            <div class="card-stats">
+              <div class="cstat">
+                <div class="cstat-k">UTXO</div>
+                <div class="cstat-v mono">11</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">已用地址</div>
+                <div class="cstat-v mono">7 / 20</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">下一个收款</div>
+                <div class="cstat-v fresh mono"><span class="fresh-dot"></span>…/0/7</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- card 2 -->
+          <div class="acct-card">
+            <div class="card-top">
+              <div class="card-coin" style="background:var(--vo-color-secondary-container);opacity:.92;">₿</div>
+              <div class="card-id">
+                <div class="card-name">日常找零 · Hot Watch</div>
+                <div class="card-tag-row">
+                  <span class="tag">Taproot</span>
+                  <span class="card-addr">bc1p…tz9v</span>
+                </div>
+              </div>
+              <div class="card-fav" title="收藏">
+                <svg viewBox="0 0 24 24" fill="none" stroke="rgba(195,192,255,0.4)" stroke-width="2" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 18l-6.2 3.3L7 14.2l-5-4.9 6.9-1L12 2z"></path></svg>
+              </div>
+            </div>
+            <div class="card-balance">
+              <div>
+                <div class="card-bal-main mono">0.0461<span class="unit">BTC</span></div>
+                <div class="card-bal-fiat mono">$3,103.55</div>
+              </div>
+              <span class="card-delta up">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>
+                +$86
+              </span>
+            </div>
+            <div class="card-stats">
+              <div class="cstat">
+                <div class="cstat-k">UTXO</div>
+                <div class="cstat-v mono">3</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">已用地址</div>
+                <div class="cstat-v mono">2 / 20</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">下一个收款</div>
+                <div class="cstat-v fresh mono"><span class="fresh-dot"></span>…/0/2</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="canvas-section-label">
+          Ethereum
+          <span class="pill-count">3 个观察账户 · 仅查看</span>
+        </div>
+
+        <div class="card-grid">
+
+          <!-- ETH card 1 -->
+          <div class="acct-card">
+            <div class="card-top">
+              <div class="card-coin" style="background:var(--vo-color-primary-container);">Ξ</div>
+              <div class="card-id">
+                <div class="card-name">DeFi 金库 · Ledger</div>
+                <div class="card-tag-row">
+                  <span class="tag">EVM · Account 0</span>
+                  <span class="card-addr">0x9C…a17F</span>
+                </div>
+              </div>
+              <div class="card-fav" title="收藏">
+                <svg viewBox="0 0 24 24" fill="var(--vo-color-secondary)" stroke="var(--vo-color-secondary)" stroke-width="1.5" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 18l-6.2 3.3L7 14.2l-5-4.9 6.9-1L12 2z"></path></svg>
+              </div>
+            </div>
+            <div class="card-balance">
+              <div>
+                <div class="card-bal-main mono">4.812<span class="unit">ETH</span></div>
+                <div class="card-bal-fiat mono">$15,238.04</div>
+              </div>
+              <span class="card-delta up">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>
+                +$312
+              </span>
+            </div>
+            <div class="card-stats">
+              <div class="cstat">
+                <div class="cstat-k">Nonce</div>
+                <div class="cstat-v mono">218</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">ERC-20</div>
+                <div class="cstat-v mono">6 资产</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">收款地址</div>
+                <div class="cstat-v mono">0x9C…a17F</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ETH card 2 -->
+          <div class="acct-card">
+            <div class="card-top">
+              <div class="card-coin" style="background:var(--vo-color-primary-container);opacity:.92;">Ξ</div>
+              <div class="card-id">
+                <div class="card-name">交易热钱包 · MetaMask</div>
+                <div class="card-tag-row">
+                  <span class="tag">EVM · Account 2</span>
+                  <span class="card-addr">0x3a…E0b1</span>
+                </div>
+              </div>
+              <div class="card-fav" title="收藏">
+                <svg viewBox="0 0 24 24" fill="none" stroke="rgba(195,192,255,0.4)" stroke-width="2" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 18l-6.2 3.3L7 14.2l-5-4.9 6.9-1L12 2z"></path></svg>
+              </div>
+            </div>
+            <div class="card-balance">
+              <div>
+                <div class="card-bal-main mono">0.740<span class="unit">ETH</span></div>
+                <div class="card-bal-fiat mono">$2,343.12</div>
+              </div>
+              <span class="card-delta flat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path></svg>
+                ±$0
+              </span>
+            </div>
+            <div class="card-stats">
+              <div class="cstat">
+                <div class="cstat-k">Nonce</div>
+                <div class="cstat-v mono">1,042</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">ERC-20</div>
+                <div class="cstat-v mono">3 资产</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">收款地址</div>
+                <div class="cstat-v mono">0x3a…E0b1</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ETH card 3 -->
+          <div class="acct-card">
+            <div class="card-top">
+              <div class="card-coin" style="background:var(--vo-color-primary-container);opacity:.82;">Ξ</div>
+              <div class="card-id">
+                <div class="card-name">空投收集 · ENS</div>
+                <div class="card-tag-row">
+                  <span class="tag">EVM · Account 5</span>
+                  <span class="card-addr">maurice.eth</span>
+                </div>
+              </div>
+              <div class="card-fav" title="收藏">
+                <svg viewBox="0 0 24 24" fill="none" stroke="rgba(195,192,255,0.4)" stroke-width="2" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 18l-6.2 3.3L7 14.2l-5-4.9 6.9-1L12 2z"></path></svg>
+              </div>
+            </div>
+            <div class="card-balance">
+              <div>
+                <div class="card-bal-main mono">0.118<span class="unit">ETH</span></div>
+                <div class="card-bal-fiat mono">$373.58</div>
+              </div>
+              <span class="card-delta up">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>
+                +$11
+              </span>
+            </div>
+            <div class="card-stats">
+              <div class="cstat">
+                <div class="cstat-k">Nonce</div>
+                <div class="cstat-v mono">47</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">ERC-20</div>
+                <div class="cstat-v mono">11 资产</div>
+              </div>
+              <div class="cstat">
+                <div class="cstat-k">收款地址</div>
+                <div class="cstat-v mono">maurice.eth</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- add-account ghost tile closes the grid -->
+          <div class="add-tile">
+            <div class="plus">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+            </div>
+            <div class="at-label">添加观察账户</div>
+            <div class="at-sub">粘贴 xpub / zpub 或扫描硬件</div>
+          </div>
+
+        </div>
+      </main>
+
+      <!-- ── canvas right edge: portfolio pulse summary ── -->
+      <aside class="pulse-rail">
+
+        <div class="pulse-card">
+          <div class="pulse-card-label">资产分布 · Allocation</div>
+          <div class="alloc-row">
+            <div class="alloc-top">
+              <span class="alloc-name"><span class="swatch" style="background:var(--vo-color-secondary-container);"></span>Bitcoin</span>
+              <span class="alloc-pct mono">90.2%</span>
+            </div>
+            <div class="alloc-bar"><div class="alloc-fill" style="width:90.2%;background:var(--vo-color-secondary-container);"></div></div>
+          </div>
+          <div class="alloc-row" style="margin-bottom:0;">
+            <div class="alloc-top">
+              <span class="alloc-name"><span class="swatch" style="background:var(--vo-color-primary-container);"></span>Ethereum</span>
+              <span class="alloc-pct mono">9.8%</span>
+            </div>
+            <div class="alloc-bar"><div class="alloc-fill" style="width:9.8%;background:var(--vo-color-primary);"></div></div>
+          </div>
+        </div>
+
+        <div class="pulse-card">
+          <div class="sync-top">
+            <span class="pulse-card-label" style="margin-bottom:0;">链上同步</span>
+            <span class="pulse"><span class="pulse-status-dot"></span>已就绪</span>
+          </div>
+          <div class="sync-meta">5 个账户 · 仅存储 xpub/zpub<br>私钥从不离开硬件 · 6 分钟前</div>
+        </div>
+
+        <div class="pulse-card">
+          <div class="pulse-card-label">需要关注 · Attention</div>
+          <div class="attn-item">
+            <div class="attn-icon ai-warn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+            </div>
+            <div class="attn-body">
+              <div class="attn-name">收款前核对硬件</div>
+              <div class="attn-meta">主账户 · 在设备屏幕比对</div>
+            </div>
+          </div>
+          <div class="attn-item">
+            <div class="attn-icon ai-ok">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path></svg>
+            </div>
+            <div class="attn-body">
+              <div class="attn-name">2 个全新收款地址</div>
+              <div class="attn-meta">从未收款 · 保护隐私</div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- ===================== POPOVER SHEET (account detail over dimmed canvas) ===================== -->
+  <!-- Direction C signature: detail is a centered glass popover, NOT a fixed pane.
+       Rendered open here to show the full account record affordances. -->
+  <div class="scrim">
+    <div class="sheet">
+
+      <!-- sheet main: header + balance + derived addresses -->
+      <div class="sheet-main scroll">
+
+        <div class="sh-head">
+          <div class="sh-coin" style="background:var(--vo-color-secondary-container);">₿</div>
+          <div class="sh-idblock">
+            <div class="sh-title">
+              主账户 · Cold Store
+              <span class="watch-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                仅查看 · 无私钥
+              </span>
+            </div>
+            <div class="sh-sub">Bitcoin · Native SegWit (BIP84) · 来源 zpub6r…Kx9F</div>
+          </div>
+          <div class="sh-close" title="关闭">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+          </div>
+        </div>
+
+        <div class="sh-balance">
+          <div class="sh-bal-top">
+            <div>
+              <div class="sh-bal-label">账户余额</div>
+              <div class="sh-bal-coin mono">2.41873094<span class="unit">BTC</span></div>
+              <div class="sh-bal-fiat mono">≈ $162,840.18 USD · 1 ₿ = $67,322</div>
+            </div>
+            <div class="sh-bal-delta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>
+              +$4,498 · 24h
+            </div>
+          </div>
+          <div class="sh-bal-split">
+            <div>
+              <div class="split-k">已确认</div>
+              <div class="split-v mono">2.41873094 ₿</div>
+            </div>
+            <div>
+              <div class="split-k">待确认</div>
+              <div class="split-v mono">0.00000000 ₿</div>
+            </div>
+            <div>
+              <div class="split-k">UTXO 数</div>
+              <div class="split-v mono">11</div>
+            </div>
+            <div>
+              <div class="split-k">已用地址</div>
+              <div class="split-v mono">7 / 20</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-label">
+          派生地址 · Derived
+          <span class="pill-count">m/84'/0'/0' · 外部链 (receive)</span>
+        </div>
+        <div class="derived-table">
+          <div class="dt-row head">
+            <span class="dt-h">路径</span>
+            <span class="dt-h">地址</span>
+            <span class="dt-h r">余额</span>
+            <span class="dt-h r">收款</span>
+            <span class="dt-h"></span>
+          </div>
+
+          <div class="dt-row">
+            <span class="dt-path">…/0/0</span>
+            <div>
+              <div class="dt-addr">bc1q9x5k4f2v0lq3r7m8t6jc4lq</div>
+              <div class="dt-used">2026-06-14 · 入账</div>
+            </div>
+            <div>
+              <div class="dt-bal mono">1.8204 ₿</div>
+              <div class="dt-fiat mono">$122,540</div>
+            </div>
+            <span class="dt-cnt mono">4</span>
+            <div class="dt-copy" title="复制">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+            </div>
+          </div>
+
+          <div class="dt-row">
+            <span class="dt-path">…/0/1</span>
+            <div>
+              <div class="dt-addr">bc1qm7t3w8x2plq6v0nr4j9kd2s</div>
+              <div class="dt-used">2026-05-29 · 入账</div>
+            </div>
+            <div>
+              <div class="dt-bal mono">0.5983 ₿</div>
+              <div class="dt-fiat mono">$40,279</div>
+            </div>
+            <span class="dt-cnt mono">3</span>
+            <div class="dt-copy" title="复制">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+            </div>
+          </div>
+
+          <div class="dt-row">
+            <span class="dt-path">…/0/7</span>
+            <div>
+              <div class="dt-addr"><span class="fresh-dot" style="margin-right:5px;"></span>bc1q0v4r8k2m6t9x3plq7nd5jc4lq</div>
+              <div class="dt-used" style="color:var(--vo-color-tertiary);">全新 · 下一个收款地址</div>
+            </div>
+            <div>
+              <div class="dt-bal mono zero">0.0000 ₿</div>
+              <div class="dt-fiat mono">$0</div>
+            </div>
+            <span class="dt-cnt mono zero">0</span>
+            <div class="dt-copy" title="复制">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+            </div>
+          </div>
+
+          <div class="dt-row">
+            <span class="dt-path">…/0/8</span>
+            <div>
+              <div class="dt-addr">bc1q3m9k7t2v5lq8r0nx4j6pd2s</div>
+              <div class="dt-used">未使用 · 间隙缓冲</div>
+            </div>
+            <div>
+              <div class="dt-bal mono zero">0.0000 ₿</div>
+              <div class="dt-fiat mono">$0</div>
+            </div>
+            <span class="dt-cnt mono zero">0</span>
+            <div class="dt-copy" title="复制">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- sheet right rail: QR + receive + safety -->
+      <aside class="sh-rail scroll">
+        <div class="rail-title">收款 · Receive</div>
+
+        <div class="qr-wrap">
+          <!-- decorative static QR-like glyph (BIP21 placeholder), token-free dark on on-primary white -->
+          <svg viewBox="0 0 100 100" shape-rendering="crispEdges" fill="var(--vo-color-surface-container-lowest)">
+            <path d="M0 0h28v28H0zM8 8v12h12V8zM72 0h28v28H72zM80 8v12h12V8zM0 72h28v28H0zM8 80v12h12V80z"/>
+            <rect x="36" y="4" width="6" height="6"/><rect x="48" y="4" width="6" height="6"/><rect x="60" y="10" width="6" height="6"/>
+            <rect x="36" y="16" width="6" height="6"/><rect x="54" y="16" width="6" height="6"/><rect x="42" y="22" width="6" height="6"/>
+            <rect x="4" y="36" width="6" height="6"/><rect x="16" y="36" width="6" height="6"/><rect x="36" y="36" width="6" height="6"/>
+            <rect x="48" y="36" width="6" height="6"/><rect x="60" y="36" width="6" height="6"/><rect x="72" y="36" width="6" height="6"/><rect x="90" y="36" width="6" height="6"/>
+            <rect x="10" y="48" width="6" height="6"/><rect x="30" y="48" width="6" height="6"/><rect x="42" y="48" width="6" height="6"/>
+            <rect x="54" y="48" width="6" height="6"/><rect x="78" y="48" width="6" height="6"/><rect x="90" y="48" width="6" height="6"/>
+            <rect x="4" y="60" width="6" height="6"/><rect x="24" y="60" width="6" height="6"/><rect x="48" y="60" width="6" height="6"/>
+            <rect x="66" y="60" width="6" height="6"/><rect x="84" y="60" width="6" height="6"/>
+            <rect x="36" y="72" width="6" height="6"/><rect x="54" y="72" width="6" height="6"/><rect x="72" y="72" width="6" height="6"/><rect x="90" y="72" width="6" height="6"/>
+            <rect x="42" y="84" width="6" height="6"/><rect x="60" y="84" width="6" height="6"/><rect x="78" y="84" width="6" height="6"/><rect x="90" y="90" width="6" height="6"/>
+            <rect x="36" y="90" width="6" height="6"/><rect x="54" y="90" width="6" height="6"/><rect x="66" y="90" width="6" height="6"/>
+          </svg>
+        </div>
+
+        <div class="recv-addr-box">
+          <div class="recv-addr-label">
+            下一个收款地址
+            <span class="path">…/0/7</span>
+          </div>
+          <div class="recv-addr">bc1q0v4r8k2m6t9x3plq7nd5jc4lq</div>
+          <div class="recv-actions">
+            <div class="recv-btn primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+              复制
+            </div>
+            <div class="recv-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v14"></path></svg>
+              分享
+            </div>
+          </div>
+        </div>
+
+        <div class="rail-title" style="margin-top:var(--vo-space-1);">地址校验 · Verify</div>
+
+        <div class="safety-chip">
+          <div class="safety-icon si-ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          </div>
+          <div class="safety-body">
+            <div class="safety-name">地址匹配 xpub</div>
+            <div class="safety-meta">本地派生 · 离线验证</div>
+          </div>
+        </div>
+
+        <div class="safety-chip">
+          <div class="safety-icon si-ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path></svg>
+          </div>
+          <div class="safety-body">
+            <div class="safety-name">全新地址</div>
+            <div class="safety-meta">从未收款 · 保护隐私</div>
+          </div>
+        </div>
+
+        <div class="safety-chip">
+          <div class="safety-icon si-warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+          </div>
+          <div class="safety-body">
+            <div class="safety-name">收款前核对硬件</div>
+            <div class="safety-meta">在设备屏幕上比对地址</div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

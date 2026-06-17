@@ -30,7 +30,7 @@ final class WalletFlowUITests: XCTestCase {
         sleep(2)
 
         // ─── Round 1: reach the Wallet tab, capture the empty state ───
-        let walletTab = app.tabBars.buttons["Wallet"]
+        let walletTab = tabButton("Wallet")
         XCTAssertTrue(walletTab.waitForExistence(timeout: 8), "Wallet tab should be present in the unlocked vault")
         walletTab.tap()
         sleep(1)
@@ -119,5 +119,17 @@ final class WalletFlowUITests: XCTestCase {
         let path = "\(screenshotDir)/\(name).png"
         try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: path))
         print("Screenshot: \(name).png")
+    }
+
+    /// Form-factor-agnostic tab button. iPhone renders the TabView as a bottom
+    /// XCUIElementTypeTabBar; iPad (iOS 18+) renders it as a top tab pill whose
+    /// buttons live directly under the app, not inside a tabBar. Prefer the bar,
+    /// fall back to the top-pill button so the same flow test passes on both.
+    private func tabButton(_ name: String) -> XCUIElement {
+        let inBar = app.tabBars.buttons[name]
+        if inBar.waitForExistence(timeout: 4) { return inBar }
+        // iPad iOS 18+ uses a floating tab bar (_UIFloatingTabBarItemCell/View);
+        // the label matches both the cell and its view, so disambiguate with firstMatch.
+        return app.buttons[name].firstMatch
     }
 }

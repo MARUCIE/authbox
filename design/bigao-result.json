@@ -1,0 +1,63 @@
+{
+  "$comment": "比稿 (bake-off) verdict for the Auth Box iPad-adaptive frontend. Gate-shaped for scripts/stitch-pipeline-gate.py: result.directions[].id matches the on-disk draft stems (a-threecol/b-inspector/c-canvas), result.verdict.winnerId names the winning direction. Real HTML drafts on disk under ipad-bakeoff/<screen>/<direction>.html.",
+  "project": "auth-box",
+  "feature": "iOS/iPad frontend completion (WP-021)",
+  "date": "2026-06-17",
+  "tokensSource": "design/tokens/vault-onyx.css (64 --vo-* vars) + vault-onyx.tokens.json",
+  "method": "Real divergent HTML drafts authored per direction, judged on disk. 3 directions per screen. Two screens (Vault flagship, Wallet) completed a full 3-way bake-off; the remaining secondary screens (Settings, Onboarding, Generator) had their drafts rate-limited (server capacity throttle, not usage) — per the 2-strike pivot rule the decided design language is APPLIED to them rather than re-bidding against the throttle. Honest scope: 2 screens bake-off'd, 3 screens inherit the decided language.",
+  "result": {
+    "directions": [
+      { "id": "a-threecol", "name": "A — Three-column split (NavigationSplitView sidebar+content+detail)" },
+      { "id": "b-inspector", "name": "B — Two-column + collapsible inspector + slim icon rail" },
+      { "id": "c-canvas", "name": "C — Canvas dashboard (content-first, nav-as-overlay, popover detail)" }
+    ],
+    "verdict": {
+      "winnerId": "b-inspector",
+      "winner": "b-inspector",
+      "summary": "B-idiom wins as the app-wide iPad design language: a persistent slim icon RAIL for top-level modes (Vault/Generator/Wallet/Settings) + a NavigationSplitView master/detail core whose ONLY moving part is a collapsible right-hand .inspector. Chosen over A (clean but rigid 3-column with a non-collapsing detail sub-rail) and C (canvas/popover — too transient for a security tool where the credential record should stay pinned).",
+      "winningDimensions": [
+        "iPad-native adaptivity: rail + master/detail + collapsible inspector is the true Mail/Notes/Files idiom; the inspector is a genuinely iPad-only affordance with no iPhone equivalent",
+        "VAULT ONYX token fidelity: B drafts had zero off-palette color (only raw hex was inside SVG strokes where var() cannot reach); A leaked real-brand favicon tints off-palette",
+        "Information density without clutter: grouped master sections + a dedicated inspector rail for security score/health/metadata/actions",
+        "Touch + pointer/keyboard readiness: B drafts used real <button>/<input>, searchable, role=tablist, aria; A drafts were static divs",
+        "Translatability: maps to NavigationSplitView + .inspector(isPresented:); the one cost (icon rail is a TabView, not a split sidebar) is offset by grafting A's clean auto-collapse"
+      ],
+      "grafts": [
+        "From A: let credential CATEGORIES be a real NavigationSplitView sidebar column (not buried in the icon rail) so compact collapse is near-zero custom code — hybrid keeps the rail for app modes + a collapsible category sidebar.",
+        "From A: adopt A's larger conic health-ring (score + entropy bits + 'HIBP checked N min ago' + password-age) as the inspector hero for stronger at-a-glance security signal."
+      ]
+    }
+  },
+  "perScreen": [
+    {
+      "screen": "Vault",
+      "winner": "b-inspector",
+      "drafts": ["ipad-bakeoff/vault/a-threecol.html", "ipad-bakeoff/vault/b-inspector.html", "ipad-bakeoff/vault/c-canvas.html"],
+      "judge": "workflow wf_e7d7739b-70f (full 5-dimension verdict). Winner B. SwiftUI mapping captured in IPAD_DESIGN_LANGUAGE.md."
+    },
+    {
+      "screen": "Wallet",
+      "winner": "b-inspector",
+      "drafts": ["ipad-bakeoff/wallet/a-threecol.html", "ipad-bakeoff/wallet/b-inspector.html", "ipad-bakeoff/wallet/c-canvas.html"],
+      "judge": "main-loop judgment (workflow judge:wallet was rate-limited). Same 5 dimensions as Vault: B's collapsible inspector keeps balance/receive-address pinned while metadata/zpub/posture/danger-zone collapse away — correct focus model for a watch-only wallet. A keeps a permanent receive rail (good, grafted into B's inspector hero); C's popover detail is wrong for a value-bearing surface that should stay pinned. Winner B for app-wide consistency."
+    },
+    {
+      "screen": "Settings",
+      "winner": "b-inspector (applied, not bake-off'd)",
+      "drafts": [],
+      "note": "Drafts rate-limited. Decided B-idiom applied: NavigationSplitView categories sidebar (Account/Security/2FA/Sync/Pro/About) + detail pane; no inspector needed (settings detail is self-contained)."
+    },
+    {
+      "screen": "Onboarding",
+      "winner": "b-inspector (applied, not bake-off'd)",
+      "drafts": [],
+      "note": "Drafts rate-limited. Onboarding is full-screen modal (no master/detail): centered create/restore canvas with generous iPad proportions; not a split surface."
+    },
+    {
+      "screen": "Generator",
+      "winner": "b-inspector (applied, not bake-off'd)",
+      "drafts": [],
+      "note": "Drafts rate-limited. Decided language applied: controls master + live-preview detail, or a single centered card on compact."
+    }
+  ]
+}

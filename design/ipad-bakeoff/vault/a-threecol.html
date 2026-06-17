@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  Auth Box — Vault screen — DIRECTION A: Three-column split (NavigationSplitView)
+  iPad LANDSCAPE bake-off draft · 1194×834 (logical pt) · Vault Onyx dark theme
+  ============================================================================
+
+  WHAT THIS DEMONSTRATES
+  The canonical iPad pattern: a 3-column NavigationSplitView mapping directly to
+  SwiftUI's (sidebar | content | detail) regions —
+    • Column 1 SIDEBAR  : vault categories + smart filters + storage footer
+    • Column 2 CONTENT  : the credential LIST for the selected category (search + add)
+    • Column 3 DETAIL   : the selected credential's full record (fields, 2FA, safety)
+  Today's app is an iPhone TabView + List + NavigationStack stretched edge-to-edge;
+  this draft is the dense, Mail/Notes-like 3-pane surface iPad should actually use.
+
+  ── HOW THIS COLLAPSES TO iPhone (compact width class) ──────────────────────
+  On iPhone (.horizontalSizeClass == .compact) NavigationSplitView automatically
+  collapses to a SINGLE-COLUMN NavigationStack push flow:
+    1. Sidebar categories render as the ROOT List screen.
+    2. Tapping a category PUSHES the credential list (column 2) onto the stack.
+    3. Tapping a credential PUSHES the detail record (column 3).
+    4. Back button (‹) pops one level at a time: detail → list → categories.
+    5. The storage footer + smart filters move under the root list; the detail
+       safety rail (column 3 right strip) reflows below the field stack.
+  i.e. the three side-by-side panes become three stacked navigation depths —
+  zero feature loss, just one-pane-at-a-time. The persistent ⌘-style search in
+  column 2 becomes a pull-to-reveal .searchable on the pushed list.
+  ============================================================================
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1194, initial-scale=1">
+<title>Auth Box · Vault · 三栏分屏 (Direction A)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   :root — inlined verbatim from design/tokens/vault-onyx.css
+   ONLY --vo-* custom properties may be used below this block.
+   ============================================================ */
+:root {
+  color-scheme: dark;
+
+  /* ---- Color: Primary Palette ---- */
+  --vo-color-primary: #c3c0ff;
+  --vo-color-primary-container: #3730a3;
+  --vo-color-secondary: #ffb77d;
+  --vo-color-secondary-container: #d97707;
+  --vo-color-tertiary: #68dba9;
+  --vo-color-tertiary-container: #004d34;
+  --vo-color-error: #ffb4ab;
+
+  /* ---- Color: Surface Hierarchy (Dark Mode) ---- */
+  --vo-color-surface: #0b1326;
+  --vo-color-surface-container-lowest: #060e20;
+  --vo-color-surface-container-low: #131b2e;
+  --vo-color-surface-container: #171f33;
+  --vo-color-surface-container-high: #222a3d;
+  --vo-color-surface-container-highest: #2d3449;
+  --vo-color-surface-bright: #31394d;
+
+  /* ---- Color: Outline / Ghost Border ---- */
+  --vo-color-outline-variant: #464553;
+
+  /* ---- Color: Override Colors ---- */
+  --vo-color-override-primary: #3730a3;
+  --vo-color-override-secondary: #d97706;
+  --vo-color-override-tertiary: #059669;
+  --vo-color-override-neutral: #0f172a;
+  --vo-color-neutral: #0f172a;
+
+  /* ---- Color: Material-3 defaults ---- */
+  --vo-color-on-primary: #ffffff;
+  --vo-color-primary-fixed: #c3c0ff;
+
+  /* ---- Typography: Families ---- */
+  --vo-font-display: "Space Grotesk", sans-serif;
+  --vo-font-body: "Inter", "IBM Plex Sans", sans-serif;
+  --vo-font-label: "Inter", sans-serif;
+
+  /* ---- Typography: Sizes ---- */
+  --vo-text-display: 3.5rem;
+  --vo-text-headline: 2rem;
+  --vo-text-title: 1.25rem;
+  --vo-text-body: 0.875rem;
+  --vo-text-label: 0.75rem;
+
+  /* ---- Typography: Weights ---- */
+  --vo-weight-display: 700;
+  --vo-weight-headline: 700;
+  --vo-weight-title: 500;
+  --vo-weight-body: 400;
+  --vo-weight-label: 500;
+
+  /* ---- Typography: Tracking ---- */
+  --vo-tracking-display: -0.02em;
+  --vo-tracking-headline: -0.02em;
+  --vo-tracking-title: -0.01em;
+  --vo-tracking-body: normal;
+  --vo-tracking-label: 0.02em;
+
+  /* ---- Spacing Scale ---- */
+  --vo-space-1: 4px;
+  --vo-space-2: 8px;
+  --vo-space-3: 12px;
+  --vo-space-4: 16px;
+  --vo-space-6: 24px;
+  --vo-space-8: 32px;
+  --vo-space-12: 48px;
+  --vo-space-16: 64px;
+  --vo-space-20: 80px;
+  --vo-space-24: 96px;
+
+  /* ---- Roundness ---- */
+  --vo-radius-xs: 2px;
+  --vo-radius-sm: 4px;
+  --vo-radius-md: 6px;
+  --vo-radius-lg: 8px;
+  --vo-radius-xl: 12px;
+  --vo-radius-full: 9999px;
+
+  /* ---- Elevation / Ambient Shadows ---- */
+  --vo-elev-ambient-low: 0 0 40px 0 rgba(55, 48, 163, 0.04);
+  --vo-elev-ambient-high: 0 0 80px 0 rgba(55, 48, 163, 0.08);
+
+  /* ---- Gradient ---- */
+  --vo-gradient-hero-cta: linear-gradient(135deg, #c3c0ff 0%, #3730a3 100%);
+
+  /* ---- Opacity ---- */
+  --vo-opacity-ghost-border: 0.2;
+  --vo-opacity-modal-glass: 0.6;
+  --vo-opacity-input-focus: 0.4;
+
+  /* ---- Effect ---- */
+  --vo-blur-modal-backdrop: 20px;
+}
+
+/* ============================================================
+   Reset + frame
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--vo-color-surface-container-lowest);
+  font-family: var(--vo-font-body);
+  color: var(--vo-color-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--vo-space-6);
+}
+
+/* The device frame — iPad landscape 1194×834 */
+.ipad {
+  width: 1194px;
+  height: 834px;
+  background: var(--vo-color-surface);
+  border-radius: var(--vo-radius-xl);
+  overflow: hidden;
+  display: grid;
+  /* sidebar | content list | detail — the 3 NavigationSplitView columns */
+  grid-template-columns: 248px 360px 1fr;
+  box-shadow: var(--vo-elev-ambient-high);
+  position: relative;
+}
+
+::selection { background: rgba(195, 192, 255, 0.22); }
+
+/* shared scrollbar tone */
+.scroll { overflow-y: auto; }
+.scroll::-webkit-scrollbar { width: 8px; }
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-full);
+}
+.scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ============================================================
+   COLUMN 1 — SIDEBAR (categories + smart filters)
+   ============================================================ */
+.sidebar {
+  background: var(--vo-color-surface-container-low);
+  display: flex;
+  flex-direction: column;
+  padding: var(--vo-space-6) var(--vo-space-3) 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--vo-space-3);
+  padding: 0 var(--vo-space-3) var(--vo-space-6);
+}
+.brand-mark {
+  width: 34px; height: 34px;
+  border-radius: var(--vo-radius-lg);
+  background: var(--vo-gradient-hero-cta);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.brand-mark svg { width: 18px; height: 18px; }
+.brand-name {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.05rem;
+  letter-spacing: var(--vo-tracking-headline);
+  color: var(--vo-color-primary);
+}
+.brand-sub {
+  font-size: 0.62rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-secondary);
+  font-weight: var(--vo-weight-label);
+}
+
+.nav-group-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.42);
+  padding: var(--vo-space-4) var(--vo-space-3) var(--vo-space-2);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--vo-space-3);
+  padding: var(--vo-space-2) var(--vo-space-3);
+  border-radius: var(--vo-radius-md);
+  cursor: default;
+  margin-bottom: 2px;
+  font-size: var(--vo-text-body);
+  color: rgba(195, 192, 255, 0.78);
+  font-weight: var(--vo-weight-body);
+}
+.nav-item .ico {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  display: grid; place-items: center;
+}
+.nav-item .ico svg { width: 17px; height: 17px; }
+.nav-item .count {
+  margin-left: auto;
+  font-size: var(--vo-text-label);
+  color: rgba(195, 192, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+.nav-item.active {
+  background: var(--vo-color-surface-container-highest);
+  color: var(--vo-color-primary);
+  font-weight: var(--vo-weight-title);
+}
+.nav-item.active .ico { opacity: 1; color: var(--vo-color-secondary); }
+.nav-item.active .count { color: var(--vo-color-primary); }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: var(--vo-space-4) var(--vo-space-3) var(--vo-space-6);
+}
+.storage-card {
+  background: var(--vo-color-surface-container);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-4);
+}
+.storage-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--vo-space-3);
+}
+.storage-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.55);
+}
+.pulse {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.66rem;
+  color: var(--vo-color-tertiary);
+}
+.pulse-dot {
+  width: 7px; height: 7px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-tertiary);
+  box-shadow: 0 0 0 4px rgba(104, 219, 169, 0.18);
+}
+.bar {
+  height: 6px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-surface-container-highest);
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  width: 38%;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-gradient-hero-cta);
+}
+.storage-meta {
+  margin-top: var(--vo-space-2);
+  font-size: 0.66rem;
+  color: rgba(195, 192, 255, 0.5);
+}
+
+/* ============================================================
+   COLUMN 2 — CONTENT LIST (credential rows for category)
+   ============================================================ */
+.list-col {
+  background: var(--vo-color-surface-container);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.list-head {
+  padding: var(--vo-space-6) var(--vo-space-4) var(--vo-space-3);
+}
+.list-title-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--vo-space-4);
+}
+.list-title {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.5rem;
+  letter-spacing: var(--vo-tracking-headline);
+  color: var(--vo-color-primary);
+}
+.list-title .sub {
+  display: block;
+  font-family: var(--vo-font-body);
+  font-weight: var(--vo-weight-body);
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.45);
+  margin-top: 4px;
+}
+.add-btn {
+  width: 36px; height: 36px;
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-gradient-hero-cta);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.add-btn svg { width: 18px; height: 18px; }
+
+/* search field */
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--vo-space-2);
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-md);
+  padding: var(--vo-space-2) var(--vo-space-3);
+}
+.search svg { width: 16px; height: 16px; opacity: 0.55; flex-shrink: 0; }
+.search .ph {
+  font-size: var(--vo-text-body);
+  color: rgba(195, 192, 255, 0.5);
+}
+.search .kbd {
+  margin-left: auto;
+  font-size: 0.66rem;
+  color: rgba(195, 192, 255, 0.4);
+  background: var(--vo-color-surface-container-high);
+  padding: 2px 6px;
+  border-radius: var(--vo-radius-sm);
+  font-family: var(--vo-font-display);
+}
+
+.sort-row {
+  display: flex;
+  gap: var(--vo-space-2);
+  padding: var(--vo-space-3) var(--vo-space-4) var(--vo-space-2);
+}
+.chip {
+  font-size: 0.7rem;
+  font-weight: var(--vo-weight-label);
+  letter-spacing: var(--vo-tracking-label);
+  padding: 5px var(--vo-space-3);
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-surface-container-high);
+  color: rgba(195, 192, 255, 0.6);
+}
+.chip.on {
+  background: rgba(195, 192, 255, 0.14);
+  color: var(--vo-color-primary);
+}
+
+.cred-list {
+  flex: 1;
+  min-height: 0;
+  padding: var(--vo-space-2) var(--vo-space-3) var(--vo-space-6);
+}
+.cred {
+  display: flex;
+  align-items: center;
+  gap: var(--vo-space-3);
+  padding: var(--vo-space-3);
+  border-radius: var(--vo-radius-lg);
+  margin-bottom: var(--vo-space-1);
+}
+.cred.sel {
+  background: var(--vo-color-surface-container-highest);
+}
+.favicon {
+  width: 38px; height: 38px;
+  border-radius: var(--vo-radius-md);
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 0.95rem;
+  color: var(--vo-color-on-primary);
+}
+.cred-body { min-width: 0; flex: 1; }
+.cred-name {
+  font-size: var(--vo-text-body);
+  font-weight: var(--vo-weight-title);
+  color: var(--vo-color-primary);
+  letter-spacing: var(--vo-tracking-title);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cred-user {
+  font-size: 0.74rem;
+  color: rgba(195, 192, 255, 0.5);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 1px;
+}
+.cred-aside {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+  flex-shrink: 0;
+}
+.mini-2fa {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 0.78rem;
+  color: var(--vo-color-secondary);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.dot-tag {
+  width: 7px; height: 7px; border-radius: var(--vo-radius-full);
+}
+.dot-ok   { background: var(--vo-color-tertiary); }
+.dot-warn { background: var(--vo-color-secondary); }
+.dot-err  { background: var(--vo-color-error); }
+
+/* ============================================================
+   COLUMN 3 — DETAIL (full credential record)
+   ============================================================ */
+.detail {
+  background: var(--vo-color-surface-container-low);
+  display: grid;
+  grid-template-columns: 1fr 232px;
+  min-height: 0;
+}
+.detail-main {
+  min-height: 0;
+  padding: var(--vo-space-8) var(--vo-space-8) var(--vo-space-8);
+}
+/* detail header */
+.d-head {
+  display: flex; align-items: center; gap: var(--vo-space-4);
+  margin-bottom: var(--vo-space-8);
+}
+.d-favicon {
+  width: 60px; height: 60px;
+  border-radius: var(--vo-radius-lg);
+  display: grid; place-items: center;
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.6rem;
+  color: var(--vo-color-on-primary);
+  flex-shrink: 0;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.d-titleblock { min-width: 0; flex: 1; }
+.d-title {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: var(--vo-text-headline);
+  letter-spacing: var(--vo-tracking-headline);
+  color: var(--vo-color-primary);
+}
+.d-url {
+  font-size: var(--vo-text-body);
+  color: var(--vo-color-primary-fixed);
+  opacity: 0.7;
+  margin-top: 2px;
+}
+.d-actions { display: flex; gap: var(--vo-space-2); }
+.icon-btn {
+  width: 38px; height: 38px;
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-color-surface-container-high);
+  display: grid; place-items: center;
+}
+.icon-btn svg { width: 18px; height: 18px; opacity: 0.8; }
+
+/* field group */
+.field-group { margin-bottom: var(--vo-space-6); }
+.field-group-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.42);
+  margin-bottom: var(--vo-space-3);
+  padding-left: 2px;
+}
+.field {
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-3) var(--vo-space-4);
+  display: flex; align-items: center; gap: var(--vo-space-4);
+  margin-bottom: var(--vo-space-2);
+}
+.field-label {
+  font-size: 0.7rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.5);
+  width: 78px;
+  flex-shrink: 0;
+}
+.field-value {
+  font-size: var(--vo-text-body);
+  color: var(--vo-color-primary);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.field-value.mask {
+  font-family: var(--vo-font-display);
+  letter-spacing: 0.18em;
+}
+.field-tools { display: flex; gap: 6px; flex-shrink: 0; }
+.f-btn {
+  width: 30px; height: 30px;
+  border-radius: var(--vo-radius-sm);
+  background: var(--vo-color-surface-container-high);
+  display: grid; place-items: center;
+}
+.f-btn svg { width: 15px; height: 15px; opacity: 0.75; }
+
+/* 2FA / TOTP field */
+.totp-field {
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-4);
+  display: flex; align-items: center; gap: var(--vo-space-4);
+}
+.totp-code {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.7rem;
+  letter-spacing: 0.12em;
+  color: var(--vo-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.totp-meta { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.totp-label {
+  font-size: 0.7rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.5);
+}
+.totp-timer {
+  width: 28px; height: 28px;
+  border-radius: var(--vo-radius-full);
+  flex-shrink: 0;
+  background:
+    conic-gradient(var(--vo-color-secondary) 0% 62%,
+                   var(--vo-color-surface-container-high) 62% 100%);
+  display: grid; place-items: center;
+}
+.totp-timer span {
+  width: 20px; height: 20px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-surface-container-highest);
+  display: grid; place-items: center;
+  font-size: 0.62rem;
+  color: var(--vo-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* toggle rows */
+.toggle-row {
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-3) var(--vo-space-4);
+  display: flex; align-items: center; gap: var(--vo-space-3);
+  margin-bottom: var(--vo-space-2);
+}
+.toggle-text { flex: 1; min-width: 0; }
+.toggle-title {
+  font-size: var(--vo-text-body);
+  color: var(--vo-color-primary);
+  font-weight: var(--vo-weight-title);
+}
+.toggle-desc {
+  font-size: 0.72rem;
+  color: rgba(195, 192, 255, 0.5);
+  margin-top: 1px;
+}
+.switch {
+  width: 42px; height: 25px;
+  border-radius: var(--vo-radius-full);
+  flex-shrink: 0;
+  position: relative;
+  background: var(--vo-color-surface-container-high);
+}
+.switch.on { background: var(--vo-color-override-tertiary); }
+.switch::after {
+  content: "";
+  position: absolute; top: 3px; left: 3px;
+  width: 19px; height: 19px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-on-primary);
+  transition: left .2s;
+}
+.switch.on::after { left: 20px; }
+
+/* ── detail safety rail (column 3 right strip) ── */
+.safety-rail {
+  background: var(--vo-color-surface-container);
+  padding: var(--vo-space-8) var(--vo-space-4);
+  display: flex; flex-direction: column; gap: var(--vo-space-4);
+}
+.health-ring {
+  align-self: center;
+  width: 132px; height: 132px;
+  border-radius: var(--vo-radius-full);
+  background:
+    conic-gradient(var(--vo-color-tertiary) 0% 92%,
+                   var(--vo-color-surface-container-highest) 92% 100%);
+  display: grid; place-items: center;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.health-ring-inner {
+  width: 104px; height: 104px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-surface-container);
+  display: grid; place-items: center;
+  text-align: center;
+}
+.health-score {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-display);
+  font-size: 2.1rem;
+  color: var(--vo-color-tertiary);
+  line-height: 1;
+}
+.health-label {
+  font-size: 0.62rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.55);
+  margin-top: 3px;
+}
+.rail-title {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.42);
+  margin-top: var(--vo-space-2);
+}
+.safety-chip {
+  display: flex; align-items: center; gap: var(--vo-space-3);
+  background: var(--vo-color-surface-container-high);
+  border-radius: var(--vo-radius-md);
+  padding: var(--vo-space-3);
+}
+.safety-icon {
+  width: 28px; height: 28px;
+  border-radius: var(--vo-radius-sm);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.safety-icon svg { width: 15px; height: 15px; }
+.si-ok   { background: rgba(104, 219, 169, 0.14); color: var(--vo-color-tertiary); }
+.si-warn { background: rgba(255, 183, 125, 0.14); color: var(--vo-color-secondary); }
+.safety-body { flex: 1; min-width: 0; }
+.safety-name {
+  font-size: 0.76rem;
+  color: var(--vo-color-primary);
+  font-weight: var(--vo-weight-title);
+}
+.safety-meta {
+  font-size: 0.68rem;
+  color: rgba(195, 192, 255, 0.5);
+  margin-top: 1px;
+}
+.rail-foot {
+  margin-top: auto;
+  font-size: 0.66rem;
+  color: rgba(195, 192, 255, 0.4);
+  text-align: center;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+<div class="ipad">
+
+  <!-- ===================== COLUMN 1 · SIDEBAR ===================== -->
+  <aside class="sidebar scroll">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-on-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Auth Box</div>
+        <div class="brand-sub">Zero-Knowledge Vault</div>
+      </div>
+    </div>
+
+    <div class="nav-group-label">资料库 · Library</div>
+    <div class="nav-item active">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+      所有登录 <span class="count">148</span>
+    </div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
+      2FA 验证器 <span class="count">31</span>
+    </div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></svg></span>
+      支付卡 <span class="count">6</span>
+    </div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg></span>
+      安全笔记 <span class="count">12</span>
+    </div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.2-8.6"></path><path d="M12 7v5l3 2"></path></svg></span>
+      自托管钱包 <span class="count">3</span>
+    </div>
+
+    <div class="nav-group-label">智能筛选 · Smart</div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg></span>
+      弱密码 <span class="count">9</span>
+    </div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path></svg></span>
+      重复使用 <span class="count">4</span>
+    </div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4M12 17h.01"></path></svg></span>
+      数据泄露 <span class="count">2</span>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="storage-card">
+        <div class="storage-top">
+          <span class="storage-label">本地加密库</span>
+          <span class="pulse"><span class="pulse-dot"></span>已同步</span>
+        </div>
+        <div class="bar"><div class="bar-fill"></div></div>
+        <div class="storage-meta">148 条凭证 · 端到端加密 · 0.9 / 2.4 MB</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== COLUMN 2 · CONTENT LIST ===================== -->
+  <section class="list-col">
+    <div class="list-head">
+      <div class="list-title-row">
+        <div class="list-title">所有登录<span class="sub">148 项 · 按最近使用</span></div>
+        <div class="add-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-on-primary)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+        </div>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <span class="ph">搜索凭证、网址或标签…</span>
+        <span class="kbd">⌘ F</span>
+      </div>
+    </div>
+
+    <div class="sort-row">
+      <span class="chip on">全部</span>
+      <span class="chip">收藏</span>
+      <span class="chip">含 2FA</span>
+      <span class="chip">需关注</span>
+    </div>
+
+    <div class="cred-list scroll">
+
+      <!-- selected row → drives column 3 -->
+      <div class="cred sel">
+        <div class="favicon" style="background:var(--vo-color-primary-container);">St</div>
+        <div class="cred-body">
+          <div class="cred-name">Stripe Dashboard</div>
+          <div class="cred-user">maurice@zhuge.cloud</div>
+        </div>
+        <div class="cred-aside">
+          <div class="mini-2fa">418 207</div>
+          <span class="dot-tag dot-ok"></span>
+        </div>
+      </div>
+
+      <div class="cred">
+        <div class="favicon" style="background:#1f6feb;">Gi</div>
+        <div class="cred-body">
+          <div class="cred-name">GitHub</div>
+          <div class="cred-user">maurice-wen</div>
+        </div>
+        <div class="cred-aside">
+          <div class="mini-2fa">902 144</div>
+          <span class="dot-tag dot-ok"></span>
+        </div>
+      </div>
+
+      <div class="cred">
+        <div class="favicon" style="background:var(--vo-color-secondary-container);">Cl</div>
+        <div class="cred-body">
+          <div class="cred-name">Cloudflare</div>
+          <div class="cred-user">ops@zhuge.cloud</div>
+        </div>
+        <div class="cred-aside">
+          <span class="dot-tag dot-warn"></span>
+        </div>
+      </div>
+
+      <div class="cred">
+        <div class="favicon" style="background:#0a66c2;">Li</div>
+        <div class="cred-body">
+          <div class="cred-name">LinkedIn</div>
+          <div class="cred-user">maurice_wen</div>
+        </div>
+        <div class="cred-aside">
+          <div class="mini-2fa">335 690</div>
+          <span class="dot-tag dot-ok"></span>
+        </div>
+      </div>
+
+      <div class="cred">
+        <div class="favicon" style="background:#d93025;">Go</div>
+        <div class="cred-body">
+          <div class="cred-name">Google Workspace</div>
+          <div class="cred-user">maurice@zhuge.cloud</div>
+        </div>
+        <div class="cred-aside">
+          <div class="mini-2fa">671 028</div>
+          <span class="dot-tag dot-ok"></span>
+        </div>
+      </div>
+
+      <div class="cred">
+        <div class="favicon" style="background:#ff9900;">AW</div>
+        <div class="cred-body">
+          <div class="cred-name">AWS Console — Root</div>
+          <div class="cred-user">root · acct 4471-0938</div>
+        </div>
+        <div class="cred-aside">
+          <span class="dot-tag dot-err"></span>
+        </div>
+      </div>
+
+      <div class="cred">
+        <div class="favicon" style="background:#5865f2;">Di</div>
+        <div class="cred-body">
+          <div class="cred-name">Discord</div>
+          <div class="cred-user">maurice#4417</div>
+        </div>
+        <div class="cred-aside">
+          <span class="dot-tag dot-ok"></span>
+        </div>
+      </div>
+
+      <div class="cred">
+        <div class="favicon" style="background:var(--vo-color-override-neutral);">Pr</div>
+        <div class="cred-body">
+          <div class="cred-name">Proton Mail</div>
+          <div class="cred-user">maurice_wen@proton.me</div>
+        </div>
+        <div class="cred-aside">
+          <div class="mini-2fa">540 173</div>
+          <span class="dot-tag dot-ok"></span>
+        </div>
+      </div>
+
+      <div class="cred">
+        <div class="favicon" style="background:#635bff;">Fi</div>
+        <div class="cred-body">
+          <div class="cred-name">Figma</div>
+          <div class="cred-user">maurice@zhuge.cloud</div>
+        </div>
+        <div class="cred-aside">
+          <span class="dot-tag dot-ok"></span>
+        </div>
+      </div>
+
+      <div class="cred">
+        <div class="favicon" style="background:#0d1117;">Ve</div>
+        <div class="cred-body">
+          <div class="cred-name">Vercel</div>
+          <div class="cred-user">maurice-wen</div>
+        </div>
+        <div class="cred-aside">
+          <div class="mini-2fa">128 845</div>
+          <span class="dot-tag dot-ok"></span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== COLUMN 3 · DETAIL ===================== -->
+  <section class="detail">
+    <div class="detail-main scroll">
+
+      <div class="d-head">
+        <div class="d-favicon" style="background:var(--vo-color-primary-container);">St</div>
+        <div class="d-titleblock">
+          <div class="d-title">Stripe Dashboard</div>
+          <div class="d-url">dashboard.stripe.com</div>
+        </div>
+        <div class="d-actions">
+          <div class="icon-btn" title="收藏">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 18l-6.2 3.3L7 14.2l-5-4.9 6.9-1L12 2z"></path></svg>
+          </div>
+          <div class="icon-btn" title="编辑">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+          </div>
+          <div class="icon-btn" title="更多">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="19" cy="12" r="1.4"></circle></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- login credentials -->
+      <div class="field-group">
+        <div class="field-group-label">登录凭证 · Login</div>
+        <div class="field">
+          <span class="field-label">用户名</span>
+          <span class="field-value">maurice@zhuge.cloud</span>
+          <div class="field-tools">
+            <div class="f-btn" title="复制">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">密码</span>
+          <span class="field-value mask">•••••••••••••••••</span>
+          <div class="field-tools">
+            <div class="f-btn" title="显示">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </div>
+            <div class="f-btn" title="复制">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2FA / TOTP -->
+      <div class="field-group">
+        <div class="field-group-label">两步验证 · 2FA</div>
+        <div class="totp-field">
+          <div class="totp-code">418 207</div>
+          <div class="totp-meta">
+            <span class="totp-label">一次性验证码</span>
+            <span class="totp-label" style="color:var(--vo-color-tertiary);text-transform:none;letter-spacing:normal;">基于时间 · TOTP SHA-1</span>
+          </div>
+          <div class="totp-timer"><span>17</span></div>
+        </div>
+      </div>
+
+      <!-- security toggles -->
+      <div class="field-group">
+        <div class="field-group-label">安全选项 · Security</div>
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <div class="toggle-title">自动填充</div>
+            <div class="toggle-desc">在 dashboard.stripe.com 自动填入凭证</div>
+          </div>
+          <div class="switch on"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <div class="toggle-title">访问需重新验证</div>
+            <div class="toggle-desc">查看密码前要求 Face ID</div>
+          </div>
+          <div class="switch on"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <div class="toggle-title">从同步中排除</div>
+            <div class="toggle-desc">仅保存在本设备的加密库</div>
+          </div>
+          <div class="switch"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- detail right rail: safety / health -->
+    <aside class="safety-rail scroll">
+      <div class="health-ring">
+        <div class="health-ring-inner">
+          <div>
+            <div class="health-score">92</div>
+            <div class="health-label">安全评分</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rail-title">安全检测 · Safety</div>
+
+      <div class="safety-chip">
+        <div class="safety-icon si-ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        </div>
+        <div class="safety-body">
+          <div class="safety-name">强密码</div>
+          <div class="safety-meta">熵值 128 位 · 唯一</div>
+        </div>
+      </div>
+
+      <div class="safety-chip">
+        <div class="safety-icon si-ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        </div>
+        <div class="safety-body">
+          <div class="safety-name">未现于泄露库</div>
+          <div class="safety-meta">HIBP 检查 · 3 分钟前</div>
+        </div>
+      </div>
+
+      <div class="safety-chip">
+        <div class="safety-icon si-warn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+        </div>
+        <div class="safety-body">
+          <div class="safety-name">密码已 14 个月未换</div>
+          <div class="safety-meta">建议轮换</div>
+        </div>
+      </div>
+
+      <div class="rail-foot">
+        最近使用 · 今天 09:41<br>
+        创建于 2024-04-18
+      </div>
+    </aside>
+  </section>
+
+</div>
+</body>
+</html>

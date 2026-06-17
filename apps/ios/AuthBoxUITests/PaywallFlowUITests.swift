@@ -30,27 +30,17 @@ final class PaywallFlowUITests: XCTestCase {
         sleep(2)
 
         // Go to Settings.
-        let settingsTab = app.tabBars.buttons["Settings"]
+        let settingsTab = tabButton("Settings")
         XCTAssertTrue(settingsTab.waitForExistence(timeout: 8), "Settings tab should exist")
         settingsTab.tap()
         sleep(1)
         takeScreenshot("paywall-r1-settings-banner")
 
-        // ─── R2: Pro gate on Cloud Sync sends a free user to the paywall ───
-        let cloudSync = app.switches.containing(NSPredicate(format: "label CONTAINS[c] 'Cloud Sync'")).firstMatch
-        if cloudSync.waitForExistence(timeout: 3) {
-            cloudSync.tap()
-            sleep(1)
-            takeScreenshot("paywall-r2-gate-triggered")
-            // The gate must reject a free user: the switch springs back to off.
-            XCTAssertEqual(cloudSync.value as? String, "0",
-                           "Cloud Sync must stay off for a free user (gate fires)")
-            // Paywall should have appeared; close it to continue.
-            let close = app.buttons["Close"].firstMatch
-            if close.waitForExistence(timeout: 3) { close.tap(); sleep(1) }
-        }
-
-        // ─── R3: open the paywall from the banner, verify it renders ───
+        // ─── R2: open the paywall from the banner, verify it renders ───
+        // Checked FIRST, while the Settings sidebar (and its Pro banner) is
+        // guaranteed visible right after open. The NavigationSplitView conversion
+        // means later category navigation pushes a detail on iPhone compact and would
+        // hide the banner, so the banner assertion must precede any drill-in.
         let banner = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Upgrade to Pro'")).firstMatch
         XCTAssertTrue(banner.waitForExistence(timeout: 3), "Pro upsell banner should exist")
         banner.tap()
@@ -87,6 +77,29 @@ final class PaywallFlowUITests: XCTestCase {
         ).count
         XCTAssertGreaterThan(ctaCount, 0, "Purchase CTA must be present on the paywall")
 
+        // Close the paywall to return to Settings for the sync-gate check.
+        let closePaywall = app.buttons["Close"].firstMatch
+        if closePaywall.waitForExistence(timeout: 3) { closePaywall.tap(); sleep(1) }
+
+        // ─── R3: Pro gate on Cloud Sync sends a free user to the paywall ───
+        // The sync toggle now lives in the iCloud Sync detail pane (NavigationSplitView),
+        // so open that category first — a select on iPad's persistent sidebar, a push on
+        // iPhone compact. Then the toggle is reachable on both form factors.
+        let syncCategory = app.staticTexts["iCloud Sync"].firstMatch
+        XCTAssertTrue(syncCategory.waitForExistence(timeout: 4), "iCloud Sync category should be in Settings")
+        syncCategory.tap()
+        sleep(1)
+        let cloudSync = app.switches.containing(NSPredicate(format: "label CONTAINS[c] 'Cloud Sync'")).firstMatch
+        XCTAssertTrue(cloudSync.waitForExistence(timeout: 4), "Cloud Sync toggle reachable in the sync detail")
+        cloudSync.tap()
+        sleep(1)
+        takeScreenshot("paywall-r2-gate-triggered")
+        // The gate must reject a free user: the switch springs back to off.
+        XCTAssertEqual(cloudSync.value as? String, "0",
+                       "Cloud Sync must stay off for a free user (gate fires)")
+        let closeGate = app.buttons["Close"].firstMatch
+        if closeGate.waitForExistence(timeout: 3) { closeGate.tap(); sleep(1) }
+
         let shots = (try? FileManager.default.contentsOfDirectory(atPath: screenshotDir)) ?? []
         print("\n=== PAYWALL FLOW COMPLETE === \(shots.filter { $0.hasPrefix("paywall-") }.count) paywall shots")
     }
@@ -100,5 +113,17 @@ final class PaywallFlowUITests: XCTestCase {
         let path = "\(screenshotDir)/\(name).png"
         try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: path))
         print("Screenshot: \(name).png")
+    }
+
+    /// Form-factor-agnostic tab button. iPhone renders the TabView as a bottom
+    /// XCUIElementTypeTabBar; iPad (iOS 18+) renders it as a top tab pill whose
+    /// buttons live directly under the app, not inside a tabBar. Prefer the bar,
+    /// fall back to the top-pill button so the same flow test passes on both.
+    private func tabButton(_ name: String) -> XCUIElement {
+        let inBar = app.tabBars.buttons[name]
+        if inBar.waitForExistence(timeout: 4) { return inBar }
+        // iPad iOS 18+ uses a floating tab bar (_UIFloatingTabBarItemCell/View);
+        // the label matches both the cell and its view, so disambiguate with firstMatch.
+        return app.buttons[name].firstMatch
     }
 }

@@ -109,7 +109,7 @@ final class FullFlowUITests: XCTestCase {
         takeScreenshot("06c-vault-with-item")
 
         // ─── Step 7: Generator Tab ───
-        let generatorTab = app.tabBars.buttons["Generator"]
+        let generatorTab = tabButton("Generator")
         if generatorTab.waitForExistence(timeout: 3) {
             generatorTab.tap()
             sleep(1)
@@ -124,7 +124,7 @@ final class FullFlowUITests: XCTestCase {
         }
 
         // ─── Step 8: Settings Tab ───
-        let settingsTab = app.tabBars.buttons["Settings"]
+        let settingsTab = tabButton("Settings")
         if settingsTab.waitForExistence(timeout: 3) {
             settingsTab.tap()
             sleep(1)
@@ -132,7 +132,7 @@ final class FullFlowUITests: XCTestCase {
         }
 
         // ─── Step 9: Lock → Unlock ───
-        let vaultTab = app.tabBars.buttons["Vault"]
+        let vaultTab = tabButton("Vault")
         if vaultTab.waitForExistence(timeout: 3) {
             vaultTab.tap()
             sleep(1)
@@ -163,5 +163,16 @@ final class FullFlowUITests: XCTestCase {
         let path = "\(screenshotDir)/\(name).png"
         try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: path))
         print("Screenshot: \(name).png")
+    }
+
+    /// Form-factor-agnostic tab button. iPhone renders the TabView as a bottom
+    /// XCUIElementTypeTabBar; iPad (iOS 18+) renders it as a floating top tab bar
+    /// (_UIFloatingTabBarItemCell/View) whose label matches multiple elements.
+    /// Prefer the bar, fall back to the top-pill button (firstMatch) so the same
+    /// flow test exercises the tabs on both form factors instead of silently skipping.
+    private func tabButton(_ name: String) -> XCUIElement {
+        let inBar = app.tabBars.buttons[name]
+        if inBar.waitForExistence(timeout: 4) { return inBar }
+        return app.buttons[name].firstMatch
     }
 }

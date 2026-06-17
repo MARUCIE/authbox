@@ -109,6 +109,32 @@ final class AppState: ObservableObject {
             )
             addItem(demo)
         }
+
+        // Visual-acceptance hook (WP-021 P4): a populated unlocked vault + wallet so
+        // the iPad NavigationSplitView surfaces render with realistic content for
+        // screenshots. Pair with --reset-test-vault for a clean slate each launch.
+        if ProcessInfo.processInfo.arguments.contains("--ipad-demo-seed") {
+            if vaultState != .unlocked {
+                let demoMnemonic =
+                    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+                try? createVault(mnemonic: demoMnemonic, masterPassword: "TestPassword123!")
+            }
+            let demos: [VaultItem] = [
+                VaultItem(title: "GitHub", username: "alice@acme.com", uri: "https://github.com",
+                          category: .login,
+                          otpauth: "otpauth://totp/GitHub:alice@acme.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GitHub&digits=6&period=30&algorithm=SHA1"),
+                VaultItem(title: "Cloudflare", username: "ops@acme.com", uri: "https://dash.cloudflare.com", category: .login),
+                VaultItem(title: "Proton Mail", username: "alice@proton.me", uri: "https://proton.me", category: .login, isFavorite: true),
+                VaultItem(title: "AWS Root", username: "root", uri: "https://console.aws.amazon.com", category: .apiKey),
+                VaultItem(title: "OpenAI Production Key", username: "sk-prod-•••", category: .apiKey),
+                VaultItem(title: "Amex Platinum", username: "•••• 1007", category: .card),
+                VaultItem(title: "Recovery Codes", username: "", category: .secureNote),
+            ]
+            for d in demos { addItem(d) }
+            walletAccounts = []
+            addWalletAccount(coin: .btc, network: .mainnet, scriptType: .p2wpkh, label: "Cold Storage")
+            addWalletAccount(coin: .eth, network: .mainnet, scriptType: .p2wpkh, label: "ENS · main")
+        }
         #endif
     }
 

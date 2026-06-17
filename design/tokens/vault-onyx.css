@@ -1,0 +1,104 @@
+/*
+ * Vault Onyx Design System v1.0 -- Auth Box v2
+ * CSS custom properties mirroring vault-onyx.tokens.json (single source of truth).
+ * Dark-mode base. Every draft must use ONLY these tokens.
+ * Transcribed verbatim from VAULT_ONYX_DESIGN_SYSTEM.md -- no invented values.
+ * Material-3 defaults (no hex in doc): --vo-color-on-primary, --vo-color-primary-fixed.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Color: Primary Palette ---- */
+  --vo-color-primary: #c3c0ff;             /* Text/icons on dark surfaces */
+  --vo-color-primary-container: #3730a3;   /* Deep Indigo, brand core */
+  --vo-color-secondary: #ffb77d;           /* Amber accents */
+  --vo-color-secondary-container: #d97707; /* Warning states */
+  --vo-color-tertiary: #68dba9;            /* Emerald success */
+  --vo-color-tertiary-container: #004d34;  /* Success backgrounds */
+  --vo-color-error: #ffb4ab;               /* Error states */
+
+  /* ---- Color: Surface Hierarchy (Dark Mode) ---- */
+  --vo-color-surface: #0b1326;                  /* App background */
+  --vo-color-surface-container-lowest: #060e20; /* Deepest nesting */
+  --vo-color-surface-container-low: #131b2e;    /* Section backgrounds */
+  --vo-color-surface-container: #171f33;        /* Cards, panels */
+  --vo-color-surface-container-high: #222a3d;   /* Elevated elements */
+  --vo-color-surface-container-highest: #2d3449;/* Inputs, active items */
+  --vo-color-surface-bright: #31394d;           /* Glassmorphism base */
+
+  /* ---- Color: Outline / Ghost Border ---- */
+  --vo-color-outline-variant: #464553;     /* Ghost Border base (use at 20% via --vo-opacity-ghost-border) */
+
+  /* ---- Color: Override Colors (doc lines 39-44) ---- */
+  --vo-color-override-primary: #3730a3;    /* Deep Indigo */
+  --vo-color-override-secondary: #d97706;  /* Amber */
+  --vo-color-override-tertiary: #059669;   /* Emerald */
+  --vo-color-override-neutral: #0f172a;    /* Slate */
+  --vo-color-neutral: #0f172a;             /* Slate (alias) */
+
+  /* ---- Color: Material-3 defaults (no hex in doc) ---- */
+  --vo-color-on-primary: #ffffff;          /* M3 default: text on gradient/primary fills */
+  --vo-color-primary-fixed: #c3c0ff;       /* M3 default: focus border tone (= primary tone) */
+
+  /* ---- Typography: Families ---- */
+  --vo-font-display: "Space Grotesk", sans-serif;
+  --vo-font-body: "Inter", "IBM Plex Sans", sans-serif;
+  --vo-font-label: "Inter", sans-serif;
+
+  /* ---- Typography: Sizes ---- */
+  --vo-text-display: 3.5rem;
+  --vo-text-headline: 2rem;
+  --vo-text-title: 1.25rem;
+  --vo-text-body: 0.875rem;
+  --vo-text-label: 0.75rem;
+
+  /* ---- Typography: Weights ---- */
+  --vo-weight-display: 700;
+  --vo-weight-headline: 700;
+  --vo-weight-title: 500;
+  --vo-weight-body: 400;
+  --vo-weight-label: 500;
+
+  /* ---- Typography: Tracking (letter-spacing) ---- */
+  --vo-tracking-display: -0.02em;
+  --vo-tracking-headline: -0.02em;
+  --vo-tracking-title: -0.01em;
+  --vo-tracking-body: normal;
+  --vo-tracking-label: 0.02em;
+
+  /* ---- Spacing Scale (MD3 base 3; only doc-defined steps) ---- */
+  --vo-space-1: 4px;
+  --vo-space-2: 8px;
+  --vo-space-3: 12px;
+  --vo-space-4: 16px;
+  --vo-space-6: 24px;
+  --vo-space-8: 32px;
+  --vo-space-12: 48px;
+  --vo-space-16: 64px;
+  --vo-space-20: 80px;
+  --vo-space-24: 96px;
+
+  /* ---- Roundness (ROUND_FOUR) ---- */
+  --vo-radius-xs: 2px;
+  --vo-radius-sm: 4px;
+  --vo-radius-md: 6px;   /* default button roundness */
+  --vo-radius-lg: 8px;
+  --vo-radius-xl: 12px;
+  --vo-radius-full: 9999px;
+
+  /* ---- Elevation / Ambient Shadows (Core Rule 5: tinted indigo, never pure black) ---- */
+  --vo-elev-ambient-low: 0 0 40px 0 rgba(55, 48, 163, 0.04);  /* blur 40px, opacity 4% */
+  --vo-elev-ambient-high: 0 0 80px 0 rgba(55, 48, 163, 0.08); /* blur 80px, opacity 8% */
+
+  /* ---- Gradient (Core Rule 3) ---- */
+  --vo-gradient-hero-cta: linear-gradient(135deg, #c3c0ff 0%, #3730a3 100%);
+
+  /* ---- Opacity (cited inline in Core Rules / Component Specs) ---- */
+  --vo-opacity-ghost-border: 0.2;  /* outline_variant at 20% */
+  --vo-opacity-modal-glass: 0.6;   /* surface_bright at 60% */
+  --vo-opacity-input-focus: 0.4;   /* primary_fixed at 40% */
+
+  /* ---- Effect ---- */
+  --vo-blur-modal-backdrop: 20px;  /* modal backdrop-blur (Core Rule 3) */
+}

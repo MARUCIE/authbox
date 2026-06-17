@@ -758,3 +758,58 @@ Tests: `@authbox/crypto` vitest 96/96 (incl. 16 TOTP) · `apps/web` `tsc --noEmi
 Deferred (honest): a live render screenshot needs the running authenticated web app with a
 real vault item carrying a TOTP — auth/data-gated, not logic-gated. Engine + parity proven,
 component typechecked.
+
+## §WP-021. iOS/iPad Frontend Completion Loop — 2026-06-17 (ultracode /loop)
+
+> Goal contract for the self-paced /loop Maurice launched: complete iOS + iPad
+> frontend, design-pipeline-first, then visual acceptance (computer/browser-use,
+> 3 polish rounds), then UX-map simulation until front+back are truly wired.
+
+### Reframed ground truth (Explore audit 2026-06-17)
+- iPhone app is largely DONE: vault/TOTP/QR/generator/wallet(watch-only)/settings/
+  iCloud-sync(CKSyncEngine)/AutoFill/Pro-IAP, wired to real Go API (SRP-6a). ~4100 LOC.
+- REAL GAP = iPad has NO adaptive UI. `TARGETED_DEVICE_FAMILY "1,2"` declares iPad but
+  every screen is `TabView`+`NavigationStack` single-column. Zero `NavigationSplitView`,
+  zero `horizontalSizeClass`. iPad gets a stretched iPhone UI.
+- Design debt: VAULT ONYX is prose-only (no machine-readable tokens); iOS screens were
+  hand-built in SwiftUI without ever running the Stitch/bake-off design pipeline.
+
+### Acceptance rubric (falsifiable)
+- [x] R1 machine-readable VAULT ONYX tokens exist (JSON + CSS) — vault-onyx.tokens.json (8.6K, valid) + vault-onyx.css (64 --vo-* vars); zero invented values
+- [x] R2 6 real HTML drafts on disk (vault×3, wallet×3) + bigao-result.json verdict (winner B-inspector); stitch-pipeline-gate PASS. Honest scope: 2 screens full bake-off, 3 secondary screens inherit decided language (drafts rate-limited)
+- [x] R3 NavigationSplitView adaptivity across the 3 list→detail screens (vault/wallet/settings); auto-collapses to iPhone stack. generator/onboarding intentionally single-pane (no master list / full-screen modal)
+- [x] R4 iPad Pro 13-inch (M5) build GREEN (xcodebuild, 5×). Live launch on booted iPad sim via --reset-test-vault --ipad-demo-seed; all 3 master/detail splits render with real seeded data (TOTP 960-302, BTC bc1q… + xpub watch-only, Settings.app-style sidebar)
+- [x] R5 3 rounds of visual polish on iPad sim — ALL DONE (honest rounds, not manufactured):
+  - **R1** structural verify: all 3 master/detail splits render live with seeded data (Vault GitHub TOTP, Wallet BTC/xpub, Settings sidebar); auto-select works; FIX shipped: Generator Form edge-stretch (~1340pt) → maxWidth 760 + centered. iPhone non-regression VERIFIED (collapses to single-col list, no auto-pushed detail). Evidence: design/visual-acceptance/{r1,r2,r1-iphone}/*.
+  - **R2** dark-mode pass: PASS — `simctl ui appearance dark`, both flagship screens; category icons + TOTP ring + coin badges (orange BTC/blue ETH) retain color & contrast, no breakage. SwiftUI semantic colors naturally approach VAULT ONYX dark. Evidence: design/visual-acceptance/r2-dark/*.
+  - **R3** accessibility Dynamic Type pass: PASS — `content_size accessibility-extra-large`; text scales, clean ellipsis truncation, NO overlap/clipping, master/detail split holds. Evidence: design/visual-acceptance/r3-a11y/*.
+- [x] R6 UX-map simulation + functional closure on iPad — DONE:
+  - Seam audit: all 3 converted screens' read-bindings (`vaultItems`/`walletAccounts`/`isSyncEnabled`) have real writers (store.fetchAll + append/removeAll; UserDefaults+CKSyncEngine). No orphan bindings. Delete clears selection (orphan guard L67/L41).
+  - Crypto NOT stubbed: `walletReceiveAddress`/`walletAccountXpub` → real `Wallet.deriveAddress`/`deriveAccount` from unlocked seed; `derivePassword` → real `Seed.derivePassword`; TOTP computes live (code changed 960→371→550 across captures). `--ipad-demo-seed` uses real `createVault(mnemonic:)` from BIP-39 test vector → genuine BIP-84 address `bc1qcr8…`.
+  - **FULL test suite GREEN on iPad Pro 13-inch (M5)**: AuthBoxTests 9/9 (2 skipped), AuthBoxUITests 6/6, `** TEST SUCCEEDED **`.
+  - **Fixed real iPad gap** (tech-debt closed): all UI tests used `app.tabBars.buttons[...]` which finds nothing on iPad's floating tab bar (`_UIFloatingTabBarItemCell`). Wallet/Paywall hard-failed; FullFlow silently skipped (false-pass). Added form-factor-agnostic `tabButton()` helper (tabBars → `app.buttons[name].firstMatch` fallback) to WalletFlowUITests/PaywallFlowUITests/FullFlowUITests. Verified: 4 prior failures → 0.
+
+### Phase queue
+- [x] P1 Tokens + bake-off: 6 HTML drafts + verdict; winner = B-idiom (rail TabView + NavigationSplitView master/detail + collapsible .inspector). 2-strike pivot off subagent bursts (server rate-limit) -> main-loop
+- [x] P2 gate PASS; design language locked in doc/10_features/ios-ipad-frontend/IPAD_DESIGN_LANGUAGE.md (per-screen NavigationSplitView mapping, token->SwiftUI bridge)
+- [x] P3 SwiftUI translation: Vault + Settings + Wallet all → NavigationSplitView master/detail (selection-driven; iPhone-compact auto-collapses to push). iPad Pro 13-inch (M5) BUILD SUCCEEDED ×3. Generator stays single Form (no selectable master; Form already insets on iPad), Onboarding stays full-screen modal — both correct single-pane, light polish deferred to P4
+- [x] P4 Visual acceptance: 3 polish rounds DONE via iPad simulator (no-tap seams --ipad-demo-seed + --ipad-demo-tab). R1 structural+Generator-fix+iPhone-regression / R2 dark-mode PASS / R3 a11y Dynamic-Type PASS. Light+dark, iPad+iPhone, standard+XXL text all verified. One code fix shipped (Generator maxWidth). No further cosmetic debt found — screens are SOTA.
+- [x] P5 UX-map simulation + functional closure DONE: read-binding seam audit (all writers present, no orphans), crypto-not-stubbed verification (real BIP-84/EIP-55/TOTP/password derivation), and FULL iPad test suite green (unit 9/9 + UI 6/6). Caught + fixed a real iPad gap: UI test tab-navigation was blind to iPad's floating tab bar (4 failures → 0 via `tabButton()` helper).
+
+### Acceptance — R1-R6 ALL PASS (WP-021 COMPLETE, 2026-06-17)
+iOS/iPad frontend completion loop met its full acceptance bar. App verified across light+dark, iPad+iPhone, standard+XXL Dynamic Type; all journeys functionally wired (real crypto, no stubs).
+
+**FULL test suite GREEN on BOTH form factors**: iPad unit 9/9 + UI 6/6; iPhone unit 9/9 + UI 6/6. `** TEST SUCCEEDED **` on both.
+
+The functional-closure pass caught + fixed TWO real bugs the visual rounds missed:
+1. **iPad UI test tab-navigation gap**: every UI test used `app.tabBars.buttons[...]`, which finds nothing on iPad's floating tab bar (`_UIFloatingTabBarItemCell`). Wallet/Paywall hard-failed; FullFlow silently skipped (false-pass). Fixed with form-factor-agnostic `tabButton()` (tabBars → `app.buttons[name].firstMatch`) in 3 test files.
+2. **iPhone Settings regression (introduced by my own NavigationSplitView conversion)**: `SettingsView` defaulted `selection = .security`, so on iPhone compact it pushed straight into the Security detail, HIDING the sidebar + Pro banner (my R1 iPhone spot-check screenshotted Vault/Wallet but not Settings, so it slipped through; the iPhone Paywall test caught it). Fixed: default `selection = nil` + `autoSelectOnPad()` guarded by `hSizeClass == .regular` — same pattern as Vault/Wallet. iPhone now opens on the sidebar (banner visible); iPad still preselects Security. Visually confirmed: design/visual-acceptance/r3-settings-fix/settings-iphone-sidebar.png.
+
+Also restored honest gate coverage: PaywallFlowUITests reordered (banner→paywall first while sidebar visible), then sync-gate navigates into the iCloud Sync detail (hard assert, no more silent `if` skip).
+
+Remaining closeout: WP-021 artifacts uncommitted on `main` — awaiting Maurice's commit go-ahead (suggested: branch `feat/ipad-frontend-wp021` then commit; not auto-committed per "commit only when user asks").
+
+### Iteration policy
+- Self-paced /loop. Each iteration advances one phase; workflow completion (task-notification)
+  wakes the loop. Stop only on safety/HITL (Apple ID 2FA, funds, prod) or full R1-R6 acceptance.
+- Honest seam discipline: a stub never passes as done; grep every read-binding for ≥1 writer (memory: green-unit-tests-on-pure-leaves-not-wired).

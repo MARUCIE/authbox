@@ -105,6 +105,11 @@ struct GeneratorView: View {
             }
             .navigationTitle("Generator")
             .scrollDismissesKeyboard(.interactively)
+            // iPad: keep the single-pane tool at a readable column width instead of
+            // stretching edge-to-edge. maxWidth 760 > any iPhone width, so compact is
+            // unaffected; the outer infinity frame centers the capped column.
+            .frame(maxWidth: 760)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 

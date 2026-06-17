@@ -4,6 +4,23 @@
 > macOS app fusing password vault + 70+ AI provider hub + agent-authorization
 > broker, gated by Touch ID, reusing AuthBoxCrypto + authbox v5 zero-knowledge core.
 
+## WP-021 — iOS/iPad Frontend Completion Loop (ACTIVE, 2026-06-17)
+
+> Separate work stream from the macOS app below. Self-paced ultracode /loop:
+> complete iOS+iPad frontend, design-pipeline-first. Canonical queue:
+> `doc/00_project/initiative_10_auth_box/task_plan.md §WP-021`.
+
+- Ground truth: iPhone app is largely DONE (vault/TOTP/wallet/settings/iCloud-sync/AutoFill/Pro, wired to Go API). **Real gap = iPad has NO adaptive UI** (`device family "1,2"` but every screen is iPhone single-column TabView+NavigationStack; zero `NavigationSplitView`/`horizontalSizeClass`).
+- DONE P1/P2 (design pipeline): VAULT ONYX tokens formalized → `design/tokens/vault-onyx.{tokens.json,css}` (64 vars). Real HTML bake-off → `design/ipad-bakeoff/{vault,wallet}/{a-threecol,b-inspector,c-canvas}.html` (6 drafts). Verdict `design/bigao-result.json`, `stitch-pipeline-gate.py` PASS. **Winner = B-idiom** (slim icon-rail TabView + NavigationSplitView master/detail + collapsible `.inspector`, grafting A's auto-collapse + A's health ring).
+- Design language reference (drives translation): `doc/10_features/ios-ipad-frontend/IPAD_DESIGN_LANGUAGE.md` — per-screen NavigationSplitView mapping for all 5 screens + token→SwiftUI bridge.
+- Method note: subagent fan-out hit a persistent SERVER rate-limit (not usage) twice → pivoted off Workflow bursts to main-loop per the 2-strike rule. 3 secondary screens (settings/onboarding/generator) inherit the decided language rather than re-bidding.
+- DONE P3 (SwiftUI translation): Vault + Settings + Wallet all → `NavigationSplitView` master/detail (selection bound to item id; iPhone-compact auto-collapses to push). iPad Pro 13-inch (M5) BUILD SUCCEEDED ×3. Generator = single Form, Onboarding = full-screen modal (correct single-pane). Files: `apps/ios/AuthBox/Sources/Features/{Vault/VaultListView,Settings/SettingsView,Wallet/WalletView}.swift`.
+- DONE P4 (visual acceptance, 3 honest rounds): no-tap seams `--ipad-demo-seed` + `--ipad-demo-tab <tab>`. R1 structural verify (all 3 splits live w/ real data) + Generator `maxWidth:760` fix + iPhone non-regression. R2 dark-mode PASS (badges/icons/TOTP-ring retain contrast). R3 accessibility-extra-large Dynamic Type PASS (clean truncation, no overlap). Evidence: `design/visual-acceptance/{r1,r2,r2-dark,r3-a11y,r1-iphone}/*`. One code fix shipped (GeneratorView). No further cosmetic debt — screens SOTA across light/dark, iPad/iPhone, standard/XXL text.
+- DONE P5 (UX-map + functional closure): read-binding seam audit (all writers present, no orphans; delete clears selection), crypto-not-stubbed (real BIP-84/EIP-55/TOTP/password derivation; TOTP changed 960→371→550 across captures = live), and **FULL iPad test suite GREEN** (AuthBoxTests 9/9 + AuthBoxUITests 6/6, `TEST SUCCEEDED`). Caught + FIXED a real iPad gap: every UI test used `app.tabBars.buttons[...]` which finds nothing on iPad's floating tab bar (`_UIFloatingTabBarItemCell`) — Wallet/Paywall hard-failed, FullFlow silently skipped (false-pass). Fix: `tabButton()` helper (tabBars → `app.buttons[name].firstMatch`) in 3 test files; 4 failures → 0.
+- **WP-021 ACCEPTANCE COMPLETE (R1-R6 all pass).** App verified across light+dark, iPad+iPhone, standard+XXL text; journeys functionally wired (real crypto, no stubs). **FULL test suite GREEN on BOTH form factors** (iPad + iPhone, each unit 9/9 + UI 6/6). Functional-closure pass caught + fixed TWO real bugs: (1) iPad UI tab-nav blind to floating tab bar (`tabButton()` helper in 3 test files); (2) iPhone Settings regression from my own NavigationSplitView conversion — `selection = .security` default pushed iPhone straight into Security detail, hiding the sidebar+Pro banner (caught by iPhone Paywall test; my R1 spot-check missed it by not screenshotting Settings). Fixed with `selection = nil` + `hSizeClass == .regular`-guarded `autoSelectOnPad()`. Visual proof: design/visual-acceptance/r3-settings-fix/settings-iphone-sidebar.png.
+- ONLY remaining closeout: WP-021 artifacts UNCOMMITTED on `main`. Suggested: `git -C /Users/mauricewen/02-private-project/auth-box checkout -b feat/ipad-frontend-wp021 && git add -A && git commit`. NOT auto-committed (commit only when Maurice asks; never on default branch).
+- Uncommitted: WP-021 artifacts are on disk, NOT yet committed (on `main`; awaiting a branch/commit decision).
+
 ## State as of 2026-06-01
 
 | Phase | Status | Evidence |

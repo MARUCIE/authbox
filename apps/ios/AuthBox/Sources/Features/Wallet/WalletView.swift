@@ -21,25 +21,29 @@ enum WalletCoinStyle {
 struct WalletView: View {
     @EnvironmentObject var appState: AppState
     @State private var showAdd = false
+    /// Drives the NavigationSplitView detail (iPad: accounts list + detail side by side;
+    /// iPhone compact: auto-collapses to a push stack).
+    @State private var selectedAccountID: UUID?
+    @Environment(\.horizontalSizeClass) private var hSizeClass
 
     var body: some View {
-        NavigationStack {
-            List {
+        NavigationSplitView {
+            List(selection: $selectedAccountID) {
                 if appState.walletAccounts.isEmpty {
                     emptyState
                 } else {
                     Section {
                         ForEach(appState.walletAccounts) { account in
-                            NavigationLink(destination: WalletAccountDetailView(descriptor: account)) {
-                                WalletAccountRow(descriptor: account)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    appState.removeWalletAccount(account)
-                                } label: {
-                                    Label("Remove", systemImage: "trash")
+                            WalletAccountRow(descriptor: account)
+                                .tag(account.id)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        if selectedAccountID == account.id { selectedAccountID = nil }
+                                        appState.removeWalletAccount(account)
+                                    } label: {
+                                        Label("Remove", systemImage: "trash")
+                                    }
                                 }
-                            }
                         }
                     } footer: {
                         Text("Self-custodial · watch-only. Keys are derived from your vault seed on this device and never leave it.")
@@ -53,7 +57,30 @@ struct WalletView: View {
                 }
             }
             .sheet(isPresented: $showAdd) { AddWalletAccountView() }
+            .onAppear { autoSelectFirstOnPad() }
+            .onChange(of: appState.walletAccounts.count) { _, _ in autoSelectFirstOnPad() }
+        } detail: {
+            NavigationStack {
+                if let id = selectedAccountID,
+                   let account = appState.walletAccounts.first(where: { $0.id == id }) {
+                    WalletAccountDetailView(descriptor: account)
+                } else {
+                    ContentUnavailableView(
+                        "Select an Account",
+                        systemImage: "wallet.bifold",
+                        description: Text("Choose a wallet account to view its balance and receive address.")
+                    )
+                }
+            }
         }
+    }
+
+    /// iPad (regular width): preselect the first account so the detail pane shows a
+    /// balance on launch instead of the placeholder. iPhone compact stays on the list.
+    private func autoSelectFirstOnPad() {
+        guard hSizeClass == .regular, selectedAccountID == nil,
+              let first = appState.walletAccounts.first else { return }
+        selectedAccountID = first.id
     }
 
     private var emptyState: some View {

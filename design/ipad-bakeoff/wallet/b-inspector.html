@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  Auth Box · Wallet (Self-Custodial, Watch-Only) · iPad Bake-off
+  DIRECTION B — Two-column + Inspector
+  ============================================================================
+
+  LAYOUT ANATOMY (iPad landscape, 1194 × 834):
+    [ icon rail 72 ]  [ accounts list 320 ]  [ account detail flex ]  [ inspector 320 ]
+    A slim icon-only sidebar rail (vault sections), a master accounts list,
+    a primary detail pane (balance + receive address + derived addresses),
+    and a collapsible right-hand inspector for metadata + actions.
+
+  WHY DIRECTION B: optimizes for FOCUS. The detail pane stays uncluttered;
+  every secondary affordance (account metadata, xpub, security posture,
+  danger zone) lives in the inspector, which the user collapses when they
+  only want to read a balance or copy a receive address.
+
+  ============================================================================
+  HOW THIS COLLAPSES TO iPHONE COMPACT (single column / navigation stack):
+  ============================================================================
+    • The 4 panes become a NAVIGATION STACK, not side-by-side columns.
+      Push depth: Accounts list → Account detail → Inspector (modal sheet).
+    • Icon rail → bottom tab bar (Vault / Wallet / Authenticator / Settings).
+    • Accounts list = root screen (full width). Tapping an account PUSHES
+      the detail screen (back-button to return).
+    • Inspector panel → presented as a half-height bottom sheet, opened from
+      an "Info / ⓘ" button in the detail nav bar. It is never persistent on
+      compact width; it overlays.
+    • Derived-address rows stay full-width cards; the 2-up receive/QR row
+      stacks vertically.
+    • Search collapses into the list nav bar; "Add account" becomes a +
+      bar-button instead of a rail action.
+    The @media (max-width: 833px) block at the bottom demonstrates the
+    single-column reflow for this static draft.
+  ============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auth Box · Wallet · Direction B (Inspector)</title>
+<style>
+  /* ===== Vault Onyx Design System v1.0 — :root inlined verbatim (single source of truth) ===== */
+  :root {
+    color-scheme: dark;
+
+    /* ---- Color: Primary Palette ---- */
+    --vo-color-primary: #c3c0ff;
+    --vo-color-primary-container: #3730a3;
+    --vo-color-secondary: #ffb77d;
+    --vo-color-secondary-container: #d97707;
+    --vo-color-tertiary: #68dba9;
+    --vo-color-tertiary-container: #004d34;
+    --vo-color-error: #ffb4ab;
+
+    /* ---- Color: Surface Hierarchy (Dark Mode) ---- */
+    --vo-color-surface: #0b1326;
+    --vo-color-surface-container-lowest: #060e20;
+    --vo-color-surface-container-low: #131b2e;
+    --vo-color-surface-container: #171f33;
+    --vo-color-surface-container-high: #222a3d;
+    --vo-color-surface-container-highest: #2d3449;
+    --vo-color-surface-bright: #31394d;
+
+    /* ---- Color: Outline / Ghost Border ---- */
+    --vo-color-outline-variant: #464553;
+
+    /* ---- Color: Override Colors ---- */
+    --vo-color-override-primary: #3730a3;
+    --vo-color-override-secondary: #d97706;
+    --vo-color-override-tertiary: #059669;
+    --vo-color-override-neutral: #0f172a;
+    --vo-color-neutral: #0f172a;
+
+    /* ---- Color: Material-3 defaults ---- */
+    --vo-color-on-primary: #ffffff;
+    --vo-color-primary-fixed: #c3c0ff;
+
+    /* ---- Typography: Families ---- */
+    --vo-font-display: "Space Grotesk", sans-serif;
+    --vo-font-body: "Inter", "IBM Plex Sans", sans-serif;
+    --vo-font-label: "Inter", sans-serif;
+
+    /* ---- Typography: Sizes ---- */
+    --vo-text-display: 3.5rem;
+    --vo-text-headline: 2rem;
+    --vo-text-title: 1.25rem;
+    --vo-text-body: 0.875rem;
+    --vo-text-label: 0.75rem;
+
+    /* ---- Typography: Weights ---- */
+    --vo-weight-display: 700;
+    --vo-weight-headline: 700;
+    --vo-weight-title: 500;
+    --vo-weight-body: 400;
+    --vo-weight-label: 500;
+
+    /* ---- Typography: Tracking ---- */
+    --vo-tracking-display: -0.02em;
+    --vo-tracking-headline: -0.02em;
+    --vo-tracking-title: -0.01em;
+    --vo-tracking-body: normal;
+    --vo-tracking-label: 0.02em;
+
+    /* ---- Spacing Scale ---- */
+    --vo-space-1: 4px;
+    --vo-space-2: 8px;
+    --vo-space-3: 12px;
+    --vo-space-4: 16px;
+    --vo-space-6: 24px;
+    --vo-space-8: 32px;
+    --vo-space-12: 48px;
+    --vo-space-16: 64px;
+    --vo-space-20: 80px;
+    --vo-space-24: 96px;
+
+    /* ---- Roundness ---- */
+    --vo-radius-xs: 2px;
+    --vo-radius-sm: 4px;
+    --vo-radius-md: 6px;
+    --vo-radius-lg: 8px;
+    --vo-radius-xl: 12px;
+    --vo-radius-full: 9999px;
+
+    /* ---- Elevation / Ambient Shadows ---- */
+    --vo-elev-ambient-low: 0 0 40px 0 rgba(55, 48, 163, 0.04);
+    --vo-elev-ambient-high: 0 0 80px 0 rgba(55, 48, 163, 0.08);
+
+    /* ---- Gradient ---- */
+    --vo-gradient-hero-cta: linear-gradient(135deg, #c3c0ff 0%, #3730a3 100%);
+
+    /* ---- Opacity ---- */
+    --vo-opacity-ghost-border: 0.2;
+    --vo-opacity-modal-glass: 0.6;
+    --vo-opacity-input-focus: 0.4;
+
+    /* ---- Effect ---- */
+    --vo-blur-modal-backdrop: 20px;
+  }
+
+  /* ===== Reset ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--vo-color-surface-container-lowest);
+    font-family: var(--vo-font-body);
+    color: var(--vo-color-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* The iPad frame at exact landscape size */
+  .ipad-frame {
+    width: 1194px;
+    height: 834px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 72px 320px minmax(0, 1fr) 320px;
+    background: var(--vo-color-surface);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ========================================================================
+     PANE 1 — Slim icon rail
+     ======================================================================== */
+  .rail {
+    background: var(--vo-color-surface-container-lowest);
+    border-right: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--vo-space-4) 0;
+    gap: var(--vo-space-2);
+  }
+  .rail__brand {
+    width: 40px; height: 40px;
+    border-radius: var(--vo-radius-lg);
+    background: var(--vo-gradient-hero-cta);
+    display: grid; place-items: center;
+    margin-bottom: var(--vo-space-6);
+    box-shadow: var(--vo-elev-ambient-high);
+  }
+  .rail__brand svg { width: 22px; height: 22px; }
+  .rail__item {
+    width: 44px; height: 44px;
+    border-radius: var(--vo-radius-lg);
+    display: grid; place-items: center;
+    color: var(--vo-color-surface-bright);
+    cursor: pointer;
+    position: relative;
+    transition: color .15s, background .15s;
+  }
+  .rail__item svg { width: 22px; height: 22px; }
+  .rail__item:hover { color: var(--vo-color-primary); background: var(--vo-color-surface-container); }
+  .rail__item--active {
+    color: var(--vo-color-primary);
+    background: var(--vo-color-surface-container-high);
+  }
+  .rail__item--active::before {
+    content: "";
+    position: absolute; left: -14px; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 22px; border-radius: var(--vo-radius-full);
+    background: var(--vo-color-primary);
+  }
+  .rail__spacer { flex: 1; }
+  .rail__avatar {
+    width: 36px; height: 36px; border-radius: var(--vo-radius-full);
+    background: var(--vo-color-surface-container-highest);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: var(--vo-weight-label);
+    color: var(--vo-color-primary);
+  }
+
+  /* ========================================================================
+     PANE 2 — Accounts master list
+     ======================================================================== */
+  .list {
+    background: var(--vo-color-surface-container-low);
+    border-right: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .list__head {
+    padding: var(--vo-space-6) var(--vo-space-4) var(--vo-space-3);
+    display: flex; flex-direction: column; gap: var(--vo-space-4);
+  }
+  .list__title-row { display: flex; align-items: center; justify-content: space-between; }
+  .list__title {
+    font-family: var(--vo-font-display);
+    font-size: var(--vo-text-title);
+    font-weight: var(--vo-weight-headline);
+    letter-spacing: var(--vo-tracking-title);
+    color: var(--vo-color-primary);
+  }
+  .list__add {
+    width: 32px; height: 32px;
+    border-radius: var(--vo-radius-md);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    background: var(--vo-color-surface-container);
+    color: var(--vo-color-primary);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .list__add svg { width: 18px; height: 18px; }
+  .search {
+    display: flex; align-items: center; gap: var(--vo-space-2);
+    background: var(--vo-color-surface-container-highest);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    border-radius: var(--vo-radius-md);
+    padding: var(--vo-space-2) var(--vo-space-3);
+  }
+  .search svg { width: 16px; height: 16px; color: var(--vo-color-surface-bright); flex: none; }
+  .search input {
+    background: none; border: none; outline: none; width: 100%;
+    color: var(--vo-color-primary);
+    font-family: var(--vo-font-body);
+    font-size: var(--vo-text-body);
+  }
+  .search input::placeholder { color: var(--vo-color-surface-bright); }
+
+  .list__total {
+    margin: 0 var(--vo-space-4) var(--vo-space-3);
+    padding: var(--vo-space-4);
+    border-radius: var(--vo-radius-lg);
+    background: var(--vo-color-surface-container);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  }
+  .list__total-label {
+    font-size: var(--vo-text-label); letter-spacing: var(--vo-tracking-label);
+    text-transform: uppercase; color: var(--vo-color-surface-bright);
+  }
+  .list__total-value {
+    font-family: var(--vo-font-display);
+    font-size: 1.75rem; font-weight: var(--vo-weight-display);
+    letter-spacing: var(--vo-tracking-headline);
+    color: var(--vo-color-primary); margin-top: var(--vo-space-1);
+  }
+  .list__total-delta { font-size: var(--vo-text-label); color: var(--vo-color-tertiary); margin-top: var(--vo-space-1); }
+
+  .list__scroll { flex: 1; overflow-y: auto; padding: 0 var(--vo-space-3) var(--vo-space-4); }
+  .list__group-label {
+    font-size: var(--vo-text-label); letter-spacing: var(--vo-tracking-label);
+    text-transform: uppercase; color: var(--vo-color-surface-bright);
+    padding: var(--vo-space-3) var(--vo-space-2) var(--vo-space-2);
+  }
+  .acct {
+    display: flex; align-items: center; gap: var(--vo-space-3);
+    padding: var(--vo-space-3);
+    border-radius: var(--vo-radius-lg);
+    cursor: pointer;
+    margin-bottom: var(--vo-space-1);
+    border: 1px solid transparent;
+    transition: background .15s;
+  }
+  .acct:hover { background: var(--vo-color-surface-container); }
+  .acct--active {
+    background: var(--vo-color-surface-container-high);
+    border-color: rgba(195, 192, 255, var(--vo-opacity-input-focus));
+  }
+  .acct__coin {
+    width: 38px; height: 38px; flex: none;
+    border-radius: var(--vo-radius-full);
+    display: grid; place-items: center;
+    font-weight: var(--vo-weight-headline); font-size: 14px;
+  }
+  .coin--btc { background: rgba(217, 119, 7, 0.16); color: var(--vo-color-secondary); }
+  .coin--eth { background: rgba(55, 48, 163, 0.30); color: var(--vo-color-primary); }
+  .acct__main { flex: 1; min-width: 0; }
+  .acct__name {
+    font-size: var(--vo-text-body); font-weight: var(--vo-weight-title);
+    color: var(--vo-color-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .acct__sub { font-size: var(--vo-text-label); color: var(--vo-color-surface-bright); margin-top: 2px; }
+  .acct__amt { text-align: right; flex: none; }
+  .acct__amt-fiat { font-size: var(--vo-text-body); font-weight: var(--vo-weight-title); color: var(--vo-color-primary); }
+  .acct__amt-coin { font-size: var(--vo-text-label); color: var(--vo-color-surface-bright); margin-top: 2px; }
+  .watch-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; letter-spacing: var(--vo-tracking-label);
+    text-transform: uppercase;
+    color: var(--vo-color-tertiary);
+    background: rgba(104, 219, 169, 0.12);
+    border-radius: var(--vo-radius-full);
+    padding: 2px var(--vo-space-2);
+  }
+  .watch-pill svg { width: 10px; height: 10px; }
+
+  /* ========================================================================
+     PANE 3 — Account detail (primary)
+     ======================================================================== */
+  .detail {
+    display: flex; flex-direction: column; min-height: 0;
+    background: var(--vo-color-surface);
+  }
+  .detail__bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--vo-space-6) var(--vo-space-8) var(--vo-space-4);
+  }
+  .detail__bar-left { display: flex; align-items: center; gap: var(--vo-space-3); }
+  .detail__heading {
+    font-family: var(--vo-font-display);
+    font-size: var(--vo-text-title); font-weight: var(--vo-weight-headline);
+    letter-spacing: var(--vo-tracking-title);
+    color: var(--vo-color-primary);
+  }
+  .detail__heading-sub { font-size: var(--vo-text-label); color: var(--vo-color-surface-bright); margin-top: 2px; }
+  .detail__inspector-toggle {
+    display: inline-flex; align-items: center; gap: var(--vo-space-2);
+    padding: var(--vo-space-2) var(--vo-space-3);
+    border-radius: var(--vo-radius-md);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    background: var(--vo-color-surface-container);
+    color: var(--vo-color-primary);
+    font-size: var(--vo-text-label); cursor: pointer;
+  }
+  .detail__inspector-toggle svg { width: 16px; height: 16px; }
+
+  .detail__scroll { flex: 1; overflow-y: auto; padding: 0 var(--vo-space-8) var(--vo-space-8); }
+
+  /* Balance hero */
+  .balance {
+    border-radius: var(--vo-radius-xl);
+    background: var(--vo-color-surface-container);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    box-shadow: var(--vo-elev-ambient-low);
+    padding: var(--vo-space-8);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--vo-space-6);
+  }
+  .balance__label {
+    font-size: var(--vo-text-label); letter-spacing: var(--vo-tracking-label);
+    text-transform: uppercase; color: var(--vo-color-surface-bright);
+  }
+  .balance__fiat {
+    font-family: var(--vo-font-display);
+    font-size: var(--vo-text-headline); font-weight: var(--vo-weight-display);
+    letter-spacing: var(--vo-tracking-headline);
+    color: var(--vo-color-primary); margin-top: var(--vo-space-2);
+  }
+  .balance__coin {
+    font-size: var(--vo-text-body); color: var(--vo-color-secondary);
+    margin-top: var(--vo-space-1); font-variant-numeric: tabular-nums;
+  }
+  .balance__delta {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: var(--vo-text-body); color: var(--vo-color-tertiary);
+    background: rgba(104, 219, 169, 0.10);
+    border-radius: var(--vo-radius-md);
+    padding: var(--vo-space-1) var(--vo-space-2);
+    margin-top: var(--vo-space-3);
+  }
+  .balance__delta svg { width: 14px; height: 14px; }
+
+  /* Section heading */
+  .section-h {
+    font-size: var(--vo-text-label); letter-spacing: var(--vo-tracking-label);
+    text-transform: uppercase; color: var(--vo-color-surface-bright);
+    margin: var(--vo-space-8) 0 var(--vo-space-3);
+  }
+
+  /* Receive address card */
+  .receive {
+    display: grid; grid-template-columns: 116px 1fr; gap: var(--vo-space-6);
+    border-radius: var(--vo-radius-xl);
+    background: var(--vo-color-surface-container);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    padding: var(--vo-space-6);
+    align-items: center;
+  }
+  .qr {
+    width: 116px; height: 116px;
+    border-radius: var(--vo-radius-lg);
+    background: var(--vo-color-primary);
+    display: grid; place-items: center;
+    padding: 10px;
+  }
+  /* faux QR built from CSS grid (static markup, no external asset) */
+  .qr__grid {
+    width: 100%; height: 100%;
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    gap: 2px;
+  }
+  .qr__grid i { background: var(--vo-color-surface-container-lowest); border-radius: 1px; }
+  .qr__grid i.off { background: transparent; }
+
+  .receive__body { min-width: 0; }
+  .receive__top { display: flex; align-items: center; gap: var(--vo-space-2); margin-bottom: var(--vo-space-2); }
+  .safety-chip {
+    display: inline-flex; align-items: center; gap: var(--vo-space-1);
+    font-size: var(--vo-text-label); font-weight: var(--vo-weight-label);
+    letter-spacing: var(--vo-tracking-label);
+    color: var(--vo-color-tertiary);
+    background: rgba(104, 219, 169, 0.12);
+    border: 1px solid rgba(104, 219, 169, 0.30);
+    border-radius: var(--vo-radius-full);
+    padding: var(--vo-space-1) var(--vo-space-2);
+  }
+  .safety-chip svg { width: 12px; height: 12px; }
+  .receive__addr {
+    font-family: "SFMono-Regular", ui-monospace, Menlo, monospace;
+    font-size: var(--vo-text-body);
+    color: var(--vo-color-primary);
+    word-break: break-all; line-height: 1.5;
+    background: var(--vo-color-surface-container-highest);
+    border-radius: var(--vo-radius-md);
+    padding: var(--vo-space-3);
+  }
+  .receive__actions { display: flex; gap: var(--vo-space-2); margin-top: var(--vo-space-3); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--vo-space-2);
+    font-family: var(--vo-font-label);
+    font-size: var(--vo-text-body); font-weight: var(--vo-weight-label);
+    border-radius: var(--vo-radius-md);
+    padding: var(--vo-space-2) var(--vo-space-4);
+    cursor: pointer; border: 1px solid transparent;
+  }
+  .btn svg { width: 16px; height: 16px; }
+  .btn--primary {
+    background: var(--vo-gradient-hero-cta);
+    color: var(--vo-color-on-primary);
+    box-shadow: var(--vo-elev-ambient-high);
+  }
+  .btn--ghost {
+    background: var(--vo-color-surface-container-high);
+    color: var(--vo-color-primary);
+    border-color: rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  }
+
+  /* Derived addresses */
+  .derived__head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: var(--vo-space-8) 0 var(--vo-space-3);
+  }
+  .derived__toggle {
+    display: inline-flex; align-items: center; gap: var(--vo-space-2);
+    font-size: var(--vo-text-label); color: var(--vo-color-surface-bright);
+  }
+  .switch {
+    width: 38px; height: 22px; border-radius: var(--vo-radius-full);
+    background: var(--vo-color-surface-container-highest);
+    position: relative; cursor: pointer; flex: none;
+  }
+  .switch--on { background: var(--vo-color-override-tertiary); }
+  .switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: var(--vo-radius-full);
+    background: var(--vo-color-on-primary); transition: left .15s;
+  }
+  .switch--on::after { left: 18px; }
+
+  .drow {
+    display: grid; grid-template-columns: 40px 1fr auto auto; align-items: center;
+    gap: var(--vo-space-3);
+    padding: var(--vo-space-3) var(--vo-space-4);
+    border-radius: var(--vo-radius-lg);
+    background: var(--vo-color-surface-container);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    margin-bottom: var(--vo-space-2);
+  }
+  .drow__idx {
+    width: 34px; height: 34px; border-radius: var(--vo-radius-md);
+    background: var(--vo-color-surface-container-highest);
+    display: grid; place-items: center;
+    font-size: var(--vo-text-label); color: var(--vo-color-surface-bright);
+    font-variant-numeric: tabular-nums;
+  }
+  .drow__addr {
+    font-family: "SFMono-Regular", ui-monospace, Menlo, monospace;
+    font-size: var(--vo-text-body); color: var(--vo-color-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .drow__path { font-size: var(--vo-text-label); color: var(--vo-color-surface-bright); margin-top: 2px; }
+  .drow__bal { text-align: right; font-size: var(--vo-text-body); color: var(--vo-color-primary); font-variant-numeric: tabular-nums; }
+  .drow__copy {
+    width: 30px; height: 30px; border-radius: var(--vo-radius-md);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    background: var(--vo-color-surface-container-high);
+    color: var(--vo-color-surface-bright);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .drow__copy svg { width: 15px; height: 15px; }
+  .drow__used { color: var(--vo-color-surface-bright); }
+
+  /* ========================================================================
+     PANE 4 — Inspector (collapsible)
+     ======================================================================== */
+  .inspector {
+    background: var(--vo-color-surface-container-low);
+    border-left: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .inspector__head {
+    padding: var(--vo-space-6) var(--vo-space-4) var(--vo-space-4);
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+  }
+  .inspector__title {
+    font-family: var(--vo-font-display);
+    font-size: var(--vo-text-body); font-weight: var(--vo-weight-headline);
+    letter-spacing: var(--vo-tracking-label); text-transform: uppercase;
+    color: var(--vo-color-surface-bright);
+  }
+  .inspector__collapse {
+    width: 28px; height: 28px; border-radius: var(--vo-radius-md);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    background: var(--vo-color-surface-container);
+    color: var(--vo-color-surface-bright);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .inspector__collapse svg { width: 16px; height: 16px; }
+  .inspector__scroll { flex: 1; overflow-y: auto; padding: var(--vo-space-4); }
+
+  .insp-block { margin-bottom: var(--vo-space-6); }
+  .insp-block__label {
+    font-size: var(--vo-text-label); letter-spacing: var(--vo-tracking-label);
+    text-transform: uppercase; color: var(--vo-color-surface-bright);
+    margin-bottom: var(--vo-space-2);
+  }
+  .meta {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--vo-space-3) 0;
+    border-bottom: 1px solid rgba(70, 69, 83, 0.12);
+    font-size: var(--vo-text-body);
+  }
+  .meta__k { color: var(--vo-color-surface-bright); }
+  .meta__v { color: var(--vo-color-primary); font-variant-numeric: tabular-nums; }
+  .meta__v--mono { font-family: "SFMono-Regular", ui-monospace, Menlo, monospace; font-size: var(--vo-text-label); }
+
+  .xpub {
+    font-family: "SFMono-Regular", ui-monospace, Menlo, monospace;
+    font-size: var(--vo-text-label); color: var(--vo-color-primary);
+    word-break: break-all; line-height: 1.5;
+    background: var(--vo-color-surface-container-highest);
+    border-radius: var(--vo-radius-md);
+    padding: var(--vo-space-3);
+  }
+
+  .posture {
+    display: flex; align-items: center; gap: var(--vo-space-3);
+    padding: var(--vo-space-3);
+    border-radius: var(--vo-radius-lg);
+    background: rgba(104, 219, 169, 0.08);
+    border: 1px solid rgba(104, 219, 169, 0.24);
+  }
+  .posture__icon {
+    width: 36px; height: 36px; flex: none;
+    border-radius: var(--vo-radius-full);
+    background: rgba(104, 219, 169, 0.16);
+    color: var(--vo-color-tertiary);
+    display: grid; place-items: center;
+  }
+  .posture__icon svg { width: 18px; height: 18px; }
+  .posture__title { font-size: var(--vo-text-body); font-weight: var(--vo-weight-title); color: var(--vo-color-tertiary); }
+  .posture__sub { font-size: var(--vo-text-label); color: var(--vo-color-surface-bright); margin-top: 2px; }
+
+  .insp-action {
+    display: flex; align-items: center; gap: var(--vo-space-3);
+    width: 100%; text-align: left;
+    padding: var(--vo-space-3) var(--vo-space-4);
+    border-radius: var(--vo-radius-md);
+    background: var(--vo-color-surface-container);
+    border: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+    color: var(--vo-color-primary);
+    font-family: var(--vo-font-body); font-size: var(--vo-text-body);
+    cursor: pointer; margin-bottom: var(--vo-space-2);
+  }
+  .insp-action svg { width: 18px; height: 18px; color: var(--vo-color-surface-bright); flex: none; }
+  .insp-action--danger { color: var(--vo-color-error); }
+  .insp-action--danger svg { color: var(--vo-color-error); }
+
+  /* scrollbars */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--vo-color-surface-container-highest); border-radius: var(--vo-radius-full); }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ========================================================================
+     iPHONE COMPACT REFLOW (demonstration of single-column collapse)
+     ======================================================================== */
+  @media (max-width: 833px) {
+    .ipad-frame {
+      width: 100%; height: auto;
+      grid-template-columns: 1fr;
+    }
+    .rail {
+      flex-direction: row; justify-content: space-around;
+      border-right: none; border-top: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border));
+      order: 99; position: sticky; bottom: 0;
+    }
+    .rail__brand, .rail__spacer, .rail__avatar, .rail__item--active::before { display: none; }
+    .inspector { border-left: none; border-top: 1px solid rgba(70, 69, 83, var(--vo-opacity-ghost-border)); }
+    .receive { grid-template-columns: 1fr; justify-items: center; text-align: left; }
+  }
+</style>
+</head>
+<body>
+  <div class="ipad-frame">
+
+    <!-- ===== PANE 1: icon rail ===== -->
+    <nav class="rail" aria-label="Vault sections">
+      <div class="rail__brand" title="Auth Box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div class="rail__item" title="Passwords">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><circle cx="12" cy="16" r="1"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="rail__item" title="Authenticator">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </div>
+      <div class="rail__item rail__item--active" title="Wallet" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h13v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16V7"/><circle cx="16" cy="14" r="1.4"/></svg>
+      </div>
+      <div class="rail__item" title="Documents">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      </div>
+      <div class="rail__spacer"></div>
+      <div class="rail__item" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+      <div class="rail__avatar" title="Maurice W.">MW</div>
+    </nav>
+
+    <!-- ===== PANE 2: accounts list ===== -->
+    <section class="list" aria-label="Watch-only accounts">
+      <div class="list__head">
+        <div class="list__title-row">
+          <h1 class="list__title">Wallet</h1>
+          <button class="list__add" title="Add watch-only account" aria-label="Add account">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Search accounts or xpub" aria-label="Search accounts">
+        </div>
+      </div>
+
+      <div class="list__total">
+        <div class="list__total-label">Total Watched Value</div>
+        <div class="list__total-value">$184,920.57</div>
+        <div class="list__total-delta">▲ $2,143.08 · +1.17% today</div>
+      </div>
+
+      <div class="list__scroll">
+        <div class="list__group-label">Bitcoin</div>
+
+        <div class="acct acct--active" aria-current="true">
+          <div class="acct__coin coin--btc">₿</div>
+          <div class="acct__main">
+            <div class="acct__name">Cold Storage · Ledger</div>
+            <div class="acct__sub"><span class="watch-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/></svg>Watch-only</span></div>
+          </div>
+          <div class="acct__amt">
+            <div class="acct__amt-fiat">$142,308.11</div>
+            <div class="acct__amt-coin">2.14077 BTC</div>
+          </div>
+        </div>
+
+        <div class="acct">
+          <div class="acct__coin coin--btc">₿</div>
+          <div class="acct__main">
+            <div class="acct__name">Lightning Spending</div>
+            <div class="acct__sub">bc1q · 4 used addrs</div>
+          </div>
+          <div class="acct__amt">
+            <div class="acct__amt-fiat">$3,664.92</div>
+            <div class="acct__amt-coin">0.05512 BTC</div>
+          </div>
+        </div>
+
+        <div class="list__group-label">Ethereum</div>
+
+        <div class="acct">
+          <div class="acct__coin coin--eth">Ξ</div>
+          <div class="acct__main">
+            <div class="acct__name">DeFi · Trezor</div>
+            <div class="acct__sub">0x7a2f · 11 used addrs</div>
+          </div>
+          <div class="acct__amt">
+            <div class="acct__amt-fiat">$31,447.03</div>
+            <div class="acct__amt-coin">9.8412 ETH</div>
+          </div>
+        </div>
+
+        <div class="acct">
+          <div class="acct__coin coin--eth">Ξ</div>
+          <div class="acct__main">
+            <div class="acct__name">ENS · maurice.eth</div>
+            <div class="acct__sub">0x3c19 · 2 used addrs</div>
+          </div>
+          <div class="acct__amt">
+            <div class="acct__amt-fiat">$7,500.51</div>
+            <div class="acct__amt-coin">2.3477 ETH</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PANE 3: account detail ===== -->
+    <main class="detail" aria-label="Account detail">
+      <div class="detail__bar">
+        <div class="detail__bar-left">
+          <div class="acct__coin coin--btc" style="width:44px;height:44px;font-size:16px;">₿</div>
+          <div>
+            <div class="detail__heading">Cold Storage · Ledger</div>
+            <div class="detail__heading-sub">Native SegWit (bech32) · Account #0 · Last synced 4 min ago</div>
+          </div>
+        </div>
+        <button class="detail__inspector-toggle" title="Collapse inspector">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg>
+          Inspector
+        </button>
+      </div>
+
+      <div class="detail__scroll">
+        <!-- balance hero -->
+        <div class="balance">
+          <div>
+            <div class="balance__label">Current Balance</div>
+            <div class="balance__fiat">$142,308.11</div>
+            <div class="balance__coin">2.14077000 BTC · @ $66,475.21</div>
+            <div class="balance__delta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>
+              +$1,892.40 · +1.35% (24h)
+            </div>
+          </div>
+          <div style="display:flex; gap:var(--vo-space-2);">
+            <button class="btn btn--ghost">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
+              Refresh
+            </button>
+            <button class="btn btn--primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+              Receive
+            </button>
+          </div>
+        </div>
+
+        <!-- receive address -->
+        <div class="section-h">Receive Address</div>
+        <div class="receive">
+          <div class="qr" aria-label="QR code for receive address">
+            <div class="qr__grid">
+              <!-- static decorative QR pattern -->
+              <i></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i></i>
+              <i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i>
+              <i></i><i></i><i class="off"></i><i></i><i></i><i></i><i class="off"></i><i></i><i></i>
+              <i class="off"></i><i></i><i></i><i class="off"></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i>
+              <i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i>
+              <i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i class="off"></i><i></i><i></i>
+              <i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i><i></i><i class="off"></i>
+              <i></i><i></i><i></i><i class="off"></i><i></i><i></i><i class="off"></i><i></i><i></i>
+              <i></i><i class="off"></i><i></i><i></i><i></i><i class="off"></i><i></i><i></i><i></i>
+            </div>
+          </div>
+          <div class="receive__body">
+            <div class="receive__top">
+              <span class="safety-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                Verified on device
+              </span>
+              <span class="safety-chip" style="color:var(--vo-color-secondary); background:rgba(217,119,7,0.12); border-color:rgba(217,119,7,0.30);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                Fresh · never used
+              </span>
+            </div>
+            <div class="receive__addr">bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq</div>
+            <div class="receive__actions">
+              <button class="btn btn--ghost">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy address
+              </button>
+              <button class="btn btn--ghost">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v14"/></svg>
+                Share
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- derived addresses -->
+        <div class="derived__head">
+          <div class="section-h" style="margin:0;">Derived Addresses</div>
+          <label class="derived__toggle">
+            Show empty
+            <span class="switch"></span>
+          </label>
+        </div>
+
+        <div class="drow">
+          <div class="drow__idx">0</div>
+          <div style="min-width:0;">
+            <div class="drow__addr">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</div>
+            <div class="drow__path">m/84'/0'/0'/0/0 · Receiving</div>
+          </div>
+          <div class="drow__bal">1.84210 BTC</div>
+          <button class="drow__copy" aria-label="Copy address">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+
+        <div class="drow">
+          <div class="drow__idx">1</div>
+          <div style="min-width:0;">
+            <div class="drow__addr">bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde</div>
+            <div class="drow__path">m/84'/0'/0'/0/1 · Receiving</div>
+          </div>
+          <div class="drow__bal">0.29867 BTC</div>
+          <button class="drow__copy" aria-label="Copy address">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+
+        <div class="drow">
+          <div class="drow__idx">2</div>
+          <div style="min-width:0;">
+            <div class="drow__addr">bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7</div>
+            <div class="drow__path">m/84'/0'/0'/1/0 · Change</div>
+          </div>
+          <div class="drow__bal drow__used">0.00000 BTC</div>
+          <button class="drow__copy" aria-label="Copy address">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+
+        <div class="drow">
+          <div class="drow__idx">3</div>
+          <div style="min-width:0;">
+            <div class="drow__addr">bc1q9d4ywgfnd8h43da5tpcxcn6ajv590cg6d3tg6axemvljvt2k76ssg85msr</div>
+            <div class="drow__path">m/84'/0'/0'/0/2 · Receiving</div>
+          </div>
+          <div class="drow__bal">0.00000 BTC</div>
+          <button class="drow__copy" aria-label="Copy address">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== PANE 4: inspector ===== -->
+    <aside class="inspector" aria-label="Account inspector">
+      <div class="inspector__head">
+        <div class="inspector__title">Inspector</div>
+        <button class="inspector__collapse" title="Collapse panel" aria-label="Collapse inspector">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="inspector__scroll">
+        <!-- security posture -->
+        <div class="insp-block">
+          <div class="posture">
+            <div class="posture__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+            <div>
+              <div class="posture__title">Watch-only · Keys offline</div>
+              <div class="posture__sub">No private keys stored. Cannot spend.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- metadata -->
+        <div class="insp-block">
+          <div class="insp-block__label">Account Metadata</div>
+          <div class="meta"><span class="meta__k">Network</span><span class="meta__v">Bitcoin Mainnet</span></div>
+          <div class="meta"><span class="meta__k">Script type</span><span class="meta__v">P2WPKH (bech32)</span></div>
+          <div class="meta"><span class="meta__k">Derivation</span><span class="meta__v meta__v--mono">m/84'/0'/0'</span></div>
+          <div class="meta"><span class="meta__k">Gap limit</span><span class="meta__v">20</span></div>
+          <div class="meta"><span class="meta__k">Used addresses</span><span class="meta__v">17</span></div>
+          <div class="meta"><span class="meta__k">Added</span><span class="meta__v">12 Mar 2026</span></div>
+          <div class="meta" style="border-bottom:none;"><span class="meta__k">Source device</span><span class="meta__v">Ledger Nano X</span></div>
+        </div>
+
+        <!-- extended public key -->
+        <div class="insp-block">
+          <div class="insp-block__label">Extended Public Key (zpub)</div>
+          <div class="xpub">zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wnT3qLB5oTANJtSP6wJqYzd7c5HoyVPNHL4ahawT2x6dKTdNeKUR7zHagvbpEjxe</div>
+        </div>
+
+        <!-- actions -->
+        <div class="insp-block">
+          <div class="insp-block__label">Actions</div>
+          <button class="insp-action">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            Rename account
+          </button>
+          <button class="insp-action">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
+            Rescan from gap
+          </button>
+          <button class="insp-action">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v14"/></svg>
+            Export xpub / descriptor
+          </button>
+          <button class="insp-action insp-action--danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Remove from wallet
+          </button>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer style="text-align:center; padding:40px 20px; color:#9B9B9D; font-size:13px; line-height:2.2;">
+    <p>Auth Box · Wallet — iPad Bake-off Draft · Direction B (Two-column + Inspector)</p>
+    <p>Maurice | maurice_wen@proton.me</p>
+    <p style="font-size:12px; margin-top:8px;">Vault Onyx Design System v1.0 · iPad landscape 1194×834 · static markup</p>
+  </footer>
+</body>
+</html>

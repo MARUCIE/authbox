@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<!-- generated-by: vault-onyx-design-system (html-style-router BYPASS — reviewed)
+     Reason: native iOS/iPad app-screen bake-off draft bound to the project's fixed
+     design system (design/tokens/vault-onyx.css), NOT an html-style-router genre
+     report. Brand tokens are the single source of truth; the style router does not
+     apply to in-app UI mocks. data-style-id="vault-onyx". -->
+<!--
+  ============================================================================
+  Auth Box — Wallet screen — DIRECTION A: Three-column split (NavigationSplitView)
+  iPad LANDSCAPE bake-off draft · 1194×834 (logical pt) · Vault Onyx dark theme
+  ============================================================================
+
+  SCREEN
+  Wallet — self-custodial, WATCH-ONLY BTC/ETH. No private keys, no signing here;
+  the vault stores xpub/zpub descriptors and derives addresses for receiving only.
+
+  WHAT THIS DEMONSTRATES
+  The canonical iPad pattern: a 3-column NavigationSplitView mapping directly to
+  SwiftUI's (sidebar | content | detail) regions —
+    • Column 1 SIDEBAR  : chains + portfolio total + smart filters + sync footer
+    • Column 2 CONTENT  : the ACCOUNTS list for the selected chain (search + add)
+    • Column 3 DETAIL   : the selected account's record —
+        balance card → receive address w/ safety chip + QR → derived-address table
+  Today's app is an iPhone TabView + List + NavigationStack stretched edge-to-edge;
+  this draft is the dense, Mail/Notes-like 3-pane surface iPad should actually use.
+
+  ── HOW THIS COLLAPSES TO iPhone (compact width class) ──────────────────────
+  On iPhone (.horizontalSizeClass == .compact) NavigationSplitView automatically
+  collapses to a SINGLE-COLUMN NavigationStack push flow:
+    1. Sidebar chains + portfolio total render as the ROOT List screen.
+    2. Tapping a chain PUSHES the accounts list (column 2) onto the stack.
+    3. Tapping an account PUSHES the account detail (column 3).
+    4. Back button (‹) pops one level at a time: detail → accounts → chains.
+    5. The sync footer + smart filters move under the root list; in the detail,
+       the right-hand receive rail (QR + safety chips) reflows BELOW the balance
+       card and ABOVE the derived-address table as full-width stacked sections.
+  i.e. the three side-by-side panes become three stacked navigation depths —
+  zero feature loss, just one-pane-at-a-time. The persistent ⌘-style search in
+  column 2 becomes a pull-to-reveal .searchable on the pushed accounts list, and
+  the derived-address table becomes a vertically-scrolling grouped List.
+  ============================================================================
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1194, initial-scale=1">
+<title>Auth Box · Wallet · 三栏分屏 (Direction A)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   :root — inlined verbatim from design/tokens/vault-onyx.css
+   ONLY --vo-* custom properties may be used below this block.
+   ============================================================ */
+:root {
+  color-scheme: dark;
+
+  /* ---- Color: Primary Palette ---- */
+  --vo-color-primary: #c3c0ff;
+  --vo-color-primary-container: #3730a3;
+  --vo-color-secondary: #ffb77d;
+  --vo-color-secondary-container: #d97707;
+  --vo-color-tertiary: #68dba9;
+  --vo-color-tertiary-container: #004d34;
+  --vo-color-error: #ffb4ab;
+
+  /* ---- Color: Surface Hierarchy (Dark Mode) ---- */
+  --vo-color-surface: #0b1326;
+  --vo-color-surface-container-lowest: #060e20;
+  --vo-color-surface-container-low: #131b2e;
+  --vo-color-surface-container: #171f33;
+  --vo-color-surface-container-high: #222a3d;
+  --vo-color-surface-container-highest: #2d3449;
+  --vo-color-surface-bright: #31394d;
+
+  /* ---- Color: Outline / Ghost Border ---- */
+  --vo-color-outline-variant: #464553;
+
+  /* ---- Color: Override Colors ---- */
+  --vo-color-override-primary: #3730a3;
+  --vo-color-override-secondary: #d97706;
+  --vo-color-override-tertiary: #059669;
+  --vo-color-override-neutral: #0f172a;
+  --vo-color-neutral: #0f172a;
+
+  /* ---- Color: Material-3 defaults ---- */
+  --vo-color-on-primary: #ffffff;
+  --vo-color-primary-fixed: #c3c0ff;
+
+  /* ---- Typography: Families ---- */
+  --vo-font-display: "Space Grotesk", sans-serif;
+  --vo-font-body: "Inter", "IBM Plex Sans", sans-serif;
+  --vo-font-label: "Inter", sans-serif;
+
+  /* ---- Typography: Sizes ---- */
+  --vo-text-display: 3.5rem;
+  --vo-text-headline: 2rem;
+  --vo-text-title: 1.25rem;
+  --vo-text-body: 0.875rem;
+  --vo-text-label: 0.75rem;
+
+  /* ---- Typography: Weights ---- */
+  --vo-weight-display: 700;
+  --vo-weight-headline: 700;
+  --vo-weight-title: 500;
+  --vo-weight-body: 400;
+  --vo-weight-label: 500;
+
+  /* ---- Typography: Tracking ---- */
+  --vo-tracking-display: -0.02em;
+  --vo-tracking-headline: -0.02em;
+  --vo-tracking-title: -0.01em;
+  --vo-tracking-body: normal;
+  --vo-tracking-label: 0.02em;
+
+  /* ---- Spacing Scale ---- */
+  --vo-space-1: 4px;
+  --vo-space-2: 8px;
+  --vo-space-3: 12px;
+  --vo-space-4: 16px;
+  --vo-space-6: 24px;
+  --vo-space-8: 32px;
+  --vo-space-12: 48px;
+  --vo-space-16: 64px;
+  --vo-space-20: 80px;
+  --vo-space-24: 96px;
+
+  /* ---- Roundness ---- */
+  --vo-radius-xs: 2px;
+  --vo-radius-sm: 4px;
+  --vo-radius-md: 6px;
+  --vo-radius-lg: 8px;
+  --vo-radius-xl: 12px;
+  --vo-radius-full: 9999px;
+
+  /* ---- Elevation / Ambient Shadows ---- */
+  --vo-elev-ambient-low: 0 0 40px 0 rgba(55, 48, 163, 0.04);
+  --vo-elev-ambient-high: 0 0 80px 0 rgba(55, 48, 163, 0.08);
+
+  /* ---- Gradient ---- */
+  --vo-gradient-hero-cta: linear-gradient(135deg, #c3c0ff 0%, #3730a3 100%);
+
+  /* ---- Opacity ---- */
+  --vo-opacity-ghost-border: 0.2;
+  --vo-opacity-modal-glass: 0.6;
+  --vo-opacity-input-focus: 0.4;
+
+  /* ---- Effect ---- */
+  --vo-blur-modal-backdrop: 20px;
+}
+
+/* ============================================================
+   Reset + frame
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--vo-color-surface-container-lowest);
+  font-family: var(--vo-font-body);
+  color: var(--vo-color-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--vo-space-6);
+}
+
+/* The device frame — iPad landscape 1194×834 */
+.ipad {
+  width: 1194px;
+  height: 834px;
+  background: var(--vo-color-surface);
+  border-radius: var(--vo-radius-xl);
+  overflow: hidden;
+  display: grid;
+  /* sidebar | content list | detail — the 3 NavigationSplitView columns */
+  grid-template-columns: 248px 352px 1fr;
+  box-shadow: var(--vo-elev-ambient-high);
+  position: relative;
+}
+
+::selection { background: rgba(195, 192, 255, 0.22); }
+
+/* shared scrollbar tone */
+.scroll { overflow-y: auto; }
+.scroll::-webkit-scrollbar { width: 8px; }
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-full);
+}
+.scroll::-webkit-scrollbar-track { background: transparent; }
+
+.mono { font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   COLUMN 1 — SIDEBAR (chains + portfolio total + smart filters)
+   ============================================================ */
+.sidebar {
+  background: var(--vo-color-surface-container-low);
+  display: flex;
+  flex-direction: column;
+  padding: var(--vo-space-6) var(--vo-space-3) 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--vo-space-3);
+  padding: 0 var(--vo-space-3) var(--vo-space-4);
+}
+.brand-mark {
+  width: 34px; height: 34px;
+  border-radius: var(--vo-radius-lg);
+  background: var(--vo-gradient-hero-cta);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.brand-mark svg { width: 18px; height: 18px; }
+.brand-name {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.05rem;
+  letter-spacing: var(--vo-tracking-headline);
+  color: var(--vo-color-primary);
+}
+.brand-sub {
+  font-size: 0.62rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-secondary);
+  font-weight: var(--vo-weight-label);
+}
+
+/* portfolio total card — sits high in sidebar, watch-only signpost */
+.portfolio {
+  background: var(--vo-color-surface-container);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-4);
+  margin: 0 var(--vo-space-1) var(--vo-space-2);
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.portfolio-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.5);
+  display: flex; align-items: center; gap: 6px;
+}
+.eye-only {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.58rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-tertiary);
+}
+.eye-only svg { width: 12px; height: 12px; }
+.portfolio-value {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-display);
+  font-size: 1.7rem;
+  color: var(--vo-color-primary);
+  letter-spacing: var(--vo-tracking-display);
+  margin-top: var(--vo-space-2);
+  line-height: 1.1;
+}
+.portfolio-delta {
+  font-size: 0.72rem;
+  color: var(--vo-color-tertiary);
+  margin-top: 2px;
+  display: flex; align-items: center; gap: 5px;
+}
+.portfolio-delta svg { width: 13px; height: 13px; }
+
+.nav-group-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.42);
+  padding: var(--vo-space-4) var(--vo-space-3) var(--vo-space-2);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--vo-space-3);
+  padding: var(--vo-space-2) var(--vo-space-3);
+  border-radius: var(--vo-radius-md);
+  cursor: default;
+  margin-bottom: 2px;
+  font-size: var(--vo-text-body);
+  color: rgba(195, 192, 255, 0.78);
+  font-weight: var(--vo-weight-body);
+}
+.coin-badge {
+  width: 24px; height: 24px;
+  border-radius: var(--vo-radius-full);
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 0.7rem;
+  color: var(--vo-color-on-primary);
+}
+.nav-item .ico {
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  display: grid; place-items: center;
+}
+.nav-item .ico svg { width: 17px; height: 17px; }
+.nav-item .count {
+  margin-left: auto;
+  font-size: var(--vo-text-label);
+  color: rgba(195, 192, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+.nav-item.active {
+  background: var(--vo-color-surface-container-highest);
+  color: var(--vo-color-primary);
+  font-weight: var(--vo-weight-title);
+}
+.nav-item.active .count { color: var(--vo-color-primary); }
+.nav-item.active .ico { opacity: 1; color: var(--vo-color-secondary); }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: var(--vo-space-4) var(--vo-space-3) var(--vo-space-6);
+}
+.storage-card {
+  background: var(--vo-color-surface-container);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-4);
+}
+.storage-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--vo-space-2);
+}
+.storage-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.55);
+}
+.pulse {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.66rem;
+  color: var(--vo-color-tertiary);
+}
+.pulse-dot {
+  width: 7px; height: 7px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-tertiary);
+  box-shadow: 0 0 0 4px rgba(104, 219, 169, 0.18);
+}
+.storage-meta {
+  font-size: 0.66rem;
+  color: rgba(195, 192, 255, 0.5);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   COLUMN 2 — CONTENT LIST (accounts for the selected chain)
+   ============================================================ */
+.list-col {
+  background: var(--vo-color-surface-container);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.list-head {
+  padding: var(--vo-space-6) var(--vo-space-4) var(--vo-space-3);
+}
+.list-title-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--vo-space-4);
+}
+.list-title {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.5rem;
+  letter-spacing: var(--vo-tracking-headline);
+  color: var(--vo-color-primary);
+}
+.list-title .sub {
+  display: block;
+  font-family: var(--vo-font-body);
+  font-weight: var(--vo-weight-body);
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.45);
+  margin-top: 4px;
+}
+.add-btn {
+  width: 36px; height: 36px;
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-gradient-hero-cta);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.add-btn svg { width: 18px; height: 18px; }
+
+/* search field */
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--vo-space-2);
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-md);
+  padding: var(--vo-space-2) var(--vo-space-3);
+}
+.search svg { width: 16px; height: 16px; opacity: 0.55; flex-shrink: 0; }
+.search .ph {
+  font-size: var(--vo-text-body);
+  color: rgba(195, 192, 255, 0.5);
+}
+.search .kbd {
+  margin-left: auto;
+  font-size: 0.66rem;
+  color: rgba(195, 192, 255, 0.4);
+  background: var(--vo-color-surface-container-high);
+  padding: 2px 6px;
+  border-radius: var(--vo-radius-sm);
+  font-family: var(--vo-font-display);
+}
+
+.sort-row {
+  display: flex;
+  gap: var(--vo-space-2);
+  padding: var(--vo-space-3) var(--vo-space-4) var(--vo-space-2);
+}
+.chip {
+  font-size: 0.7rem;
+  font-weight: var(--vo-weight-label);
+  letter-spacing: var(--vo-tracking-label);
+  padding: 5px var(--vo-space-3);
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-surface-container-high);
+  color: rgba(195, 192, 255, 0.6);
+}
+.chip.on {
+  background: rgba(195, 192, 255, 0.14);
+  color: var(--vo-color-primary);
+}
+
+.acct-list {
+  flex: 1;
+  min-height: 0;
+  padding: var(--vo-space-2) var(--vo-space-3) var(--vo-space-6);
+}
+.acct {
+  display: flex;
+  align-items: center;
+  gap: var(--vo-space-3);
+  padding: var(--vo-space-3);
+  border-radius: var(--vo-radius-lg);
+  margin-bottom: var(--vo-space-1);
+}
+.acct.sel {
+  background: var(--vo-color-surface-container-highest);
+}
+.acct-coin {
+  width: 40px; height: 40px;
+  border-radius: var(--vo-radius-full);
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 0.85rem;
+  color: var(--vo-color-on-primary);
+}
+.acct-body { min-width: 0; flex: 1; }
+.acct-name {
+  font-size: var(--vo-text-body);
+  font-weight: var(--vo-weight-title);
+  color: var(--vo-color-primary);
+  letter-spacing: var(--vo-tracking-title);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.acct-meta {
+  font-size: 0.72rem;
+  color: rgba(195, 192, 255, 0.5);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 2px;
+  display: flex; align-items: center; gap: 6px;
+}
+.acct-meta .tag {
+  font-size: 0.58rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: var(--vo-radius-xs);
+  background: var(--vo-color-surface-container-high);
+  color: rgba(195, 192, 255, 0.6);
+}
+.acct-aside {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+  flex-shrink: 0;
+}
+.acct-bal {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-title);
+  font-size: 0.82rem;
+  color: var(--vo-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.acct-fiat {
+  font-size: 0.7rem;
+  color: rgba(195, 192, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   COLUMN 3 — DETAIL (account record: balance + receive + derived)
+   ============================================================ */
+.detail {
+  background: var(--vo-color-surface-container-low);
+  display: grid;
+  grid-template-columns: 1fr 252px;
+  min-height: 0;
+}
+.detail-main {
+  min-height: 0;
+  padding: var(--vo-space-8);
+}
+
+/* detail header */
+.d-head {
+  display: flex; align-items: center; gap: var(--vo-space-4);
+  margin-bottom: var(--vo-space-6);
+}
+.d-coin {
+  width: 56px; height: 56px;
+  border-radius: var(--vo-radius-full);
+  display: grid; place-items: center;
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: 1.25rem;
+  color: var(--vo-color-on-primary);
+  flex-shrink: 0;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.d-titleblock { min-width: 0; flex: 1; }
+.d-title {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-headline);
+  font-size: var(--vo-text-headline);
+  letter-spacing: var(--vo-tracking-headline);
+  color: var(--vo-color-primary);
+  display: flex; align-items: center; gap: var(--vo-space-3);
+}
+.watch-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--vo-font-body);
+  font-size: 0.62rem;
+  font-weight: var(--vo-weight-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: var(--vo-color-tertiary);
+  background: rgba(104, 219, 169, 0.12);
+  padding: 3px var(--vo-space-2);
+  border-radius: var(--vo-radius-full);
+}
+.watch-pill svg { width: 12px; height: 12px; }
+.d-sub {
+  font-size: var(--vo-text-body);
+  color: var(--vo-color-primary-fixed);
+  opacity: 0.7;
+  margin-top: 4px;
+}
+.d-actions { display: flex; gap: var(--vo-space-2); }
+.icon-btn {
+  width: 38px; height: 38px;
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-color-surface-container-high);
+  display: grid; place-items: center;
+}
+.icon-btn svg { width: 18px; height: 18px; opacity: 0.8; }
+
+/* balance card */
+.balance-card {
+  background: var(--vo-color-surface-container);
+  border-radius: var(--vo-radius-xl);
+  padding: var(--vo-space-6);
+  margin-bottom: var(--vo-space-6);
+  box-shadow: var(--vo-elev-ambient-low);
+  position: relative;
+  overflow: hidden;
+}
+.balance-card::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 120% at 100% 0%, rgba(55, 48, 163, 0.16) 0%, transparent 55%);
+  pointer-events: none;
+}
+.balance-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  position: relative;
+}
+.balance-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.5);
+}
+.balance-coin {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-display);
+  font-size: 2.4rem;
+  color: var(--vo-color-primary);
+  letter-spacing: var(--vo-tracking-display);
+  margin-top: var(--vo-space-2);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+.balance-coin .unit {
+  font-size: 1.1rem;
+  color: rgba(195, 192, 255, 0.6);
+  margin-left: 6px;
+}
+.balance-fiat {
+  font-size: var(--vo-text-body);
+  color: rgba(195, 192, 255, 0.7);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.balance-delta {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.72rem;
+  color: var(--vo-color-tertiary);
+  background: rgba(104, 219, 169, 0.1);
+  padding: 4px var(--vo-space-2);
+  border-radius: var(--vo-radius-full);
+  position: relative;
+}
+.balance-delta svg { width: 13px; height: 13px; }
+.balance-split {
+  display: flex; gap: var(--vo-space-6);
+  margin-top: var(--vo-space-6);
+  padding-top: var(--vo-space-4);
+  border-top: 1px solid rgba(70, 69, 83, 0.4);
+  position: relative;
+}
+.split-cell { }
+.split-k {
+  font-size: 0.66rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.45);
+}
+.split-v {
+  font-family: var(--vo-font-display);
+  font-weight: var(--vo-weight-title);
+  font-size: 0.95rem;
+  color: var(--vo-color-primary);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* section label */
+.sec-label {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.42);
+  margin-bottom: var(--vo-space-3);
+  padding-left: 2px;
+  display: flex; align-items: center; gap: var(--vo-space-2);
+}
+.sec-label .pill-count {
+  font-family: var(--vo-font-body);
+  text-transform: none;
+  letter-spacing: normal;
+  color: rgba(195, 192, 255, 0.5);
+}
+
+/* derived addresses table */
+.derived-table {
+  background: var(--vo-color-surface-container);
+  border-radius: var(--vo-radius-lg);
+  overflow: hidden;
+}
+.dt-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 96px 96px 30px;
+  align-items: center;
+  gap: var(--vo-space-3);
+  padding: var(--vo-space-3) var(--vo-space-4);
+}
+.dt-row + .dt-row { border-top: 1px solid rgba(70, 69, 83, 0.28); }
+.dt-row.head {
+  background: var(--vo-color-surface-container-low);
+  padding-top: var(--vo-space-2); padding-bottom: var(--vo-space-2);
+}
+.dt-h {
+  font-size: 0.62rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.45);
+}
+.dt-h.r, .dt-c.r { text-align: right; }
+.dt-path {
+  font-family: var(--vo-font-display);
+  font-size: 0.74rem;
+  color: var(--vo-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.dt-addr {
+  font-family: var(--vo-font-display);
+  font-size: 0.78rem;
+  color: var(--vo-color-primary);
+  letter-spacing: 0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dt-used {
+  font-size: 0.66rem;
+  color: rgba(195, 192, 255, 0.45);
+  margin-top: 2px;
+}
+.dt-bal {
+  font-family: var(--vo-font-display);
+  font-size: 0.78rem;
+  color: var(--vo-color-primary);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.dt-bal.zero { color: rgba(195, 192, 255, 0.35); }
+.dt-fiat {
+  font-size: 0.68rem;
+  color: rgba(195, 192, 255, 0.5);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.dt-copy {
+  width: 28px; height: 28px;
+  border-radius: var(--vo-radius-sm);
+  background: var(--vo-color-surface-container-high);
+  display: grid; place-items: center;
+}
+.dt-copy svg { width: 14px; height: 14px; opacity: 0.7; }
+.fresh-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: var(--vo-radius-full);
+  background: var(--vo-color-tertiary);
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+/* ── detail RIGHT RAIL: receive address + QR + safety chips ── */
+.receive-rail {
+  background: var(--vo-color-surface-container);
+  padding: var(--vo-space-8) var(--vo-space-4);
+  display: flex; flex-direction: column; gap: var(--vo-space-4);
+}
+.rail-title {
+  font-size: var(--vo-text-label);
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--vo-weight-label);
+  color: rgba(195, 192, 255, 0.42);
+}
+.qr-wrap {
+  align-self: center;
+  width: 168px; height: 168px;
+  border-radius: var(--vo-radius-lg);
+  background: var(--vo-color-on-primary);
+  padding: var(--vo-space-3);
+  display: grid; place-items: center;
+  box-shadow: var(--vo-elev-ambient-low);
+}
+.qr-wrap svg { width: 100%; height: 100%; display: block; }
+.recv-addr-box {
+  background: var(--vo-color-surface-container-highest);
+  border-radius: var(--vo-radius-lg);
+  padding: var(--vo-space-3) var(--vo-space-4);
+}
+.recv-addr-label {
+  font-size: 0.64rem;
+  letter-spacing: var(--vo-tracking-label);
+  text-transform: uppercase;
+  color: rgba(195, 192, 255, 0.5);
+  margin-bottom: 5px;
+  display: flex; align-items: center; gap: 6px;
+}
+.recv-addr-label .path {
+  margin-left: auto;
+  font-family: var(--vo-font-display);
+  color: var(--vo-color-secondary);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.recv-addr {
+  font-family: var(--vo-font-display);
+  font-size: 0.8rem;
+  color: var(--vo-color-primary);
+  line-height: 1.5;
+  word-break: break-all;
+}
+.recv-actions {
+  display: flex; gap: var(--vo-space-2);
+  margin-top: var(--vo-space-3);
+}
+.recv-btn {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 0.74rem;
+  font-weight: var(--vo-weight-label);
+  padding: var(--vo-space-2) var(--vo-space-3);
+  border-radius: var(--vo-radius-md);
+  background: var(--vo-color-surface-container-high);
+  color: var(--vo-color-primary);
+}
+.recv-btn.primary {
+  background: var(--vo-gradient-hero-cta);
+  color: var(--vo-color-on-primary);
+}
+.recv-btn svg { width: 14px; height: 14px; }
+
+/* safety chips */
+.safety-chip {
+  display: flex; align-items: center; gap: var(--vo-space-3);
+  background: var(--vo-color-surface-container-high);
+  border-radius: var(--vo-radius-md);
+  padding: var(--vo-space-3);
+}
+.safety-icon {
+  width: 28px; height: 28px;
+  border-radius: var(--vo-radius-sm);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.safety-icon svg { width: 15px; height: 15px; }
+.si-ok   { background: rgba(104, 219, 169, 0.14); color: var(--vo-color-tertiary); }
+.si-warn { background: rgba(255, 183, 125, 0.14); color: var(--vo-color-secondary); }
+.safety-body { flex: 1; min-width: 0; }
+.safety-name {
+  font-size: 0.76rem;
+  color: var(--vo-color-primary);
+  font-weight: var(--vo-weight-title);
+}
+.safety-meta {
+  font-size: 0.66rem;
+  color: rgba(195, 192, 255, 0.5);
+  margin-top: 1px;
+}
+.rail-foot {
+  margin-top: auto;
+  font-size: 0.64rem;
+  color: rgba(195, 192, 255, 0.4);
+  text-align: center;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+<div class="ipad">
+
+  <!-- ===================== COLUMN 1 · SIDEBAR ===================== -->
+  <aside class="sidebar scroll">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-on-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Auth Box</div>
+        <div class="brand-sub">Self-Custodial Wallet</div>
+      </div>
+    </div>
+
+    <!-- portfolio total (watch-only) -->
+    <div class="portfolio">
+      <div class="portfolio-label">
+        投资组合总值
+        <span class="eye-only">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          仅查看
+        </span>
+      </div>
+      <div class="portfolio-value mono">$184,062.40</div>
+      <div class="portfolio-delta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>
+        +2.84% · 24 小时
+      </div>
+    </div>
+
+    <div class="nav-group-label">链 · Chains</div>
+    <div class="nav-item active">
+      <span class="coin-badge" style="background:var(--vo-color-secondary-container);">₿</span>
+      Bitcoin <span class="count">2</span>
+    </div>
+    <div class="nav-item">
+      <span class="coin-badge" style="background:var(--vo-color-primary-container);">Ξ</span>
+      Ethereum <span class="count">3</span>
+    </div>
+
+    <div class="nav-group-label">视图 · Smart</div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"></path><circle cx="12" cy="12" r="9"></circle></svg></span>
+      全部账户 <span class="count">5</span>
+    </div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg></span>
+      收藏账户 <span class="count">2</span>
+    </div>
+    <div class="nav-item">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
+      硬件来源 <span class="count">3</span>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="storage-card">
+        <div class="storage-top">
+          <span class="storage-label">链上同步</span>
+          <span class="pulse"><span class="pulse-dot"></span>已就绪</span>
+        </div>
+        <div class="storage-meta">5 个账户 · 仅存储 xpub/zpub<br>私钥从不离开硬件 · 6 分钟前</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== COLUMN 2 · CONTENT LIST (Bitcoin accounts) ===================== -->
+  <section class="list-col">
+    <div class="list-head">
+      <div class="list-title-row">
+        <div class="list-title">Bitcoin<span class="sub">2 个账户 · 仅查看 · 按余额</span></div>
+        <div class="add-btn" title="添加观察账户">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-on-primary)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+        </div>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <span class="ph">搜索账户、地址或标签…</span>
+        <span class="kbd">⌘ F</span>
+      </div>
+    </div>
+
+    <div class="sort-row">
+      <span class="chip on">全部</span>
+      <span class="chip">收藏</span>
+      <span class="chip">有余额</span>
+      <span class="chip">硬件</span>
+    </div>
+
+    <div class="acct-list scroll">
+
+      <!-- selected → drives column 3 -->
+      <div class="acct sel">
+        <div class="acct-coin" style="background:var(--vo-color-secondary-container);">₿</div>
+        <div class="acct-body">
+          <div class="acct-name">主账户 · Cold Store</div>
+          <div class="acct-meta">
+            <span class="tag">Native SegWit</span>
+            <span>bc1q…6 ·c4lq</span>
+          </div>
+        </div>
+        <div class="acct-aside">
+          <div class="acct-bal mono">2.4187 ₿</div>
+          <div class="acct-fiat mono">$162,840</div>
+        </div>
+      </div>
+
+      <div class="acct">
+        <div class="acct-coin" style="background:var(--vo-color-secondary-container);opacity:.92;">₿</div>
+        <div class="acct-body">
+          <div class="acct-name">日常找零 · Hot Watch</div>
+          <div class="acct-meta">
+            <span class="tag">Taproot</span>
+            <span>bc1p…tz9v</span>
+          </div>
+        </div>
+        <div class="acct-aside">
+          <div class="acct-bal mono">0.0461 ₿</div>
+          <div class="acct-fiat mono">$3,104</div>
+        </div>
+      </div>
+
+      <!-- group separator → Ethereum accounts (shown collapsed below current chain) -->
+      <div class="nav-group-label" style="padding-left:var(--vo-space-3);">以太坊账户 · 切换链可查看</div>
+
+      <div class="acct" style="opacity:.55;">
+        <div class="acct-coin" style="background:var(--vo-color-primary-container);">Ξ</div>
+        <div class="acct-body">
+          <div class="acct-name">DeFi 金库 · Ledger</div>
+          <div class="acct-meta">
+            <span class="tag">EVM · Account 0</span>
+            <span>0x9C…a17F</span>
+          </div>
+        </div>
+        <div class="acct-aside">
+          <div class="acct-bal mono">4.812 Ξ</div>
+          <div class="acct-fiat mono">$15,238</div>
+        </div>
+      </div>
+
+      <div class="acct" style="opacity:.55;">
+        <div class="acct-coin" style="background:var(--vo-color-primary-container);opacity:.92;">Ξ</div>
+        <div class="acct-body">
+          <div class="acct-name">交易热钱包 · MetaMask</div>
+          <div class="acct-meta">
+            <span class="tag">EVM · Account 2</span>
+            <span>0x3a…E0b1</span>
+          </div>
+        </div>
+        <div class="acct-aside">
+          <div class="acct-bal mono">0.740 Ξ</div>
+          <div class="acct-fiat mono">$2,343</div>
+        </div>
+      </div>
+
+      <div class="acct" style="opacity:.55;">
+        <div class="acct-coin" style="background:var(--vo-color-primary-container);opacity:.82;">Ξ</div>
+        <div class="acct-body">
+          <div class="acct-name">空投收集 · ENS</div>
+          <div class="acct-meta">
+            <span class="tag">EVM · Account 5</span>
+            <span>maurice.eth</span>
+          </div>
+        </div>
+        <div class="acct-aside">
+          <div class="acct-bal mono">0.118 Ξ</div>
+          <div class="acct-fiat mono">$374</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== COLUMN 3 · DETAIL (主账户 · Cold Store) ===================== -->
+  <section class="detail">
+    <div class="detail-main scroll">
+
+      <div class="d-head">
+        <div class="d-coin" style="background:var(--vo-color-secondary-container);">₿</div>
+        <div class="d-titleblock">
+          <div class="d-title">
+            主账户 · Cold Store
+            <span class="watch-pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              仅查看 · 无私钥
+            </span>
+          </div>
+          <div class="d-sub">Bitcoin · Native SegWit (BIP84) · 来源 zpub6r…Kx9F</div>
+        </div>
+        <div class="d-actions">
+          <div class="icon-btn" title="收藏">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9L12 18l-6.2 3.3L7 14.2l-5-4.9 6.9-1L12 2z"></path></svg>
+          </div>
+          <div class="icon-btn" title="重新扫描链上">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+          </div>
+          <div class="icon-btn" title="更多">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="19" cy="12" r="1.4"></circle></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- balance card -->
+      <div class="balance-card">
+        <div class="balance-top">
+          <div>
+            <div class="balance-label">账户余额</div>
+            <div class="balance-coin mono">2.41873094<span class="unit">BTC</span></div>
+            <div class="balance-fiat mono">≈ $162,840.18 USD · 1 ₿ = $67,322</div>
+          </div>
+          <div class="balance-delta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>
+            +$4,498 · 24h
+          </div>
+        </div>
+        <div class="balance-split">
+          <div class="split-cell">
+            <div class="split-k">已确认</div>
+            <div class="split-v mono">2.41873094 ₿</div>
+          </div>
+          <div class="split-cell">
+            <div class="split-k">待确认</div>
+            <div class="split-v mono">0.00000000 ₿</div>
+          </div>
+          <div class="split-cell">
+            <div class="split-k">UTXO 数</div>
+            <div class="split-v mono">11</div>
+          </div>
+          <div class="split-cell">
+            <div class="split-k">已用地址</div>
+            <div class="split-v mono">7 / 20</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- derived addresses -->
+      <div class="sec-label">
+        派生地址 · Derived
+        <span class="pill-count">m/84'/0'/0' · 外部链 (receive)</span>
+      </div>
+      <div class="derived-table">
+        <div class="dt-row head">
+          <span class="dt-h">路径</span>
+          <span class="dt-h">地址</span>
+          <span class="dt-h r">余额</span>
+          <span class="dt-h r">收款次数</span>
+          <span class="dt-h"></span>
+        </div>
+
+        <div class="dt-row">
+          <span class="dt-path">…/0/0</span>
+          <div>
+            <div class="dt-addr">bc1q9x5k4f2v0lq3r7m8t6jc4lq</div>
+            <div class="dt-used">2026-06-14 · 入账</div>
+          </div>
+          <div>
+            <div class="dt-bal mono">1.8204 ₿</div>
+            <div class="dt-fiat mono">$122,540</div>
+          </div>
+          <span class="dt-bal mono" style="text-align:right;">4</span>
+          <div class="dt-copy" title="复制">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+          </div>
+        </div>
+
+        <div class="dt-row">
+          <span class="dt-path">…/0/1</span>
+          <div>
+            <div class="dt-addr">bc1qm7t3w8x2plq6v0nr4j9kd2s</div>
+            <div class="dt-used">2026-05-29 · 入账</div>
+          </div>
+          <div>
+            <div class="dt-bal mono">0.5983 ₿</div>
+            <div class="dt-fiat mono">$40,279</div>
+          </div>
+          <span class="dt-bal mono" style="text-align:right;">3</span>
+          <div class="dt-copy" title="复制">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+          </div>
+        </div>
+
+        <div class="dt-row">
+          <span class="dt-path">…/0/7</span>
+          <div>
+            <div class="dt-addr"><span class="fresh-dot"></span>bc1q0v4r8k2m6t9x3plq7nd5jc4lq</div>
+            <div class="dt-used" style="color:var(--vo-color-tertiary);">全新 · 下一个收款地址</div>
+          </div>
+          <div>
+            <div class="dt-bal mono zero">0.0000 ₿</div>
+            <div class="dt-fiat mono">$0</div>
+          </div>
+          <span class="dt-bal mono zero" style="text-align:right;">0</span>
+          <div class="dt-copy" title="复制">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+          </div>
+        </div>
+
+        <div class="dt-row">
+          <span class="dt-path">…/0/8</span>
+          <div>
+            <div class="dt-addr">bc1q3m9k7t2v5lq8r0nx4j6pd2s</div>
+            <div class="dt-used">未使用 · 间隙缓冲</div>
+          </div>
+          <div>
+            <div class="dt-bal mono zero">0.0000 ₿</div>
+            <div class="dt-fiat mono">$0</div>
+          </div>
+          <span class="dt-bal mono zero" style="text-align:right;">0</span>
+          <div class="dt-copy" title="复制">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--vo-color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- detail right rail: receive address + QR + safety chips -->
+    <aside class="receive-rail scroll">
+      <div class="rail-title">收款 · Receive</div>
+
+      <div class="qr-wrap">
+        <!-- decorative static QR-like glyph (BIP21 placeholder), token-free black on on-primary white -->
+        <svg viewBox="0 0 100 100" shape-rendering="crispEdges" fill="var(--vo-color-surface-container-lowest)">
+          <path d="M0 0h28v28H0zM8 8v12h12V8zM72 0h28v28H72zM80 8v12h12V8zM0 72h28v28H0zM8 80v12h12V80z"/>
+          <rect x="36" y="4" width="6" height="6"/><rect x="48" y="4" width="6" height="6"/><rect x="60" y="10" width="6" height="6"/>
+          <rect x="36" y="16" width="6" height="6"/><rect x="54" y="16" width="6" height="6"/><rect x="42" y="22" width="6" height="6"/>
+          <rect x="4" y="36" width="6" height="6"/><rect x="16" y="36" width="6" height="6"/><rect x="36" y="36" width="6" height="6"/>
+          <rect x="48" y="36" width="6" height="6"/><rect x="60" y="36" width="6" height="6"/><rect x="72" y="36" width="6" height="6"/><rect x="90" y="36" width="6" height="6"/>
+          <rect x="10" y="48" width="6" height="6"/><rect x="30" y="48" width="6" height="6"/><rect x="42" y="48" width="6" height="6"/>
+          <rect x="54" y="48" width="6" height="6"/><rect x="78" y="48" width="6" height="6"/><rect x="90" y="48" width="6" height="6"/>
+          <rect x="4" y="60" width="6" height="6"/><rect x="24" y="60" width="6" height="6"/><rect x="48" y="60" width="6" height="6"/>
+          <rect x="66" y="60" width="6" height="6"/><rect x="84" y="60" width="6" height="6"/>
+          <rect x="36" y="72" width="6" height="6"/><rect x="54" y="72" width="6" height="6"/><rect x="72" y="72" width="6" height="6"/><rect x="90" y="72" width="6" height="6"/>
+          <rect x="42" y="84" width="6" height="6"/><rect x="60" y="84" width="6" height="6"/><rect x="78" y="84" width="6" height="6"/><rect x="90" y="90" width="6" height="6"/>
+          <rect x="36" y="90" width="6" height="6"/><rect x="54" y="90" width="6" height="6"/><rect x="66" y="90" width="6" height="6"/>
+        </svg>
+      </div>
+
+      <div class="recv-addr-box">
+        <div class="recv-addr-label">
+          下一个收款地址
+          <span class="path">…/0/7</span>
+        </div>
+        <div class="recv-addr">bc1q0v4r8k2m6t9x3plq7nd5jc4lq</div>
+        <div class="recv-actions">
+          <div class="recv-btn primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+            复制
+          </div>
+          <div class="recv-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v14"></path></svg>
+            分享
+          </div>
+        </div>
+      </div>
+
+      <div class="rail-title" style="margin-top:var(--vo-space-2);">地址校验 · Verify</div>
+
+      <div class="safety-chip">
+        <div class="safety-icon si-ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        </div>
+        <div class="safety-body">
+          <div class="safety-name">地址匹配 xpub</div>
+          <div class="safety-meta">本地派生 · 离线验证</div>
+        </div>
+      </div>
+
+      <div class="safety-chip">
+        <div class="safety-icon si-ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path></svg>
+        </div>
+        <div class="safety-body">
+          <div class="safety-name">全新地址</div>
+          <div class="safety-meta">从未收款 · 保护隐私</div>
+        </div>
+      </div>
+
+      <div class="safety-chip">
+        <div class="safety-icon si-warn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+        </div>
+        <div class="safety-body">
+          <div class="safety-name">收款前请核对硬件</div>
+          <div class="safety-meta">在设备屏幕上比对地址</div>
+        </div>
+      </div>
+
+      <div class="rail-foot">
+        监控范围 · m/84'/0'/0'<br>
+        最近同步 · 今天 09:36
+      </div>
+    </aside>
+  </section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,244 @@
+{
+  "$schema": "https://design-tokens.org/2024/draft",
+  "$description": "Vault Onyx Design System v1.0 -- Auth Box v2 single source of truth. W3C-style design tokens transcribed verbatim from VAULT_ONYX_DESIGN_SYSTEM.md. Dark-mode base. Do NOT invent values absent from the source doc.",
+  "$type": "tokenSet",
+  "color": {
+    "$type": "color",
+    "$description": "Color architecture: primary palette, surface hierarchy (dark mode), override colors. Hex transcribed verbatim from the doc's Color Architecture section.",
+    "primary": {
+      "$value": "#c3c0ff",
+      "$description": "Text/icons on dark surfaces"
+    },
+    "primaryContainer": {
+      "$value": "#3730a3",
+      "$description": "Deep Indigo, brand core (also the Override 'Primary')"
+    },
+    "secondary": {
+      "$value": "#ffb77d",
+      "$description": "Amber accents"
+    },
+    "secondaryContainer": {
+      "$value": "#d97707",
+      "$description": "Warning states"
+    },
+    "tertiary": {
+      "$value": "#68dba9",
+      "$description": "Emerald success"
+    },
+    "tertiaryContainer": {
+      "$value": "#004d34",
+      "$description": "Success backgrounds"
+    },
+    "error": {
+      "$value": "#ffb4ab",
+      "$description": "Error states"
+    },
+    "surface": {
+      "$value": "#0b1326",
+      "$description": "Base -- App background"
+    },
+    "surfaceContainerLowest": {
+      "$value": "#060e20",
+      "$description": "Lowest -- Deepest nesting"
+    },
+    "surfaceContainerLow": {
+      "$value": "#131b2e",
+      "$description": "Low -- Section backgrounds"
+    },
+    "surfaceContainer": {
+      "$value": "#171f33",
+      "$description": "Default -- Cards, panels"
+    },
+    "surfaceContainerHigh": {
+      "$value": "#222a3d",
+      "$description": "High -- Elevated elements"
+    },
+    "surfaceContainerHighest": {
+      "$value": "#2d3449",
+      "$description": "Highest -- Inputs, active items"
+    },
+    "surfaceBright": {
+      "$value": "#31394d",
+      "$description": "Bright -- Glassmorphism base"
+    },
+    "outlineVariant": {
+      "$value": "#464553",
+      "$description": "Ghost Border color. Used at 20% opacity per Core Rule 2.",
+      "$extensions": {
+        "_notes": "Hex #464553 is given in the doc's Ghost Border rule (Core Rule 2). Material-3 role name 'outline_variant' retained from the doc."
+      }
+    },
+    "neutral": {
+      "$value": "#0f172a",
+      "$description": "Slate -- Override Colors block 'Neutral'"
+    },
+    "override": {
+      "$description": "Override Colors block (doc lines 39-44). These are explicit hex overrides distinct from the dark-mode primary palette above.",
+      "primary": {
+        "$value": "#3730a3",
+        "$description": "Deep Indigo (override)"
+      },
+      "secondary": {
+        "$value": "#d97706",
+        "$description": "Amber (override). Note: doc's primary-palette secondary_container is #d97707; this override block lists #D97706."
+      },
+      "tertiary": {
+        "$value": "#059669",
+        "$description": "Emerald (override)"
+      },
+      "neutral": {
+        "$value": "#0f172a",
+        "$description": "Slate (override)"
+      }
+    },
+    "onPrimary": {
+      "$value": "#ffffff",
+      "$description": "Text color on gradient/primary fills (Button Primary spec).",
+      "$extensions": {
+        "_notes": "Material-3 default. The doc references 'on_primary' for primary button text but does not give a hex. Using Material-3 dark-scheme on-primary convention (#FFFFFF) for legible text on the indigo gradient."
+      }
+    },
+    "primaryFixed": {
+      "$value": "#c3c0ff",
+      "$description": "Used at 40% opacity for input Focus Ghost Border (Inputs spec).",
+      "$extensions": {
+        "_notes": "Material-3 'primary_fixed' role referenced in the Inputs Focus spec with no hex in the doc. Material-3 fixed roles are tonally aligned to the primary tone; mapped here to the doc's primary value #c3c0ff (the on-dark primary tone)."
+      }
+    }
+  },
+  "typography": {
+    "$type": "typography",
+    "$description": "Role-based type scale transcribed verbatim from the Typography table. family+size+weight+tracking per role.",
+    "display": {
+      "$value": {
+        "fontFamily": "Space Grotesk",
+        "fontWeight": 700,
+        "fontSize": "3.5rem",
+        "letterSpacing": "-0.02em"
+      }
+    },
+    "headline": {
+      "$value": {
+        "fontFamily": "Space Grotesk",
+        "fontWeight": 700,
+        "fontSize": "2rem",
+        "letterSpacing": "-0.02em"
+      }
+    },
+    "title": {
+      "$value": {
+        "fontFamily": "Space Grotesk",
+        "fontWeight": 500,
+        "fontSize": "1.25rem",
+        "letterSpacing": "-0.01em"
+      }
+    },
+    "body": {
+      "$value": {
+        "fontFamily": "Inter, IBM Plex Sans",
+        "fontWeight": 400,
+        "fontSize": "0.875rem",
+        "letterSpacing": "normal"
+      },
+      "$description": "Body font stack: Inter / IBM Plex Sans"
+    },
+    "label": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontWeight": 500,
+        "fontSize": "0.75rem",
+        "letterSpacing": "0.02em"
+      }
+    }
+  },
+  "fontFamily": {
+    "$type": "fontFamily",
+    "$description": "Resolved family stacks referenced by the typography roles.",
+    "display": { "$value": ["Space Grotesk", "sans-serif"] },
+    "body": { "$value": ["Inter", "IBM Plex Sans", "sans-serif"] },
+    "label": { "$value": ["Inter", "sans-serif"] }
+  },
+  "spacing": {
+    "$type": "dimension",
+    "$description": "Spacing scale (Material Design 3, base 3). Only the tokens listed in the doc's Spacing Scale table are present -- gaps (5,7,9-11,13-15,17-19,21-23) are intentionally absent because the doc does not define them.",
+    "1": { "$value": "4px" },
+    "2": { "$value": "8px" },
+    "3": { "$value": "12px" },
+    "4": { "$value": "16px" },
+    "6": { "$value": "24px" },
+    "8": { "$value": "32px" },
+    "12": { "$value": "48px" },
+    "16": { "$value": "64px" },
+    "20": { "$value": "80px" },
+    "24": { "$value": "96px" }
+  },
+  "radius": {
+    "$type": "dimension",
+    "$description": "Roundness scale ROUND_FOUR, transcribed verbatim from the Roundness table.",
+    "xs": { "$value": "2px" },
+    "sm": { "$value": "4px" },
+    "md": { "$value": "6px", "$description": "Default button roundness" },
+    "lg": { "$value": "8px" },
+    "xl": { "$value": "12px" },
+    "full": { "$value": "9999px" }
+  },
+  "elevation": {
+    "$type": "shadow",
+    "$description": "Ambient shadows (Core Rule 5). Tinted indigo, never pure black. Blur 40-80px, opacity 4-8%, no box-shadow abuse (Core Rule 4: depth via tonal layering).",
+    "ambientLow": {
+      "$value": {
+        "color": "#3730a3",
+        "offsetX": "0px",
+        "offsetY": "0px",
+        "blur": "40px",
+        "spread": "0px",
+        "alpha": 0.04
+      },
+      "$description": "Low ambient: blur 40px, opacity 4%, tinted indigo (primary_container hue).",
+      "$extensions": {
+        "_notes": "Color is the indigo tint required by Core Rule 5 ('Tinted indigo, never pure black'); mapped to primaryContainer #3730a3. Blur/opacity are the low end of the doc's stated 40-80px / 4-8% range."
+      }
+    },
+    "ambientHigh": {
+      "$value": {
+        "color": "#3730a3",
+        "offsetX": "0px",
+        "offsetY": "0px",
+        "blur": "80px",
+        "spread": "0px",
+        "alpha": 0.08
+      },
+      "$description": "High ambient: blur 80px, opacity 8%, tinted indigo.",
+      "$extensions": {
+        "_notes": "High end of the doc's 40-80px / 4-8% ambient-shadow range. Indigo tint mapped to primaryContainer #3730a3."
+      }
+    }
+  },
+  "gradient": {
+    "$type": "gradient",
+    "$description": "Gradients per Core Rule 3.",
+    "heroCta": {
+      "$value": {
+        "type": "linear",
+        "angle": "135deg",
+        "stops": [
+          { "color": "#c3c0ff", "position": 0 },
+          { "color": "#3730a3", "position": 1 }
+        ]
+      },
+      "$description": "Hero CTA gradient: linear-gradient from primary to primary_container at 135deg."
+    }
+  },
+  "opacity": {
+    "$type": "number",
+    "$description": "Named opacity values cited inline in the Core Rules / Component Specs (no separate opacity table in the doc; collected here so drafts use ONLY these tokens).",
+    "ghostBorder": { "$value": 0.2, "$description": "outline_variant at 20% (Core Rule 2 / Ghost Border)" },
+    "modalGlass": { "$value": 0.6, "$description": "surface_bright at 60% for modals (Core Rule 3)" },
+    "inputFocus": { "$value": 0.4, "$description": "primary_fixed at 40% for input focus border (Inputs spec)" }
+  },
+  "effect": {
+    "$type": "blur",
+    "$description": "Backdrop blur for glass modals (Core Rule 3).",
+    "modalBackdropBlur": { "$value": "20px", "$description": "20px backdrop-blur for modals (Core Rule 3)" }
+  }
+}

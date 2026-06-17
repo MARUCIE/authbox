@@ -6,6 +6,9 @@ struct VaultListView: View {
     @State private var showAddItem = false
     @State private var showImport = false
     @State private var selectedTab: Tab = .passwords
+    /// Drives the NavigationSplitView detail column (iPad: side-by-side; iPhone: push).
+    @State private var selectedItemID: UUID?
+    @Environment(\.horizontalSizeClass) private var hSizeClass
 
     enum Tab {
         case passwords, generator, wallet, settings
@@ -37,32 +40,52 @@ struct VaultListView: View {
                 }
                 .tag(Tab.settings)
         }
+        .onAppear { applyDemoTabSeamIfPresent() }
     }
 
-    // MARK: - Passwords Tab
+    /// DEBUG-only no-tap seam: lets a `simctl launch --ipad-demo-tab <tab>` preselect a
+    /// tab so visual-acceptance captures of Wallet/Settings need no UI tapping.
+    private func applyDemoTabSeamIfPresent() {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--ipad-demo-tab"), i + 1 < args.count else { return }
+        switch args[i + 1] {
+        case "generator": selectedTab = .generator
+        case "wallet": selectedTab = .wallet
+        case "settings": selectedTab = .settings
+        default: selectedTab = .passwords
+        }
+        #endif
+    }
+
+    // MARK: - Passwords Tab (iPad-adaptive master/detail; collapses to a push stack on iPhone)
+    //
+    // WP-021 B-idiom translation: the credential List is the master column and the
+    // selected item drives the detail column. On iPad regular width SwiftUI shows both
+    // side by side; under horizontalSizeClass == .compact (iPhone) NavigationSplitView
+    // auto-collapses so tapping a row pushes the detail — today's iPhone flow, zero loss.
 
     private var passwordsTab: some View {
-        NavigationStack {
-            List {
+        NavigationSplitView {
+            List(selection: $selectedItemID) {
                 if filteredItems.isEmpty && searchText.isEmpty {
                     emptyState
                 } else if filteredItems.isEmpty {
                     ContentUnavailableView.search(text: searchText)
                 } else {
-                    // Grouped by category
                     ForEach(groupedSections, id: \.title) { section in
                         Section(section.title) {
                             ForEach(section.items, id: \.id) { item in
-                                NavigationLink(destination: VaultItemDetailView(item: item)) {
-                                    VaultItemRow(item: item)
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        appState.deleteItem(item)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
+                                VaultItemRow(item: item)
+                                    .tag(item.id)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) {
+                                            if selectedItemID == item.id { selectedItemID = nil }
+                                            appState.deleteItem(item)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
                                     }
-                                }
                             }
                         }
                     }
@@ -102,7 +125,31 @@ struct VaultListView: View {
             .sheet(isPresented: $showImport) {
                 ImportTOTPView()
             }
+            .onAppear { autoSelectFirstOnPad() }
+            .onChange(of: appState.vaultItems.count) { _, _ in autoSelectFirstOnPad() }
+        } detail: {
+            NavigationStack {
+                if let id = selectedItemID,
+                   let item = appState.vaultItems.first(where: { $0.id == id }) {
+                    VaultItemDetailView(item: item)
+                } else {
+                    ContentUnavailableView(
+                        "Select a Credential",
+                        systemImage: "key.fill",
+                        description: Text("Choose an item from the list to view and edit its details.")
+                    )
+                }
+            }
         }
+    }
+
+    /// On iPad (regular width) auto-select the first credential so the detail pane
+    /// isn't empty on launch — the Mail/Notes iPad convention. On iPhone compact we
+    /// skip it so the app opens on the list, not a pushed detail.
+    private func autoSelectFirstOnPad() {
+        guard hSizeClass == .regular, selectedItemID == nil,
+              let first = groupedSections.first?.items.first else { return }
+        selectedItemID = first.id
     }
 
     private var emptyState: some View {

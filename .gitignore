@@ -87,3 +87,6 @@ secrets/
 
 # Visual-verification / snapshot scratch (render artifacts, never commit)
 state/
+
+# WP-021 visual-acceptance device-pixel captures (regenerable evidence; keep repo lean)
+design/visual-acceptance/
