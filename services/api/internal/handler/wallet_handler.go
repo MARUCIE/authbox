@@ -166,6 +166,45 @@ func (h *WalletHandler) ListAddresses(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{"addresses": addrs})
 }
 
+func (h *WalletHandler) Broadcast(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
+
+	var req service.BroadcastRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+		return
+	}
+
+	// Reject off-vocabulary / malformed input with 400 before any egress. The tx
+	// itself is built+signed client-side; the backend only relays a valid payload.
+	if !service.IsValidCoin(req.Coin) {
+		writeError(w, http.StatusBadRequest, "invalid coin", "BAD_REQUEST")
+		return
+	}
+	if req.Network != "" && !service.IsValidNetwork(req.Network) {
+		writeError(w, http.StatusBadRequest, "invalid network", "BAD_REQUEST")
+		return
+	}
+	if !service.IsWellFormedRawTxHex(req.RawTxHex) {
+		writeError(w, http.StatusBadRequest, "rawTxHex must be even-length hex within size bounds", "BAD_REQUEST")
+		return
+	}
+
+	resp, err := h.walletService.BroadcastTransaction(r.Context(), req.Coin, req.Network, req.RawTxHex)
+	if err != nil {
+		// A rejected/invalid transaction or an unreachable node both surface here;
+		// the upstream message is the actionable signal, mapped to 502 like Balance.
+		slog.Warn("wallet broadcast failed", "user", userID, "coin", req.Coin, "network", req.Network, "error", err)
+		writeError(w, http.StatusBadGateway, "broadcast rejected: "+err.Error(), "UPSTREAM_ERROR")
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
 func (h *WalletHandler) Balance(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.UserIDFromContext(r.Context())
 	if !ok {

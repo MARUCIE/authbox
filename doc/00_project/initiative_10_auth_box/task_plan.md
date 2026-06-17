@@ -508,9 +508,10 @@ first), reusing the existing BIP-39 seed. Architecture: WALLET_ARCHITECTURE.md.
 - [x] wallet-tx.test.ts: 14 tests — ETH sender-recovery anchored to canonical 0x9858…Eda94 + hedged-signature invariant + BTC mainnet/testnet build+finalize + insufficient-funds/bound checks + key-hygiene; finding: @noble ETH sigs are hedged (non-deterministic, valid), @scure BTC sigs deterministic
 - [x] tsc clean + full crypto vitest green (80/80) + build emit clean
 
-#### 5b — Broadcast relay (server forwards, never signs) [QUEUED]
-- [ ] Go: POST /wallet/broadcast {coin,network,rawTxHex} → mempool.space (BTC) / publicnode eth_sendRawTransaction (ETH); fixed trusted endpoints (SSRF-safe); returns txid
-- [ ] enum/network validation → 400; Go test + live TESTNET broadcast proof (no mainnet)
+#### 5b — Broadcast relay (server forwards, never signs) [DONE 2026-06-17]
+- [x] Go: POST /wallet/broadcast {coin,network,rawTxHex} → mempool.space (BTC, POST /tx) / publicnode eth_sendRawTransaction (ETH); reuses balance_provider's fixed (coin,network) endpoint maps (SSRF-safe, no user URL); returns txid. `internal/service/broadcast_provider.go` (BroadcastProvider, never holds keys) + `WalletService.BroadcastTransaction` + `WalletHandler.Broadcast` + route `r.Post("/wallet/broadcast")` (authenticated, sibling of /wallet/accounts).
+- [x] enum/network validation → 400 (IsValidCoin/IsValidNetwork + IsWellFormedRawTxHex: even-length hex, 20..200_000 bound); Go unit test green (`broadcast_provider_test.go`: BTC + ETH httptest round-trips assert payload shape + txid parse, upstream-rejection surfaces reason, malformed-hex/unknown-network rejected). build+vet+test green.
+- [ ] live TESTNET broadcast proof (no mainnet) — deferred to 5c: needs a real signed testnet tx (wallet-tx.ts can produce one) + a funded testnet address; do it end-to-end once the Send UI wires client→relay.
 
 #### 5c — Send UI + HITL gate [QUEUED]
 - [ ] wallet page Send dialog: to / amount / fee-rate; build+sign client-side; show fee + total before confirm; testnet badge

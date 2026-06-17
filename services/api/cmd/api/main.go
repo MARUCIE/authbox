@@ -131,7 +131,7 @@ func main() {
 	agentService := service.NewAgentService(agentRepo)
 	connService := service.NewConnectionService(connRepo)
 	auditService := service.NewAuditService(auditRepo)
-	walletService := service.NewWalletService(walletRepo, service.NewBalanceProvider())
+	walletService := service.NewWalletService(walletRepo, service.NewBalanceProvider(), service.NewBroadcastProvider())
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService, cfg.AuthRateLimit)
@@ -246,6 +246,11 @@ func main() {
 				r.Get("/", auditHandler.ListEvents)
 				r.Get("/verify", auditHandler.VerifyChain)
 			})
+
+			// Relay a client-signed raw transaction (no account context needed —
+			// the tx is already built+signed client-side). Mainnet money-movement
+			// is gated CLIENT-side; this endpoint is network-agnostic.
+			r.Post("/wallet/broadcast", walletHandler.Broadcast)
 
 			r.Route("/wallet/accounts", func(r chi.Router) {
 				r.Post("/", walletHandler.CreateAccount)

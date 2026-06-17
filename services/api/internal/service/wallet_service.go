@@ -29,12 +29,13 @@ func IsValidNetwork(n string) bool       { return validNetworks[n] }
 func IsValidBtcScriptType(s string) bool { return validBtcScriptType[s] }
 
 type WalletService struct {
-	repo    domain.WalletRepository
-	balance *BalanceProvider
+	repo      domain.WalletRepository
+	balance   *BalanceProvider
+	broadcast *BroadcastProvider
 }
 
-func NewWalletService(repo domain.WalletRepository, balance *BalanceProvider) *WalletService {
-	return &WalletService{repo: repo, balance: balance}
+func NewWalletService(repo domain.WalletRepository, balance *BalanceProvider, broadcast *BroadcastProvider) *WalletService {
+	return &WalletService{repo: repo, balance: balance, broadcast: broadcast}
 }
 
 // --- Request / Response types ---
@@ -47,6 +48,12 @@ type CreateWalletAccountRequest struct {
 	DerivationPath string `json:"derivationPath"`
 	XPub           string `json:"xpub"`
 	Label          string `json:"label"`
+}
+
+type BroadcastRequest struct {
+	Coin     string `json:"coin"`
+	Network  string `json:"network"`
+	RawTxHex string `json:"rawTxHex"`
 }
 
 type AddAddressRequest struct {
@@ -251,6 +258,28 @@ func (s *WalletService) RefreshBalance(ctx context.Context, id, userID uuid.UUID
 		Confirmed:   confirmed.String(),
 		Unconfirmed: unconfirmed.String(),
 	}, nil
+}
+
+// BroadcastResponse carries the accepted transaction id back to the client.
+type BroadcastResponse struct {
+	Coin    string `json:"coin"`
+	Network string `json:"network"`
+	Txid    string `json:"txid"`
+}
+
+// BroadcastTransaction relays a client-signed raw transaction to the public node
+// and returns its txid. No account lookup, no repo, no key material — the signed
+// payload arrives ready to forward. Mainnet vs testnet is the caller's choice;
+// mainnet money-movement confirmation is enforced CLIENT-side, not here.
+func (s *WalletService) BroadcastTransaction(ctx context.Context, coin, network, rawTxHex string) (*BroadcastResponse, error) {
+	if network == "" {
+		network = "mainnet"
+	}
+	txid, err := s.broadcast.Broadcast(ctx, coin, network, rawTxHex)
+	if err != nil {
+		return nil, err
+	}
+	return &BroadcastResponse{Coin: coin, Network: network, Txid: txid}, nil
 }
 
 // IsNotFound reports whether an error is the wallet-account-not-found sentinel.
