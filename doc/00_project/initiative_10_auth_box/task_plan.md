@@ -807,7 +807,12 @@ The functional-closure pass caught + fixed TWO real bugs the visual rounds misse
 
 Also restored honest gate coverage: PaywallFlowUITests reordered (banner→paywall first while sidebar visible), then sync-gate navigates into the iCloud Sync detail (hard assert, no more silent `if` skip).
 
-Remaining closeout: WP-021 artifacts uncommitted on `main` — awaiting Maurice's commit go-ahead (suggested: branch `feat/ipad-frontend-wp021` then commit; not auto-committed per "commit only when user asks").
+**Live front+back wallet-balance integration VERIFIED** (Maurice "全部授权" 2026-06-17): the iOS `WalletBalanceService` hits the exact same public indexers as the Go `balance_provider.go` (mempool.space for BTC, publicnode JSON-RPC for ETH; public addresses only, no key material). Binding wired: `WalletAccountDetailView.task → refreshBalance() → balanceService.balance()`. Curled the exact endpoints+addresses the app builds (from test fixtures, not OCR):
+- BTC `bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu` → mempool.space returns funded=spent=4080991 (172 txs) → app formula `funded-spent` = 0 sats → renders "0 BTC" (the screenshot value was the REAL fetch, not a placeholder).
+- ETH `0x9858EfFD232B4033E47d90003D41EC34EcaEda94` → publicnode `eth_getBalance` = `0x0` → `WalletAmount.decimalString` = "0" → renders "0 ETH".
+(Note: the screenshot-OCR'd BTC address had a spurious `c` — `kr6c09` vs real `kr609`; mempool.space rejected it as invalid, proving the indexer is live AND validating. Always derive identifiers from the source of truth, never screenshot OCR.)
+
+Closeout DONE: committed `fd5cd9b` on branch `feat/ipad-frontend-wp021` (author Maurice, no AI trailer). `design/visual-acceptance/` (5.7M device-pixel evidence) gitignored; design source (tokens/bakeoff/verdict/language-doc) + code + tests tracked. NOT merged to `main` (PR/merge is Maurice's call). App Store deploy remains a separate HITL gate (asc), out of WP-021 scope.
 
 ### Iteration policy
 - Self-paced /loop. Each iteration advances one phase; workflow completion (task-notification)
