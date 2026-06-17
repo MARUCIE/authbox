@@ -68,6 +68,14 @@ export {
   type SignedEthTransaction,
 } from "./wallet-tx";
 export {
+  parseAmount,
+  selectBtcFeeRate,
+  deriveEthFeeParams,
+  ethChainId,
+  type BtcFeeTiers,
+  type BtcFeeTier,
+} from "./wallet-send";
+export {
   totpCode,
   hotpCode,
   totpSecondsRemaining,
