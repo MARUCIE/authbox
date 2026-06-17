@@ -131,7 +131,7 @@ func main() {
 	agentService := service.NewAgentService(agentRepo)
 	connService := service.NewConnectionService(connRepo)
 	auditService := service.NewAuditService(auditRepo)
-	walletService := service.NewWalletService(walletRepo, service.NewBalanceProvider(), service.NewBroadcastProvider())
+	walletService := service.NewWalletService(walletRepo, service.NewBalanceProvider(), service.NewBroadcastProvider(), service.NewTxPrepProvider())
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService, cfg.AuthRateLimit)
@@ -251,6 +251,13 @@ func main() {
 			// the tx is already built+signed client-side). Mainnet money-movement
 			// is gated CLIENT-side; this endpoint is network-agnostic.
 			r.Post("/wallet/broadcast", walletHandler.Broadcast)
+
+			// Transaction-prep reads: feed wallet-tx.ts before client-side signing
+			// (BTC UTXOs + fee tiers, ETH nonce + gas). Read-only, public-data only.
+			r.Get("/wallet/btc/utxos", walletHandler.BtcUTXOs)
+			r.Get("/wallet/btc/fees", walletHandler.BtcFees)
+			r.Get("/wallet/eth/nonce", walletHandler.EthNonce)
+			r.Get("/wallet/eth/gas", walletHandler.EthGas)
 
 			r.Route("/wallet/accounts", func(r chi.Router) {
 				r.Post("/", walletHandler.CreateAccount)

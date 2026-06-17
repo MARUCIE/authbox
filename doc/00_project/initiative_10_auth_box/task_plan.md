@@ -513,8 +513,14 @@ first), reusing the existing BIP-39 seed. Architecture: WALLET_ARCHITECTURE.md.
 - [x] enum/network validation → 400 (IsValidCoin/IsValidNetwork + IsWellFormedRawTxHex: even-length hex, 20..200_000 bound); Go unit test green (`broadcast_provider_test.go`: BTC + ETH httptest round-trips assert payload shape + txid parse, upstream-rejection surfaces reason, malformed-hex/unknown-network rejected). build+vet+test green.
 - [ ] live TESTNET broadcast proof (no mainnet) — deferred to 5c: needs a real signed testnet tx (wallet-tx.ts can produce one) + a funded testnet address; do it end-to-end once the Send UI wires client→relay.
 
-#### 5c — Send UI + HITL gate [QUEUED]
-- [ ] wallet page Send dialog: to / amount / fee-rate; build+sign client-side; show fee + total before confirm; testnet badge
+#### 5b2 — Transaction-prep reads (the Send dialog's real data prerequisites) [DONE 2026-06-17]
+- [x] Discovered the gap: `BuildBtcTxParams` needs `utxos[]`, `BuildEthTxParams` needs `nonce`+`gas`+`chainId` — none fetched anywhere; a Send dialog without these would be green-but-not-wired. Built the backend reads first.
+- [x] Go: `internal/service/txprep_provider.go` (TxPrepProvider, reuses balance_provider's fixed (coin,network) maps + address validators; SSRF-safe; no keys). `GET /wallet/btc/utxos` (mempool /address/{a}/utxo → [{txid,vout,value-sats-as-string}]), `GET /wallet/btc/fees` (/v1/fees/recommended sat/vB tiers), `GET /wallet/eth/nonce` (eth_getTransactionCount pending → decimal), `GET /wallet/eth/gas` (eth_gasPrice + eth_maxPriorityFeePerGas, 1.5gwei fallback). Service methods + handlers (network enum→400, address required) + routes wired in main.go (authenticated, sibling of /wallet/broadcast).
+- [x] Tests `txprep_provider_test.go` (httptest round-trips: UTXO value→bigint-string, fee tiers, nonce hex→decimal, gas with/without priority fallback, bad-address + unknown-network rejection). build+vet+test green.
+- [x] Web client contract: `apps/web/lib/api.ts` walletApi.broadcast + btcUtxos + btcFees + ethNonce + ethGas (tsc --noEmit clean).
+
+#### 5c — Send UI + HITL gate [QUEUED — data prerequisites (5b/5b2) now in place]
+- [ ] wallet page Send dialog: to / amount / fee-rate; build+sign client-side (wallet-tx.ts buildBtc/EthTransaction, fed by btcUtxos/btcFees or ethNonce/ethGas); show fee + total before confirm; testnet badge
 - [ ] mainnet HITL gate: explicit double-confirm + network/amount warning before any mainnet broadcast
 - [ ] 3-round visual polish + chrome-devtools screenshots
 

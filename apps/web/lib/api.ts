@@ -632,6 +632,55 @@ export const walletApi = {
       { token },
     );
   },
+
+  // Relay a client-built+signed raw transaction to the public node. The tx is
+  // assembled and signed entirely client-side (packages/crypto wallet-tx.ts); the
+  // server only forwards rawTxHex and returns the txid. Mainnet sends must pass the
+  // UI's explicit double-confirm gate before reaching here.
+  broadcast(
+    token: string,
+    body: { coin: 'btc' | 'eth'; network?: 'mainnet' | 'testnet'; rawTxHex: string },
+  ) {
+    return request<{ coin: string; network: string; txid: string }>('/api/v1/wallet/broadcast', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(body),
+    });
+  },
+
+  // --- Transaction-prep reads (feed packages/crypto wallet-tx.ts before signing) ---
+
+  btcUtxos(token: string, address: string, network?: 'mainnet' | 'testnet') {
+    const q = new URLSearchParams({ address, ...(network ? { network } : {}) });
+    return request<{ utxos: Array<{ txid: string; vout: number; value: string }> }>(
+      `/api/v1/wallet/btc/utxos?${q}`,
+      { token },
+    );
+  },
+
+  btcFees(token: string, network?: 'mainnet' | 'testnet') {
+    const q = new URLSearchParams(network ? { network } : {});
+    return request<{
+      fastestFee: number;
+      halfHourFee: number;
+      hourFee: number;
+      economyFee: number;
+      minimumFee: number;
+    }>(`/api/v1/wallet/btc/fees?${q}`, { token });
+  },
+
+  ethNonce(token: string, address: string, network?: 'mainnet' | 'testnet') {
+    const q = new URLSearchParams({ address, ...(network ? { network } : {}) });
+    return request<{ nonce: string }>(`/api/v1/wallet/eth/nonce?${q}`, { token });
+  },
+
+  ethGas(token: string, network?: 'mainnet' | 'testnet') {
+    const q = new URLSearchParams(network ? { network } : {});
+    return request<{ gasPrice: string; suggestedPriorityFee: string }>(
+      `/api/v1/wallet/eth/gas?${q}`,
+      { token },
+    );
+  },
 };
 
 export { ApiError };

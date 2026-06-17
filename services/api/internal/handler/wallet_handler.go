@@ -205,6 +205,99 @@ func (h *WalletHandler) Broadcast(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// txPrepNetwork pulls + validates the optional network query param (default
+// mainnet). Returns ok=false after writing a 400 when the value is off-vocabulary.
+func txPrepNetwork(w http.ResponseWriter, r *http.Request) (string, bool) {
+	network := r.URL.Query().Get("network")
+	if network != "" && !service.IsValidNetwork(network) {
+		writeError(w, http.StatusBadRequest, "invalid network", "BAD_REQUEST")
+		return "", false
+	}
+	return network, true
+}
+
+func (h *WalletHandler) BtcUTXOs(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.UserIDFromContext(r.Context()); !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
+	network, ok := txPrepNetwork(w, r)
+	if !ok {
+		return
+	}
+	address := r.URL.Query().Get("address")
+	if address == "" {
+		writeError(w, http.StatusBadRequest, "address is required", "BAD_REQUEST")
+		return
+	}
+	utxos, err := h.walletService.BtcUTXOs(r.Context(), network, address)
+	if err != nil {
+		slog.Warn("btc utxo lookup failed", "error", err)
+		writeError(w, http.StatusBadGateway, "failed to fetch utxos: "+err.Error(), "UPSTREAM_ERROR")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"utxos": utxos})
+}
+
+func (h *WalletHandler) BtcFees(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.UserIDFromContext(r.Context()); !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
+	network, ok := txPrepNetwork(w, r)
+	if !ok {
+		return
+	}
+	fees, err := h.walletService.BtcFeeRates(r.Context(), network)
+	if err != nil {
+		slog.Warn("btc fee lookup failed", "error", err)
+		writeError(w, http.StatusBadGateway, "failed to fetch fee rates: "+err.Error(), "UPSTREAM_ERROR")
+		return
+	}
+	writeJSON(w, http.StatusOK, fees)
+}
+
+func (h *WalletHandler) EthNonce(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.UserIDFromContext(r.Context()); !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
+	network, ok := txPrepNetwork(w, r)
+	if !ok {
+		return
+	}
+	address := r.URL.Query().Get("address")
+	if address == "" {
+		writeError(w, http.StatusBadRequest, "address is required", "BAD_REQUEST")
+		return
+	}
+	nonce, err := h.walletService.EthNonce(r.Context(), network, address)
+	if err != nil {
+		slog.Warn("eth nonce lookup failed", "error", err)
+		writeError(w, http.StatusBadGateway, "failed to fetch nonce: "+err.Error(), "UPSTREAM_ERROR")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"nonce": nonce})
+}
+
+func (h *WalletHandler) EthGas(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.UserIDFromContext(r.Context()); !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
+	network, ok := txPrepNetwork(w, r)
+	if !ok {
+		return
+	}
+	gas, err := h.walletService.EthGas(r.Context(), network)
+	if err != nil {
+		slog.Warn("eth gas lookup failed", "error", err)
+		writeError(w, http.StatusBadGateway, "failed to fetch gas: "+err.Error(), "UPSTREAM_ERROR")
+		return
+	}
+	writeJSON(w, http.StatusOK, gas)
+}
+
 func (h *WalletHandler) Balance(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.UserIDFromContext(r.Context())
 	if !ok {

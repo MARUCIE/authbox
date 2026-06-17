@@ -32,10 +32,11 @@ type WalletService struct {
 	repo      domain.WalletRepository
 	balance   *BalanceProvider
 	broadcast *BroadcastProvider
+	txprep    *TxPrepProvider
 }
 
-func NewWalletService(repo domain.WalletRepository, balance *BalanceProvider, broadcast *BroadcastProvider) *WalletService {
-	return &WalletService{repo: repo, balance: balance, broadcast: broadcast}
+func NewWalletService(repo domain.WalletRepository, balance *BalanceProvider, broadcast *BroadcastProvider, txprep *TxPrepProvider) *WalletService {
+	return &WalletService{repo: repo, balance: balance, broadcast: broadcast, txprep: txprep}
 }
 
 // --- Request / Response types ---
@@ -280,6 +281,36 @@ func (s *WalletService) BroadcastTransaction(ctx context.Context, coin, network,
 		return nil, err
 	}
 	return &BroadcastResponse{Coin: coin, Network: network, Txid: txid}, nil
+}
+
+// --- Transaction-prep reads (feed wallet-tx.ts before client-side signing) ---
+
+func (s *WalletService) BtcUTXOs(ctx context.Context, network, address string) ([]SpendableUTXO, error) {
+	if network == "" {
+		network = "mainnet"
+	}
+	return s.txprep.BtcUTXOs(ctx, network, address)
+}
+
+func (s *WalletService) BtcFeeRates(ctx context.Context, network string) (*BtcFeeRates, error) {
+	if network == "" {
+		network = "mainnet"
+	}
+	return s.txprep.BtcFeeRates(ctx, network)
+}
+
+func (s *WalletService) EthNonce(ctx context.Context, network, address string) (string, error) {
+	if network == "" {
+		network = "mainnet"
+	}
+	return s.txprep.EthNonce(ctx, network, address)
+}
+
+func (s *WalletService) EthGas(ctx context.Context, network string) (*EthGas, error) {
+	if network == "" {
+		network = "mainnet"
+	}
+	return s.txprep.EthGas(ctx, network)
 }
 
 // IsNotFound reports whether an error is the wallet-account-not-found sentinel.
