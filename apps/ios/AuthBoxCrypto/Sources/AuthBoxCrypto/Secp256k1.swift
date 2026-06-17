@@ -65,6 +65,50 @@ enum Secp256k1 {
         return serialize(&pubkey, compressed: true)
     }
 
+    /// Recoverable ECDSA signature over a 32-byte message hash. Deterministic
+    /// (RFC6979) and low-S canonical — exactly what an EIP-1559 typed tx needs.
+    /// Returns the 64-byte compact signature (r‖s) and the recovery id (0/1),
+    /// which IS the EIP-1559 `yParity`. The TS side hedges its nonce (so its
+    /// signatures differ byte-wise), but both recover to the same signer — the
+    /// only invariant that matters.
+    static func signRecoverable(messageHash: Data, privateKey: Data) -> (signature: Data, recoveryId: Int)? {
+        precondition(messageHash.count == 32 && privateKey.count == 32)
+        var rsig = secp256k1_ecdsa_recoverable_signature()
+        let ok = messageHash.withUnsafeBytes { msg in
+            privateKey.withUnsafeBytes { sk in
+                secp256k1_ecdsa_sign_recoverable(
+                    ctx, &rsig,
+                    msg.bindMemory(to: UInt8.self).baseAddress!,
+                    sk.bindMemory(to: UInt8.self).baseAddress!,
+                    nil, nil)
+            }
+        }
+        guard ok == 1 else { return nil }
+        var output = [UInt8](repeating: 0, count: 64)
+        var recid: Int32 = 0
+        _ = secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, &output, &recid, &rsig)
+        return (Data(output), Int(recid))
+    }
+
+    /// Recover the uncompressed (65-byte) public key that produced a recoverable
+    /// signature over `messageHash`. Used to derive a tx's `sender` and to prove
+    /// sign↔recover consistency in tests.
+    static func recover(messageHash: Data, signature: Data, recoveryId: Int) -> Data? {
+        precondition(messageHash.count == 32 && signature.count == 64)
+        var rsig = secp256k1_ecdsa_recoverable_signature()
+        let parsed = signature.withUnsafeBytes { sig in
+            secp256k1_ecdsa_recoverable_signature_parse_compact(
+                ctx, &rsig, sig.bindMemory(to: UInt8.self).baseAddress!, Int32(recoveryId))
+        }
+        guard parsed == 1 else { return nil }
+        var pubkey = secp256k1_pubkey()
+        let ok = messageHash.withUnsafeBytes { msg in
+            secp256k1_ecdsa_recover(ctx, &pubkey, &rsig, msg.bindMemory(to: UInt8.self).baseAddress!)
+        }
+        guard ok == 1 else { return nil }
+        return serialize(&pubkey, compressed: false)
+    }
+
     // MARK: - Private
 
     private static func serialize(_ pubkey: inout secp256k1_pubkey, compressed: Bool) -> Data {

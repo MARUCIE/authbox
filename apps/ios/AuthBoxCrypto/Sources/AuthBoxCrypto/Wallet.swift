@@ -165,6 +165,14 @@ public enum Wallet {
         guard let uncompressed = Secp256k1.publicKey(from: privateKey, compressed: false) else {
             fatalError("invalid private key for ETH address")
         }
+        return ethAddress(fromUncompressedPublicKey: uncompressed)
+    }
+
+    /// Ethereum address from a 65-byte uncompressed public key (0x04 ‖ X ‖ Y),
+    /// with EIP-55 mixed-case checksum. Shared by derived-key address generation
+    /// and by sender recovery from a signed transaction (the recovered pubkey is
+    /// already uncompressed), so the checksum logic lives in exactly one place.
+    static func ethAddress(fromUncompressedPublicKey uncompressed: Data) -> String {
         let body = Data(uncompressed.dropFirst()) // drop 0x04 prefix → 64 bytes
         let addrBytes: [UInt8] = Array(Keccak256.hash(body).suffix(20))
 
