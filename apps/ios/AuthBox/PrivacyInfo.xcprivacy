@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Auth Box is a zero-knowledge vault: no analytics SDK, no tracking, no
+         developer-side data collection. The optional iCloud sync writes only
+         ciphertext to the user's OWN CloudKit private database (not the
+         developer), which is not "data collection" under Apple's definition. -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <!-- @AppStorage / UserDefaults: Pro-entitlement cache flag, lock-timeout
+             preference, onboarding state. Read/written only within this app,
+             never sent off-device. Required reason: CA92.1. -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>CA92.1</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>
