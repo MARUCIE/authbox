@@ -13,9 +13,17 @@ import {
   mnemonicToSeed,
   setWordlist,
   ENGLISH_WORDLIST,
+  buildBtcTransaction,
+  buildEthTransaction,
+  parseAmount,
+  selectBtcFeeRate,
+  deriveEthFeeParams,
+  ethChainId,
   type Coin,
   type BtcScriptType,
   type WalletNetwork,
+  type BtcSpendableUtxo,
+  type BtcFeeTier,
 } from '@authbox/crypto';
 
 // The wallet derives standard BIP-32/44/84 keys from the SAME 24-word seed that
@@ -80,7 +88,30 @@ function formatUnits(value: string, decimals: number, maxFrac = 8): string {
   return fraction ? `${sign}${whole}.${fraction}` : `${sign}${whole}`;
 }
 
-type DialogMode = 'closed' | 'add';
+/** Block-explorer deep link for a broadcast tx, per coin + network. */
+function explorerTxUrl(coin: string, network: string, txid: string): string {
+  if (coin === 'btc') {
+    return network === 'testnet'
+      ? `https://mempool.space/testnet/tx/${txid}`
+      : `https://mempool.space/tx/${txid}`;
+  }
+  return network === 'testnet'
+    ? `https://sepolia.etherscan.io/tx/${txid}`
+    : `https://etherscan.io/tx/${txid}`;
+}
+
+// A fully-signed transaction held in memory after the review step. Inert until
+// the user confirms broadcast — a signed-but-unsent tx does nothing on-chain.
+interface SendReview {
+  rawTxHex: string;
+  to: string;
+  amount: string; // formatted display amount (coin units)
+  fee: string; // formatted network fee (coin units)
+  total: string; // formatted amount + fee
+  feeDetail: string; // e.g. "3 sat/vB · 141 vbytes" or "21000 gas · 31.5 gwei max"
+}
+
+type DialogMode = 'closed' | 'add' | 'send';
 
 export default function WalletPage() {
   const sessionToken = useVaultStore((s) => s.sessionToken);
@@ -108,6 +139,16 @@ export default function WalletPage() {
   const [deriveMnemonic, setDeriveMnemonic] = useState('');
   const [showDerive, setShowDerive] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Send form
+  const [sendTo, setSendTo] = useState('');
+  const [sendAmount, setSendAmount] = useState('');
+  const [sendFeeTier, setSendFeeTier] = useState<BtcFeeTier>('normal'); // BTC only
+  const [sendMnemonic, setSendMnemonic] = useState('');
+  const [sendReview, setSendReview] = useState<SendReview | null>(null);
+  const [sendMainnetConfirm, setSendMainnetConfirm] = useState(false);
+  const [sendResult, setSendResult] = useState<{ txid: string } | null>(null);
+  const [sending, setSending] = useState(false);
 
   const fetchAccounts = useCallback(async () => {
     if (!sessionToken) return;
@@ -267,6 +308,155 @@ export default function WalletPage() {
     } finally {
       setDeriveMnemonic('');
       setBusy(false);
+    }
+  }
+
+  function resetSendForm() {
+    setSendTo('');
+    setSendAmount('');
+    setSendFeeTier('normal');
+    setSendMnemonic('');
+    setSendReview(null);
+    setSendMainnetConfirm(false);
+    setSendResult(null);
+  }
+
+  // Stage 1: validate, gather chain data, build + SIGN the tx client-side, and
+  // surface the exact fee/total for review. Does NOT broadcast. The signed tx is
+  // held in `sendReview` until the user explicitly confirms.
+  async function handleSendReview() {
+    if (!sessionToken || !selected) return;
+    const phrase = sendMnemonic.trim().replace(/\s+/g, ' ');
+    if (!validateMnemonic(phrase)) {
+      setError('Invalid recovery phrase. Enter your seed exactly as written.');
+      return;
+    }
+    const isBtc = selected.coin === 'btc';
+    const net = selected.network as WalletNetwork;
+    const meta = COIN_META[selected.coin as Coin];
+    setSending(true);
+    setError(null);
+    try {
+      const to = sendTo.trim();
+      if (!to) throw new Error('Enter a recipient address');
+      const amount = parseAmount(sendAmount, meta.decimals); // throws on bad input
+      const seed = mnemonicToSeed(phrase);
+
+      let rawTxHex: string;
+      let feeUnits: bigint;
+      let feeDetail: string;
+
+      if (isBtc) {
+        const scriptType = (selected.scriptType as BtcScriptType) || 'p2wpkh';
+        const fees = await walletApi.btcFees(sessionToken, net);
+        const feeRate = selectBtcFeeRate(fees, sendFeeTier);
+        // Gather UTXOs across EVERY receive address, tagging each with the
+        // address's derivation (change/index) so the signer derives the correct
+        // key per input. btcUtxos returns only {txid,vout,value} — the tag must
+        // come from the address we queried, not the UTXO payload.
+        const addrRes = await walletApi.listAddresses(sessionToken, selected.id);
+        const utxos: BtcSpendableUtxo[] = [];
+        for (const a of addrRes.addresses) {
+          const u = await walletApi.btcUtxos(sessionToken, a.address, net);
+          for (const x of u.utxos) {
+            utxos.push({
+              txid: x.txid,
+              vout: x.vout,
+              value: BigInt(x.value),
+              account: selected.accountIndex,
+              change: a.change === 1 ? 1 : 0,
+              index: a.addressIndex,
+            });
+          }
+        }
+        if (utxos.length === 0) throw new Error('No spendable funds on this account');
+        const changeAddress = deriveAddress(seed, 'btc', {
+          account: selected.accountIndex,
+          change: 1,
+          index: 0,
+          network: net,
+          scriptType,
+        }).address;
+        const signed = buildBtcTransaction(seed, {
+          utxos,
+          to,
+          amountSats: amount,
+          changeAddress,
+          feeRateSatPerVb: feeRate,
+          network: net,
+          scriptType,
+        });
+        rawTxHex = signed.hex;
+        feeUnits = signed.fee;
+        feeDetail = `${feeRate} sat/vB · ${signed.vsize} vbytes`;
+      } else {
+        const sender = deriveAddress(seed, 'eth', {
+          account: selected.accountIndex,
+          change: 0,
+          index: 0,
+          network: net,
+        }).address;
+        const [{ nonce }, gas] = await Promise.all([
+          walletApi.ethNonce(sessionToken, sender, net),
+          walletApi.ethGas(sessionToken, net),
+        ]);
+        const { maxFeePerGas, maxPriorityFeePerGas } = deriveEthFeeParams(
+          BigInt(gas.gasPrice),
+          BigInt(gas.suggestedPriorityFee),
+        );
+        const gasLimit = 21000n; // plain value transfer
+        const signed = buildEthTransaction(seed, {
+          to,
+          amountWei: amount,
+          nonce: BigInt(nonce),
+          gasLimit,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+          chainId: ethChainId(net),
+          network: net,
+        });
+        rawTxHex = signed.hex;
+        feeUnits = gasLimit * maxFeePerGas; // ceiling; actual paid is <= this
+        feeDetail = `${gasLimit} gas · ${formatUnits(maxFeePerGas.toString(), 9, 4)} gwei max`;
+      }
+
+      const total = amount + feeUnits;
+      setSendReview({
+        rawTxHex,
+        to,
+        amount: formatUnits(amount.toString(), meta.decimals),
+        fee: formatUnits(feeUnits.toString(), meta.decimals),
+        total: formatUnits(total.toString(), meta.decimals),
+        feeDetail,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to prepare transaction');
+    } finally {
+      setSendMnemonic(''); // drop the seed once the tx is signed; never needed past here
+      setSending(false);
+    }
+  }
+
+  // Stage 2: broadcast the already-signed tx. The only network mutation in the
+  // whole flow. Mainnet must have passed the double-confirm checkbox first.
+  async function handleSendConfirm() {
+    if (!sessionToken || !selected || !sendReview) return;
+    setSending(true);
+    setError(null);
+    try {
+      const res = await walletApi.broadcast(sessionToken, {
+        coin: selected.coin as 'btc' | 'eth',
+        network: selected.network as 'mainnet' | 'testnet',
+        rawTxHex: sendReview.rawTxHex,
+      });
+      setSendResult({ txid: res.txid });
+      setSendReview(null);
+      await fetchAddresses(selected.id);
+      await handleRefreshBalance();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Broadcast failed');
+    } finally {
+      setSending(false);
     }
   }
 
@@ -500,6 +690,21 @@ export default function WalletPage() {
                     </p>
                   )}
                 </div>
+
+                {/* Send */}
+                <button
+                  onClick={() => {
+                    resetSendForm();
+                    setError(null);
+                    setDialog('send');
+                  }}
+                  className="btn-gradient w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                  </svg>
+                  Send {meta.unit}
+                </button>
 
                 {/* Receive address */}
                 {receiveAddress && (
@@ -744,6 +949,259 @@ export default function WalletPage() {
             </Button>
           </div>
         </div>
+      </Dialog>
+
+      {/* Send dialog */}
+      <Dialog
+        open={dialog === 'send'}
+        onClose={() => {
+          setDialog('closed');
+          resetSendForm();
+        }}
+        title={selected ? `Send ${COIN_META[selected.coin as Coin].unit}` : 'Send'}
+      >
+        {selected &&
+          (() => {
+            const meta = COIN_META[selected.coin as Coin];
+            const isMainnet = selected.network === 'mainnet';
+            const isBtc = selected.coin === 'btc';
+
+            // ── Success ──────────────────────────────────────────────────────
+            if (sendResult) {
+              return (
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col items-center text-center gap-2 py-2">
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-full"
+                      style={{ background: 'var(--tertiary-container)', color: 'var(--tertiary)' }}
+                    >
+                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                    </div>
+                    <h4 className="font-semibold">Transaction broadcast</h4>
+                    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                      Your {meta.unit} send is propagating on {selected.network}.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>
+                      Transaction ID
+                    </label>
+                    <button
+                      onClick={() => copy(sendResult.txid)}
+                      className="mt-1.5 w-full flex items-center gap-2 rounded-lg p-3 text-left hash-block"
+                    >
+                      <code className="text-xs font-mono break-all flex-1">{sendResult.txid}</code>
+                      <span className="text-xs shrink-0" style={{ color: 'var(--primary)' }}>
+                        {copied === sendResult.txid ? 'Copied' : 'Copy'}
+                      </span>
+                    </button>
+                    <a
+                      href={explorerTxUrl(selected.coin, selected.network, sendResult.txid)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs mt-1.5 inline-flex items-center gap-1"
+                      style={{ color: 'var(--primary)' }}
+                    >
+                      View on block explorer &rarr;
+                    </a>
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      onClick={() => {
+                        setDialog('closed');
+                        resetSendForm();
+                      }}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </div>
+              );
+            }
+
+            // ── Review (tx already signed, inert until confirm) ──────────────
+            if (sendReview) {
+              return (
+                <div className="flex flex-col gap-4">
+                  <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface-low)' }}>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>
+                        To
+                      </span>
+                      <code className="text-xs font-mono break-all">{sendReview.to}</code>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        Amount
+                      </span>
+                      <span className="text-sm tabular-nums">
+                        {sendReview.amount} {meta.unit}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        Network fee
+                      </span>
+                      <span className="text-sm tabular-nums">
+                        {sendReview.fee} {meta.unit}
+                      </span>
+                    </div>
+                    <div className="border-t border-[var(--border)] pt-3 flex items-center justify-between font-semibold">
+                      <span>Total</span>
+                      <span className="tabular-nums">
+                        {sendReview.total} {meta.unit}
+                      </span>
+                    </div>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                      {sendReview.feeDetail}
+                    </p>
+                  </div>
+
+                  {isMainnet && (
+                    <label
+                      className="flex items-start gap-2 rounded-lg p-3 text-sm cursor-pointer"
+                      style={{ background: 'rgba(255, 180, 171, 0.12)', color: 'var(--destructive)' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={sendMainnetConfirm}
+                        onChange={(e) => setSendMainnetConfirm(e.target.checked)}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <span>
+                        This is a <strong>mainnet</strong> transaction moving real funds. It is irreversible. I have
+                        verified the recipient and amount.
+                      </span>
+                    </label>
+                  )}
+
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button variant="outline" onClick={() => setSendReview(null)} disabled={sending}>
+                      Back
+                    </Button>
+                    <Button onClick={handleSendConfirm} disabled={sending || (isMainnet && !sendMainnetConfirm)}>
+                      {sending ? 'Broadcasting...' : 'Confirm & send'}
+                    </Button>
+                  </div>
+                </div>
+              );
+            }
+
+            // ── Form ─────────────────────────────────────────────────────────
+            return (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="px-2 py-1 rounded font-medium" style={{ background: `${meta.accent}1f`, color: meta.accent }}>
+                    {meta.unit}
+                  </span>
+                  <span
+                    className="px-2 py-1 rounded font-medium"
+                    style={
+                      isMainnet
+                        ? { background: 'rgba(255, 180, 171, 0.12)', color: 'var(--destructive)' }
+                        : { background: 'var(--tertiary-container)', color: 'var(--tertiary)' }
+                    }
+                  >
+                    {selected.network}
+                  </span>
+                  {!isMainnet && <span style={{ color: 'var(--muted-foreground)' }}>Safe testnet -- no real value</span>}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="send-to" className="text-sm font-medium">
+                    Recipient address
+                  </label>
+                  <Input
+                    id="send-to"
+                    placeholder={isBtc ? 'bc1... / tb1...' : '0x...'}
+                    value={sendTo}
+                    onChange={(e) => setSendTo(e.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="send-amount" className="text-sm font-medium">
+                    Amount ({meta.unit})
+                  </label>
+                  <Input
+                    id="send-amount"
+                    inputMode="decimal"
+                    placeholder="0.0"
+                    value={sendAmount}
+                    onChange={(e) => setSendAmount(e.target.value)}
+                  />
+                </div>
+
+                {isBtc && (
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="send-fee" className="text-sm font-medium">
+                      Fee priority
+                    </label>
+                    <select
+                      id="send-fee"
+                      value={sendFeeTier}
+                      onChange={(e) => setSendFeeTier(e.target.value as BtcFeeTier)}
+                      className="flex h-10 w-full rounded-lg border border-[var(--input)] bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)]"
+                    >
+                      <option value="fast">Fast (next block)</option>
+                      <option value="normal">Normal (~30 min)</option>
+                      <option value="slow">Economy (~1 hr)</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="send-mnemonic" className="text-sm font-medium">
+                    Recovery phrase
+                  </label>
+                  <textarea
+                    id="send-mnemonic"
+                    placeholder="Enter your 12 or 24-word seed phrase to sign"
+                    value={sendMnemonic}
+                    onChange={(e) => setSendMnemonic(e.target.value)}
+                    rows={3}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="flex w-full rounded-lg border border-[var(--input)] bg-transparent px-3 py-2 text-sm font-mono placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)]"
+                  />
+                  <p className="text-xs flex items-start gap-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                    <svg className="h-3.5 w-3.5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                      />
+                    </svg>
+                    Used locally to sign. Only the signed transaction is sent; your seed never leaves the browser.
+                  </p>
+                </div>
+
+                <div className="flex gap-3 justify-end pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDialog('closed');
+                      resetSendForm();
+                    }}
+                    disabled={sending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSendReview}
+                    disabled={sending || !sendTo.trim() || !sendAmount.trim() || !sendMnemonic.trim()}
+                  >
+                    {sending ? 'Preparing...' : 'Review'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
       </Dialog>
     </div>
   );
