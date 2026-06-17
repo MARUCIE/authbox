@@ -90,7 +90,19 @@ func (p *TxPrepProvider) BtcFeeRates(ctx context.Context, network string) (*BtcF
 		return nil, fmt.Errorf("unsupported btc network %q", network)
 	}
 	var fees BtcFeeRates
-	if err := p.getJSON(ctx, base+"/v1/fees/recommended", &fees); err != nil {
+	err := p.getJSON(ctx, base+"/v1/fees/recommended", &fees)
+	if err != nil && network != "mainnet" {
+		// mempool.space's TESTNET fee-recommendation endpoint is frequently 503
+		// (upstream flakiness, not a wallet bug). A fee rate is just a
+		// mempool-congestion signal; mainnet rates are a safe over-estimate for
+		// a testnet send (testnet relays anything >= the network minimum, and
+		// overpaying on a value-less coin is harmless). Fall back to mainnet so
+		// a testnet send is never blocked by its own fee endpoint being down.
+		if mainnetBase, ok := btcExplorerBase["mainnet"]; ok && mainnetBase != base {
+			err = p.getJSON(ctx, mainnetBase+"/v1/fees/recommended", &fees)
+		}
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &fees, nil

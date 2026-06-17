@@ -85,6 +85,45 @@ func ethRPCMock(results map[string]string) *httptest.Server {
 	}))
 }
 
+func TestTxPrep_BtcFeeRates_TestnetFallsBackToMainnet(t *testing.T) {
+	// mempool.space's testnet fee endpoint is frequently 503. A testnet send
+	// must not be blocked by it — the provider falls back to mainnet rates.
+	mainnetSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"fastestFee":8,"halfHourFee":4,"hourFee":2,"economyFee":1,"minimumFee":1}`))
+	}))
+	defer mainnetSrv.Close()
+	testnetSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable) // 503, like the real upstream
+	}))
+	defer testnetSrv.Close()
+
+	withBTCEndpoint("mainnet", mainnetSrv.URL, func() {
+		withBTCEndpoint("testnet", testnetSrv.URL, func() {
+			fees, err := NewTxPrepProvider().BtcFeeRates(context.Background(), "testnet")
+			if err != nil {
+				t.Fatalf("expected mainnet fallback to succeed, got: %v", err)
+			}
+			if fees.HalfHourFee != 4 || fees.MinimumFee != 1 {
+				t.Errorf("fees = %+v, want mainnet fallback values (half 4 / min 1)", fees)
+			}
+		})
+	})
+}
+
+func TestTxPrep_BtcFeeRates_MainnetDownDoesNotLoopToSelf(t *testing.T) {
+	// When MAINNET's own endpoint is down there is no fallback — it must surface
+	// the error, not re-hit itself (the network==mainnet guard prevents a loop).
+	down := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer down.Close()
+	withBTCEndpoint("mainnet", down.URL, func() {
+		if _, err := NewTxPrepProvider().BtcFeeRates(context.Background(), "mainnet"); err == nil {
+			t.Error("expected error when mainnet fee endpoint is down, got nil")
+		}
+	})
+}
+
 func TestTxPrep_EthNonce(t *testing.T) {
 	srv := ethRPCMock(map[string]string{"eth_getTransactionCount": "0x2a"})
 	defer srv.Close()
