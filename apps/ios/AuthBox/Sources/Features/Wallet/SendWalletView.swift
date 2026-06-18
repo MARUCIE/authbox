@@ -29,16 +29,24 @@ struct SendWalletView: View {
     /// populated from live tx-prep, with no tap. Defaults to off for normal use.
     private let autoReview: Bool
 
+    /// TESTNET-ONLY auto-broadcast seam (DEBUG demo): after the auto-built Review,
+    /// confirm + broadcast without a tap to exercise the full build→sign→broadcast
+    /// →Sent loop end-to-end. Hard-guarded to testnet (valueless coins); it can
+    /// never fire on mainnet, where the manual confirm gate stays sacred.
+    private let autoBroadcast: Bool
+
     /// Recipient + amount may be prefilled (e.g. a scanned QR, a repeat send, or
     /// the visual-acceptance seam). Both default to empty for a fresh compose.
     init(descriptor: WalletAccountDescriptor,
          initialTo: String = "",
          initialAmount: String = "",
-         autoReview: Bool = false) {
+         autoReview: Bool = false,
+         autoBroadcast: Bool = false) {
         self.descriptor = descriptor
         self._toAddress = State(initialValue: initialTo)
         self._amount = State(initialValue: initialAmount)
         self.autoReview = autoReview
+        self.autoBroadcast = autoBroadcast
     }
 
     private var isTestnet: Bool { descriptor.network == "testnet" }
@@ -48,6 +56,28 @@ struct SendWalletView: View {
     /// for this account's network — empty stays neutral (no error before input).
     private var recipientInvalid: Bool {
         !toAddress.isEmpty && !appState.walletValidateAddress(toAddress, for: descriptor)
+    }
+
+    /// A txid/hash rendered short: `prefix…suffix`. A 64-char hex hash wrapped
+    /// across lines gets a soft hyphen inserted by the text layout that reads like
+    /// part of the hash (there are no hyphens in hex) — the short form removes the
+    /// wrap entirely. The full value stays copyable / openable in the explorer.
+    private func shortHash(_ s: String) -> String {
+        guard s.count > 22 else { return s }
+        return "\(s.prefix(12))…\(s.suffix(8))"
+    }
+
+    /// Public block-explorer URL for a broadcast tx, so the Sent receipt is
+    /// verifiable in one tap (mempool.space for BTC, Etherscan for ETH).
+    private func explorerURL(forTxid txid: String) -> URL? {
+        switch descriptor.coin {
+        case "btc":
+            return URL(string: "\(isTestnet ? "https://mempool.space/testnet" : "https://mempool.space")/tx/\(txid)")
+        case "eth":
+            return URL(string: "\(isTestnet ? "https://sepolia.etherscan.io" : "https://etherscan.io")/tx/\(txid)")
+        default:
+            return nil
+        }
     }
 
     /// Explicit network tag for the confirm screen. Testnet reads calm (orange);
@@ -94,6 +124,11 @@ struct SendWalletView: View {
                 if autoReview, preview == nil, sentTxid == nil, !toAddress.isEmpty, !amount.isEmpty {
                     await review()
                 }
+                // Testnet-only: close the full loop by broadcasting the just-built
+                // tx with no tap. Never fires on mainnet (the manual gate holds).
+                if autoBroadcast, isTestnet, sentTxid == nil, let p = preview {
+                    await broadcast(p)
+                }
             }
         }
     }
@@ -139,7 +174,7 @@ struct SendWalletView: View {
                     } else if let availableBalance {
                         Text("Available: \(availableBalance) \(unit)")
                     } else {
-                        Text("Available balance unavailable")
+                        Text("Balance unavailable")
                     }
                 }
             }
@@ -189,10 +224,10 @@ struct SendWalletView: View {
             }
             Section {
                 LabeledContent(descriptor.coin == "btc" ? "Txid" : "Tx hash") {
-                    Text(p.txid)
-                        .font(.system(.caption2, design: .monospaced))
+                    Text(shortHash(p.txid))
+                        .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.trailing).lineLimit(2).truncationMode(.middle)
+                        .textSelection(.enabled)
                 }
             } footer: {
                 Text("The transaction is already signed on this device. Confirm to broadcast it.")
@@ -240,18 +275,25 @@ struct SendWalletView: View {
             VStack(spacing: 6) {
                 Text(descriptor.coin == "btc" ? "Txid" : "Tx hash")
                     .font(.caption).foregroundStyle(.secondary)
-                Text(txid)
-                    .font(.system(.caption, design: .monospaced))
-                    .multilineTextAlignment(.center)
+                Text(shortHash(txid))
+                    .font(.system(.body, design: .monospaced))
                     .textSelection(.enabled)
-                    .padding(.horizontal)
             }
-            Button {
-                UIPasteboard.general.string = txid
-            } label: {
-                Label("Copy \(descriptor.coin == "btc" ? "txid" : "hash")", systemImage: "doc.on.doc")
+            HStack(spacing: 12) {
+                Button {
+                    UIPasteboard.general.string = txid   // copies the FULL hash
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+                .buttonStyle(.bordered)
+
+                if let url = explorerURL(forTxid: txid) {
+                    Link(destination: url) {
+                        Label("View on explorer", systemImage: "safari")
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
-            .buttonStyle(.bordered)
             Spacer()
         }
         .padding(.top, 48)

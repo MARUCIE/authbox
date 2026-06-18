@@ -12,14 +12,19 @@ struct ContentView: View {
             // --send-demo-noreview stops at the input form (no auto-review) so the
             // compose stage — including the available-balance footer — is itself
             // screenshot-able without the sheet jumping straight to Review.
-            let autoReview = !ProcessInfo.processInfo.arguments.contains("--send-demo-noreview")
+            let args = ProcessInfo.processInfo.arguments
+            let autoReview = !args.contains("--send-demo-noreview")
+            // Testnet-only end-to-end broadcast walkthrough (SendWalletView guards
+            // isTestnet again, so this can never broadcast on mainnet).
+            let autoBroadcast = args.contains("--send-demo-broadcast")
             SendWalletView(
                 descriptor: demo,
                 initialTo: isBtc
                     ? "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl"
                     : "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
                 initialAmount: isBtc ? "0.00001" : "0.001",
-                autoReview: autoReview)
+                autoReview: autoReview,
+                autoBroadcast: autoBroadcast)
         } else {
             switch appState.vaultState {
             case .empty:
