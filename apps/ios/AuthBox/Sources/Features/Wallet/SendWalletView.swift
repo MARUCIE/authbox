@@ -1,0 +1,195 @@
+import SwiftUI
+
+/// Two-stage Send flow mirroring the web wallet: Review builds + signs the
+/// transaction entirely on-device (no broadcast yet), then Confirm relays the
+/// signed bytes. Mainnet money-movement is gated behind an explicit double-confirm
+/// toggle so a real send can never happen on a single tap.
+struct SendWalletView: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    let descriptor: WalletAccountDescriptor
+
+    @State private var toAddress = ""
+    @State private var amount = ""
+    @State private var preview: WalletSendPreview?
+    @State private var mainnetConfirmed = false
+    @State private var busy = false
+    @State private var sentTxid: String?
+    @State private var errorMessage: String?
+
+    private var isTestnet: Bool { descriptor.network == "testnet" }
+    private var unit: String { WalletCoinStyle.unit(descriptor.coin) }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let sentTxid {
+                    sentView(txid: sentTxid)
+                } else if let preview {
+                    reviewForm(preview)
+                } else {
+                    inputForm
+                }
+            }
+            .navigationTitle(sentTxid == nil ? "Send \(unit)" : "Sent")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(sentTxid == nil ? "Cancel" : "Done") { dismiss() }
+                }
+            }
+            .alert("Couldn’t send", isPresented: Binding(
+                get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    // MARK: - Stage 1: input
+
+    private var inputForm: some View {
+        Form {
+            Section("Recipient") {
+                TextField("\(unit) address", text: $toAddress, axis: .vertical)
+                    .font(.system(.footnote, design: .monospaced))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .lineLimit(1...3)
+            }
+            Section("Amount") {
+                HStack {
+                    TextField("0.0", text: $amount)
+                        .keyboardType(.decimalPad)
+                        .font(.title3.monospacedDigit())
+                    Text(unit).foregroundStyle(.secondary)
+                }
+            }
+            Section {
+                Button {
+                    Task { await review() }
+                } label: {
+                    HStack {
+                        if busy { ProgressView().padding(.trailing, 4) }
+                        Text(busy ? "Building transaction…" : "Review")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(busy || toAddress.isEmpty || amount.isEmpty)
+            } footer: {
+                Text(isTestnet
+                     ? "Testnet transaction — no real value moves."
+                     : "Mainnet — this moves real \(unit). You’ll confirm again before it broadcasts.")
+            }
+        }
+    }
+
+    // MARK: - Stage 2: review
+
+    private func reviewForm(_ p: WalletSendPreview) -> some View {
+        Form {
+            Section("Review") {
+                LabeledContent("To") {
+                    Text(p.toAddress)
+                        .font(.system(.caption, design: .monospaced))
+                        .multilineTextAlignment(.trailing).lineLimit(2).truncationMode(.middle)
+                }
+                LabeledContent("Amount", value: p.amountDisplay)
+                LabeledContent("Network fee", value: p.feeDisplay)
+                LabeledContent("Total", value: p.totalDisplay).bold()
+            }
+            Section {
+                LabeledContent(descriptor.coin == "btc" ? "Txid" : "Tx hash") {
+                    Text(p.txid)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing).lineLimit(2).truncationMode(.middle)
+                }
+            } footer: {
+                Text("The transaction is already signed on this device. Confirm to broadcast it.")
+            }
+
+            if !isTestnet {
+                Section {
+                    Toggle(isOn: $mainnetConfirmed) {
+                        Text("I confirm sending real \(unit) on mainnet.")
+                            .font(.footnote)
+                    }
+                    .tint(.red)
+                }
+            }
+
+            Section {
+                Button {
+                    Task { await broadcast(p) }
+                } label: {
+                    HStack {
+                        if busy { ProgressView().padding(.trailing, 4) }
+                        Text(busy ? "Broadcasting…" : "Confirm & Send")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(isTestnet ? WalletCoinStyle.color(descriptor.coin) : .red)
+                .disabled(busy || (!isTestnet && !mainnetConfirmed))
+
+                Button("Back") { preview = nil; mainnetConfirmed = false }
+                    .frame(maxWidth: .infinity)
+                    .disabled(busy)
+            }
+        }
+    }
+
+    // MARK: - Stage 3: sent
+
+    private func sentView(txid: String) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 56)).foregroundStyle(.green)
+            Text("Transaction broadcast")
+                .font(.title3.weight(.semibold))
+            VStack(spacing: 6) {
+                Text(descriptor.coin == "btc" ? "Txid" : "Tx hash")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(txid)
+                    .font(.system(.caption, design: .monospaced))
+                    .multilineTextAlignment(.center)
+                    .textSelection(.enabled)
+                    .padding(.horizontal)
+            }
+            Button {
+                UIPasteboard.general.string = txid
+            } label: {
+                Label("Copy \(descriptor.coin == "btc" ? "txid" : "hash")", systemImage: "doc.on.doc")
+            }
+            .buttonStyle(.bordered)
+            Spacer()
+        }
+        .padding(.top, 48)
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Actions
+
+    private func review() async {
+        busy = true; defer { busy = false }
+        do {
+            preview = try await appState.walletPrepareSend(
+                descriptor: descriptor, toAddress: toAddress, amountInput: amount)
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func broadcast(_ p: WalletSendPreview) async {
+        busy = true; defer { busy = false }
+        do {
+            sentTxid = try await appState.walletBroadcast(p)
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+}

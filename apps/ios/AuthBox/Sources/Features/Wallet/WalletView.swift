@@ -172,12 +172,14 @@ struct WalletAccountDetailView: View {
     @State private var loadingBalance = false
     @State private var balanceError: String?
     @State private var copied = false
+    @State private var showSend = false
 
     private let balanceService = WalletBalanceService()
 
     var body: some View {
         List {
             balanceSection
+            sendSection
             receiveSection
             detailsSection
             Section {
@@ -192,9 +194,28 @@ struct WalletAccountDetailView: View {
         .navigationTitle(descriptor.label)
         .navigationBarTitleDisplayMode(.inline)
         .task { await refreshBalance() }
+        .sheet(isPresented: $showSend) {
+            SendWalletView(descriptor: descriptor)
+                .environmentObject(appState)
+        }
     }
 
     // MARK: Sections
+
+    private var sendSection: some View {
+        Section {
+            Button {
+                showSend = true
+            } label: {
+                Label("Send \(WalletCoinStyle.unit(descriptor.coin))", systemImage: "paperplane.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(WalletCoinStyle.color(descriptor.coin))
+            .disabled(appState.walletReceiveAddress(for: descriptor) == nil)
+            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+        }
+    }
 
     private var balanceSection: some View {
         Section {

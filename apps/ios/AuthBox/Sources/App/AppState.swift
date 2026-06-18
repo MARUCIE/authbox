@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import SwiftUI
+import BigInt
 import AuthBoxCrypto
 
 /// Root application state managing vault lifecycle.
@@ -280,6 +281,98 @@ final class AppState: ObservableObject {
     func walletAccountXpub(for descriptor: WalletAccountDescriptor) -> String? {
         guard let seed, let coin = Wallet.Coin(rawValue: descriptor.coin) else { return nil }
         return Wallet.deriveAccount(seed: seed, coin: coin, options: deriveOptions(for: descriptor)).xpub
+    }
+
+    // MARK: - Wallet Send (build + sign client-side, then relay)
+
+    /// Build and sign a send transaction CLIENT-SIDE WITHOUT broadcasting. The
+    /// private key is derived from the in-memory seed inside AuthBoxCrypto.WalletTx
+    /// and never leaves it; this returns a preview the user reviews before the
+    /// explicit broadcast step — the mainnet money-movement gate. Tx-prep reads and
+    /// the eventual relay go straight to public explorers (local-first, like
+    /// WalletBalanceService); the server is never involved.
+    func walletPrepareSend(descriptor: WalletAccountDescriptor,
+                           toAddress: String,
+                           amountInput: String) async throws -> WalletSendPreview {
+        guard let seed else { throw WalletSendError.locked }
+        let coin = descriptor.coin
+        let network = descriptor.network
+        let walletNet = Wallet.WalletNetwork(rawValue: network) ?? .mainnet
+        let to = toAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !to.isEmpty else { throw WalletSendError.invalidAddress }
+        let svc = WalletTxPrepService()
+
+        if coin == "btc" {
+            guard let satsStr = WalletAmount.parseSmallest(amountInput, decimals: 8),
+                  let amountSats = UInt64(satsStr) else { throw WalletSendError.invalidAmount }
+            guard let receive = walletReceiveAddress(for: descriptor)?.address else { throw WalletSendError.locked }
+            let utxos = try await svc.btcUTXOs(network: network, address: receive, accountIndex: descriptor.accountIndex)
+            guard !utxos.isEmpty else { throw WalletSendError.noFunds }
+            let fees = try await svc.btcFees(network: network)
+            let feeRate = max(fees.halfHourFee, fees.minimumFee)   // "normal" tier, floored at the relay minimum
+            do {
+                // Change returns to the account's own receive address — the iOS app
+                // uses a single address per account, so this avoids tracking a
+                // separate change branch while staying fully self-custodial.
+                let signed = try WalletTx.buildBtcTransaction(seed: seed, params: WalletTx.BuildBtcTxParams(
+                    utxos: utxos, to: to, amountSats: amountSats, changeAddress: receive,
+                    feeRateSatPerVb: feeRate, network: walletNet))
+                return WalletSendPreview(
+                    coin: coin, network: network, toAddress: to,
+                    amountDisplay: WalletAmount.formatUnits(satsStr, decimals: 8) + " BTC",
+                    feeDisplay: WalletAmount.formatUnits(String(signed.fee), decimals: 8) + " BTC",
+                    totalDisplay: WalletAmount.formatUnits(String(amountSats + signed.fee), decimals: 8) + " BTC",
+                    signedHex: signed.hex, txid: signed.txid)
+            } catch let e as WalletTx.BtcTxError {
+                throw mapBtcError(e)
+            }
+        } else {
+            guard let weiStr = WalletAmount.parseSmallest(amountInput, decimals: 18),
+                  let amountWei = BigUInt(weiStr) else { throw WalletSendError.invalidAmount }
+            guard let sender = walletReceiveAddress(for: descriptor)?.address else { throw WalletSendError.locked }
+            let nonce = try await svc.ethNonce(network: network, address: sender)
+            let (gasPrice, priority) = try await svc.ethGas(network: network)
+            let maxFee = gasPrice + priority
+            let gasLimit = BigUInt(21000)
+            let chainId: BigUInt = network == "testnet" ? 11_155_111 : 1
+            do {
+                let signed = try WalletTx.buildEthTransaction(seed: seed, params: WalletTx.BuildEthTxParams(
+                    to: to, amountWei: amountWei, nonce: nonce, gasLimit: gasLimit,
+                    maxFeePerGas: maxFee, maxPriorityFeePerGas: priority, chainId: chainId,
+                    account: descriptor.accountIndex, network: walletNet))
+                let feeWei = maxFee * gasLimit
+                return WalletSendPreview(
+                    coin: coin, network: network, toAddress: to,
+                    amountDisplay: WalletAmount.formatUnits(weiStr, decimals: 18) + " ETH",
+                    feeDisplay: WalletAmount.formatUnits(String(feeWei), decimals: 18) + " ETH",
+                    totalDisplay: WalletAmount.formatUnits(String(amountWei + feeWei), decimals: 18) + " ETH",
+                    signedHex: signed.hex, txid: signed.hash)
+            } catch let e as WalletTx.WalletTxError {
+                switch e {
+                case .invalidRecipient: throw WalletSendError.invalidAddress
+                case .signingFailed, .senderMismatch: throw WalletSendError.signingFailed("Transaction signing failed.")
+                }
+            }
+        }
+    }
+
+    /// Relay a previously-built, user-confirmed signed transaction. Returns the txid.
+    func walletBroadcast(_ preview: WalletSendPreview) async throws -> String {
+        let svc = WalletTxPrepService()
+        if preview.coin == "btc" {
+            return try await svc.broadcastBtc(network: preview.network, rawTxHex: preview.signedHex)
+        }
+        return try await svc.broadcastEth(network: preview.network, rawTxHex: preview.signedHex)
+    }
+
+    private func mapBtcError(_ e: WalletTx.BtcTxError) -> WalletSendError {
+        switch e {
+        case .noUtxos: return .noFunds
+        case .insufficientFunds: return .insufficientFunds
+        case .badAmount: return .invalidAmount
+        case .badFeeRate: return .signingFailed("Invalid fee rate from the explorer.")
+        case .badAddress: return .invalidAddress
+        }
     }
 
     private func deriveOptions(for descriptor: WalletAccountDescriptor) -> Wallet.DeriveOptions {
