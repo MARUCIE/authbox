@@ -17,6 +17,13 @@ struct SendWalletView: View {
     @State private var sentTxid: String?
     @State private var errorMessage: String?
 
+    /// Confirmed spendable balance (human units), shown on the input form so the
+    /// user knows what they have before composing. Same source/format as the
+    /// wallet detail screen (WalletBalanceService → formatUnits).
+    @State private var availableBalance: String?
+    @State private var loadingBalance = false
+    private let balanceService = WalletBalanceService()
+
     /// When true, the Review step is built automatically once on first appear —
     /// used by the Send-demo visual-acceptance seam to land directly on a Review
     /// populated from live tx-prep, with no tap. Defaults to off for normal use.
@@ -73,6 +80,8 @@ struct SendWalletView: View {
                 Text(errorMessage ?? "")
             }
             .task {
+                // Always surface the spendable balance on the input form.
+                await refreshBalance()
                 // Visual-acceptance seam: build the Review once from live tx-prep
                 // with no tap. Guarded so it fires only when explicitly requested
                 // and the form is prefilled and untouched.
@@ -94,12 +103,25 @@ struct SendWalletView: View {
                     .autocorrectionDisabled()
                     .lineLimit(1...3)
             }
-            Section("Amount") {
+            Section {
                 HStack {
                     TextField("0.0", text: $amount)
                         .keyboardType(.decimalPad)
                         .font(.title3.monospacedDigit())
                     Text(unit).foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Amount")
+            } footer: {
+                HStack(spacing: 4) {
+                    if loadingBalance {
+                        ProgressView().controlSize(.mini)
+                        Text("Checking balance…")
+                    } else if let availableBalance {
+                        Text("Available: \(availableBalance) \(unit)")
+                    } else {
+                        Text("Available balance unavailable")
+                    }
                 }
             }
             Section {
@@ -235,6 +257,20 @@ struct SendWalletView: View {
             sentTxid = try await appState.walletBroadcast(p)
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func refreshBalance() async {
+        guard let address = appState.walletReceiveAddress(for: descriptor)?.address else { return }
+        loadingBalance = true
+        defer { loadingBalance = false }
+        do {
+            let balance = try await balanceService.balance(
+                coin: descriptor.coin, network: descriptor.network, address: address)
+            availableBalance = WalletAmount.formatUnits(
+                balance.confirmed, decimals: WalletCoinStyle.decimals(descriptor.coin))
+        } catch {
+            availableBalance = nil   // footer falls back to "unavailable"
         }
     }
 }

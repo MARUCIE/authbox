@@ -9,13 +9,17 @@ struct ContentView: View {
         // release (no writer), so production always falls through to the vault UI.
         if let demo = appState.pendingSendDemo {
             let isBtc = demo.coin == "btc"
+            // --send-demo-noreview stops at the input form (no auto-review) so the
+            // compose stage — including the available-balance footer — is itself
+            // screenshot-able without the sheet jumping straight to Review.
+            let autoReview = !ProcessInfo.processInfo.arguments.contains("--send-demo-noreview")
             SendWalletView(
                 descriptor: demo,
                 initialTo: isBtc
                     ? "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl"
                     : "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
                 initialAmount: isBtc ? "0.00001" : "0.001",
-                autoReview: true)
+                autoReview: autoReview)
         } else {
             switch appState.vaultState {
             case .empty:
