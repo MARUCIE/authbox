@@ -109,6 +109,50 @@ enum Secp256k1 {
         return serialize(&pubkey, compressed: false)
     }
 
+    /// Deterministic (RFC6979) low-S ECDSA signature over a 32-byte hash,
+    /// DER-encoded — the form a Bitcoin P2WPKH witness carries (followed by the
+    /// 1-byte sighash flag, appended by the caller). Modern libsecp256k1 always
+    /// produces a low-S signature, so this satisfies BIP-62 with no extra
+    /// normalization step.
+    static func signDER(messageHash: Data, privateKey: Data) -> Data? {
+        precondition(messageHash.count == 32 && privateKey.count == 32)
+        var sig = secp256k1_ecdsa_signature()
+        let ok = messageHash.withUnsafeBytes { msg in
+            privateKey.withUnsafeBytes { sk in
+                secp256k1_ecdsa_sign(
+                    ctx, &sig,
+                    msg.bindMemory(to: UInt8.self).baseAddress!,
+                    sk.bindMemory(to: UInt8.self).baseAddress!,
+                    nil, nil)
+            }
+        }
+        guard ok == 1 else { return nil }
+        var der = [UInt8](repeating: 0, count: 72)   // max DER length for a secp256k1 sig
+        var derLen = der.count
+        _ = secp256k1_ecdsa_signature_serialize_der(ctx, &der, &derLen, &sig)
+        return Data(der.prefix(derLen))
+    }
+
+    /// Verify a DER signature over a 32-byte hash — used in tests to prove a
+    /// produced witness signature is valid for the BIP-143 sighash + pubkey.
+    static func verifyDER(messageHash: Data, derSignature: Data, publicKey: Data) -> Bool {
+        precondition(messageHash.count == 32)
+        var sig = secp256k1_ecdsa_signature()
+        let parsed = derSignature.withUnsafeBytes { d in
+            secp256k1_ecdsa_signature_parse_der(ctx, &sig, d.bindMemory(to: UInt8.self).baseAddress!, derSignature.count)
+        }
+        guard parsed == 1 else { return false }
+        var pubkey = secp256k1_pubkey()
+        let pok = publicKey.withUnsafeBytes { pk in
+            secp256k1_ec_pubkey_parse(ctx, &pubkey, pk.bindMemory(to: UInt8.self).baseAddress!, publicKey.count)
+        }
+        guard pok == 1 else { return false }
+        let ok = messageHash.withUnsafeBytes { msg in
+            secp256k1_ecdsa_verify(ctx, &sig, msg.bindMemory(to: UInt8.self).baseAddress!, &pubkey)
+        }
+        return ok == 1
+    }
+
     // MARK: - Private
 
     private static func serialize(_ pubkey: inout secp256k1_pubkey, compressed: Bool) -> Data {

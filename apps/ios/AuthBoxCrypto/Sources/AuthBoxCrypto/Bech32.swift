@@ -16,6 +16,53 @@ enum Bech32 {
         return encode(hrp: hrp, data: data)
     }
 
+    /// Decode a v0 segwit address back to (hrp, version, program). Returns nil on
+    /// ANY malformation — a bad recipient address must fail loudly, never decode
+    /// into a wrong scriptPubKey and silently misdirect funds. Validates the
+    /// bech32 checksum and the strict 5→8 regrouping (no non-zero padding) per
+    /// BIP-173, and rejects mixed-case input.
+    static func decodeSegwit(_ address: String) -> (hrp: String, version: UInt8, program: Data)? {
+        let lower = address.lowercased()
+        // BIP-173 forbids mixed case: accept only all-lower or all-upper input.
+        if address != lower && address != address.uppercased() { return nil }
+        guard let sep = lower.lastIndex(of: "1") else { return nil }
+        let hrp = String(lower[lower.startIndex..<sep])
+        let dataPart = lower[lower.index(after: sep)...]
+        guard !hrp.isEmpty, dataPart.count >= 6 else { return nil }
+
+        var values = [UInt8]()
+        for ch in dataPart {
+            guard let idx = charset.firstIndex(of: ch) else { return nil }
+            values.append(UInt8(idx))
+        }
+        // bech32 (witver 0) checksum constant is 1.
+        guard polymod(hrpExpand(hrp) + values) == 1 else { return nil }
+
+        let payload = Array(values.dropLast(6))                 // strip 6-symbol checksum
+        guard let version = payload.first, version == 0 else { return nil } // v0 only
+        guard let program = convertBitsStrict(Array(payload.dropFirst()), from: 5, to: 8) else { return nil }
+        guard program.count == 20 || program.count == 32 else { return nil } // p2wpkh / p2wsh
+        return (hrp, version, Data(program))
+    }
+
+    /// 5→8 regroup with strict validation: input symbols must fit in `from` bits,
+    /// leftover bits must be < `from`, and the final padding must be zero
+    /// (BIP-173). Any violation means a malformed address → nil.
+    private static func convertBitsStrict(_ data: [UInt8], from: Int, to: Int) -> [UInt8]? {
+        var acc = 0, bits = 0
+        var out = [UInt8]()
+        let maxv = (1 << to) - 1
+        for value in data {
+            if Int(value) >> from != 0 { return nil }
+            acc = (acc << from) | Int(value)
+            bits += from
+            while bits >= to { bits -= to; out.append(UInt8((acc >> bits) & maxv)) }
+        }
+        if bits >= from { return nil }                       // too many leftover bits
+        if (acc << (to - bits)) & maxv != 0 { return nil }   // non-zero padding
+        return out
+    }
+
     // MARK: - Core bech32
 
     private static func encode(hrp: String, data: [UInt8]) -> String {
