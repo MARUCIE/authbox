@@ -71,6 +71,27 @@ public enum WalletTx {
         case senderMismatch(expected: String, recovered: String)
     }
 
+    /// Whether `address` is a recipient the builder would accept for this coin +
+    /// network. Co-located with the builders on purpose: it uses the SAME
+    /// primitives they validate against (`Data(ethHex:)` == 20 bytes for ETH;
+    /// `Bech32.decodeSegwit` v0 for BTC), so an address this returns `true` for
+    /// is one `buildEthTransaction` / `buildBtcTransaction` will not reject — the
+    /// inline form check can never disagree with the build step. For BTC it adds
+    /// a stricter network-hrp match (tb/bc) that the builder itself does not
+    /// enforce, so the UI can warn before a testnet→mainnet address slips through.
+    public static func isValidRecipient(_ address: String, coin: Wallet.Coin,
+                                        network: Wallet.WalletNetwork) -> Bool {
+        switch coin {
+        case .eth:
+            guard let bytes = Data(ethHex: address), bytes.count == 20 else { return false }
+            return true
+        case .btc:
+            guard let (hrp, version, program) = Bech32.decodeSegwit(address), version == 0,
+                  program.count == 20 || program.count == 32 else { return false }
+            return hrp == (network == .testnet ? "tb" : "bc")
+        }
+    }
+
     /// The 9 unsigned EIP-1559 fields in canonical order. Integers go through
     /// `RLP.bytes` (minimal big-endian); `to` is a fixed-width 20-byte string
     /// (leading zeros preserved); the access list is an empty list.

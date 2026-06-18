@@ -308,6 +308,15 @@ final class AppState: ObservableObject {
         WalletAccountStore.save(walletAccounts)
     }
 
+    /// Whether `address` is a recipient this account can send to (network-aware).
+    /// Delegates to `WalletTx.isValidRecipient`, which is co-located with the
+    /// builders, so the inline form check can never disagree with the build step.
+    func walletValidateAddress(_ address: String, for descriptor: WalletAccountDescriptor) -> Bool {
+        guard let coin = Wallet.Coin(rawValue: descriptor.coin),
+              let network = Wallet.WalletNetwork(rawValue: descriptor.network) else { return false }
+        return WalletTx.isValidRecipient(address, coin: coin, network: network)
+    }
+
     /// Derive the first receive address for an account. Returns nil when locked.
     func walletReceiveAddress(for descriptor: WalletAccountDescriptor) -> Wallet.WalletAddress? {
         guard let seed, let coin = Wallet.Coin(rawValue: descriptor.coin) else { return nil }

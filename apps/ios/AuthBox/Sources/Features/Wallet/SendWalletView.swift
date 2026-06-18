@@ -44,6 +44,12 @@ struct SendWalletView: View {
     private var isTestnet: Bool { descriptor.network == "testnet" }
     private var unit: String { WalletCoinStyle.unit(descriptor.coin) }
 
+    /// True only once the user has typed something that is not a valid recipient
+    /// for this account's network — empty stays neutral (no error before input).
+    private var recipientInvalid: Bool {
+        !toAddress.isEmpty && !appState.walletValidateAddress(toAddress, for: descriptor)
+    }
+
     /// Explicit network tag for the confirm screen. Testnet reads calm (orange);
     /// mainnet reads as a warning (red) to reinforce the real-money gate.
     private var networkBadge: some View {
@@ -96,12 +102,25 @@ struct SendWalletView: View {
 
     private var inputForm: some View {
         Form {
-            Section("Recipient") {
+            Section {
                 TextField("\(unit) address", text: $toAddress, axis: .vertical)
                     .font(.system(.footnote, design: .monospaced))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .lineLimit(1...3)
+            } header: {
+                Text("Recipient")
+            } footer: {
+                // Inline validity BEFORE Review, so a malformed or wrong-network
+                // address is caught at compose time, not as an alert after build.
+                if recipientInvalid {
+                    Label("Not a valid \(isTestnet ? "testnet" : "mainnet") \(unit) address",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                } else if !toAddress.isEmpty {
+                    Label("Valid \(unit) address", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                }
             }
             Section {
                 HStack {
@@ -135,7 +154,7 @@ struct SendWalletView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(busy || toAddress.isEmpty || amount.isEmpty)
+                .disabled(busy || toAddress.isEmpty || amount.isEmpty || recipientInvalid)
             } footer: {
                 Text(isTestnet
                      ? "Testnet transaction — no real value moves."

@@ -136,4 +136,24 @@ struct WalletTxBtcTests {
             _ = try WalletTx.buildBtcTransaction(seed: Self.seed, params: bad)
         }
     }
+
+    @Test("isValidRecipient matches what the builder accepts (BTC + ETH, network-aware)")
+    func validatesRecipients() {
+        // Valid: the canonical testnet p2wpkh shared-pot address.
+        #expect(WalletTx.isValidRecipient("tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl",
+                                          coin: .btc, network: .testnet))
+        // hrp/network mismatch: a testnet address is NOT valid for a mainnet send.
+        #expect(!WalletTx.isValidRecipient("tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl",
+                                           coin: .btc, network: .mainnet))
+        // Legacy base58 is not segwit-v0 → rejected (same as the builder throws).
+        #expect(!WalletTx.isValidRecipient("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
+                                           coin: .btc, network: .mainnet))
+        // ETH: a 20-byte 0x address is valid; network-agnostic.
+        #expect(WalletTx.isValidRecipient("0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+                                          coin: .eth, network: .testnet))
+        // ETH too-short / non-hex → rejected.
+        #expect(!WalletTx.isValidRecipient("0x1234", coin: .eth, network: .mainnet))
+        #expect(!WalletTx.isValidRecipient("not-an-address", coin: .eth, network: .mainnet))
+        #expect(!WalletTx.isValidRecipient("", coin: .btc, network: .testnet))
+    }
 }
