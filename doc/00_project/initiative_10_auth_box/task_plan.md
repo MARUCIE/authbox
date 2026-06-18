@@ -842,3 +842,30 @@ App Store / TestFlight deploy remains a separate HITL gate (asc upload + Apple r
 - Self-paced /loop. Each iteration advances one phase; workflow completion (task-notification)
   wakes the loop. Stop only on safety/HITL (Apple ID 2FA, funds, prod) or full R1-R6 acceptance.
 - Honest seam discipline: a stub never passes as done; grep every read-binding for ≥1 writer (memory: green-unit-tests-on-pure-leaves-not-wired).
+
+## §WALLET-SEND. iOS/iPad Send feature — parity with web wallet (2026-06-18)
+
+Goal: close the last wallet gap — the iOS app could RECEIVE/show balances but not
+SEND. Port the web wallet's client-side signers to Swift and ship a Send UI, then
+prove the closed loop on simulator without moving funds.
+
+### Shipped (committed, tested)
+- [x] ETH EIP-1559 signer in Swift (`AuthBoxCrypto/WalletTx.swift` + `RLP.swift` + recoverable ECDSA in `Secp256k1.swift`) — golden-anchored to micro-eth-signer (signing-hash + recovered sender), 7 tests. Commit `e3e7bc1`.
+- [x] BTC P2WPKH (BIP-143 segwit) signer + accumulative coin-selection in Swift (`WalletTx.swift` + `Bech32.decodeSegwit` + DER sign/verify) — golden-anchored to @scure/btc-signer (sighash `720c5dde`, txid `548c10ee`, fee/vsize), 8 tests. Commit `ec38078`. 95/95 AuthBoxCrypto tests green.
+- [x] Local-first tx-prep + broadcast (`WalletTxPrepService.swift`) straight from public explorers (mempool.space BTC / publicnode ETH) — the app does NOT use the Go API (APIClient is unused; this is a local-first app). Commit `5ea950b`.
+- [x] Send UI: two-stage Review→Confirm sheet (`SendWalletView.swift`), mainnet double-confirm gate, wired into `WalletView`. Commit `5ea950b`.
+- [x] No-tap visual-acceptance seam (`--send-demo-testnet`): boots straight into SendWalletView on the funded testnet shared-pot account, prefilled + auto-review. Commit `de1d517`.
+- [x] **功能闭环 PROVEN on simulator (no broadcast)**: launch → live testnet UTXO/fee fetch → on-device coin-selection + BIP-143 sighash + sign → Review renders To=`tb1q6rz28…`, fee=141 sats (= the 72-byte-sig vsize estimate), real pre-broadcast segwit txid. Re-run produced a different txid (live UTXO set changed) = live-data binding confirmed, not a fixture. Screenshots `/tmp/authbox-send-shots/11,12-*.png`.
+- [x] Polish round 1 (confirm-screen verifiability): TESTNET/MAINNET network badge in Review header + recipient shown full & selectable (dropped `truncationMode(.middle)` — a funds risk on a confirm screen). Commit `7ef5c82`. Verified on sim.
+
+### Polish queue (rounds 2-3 — next /loop iterations, atomic)
+- [ ] R2-a: input stage shows the account's available balance (live `WalletBalanceService`) so the user knows the max they can send; consider a "Max" affordance.
+- [ ] R2-b: inline recipient-address validation feedback BEFORE Review (currently invalid address only surfaces as an alert after tapping Review).
+- [ ] R2-c: visually verify the ETH Send path (demo only exercised BTC) — add an `--send-demo-eth-testnet` seam or extend the existing one to ETH (Sepolia).
+- [ ] R3-a: txid hyphen-wrap readability on Review + Sent (the mid-hash hyphen can be misread as part of the hash).
+- [ ] R3-b: "Building transaction…" loading state polish + error-alert copy review.
+- [ ] R3-c: full UX-map walkthrough (compose → review → confirm → sent → back-to-wallet) identifying any remaining 卡点; confirm balance refresh after a (testnet) broadcast.
+
+### Notes
+- Broadcast itself is the one genuine money-movement gate; mainnet sends pass the red double-confirm toggle. Visual acceptance deliberately stops at Review (signed, not broadcast).
+- SourceKit "No such module / Cannot find type in scope" diagnostics on these files are cross-file false positives from the regenerated `.xcodeproj`; `swift test` / `xcodebuild` is the truth (both BUILD SUCCEEDED).
