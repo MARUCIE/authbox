@@ -20,6 +20,12 @@ final class AppState: ObservableObject {
     /// Public wallet account descriptors (no keys). Persisted via UserDefaults.
     @Published var walletAccounts: [WalletAccountDescriptor] = []
 
+    /// DEBUG visual-acceptance seam: when set, `ContentView` presents the Send
+    /// sheet straight at the root for a no-tap screenshot of the Send flow. Only
+    /// ever written under the `--send-demo-testnet` launch arg (`#if DEBUG`); it
+    /// stays nil in release, so the root never deviates from the normal vault UI.
+    @Published var pendingSendDemo: WalletAccountDescriptor?
+
     /// In-memory vault key (never persisted to disk).
     private var vaultKey: Data?
 
@@ -135,6 +141,23 @@ final class AppState: ObservableObject {
             walletAccounts = []
             addWalletAccount(coin: .btc, network: .mainnet, scriptType: .p2wpkh, label: "Cold Storage")
             addWalletAccount(coin: .eth, network: .mainnet, scriptType: .p2wpkh, label: "ENS · main")
+        }
+
+        // Visual-acceptance hook: boot straight into the Send sheet on a TESTNET
+        // BTC account whose receive address is the funded shared-pot
+        // (tb1q6rz28…). ContentView presents SendWalletView at the root with the
+        // recipient + amount prefilled and auto-review on, so a single launch
+        // exercises the live testnet tx-prep → on-device build+sign path (NO
+        // broadcast) and renders the real fee/txid for a no-tap screenshot.
+        if ProcessInfo.processInfo.arguments.contains("--send-demo-testnet") {
+            if vaultState != .unlocked {
+                let demoMnemonic =
+                    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+                try? createVault(mnemonic: demoMnemonic, masterPassword: "TestPassword123!")
+            }
+            walletAccounts = []
+            addWalletAccount(coin: .btc, network: .testnet, scriptType: .p2wpkh, label: "Testnet · shared pot")
+            pendingSendDemo = walletAccounts.first
         }
         #endif
     }

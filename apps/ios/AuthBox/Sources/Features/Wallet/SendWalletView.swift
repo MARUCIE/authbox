@@ -9,13 +9,30 @@ struct SendWalletView: View {
     @Environment(\.dismiss) private var dismiss
     let descriptor: WalletAccountDescriptor
 
-    @State private var toAddress = ""
-    @State private var amount = ""
+    @State private var toAddress: String
+    @State private var amount: String
     @State private var preview: WalletSendPreview?
     @State private var mainnetConfirmed = false
     @State private var busy = false
     @State private var sentTxid: String?
     @State private var errorMessage: String?
+
+    /// When true, the Review step is built automatically once on first appear —
+    /// used by the Send-demo visual-acceptance seam to land directly on a Review
+    /// populated from live tx-prep, with no tap. Defaults to off for normal use.
+    private let autoReview: Bool
+
+    /// Recipient + amount may be prefilled (e.g. a scanned QR, a repeat send, or
+    /// the visual-acceptance seam). Both default to empty for a fresh compose.
+    init(descriptor: WalletAccountDescriptor,
+         initialTo: String = "",
+         initialAmount: String = "",
+         autoReview: Bool = false) {
+        self.descriptor = descriptor
+        self._toAddress = State(initialValue: initialTo)
+        self._amount = State(initialValue: initialAmount)
+        self.autoReview = autoReview
+    }
 
     private var isTestnet: Bool { descriptor.network == "testnet" }
     private var unit: String { WalletCoinStyle.unit(descriptor.coin) }
@@ -44,6 +61,14 @@ struct SendWalletView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(errorMessage ?? "")
+            }
+            .task {
+                // Visual-acceptance seam: build the Review once from live tx-prep
+                // with no tap. Guarded so it fires only when explicitly requested
+                // and the form is prefilled and untouched.
+                if autoReview, preview == nil, sentTxid == nil, !toAddress.isEmpty, !amount.isEmpty {
+                    await review()
+                }
             }
         }
     }
