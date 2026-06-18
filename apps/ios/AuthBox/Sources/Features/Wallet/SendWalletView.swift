@@ -37,6 +37,16 @@ struct SendWalletView: View {
     private var isTestnet: Bool { descriptor.network == "testnet" }
     private var unit: String { WalletCoinStyle.unit(descriptor.coin) }
 
+    /// Explicit network tag for the confirm screen. Testnet reads calm (orange);
+    /// mainnet reads as a warning (red) to reinforce the real-money gate.
+    private var networkBadge: some View {
+        Text(isTestnet ? "TESTNET" : "MAINNET")
+            .font(.caption2.weight(.bold))
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background((isTestnet ? Color.orange : Color.red).opacity(0.16), in: Capsule())
+            .foregroundStyle(isTestnet ? Color.orange : Color.red)
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -116,15 +126,25 @@ struct SendWalletView: View {
 
     private func reviewForm(_ p: WalletSendPreview) -> some View {
         Form {
-            Section("Review") {
+            Section {
                 LabeledContent("To") {
+                    // Never truncate the recipient on a confirm screen — the user
+                    // must be able to read every character to verify it, and
+                    // select it to cross-check. Truncation here is a funds risk.
                     Text(p.toAddress)
                         .font(.system(.caption, design: .monospaced))
-                        .multilineTextAlignment(.trailing).lineLimit(2).truncationMode(.middle)
+                        .multilineTextAlignment(.trailing)
+                        .textSelection(.enabled)
                 }
                 LabeledContent("Amount", value: p.amountDisplay)
                 LabeledContent("Network fee", value: p.feeDisplay)
                 LabeledContent("Total", value: p.totalDisplay).bold()
+            } header: {
+                HStack {
+                    Text("Review")
+                    Spacer()
+                    networkBadge   // testnet vs mainnet at a glance on the confirm screen
+                }
             }
             Section {
                 LabeledContent(descriptor.coin == "btc" ? "Txid" : "Tx hash") {
