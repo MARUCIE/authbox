@@ -861,7 +861,7 @@ prove the closed loop on simulator without moving funds.
 ### Polish queue (rounds 2-3 — next /loop iterations, atomic)
 - [ ] R2-a: input stage shows the account's available balance (live `WalletBalanceService`) so the user knows the max they can send; consider a "Max" affordance.
 - [ ] R2-b: inline recipient-address validation feedback BEFORE Review (currently invalid address only surfaces as an alert after tapping Review).
-- [ ] R2-c: visually verify the ETH Send path (demo only exercised BTC) — add an `--send-demo-eth-testnet` seam or extend the existing one to ETH (Sepolia).
+- [x] R2-c: ETH Send path visually verified via `--send-demo-eth-testnet` (Sepolia). Review renders To=`0x9858…` (full, checksummed), fee=0.00005327 ETH (= 21000 gas × ~2.537 gwei live Sepolia), real EIP-1559 tx hash, blue ETH-themed Confirm button. Both signers now have live-data-bound, visually-verified Send paths. Screenshot `/tmp/authbox-send-shots/20-send-eth-review.png`. ETH build needs only nonce+gasPrice (no UTXOs) so the Review populates deterministically even at zero balance.
 - [ ] R3-a: txid hyphen-wrap readability on Review + Sent (the mid-hash hyphen can be misread as part of the hash).
 - [ ] R3-b: "Building transaction…" loading state polish + error-alert copy review.
 - [ ] R3-c: full UX-map walkthrough (compose → review → confirm → sent → back-to-wallet) identifying any remaining 卡点; confirm balance refresh after a (testnet) broadcast.

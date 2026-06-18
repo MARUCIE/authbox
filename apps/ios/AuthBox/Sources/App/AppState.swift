@@ -159,6 +159,20 @@ final class AppState: ObservableObject {
             addWalletAccount(coin: .btc, network: .testnet, scriptType: .p2wpkh, label: "Testnet · shared pot")
             pendingSendDemo = walletAccounts.first
         }
+
+        // Same seam for the ETH path. An ETH build needs only the live nonce +
+        // gas price (no UTXOs), so the Review populates deterministically against
+        // Sepolia even at zero balance — proving the ETH signer's UI path.
+        if ProcessInfo.processInfo.arguments.contains("--send-demo-eth-testnet") {
+            if vaultState != .unlocked {
+                let demoMnemonic =
+                    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+                try? createVault(mnemonic: demoMnemonic, masterPassword: "TestPassword123!")
+            }
+            walletAccounts = []
+            addWalletAccount(coin: .eth, network: .testnet, scriptType: .p2wpkh, label: "Sepolia · demo")
+            pendingSendDemo = walletAccounts.first
+        }
         #endif
     }
 
