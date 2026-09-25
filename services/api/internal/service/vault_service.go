@@ -49,6 +49,9 @@ func (s *VaultService) GetVaultKey(ctx context.Context, userID uuid.UUID) (*Vaul
 
 // ItemRequest is the JSON body for creating/updating a vault item.
 type ItemRequest struct {
+	// ID is set by sync clients pushing an existing item (upsert); empty on
+	// plain creates.
+	ID            string `json:"id,omitempty"`
 	EncryptedData string `json:"encryptedData"`
 	Nonce         string `json:"nonce"`
 	Tag           string `json:"tag"`
@@ -67,6 +70,7 @@ type ItemResponse struct {
 	Tag           string `json:"tag"`
 	ItemType      string `json:"itemType"`
 	Version       int    `json:"version"`
+	SyncSeq       int64  `json:"syncSeq"`
 	CreatedAt     string `json:"createdAt"`
 	UpdatedAt     string `json:"updatedAt"`
 }
@@ -79,6 +83,7 @@ func itemToResponse(item *domain.VaultItem) ItemResponse {
 		Tag:           base64.StdEncoding.EncodeToString(item.Tag),
 		ItemType:      item.ItemType,
 		Version:       item.Version,
+		SyncSeq:       item.SyncSeq,
 		CreatedAt:     item.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 		UpdatedAt:     item.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
@@ -198,9 +203,9 @@ func (s *VaultService) DeleteItem(ctx context.Context, id, userID uuid.UUID) err
 	return s.vaultRepo.DeleteItem(ctx, id, userID)
 }
 
-// SyncPull returns items with version > sinceVersion, limited to limit rows.
-func (s *VaultService) SyncPull(ctx context.Context, userID uuid.UUID, sinceVersion, limit int) ([]ItemResponse, error) {
-	items, err := s.vaultRepo.SyncPull(ctx, userID, sinceVersion, limit)
+// SyncPull returns items whose sync_seq is beyond the client's cursor.
+func (s *VaultService) SyncPull(ctx context.Context, userID uuid.UUID, afterSeq int64, limit int) ([]ItemResponse, error) {
+	items, err := s.vaultRepo.SyncPull(ctx, userID, afterSeq, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -217,13 +222,50 @@ type SyncPushRequest struct {
 }
 
 func (s *VaultService) SyncPush(ctx context.Context, userID uuid.UUID, req SyncPushRequest) ([]ItemResponse, error) {
-	results := make([]ItemResponse, 0, len(req.Items))
-	for _, itemReq := range req.Items {
-		resp, err := s.CreateItem(ctx, userID, itemReq)
+	// Upsert, not blind insert: re-pushing existing items must update them in
+	// place, or every sync/retry duplicates the whole vault.
+	items := make([]*domain.VaultItem, 0, len(req.Items))
+	for i := range req.Items {
+		itemReq := req.Items[i]
+		data, err := base64.StdEncoding.DecodeString(itemReq.EncryptedData)
 		if err != nil {
-			return nil, err
+			return nil, errors.New("invalid encryptedData encoding")
 		}
-		results = append(results, *resp)
+		nonce, err := base64.StdEncoding.DecodeString(itemReq.Nonce)
+		if err != nil {
+			return nil, errors.New("invalid nonce encoding")
+		}
+		tag, err := base64.StdEncoding.DecodeString(itemReq.Tag)
+		if err != nil {
+			return nil, errors.New("invalid tag encoding")
+		}
+
+		item := &domain.VaultItem{
+			UserID:        userID,
+			EncryptedData: data,
+			Nonce:         nonce,
+			Tag:           tag,
+			ItemType:      itemReq.ItemType,
+		}
+		if itemReq.ID != "" {
+			id, err := uuid.Parse(itemReq.ID)
+			if err != nil {
+				return nil, errors.New("invalid item id")
+			}
+			item.ID = id
+		} else {
+			item.ID = uuid.New()
+		}
+		items = append(items, item)
+	}
+
+	if err := s.vaultRepo.SyncUpsert(ctx, items); err != nil {
+		return nil, err
+	}
+
+	results := make([]ItemResponse, len(items))
+	for i := range items {
+		results[i] = itemToResponse(items[i])
 	}
 	return results, nil
 }

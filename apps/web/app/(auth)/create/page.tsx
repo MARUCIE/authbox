@@ -78,8 +78,11 @@ export default function CreateVaultPage() {
 
     setStep('ready');
 
-    // Navigate to vault after brief delay
-    setTimeout(() => router.push('/passwords'), 1500);
+    // The vault pages require a server session, which this ceremony does not
+    // create — routing to /passwords would bounce straight to /login with the
+    // fresh vault unreachable. Register an account that wraps the seed-derived
+    // vault key instead (the register page picks it up from the store).
+    setTimeout(() => router.push('/register'), 1500);
   }, [mnemonic, masterPassword, confirmPassword, unlockVault, router]);
 
   return (
@@ -310,7 +313,7 @@ export default function CreateVaultPage() {
             Your identity is yours. Unstoppable.
           </p>
           <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-            Redirecting to your vault...
+            Next: create an account to sync this vault...
           </p>
         </div>
       )}

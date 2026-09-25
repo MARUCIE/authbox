@@ -34,11 +34,21 @@ export interface ProxySecurityOptions {
   lookupHostname?: HostLookup;
 }
 
+export interface SanitizedProxyRequest extends ProxyRequest {
+  /**
+   * The addresses that passed the private-network checks. The bridge MUST
+   * connect to one of these (with the URL's hostname as SNI/Host) instead of
+   * re-resolving: a second DNS lookup at fetch time reopens the TOCTOU window
+   * where a 0-TTL attacker answers public here and 127.0.0.1 there.
+   */
+  resolvedAddresses: string[];
+}
+
 export async function sanitizeProxyRequest(
   serviceName: string,
   request: ProxyRequest,
   options: ProxySecurityOptions = {},
-): Promise<ProxyRequest> {
+): Promise<SanitizedProxyRequest> {
   const method = String(request.method ?? "").toUpperCase();
   if (!ALLOWED_PROXY_METHODS.has(method)) {
     throw new Error("Proxy method is not allowed");
@@ -48,7 +58,7 @@ export async function sanitizeProxyRequest(
   const hostname = normalizeHostname(url.hostname);
 
   assertServiceHostBinding(serviceName, hostname);
-  await assertPublicDestination(
+  const resolvedAddresses = await assertPublicDestination(
     hostname,
     options.lookupHostname ?? defaultLookupHostname,
   );
@@ -65,6 +75,7 @@ export async function sanitizeProxyRequest(
     url: url.toString(),
     ...(headers ? { headers } : {}),
     ...(body !== undefined ? { body } : {}),
+    resolvedAddresses,
   };
 }
 
@@ -125,10 +136,11 @@ function serviceNameToHost(serviceName: string): string | null {
   return normalizeHostname(trimmed);
 }
 
+/** Returns the vetted addresses so the caller can pin them at fetch time. */
 async function assertPublicDestination(
   hostname: string,
   lookupHostname: HostLookup,
-): Promise<void> {
+): Promise<string[]> {
   if (isBlockedHostname(hostname)) {
     throw new Error("Proxy URL host is not allowed");
   }
@@ -137,7 +149,7 @@ async function assertPublicDestination(
     if (isBlockedIPAddress(hostname)) {
       throw new Error("Proxy URL IP address is not allowed");
     }
-    return;
+    return [hostname];
   }
 
   const addresses = await lookupHostname(hostname);
@@ -150,6 +162,8 @@ async function assertPublicDestination(
       throw new Error("Proxy URL resolved to a private address");
     }
   }
+
+  return addresses;
 }
 
 async function defaultLookupHostname(hostname: string): Promise<string[]> {

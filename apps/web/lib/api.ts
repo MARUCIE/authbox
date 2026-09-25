@@ -111,13 +111,15 @@ export const authApi = {
         keyLength: number;
       };
       totpRequired?: boolean;
+      /** Single-use token binding the TOTP step to this SRP handshake. */
+      loginToken?: string;
     }>('/api/v1/auth/login/verify', {
       method: 'POST',
       body: JSON.stringify(body),
     });
   },
 
-  loginVerifyTOTP(body: { email: string; code: string }) {
+  loginVerifyTOTP(body: { loginToken: string; code: string }) {
     return request<{
       sessionToken: string;
       serverProofM2: string;

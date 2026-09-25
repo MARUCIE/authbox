@@ -107,7 +107,15 @@ func (s *TOTPService) Verify(ctx context.Context, userID uuid.UUID, code string)
 		return err
 	}
 
-	if !validateTOTP(secret, code, time.Now()) {
+	counter, ok := matchTOTP(secret, code, time.Now())
+	if !ok {
+		return fmt.Errorf("invalid TOTP code")
+	}
+	claimed, err := s.userRepo.ClaimTOTPCounter(ctx, userID, counter)
+	if err != nil {
+		return err
+	}
+	if !claimed {
 		return fmt.Errorf("invalid TOTP code")
 	}
 
@@ -132,7 +140,15 @@ func (s *TOTPService) Disable(ctx context.Context, userID uuid.UUID, code string
 		return err
 	}
 
-	if !validateTOTP(secret, code, time.Now()) {
+	counter, ok := matchTOTP(secret, code, time.Now())
+	if !ok {
+		return fmt.Errorf("invalid TOTP code")
+	}
+	claimed, err := s.userRepo.ClaimTOTPCounter(ctx, userID, counter)
+	if err != nil {
+		return err
+	}
+	if !claimed {
 		return fmt.Errorf("invalid TOTP code")
 	}
 
@@ -152,7 +168,12 @@ func (s *TOTPService) Check(ctx context.Context, userID uuid.UUID, code string) 
 	if err != nil {
 		return false, err
 	}
-	return validateTOTP(secret, code, time.Now()), nil
+	counter, ok := matchTOTP(secret, code, time.Now())
+	if !ok {
+		return false, nil
+	}
+	// Reject replays: the same code (same counter step) is accepted once.
+	return s.userRepo.ClaimTOTPCounter(ctx, userID, counter)
 }
 
 const totpSecretEnvelopePrefix = "authbox-totp-v1:"
@@ -200,15 +221,28 @@ func (s *TOTPService) decryptSecret(envelope []byte) ([]byte, error) {
 }
 
 func validateTOTP(secret []byte, code string, now time.Time) bool {
-	// Allow 1 step window (30s before, current, 30s after).
-	// Uses constant-time comparison to prevent timing attacks.
+	_, ok := matchTOTP(secret, code, now)
+	return ok
+}
+
+// matchTOTP reports whether the code matches within a ±1-step window and, if
+// so, WHICH counter step it matched — callers persist that step so the same
+// code cannot be accepted twice (RFC 6238 §5.2).
+func matchTOTP(secret []byte, code string, now time.Time) (int64, bool) {
 	counter := now.Unix() / 30
 	match := 0
+	var matched int64
+	// Always compare all three steps so timing does not reveal which one hit;
+	// which step matched is not secret (the attacker knows the wall clock).
 	for i := int64(-1); i <= 1; i++ {
 		expected := generateTOTP(secret, counter+i)
-		match |= subtle.ConstantTimeCompare([]byte(expected), []byte(code))
+		hit := subtle.ConstantTimeCompare([]byte(expected), []byte(code))
+		if hit == 1 && match == 0 {
+			matched = counter + i
+		}
+		match |= hit
 	}
-	return match == 1
+	return matched, match == 1
 }
 
 func generateTOTP(secret []byte, counter int64) string {

@@ -31,7 +31,10 @@ struct RootView: View {
     @State private var selection: AppSection = .vault
 
     var body: some View {
-        if lockState.isUnlocked {
+        // Both gates: the pre-onboarding biometric branch can set isUnlocked
+        // with NO master key, and the full app would then silently drop every
+        // save (withVaultKey returns nil). Unprovisioned always onboards.
+        if lockState.isUnlocked && lockState.isProvisioned {
             NavigationSplitView {
                 List(AppSection.allCases, selection: $selection) { section in
                     Label(section.rawValue, systemImage: section.systemImage)
@@ -70,6 +73,9 @@ struct RootView: View {
 /// P0 locked screen. P1 replaces the button action with a Touch ID prompt.
 struct LockedView: View {
     @EnvironmentObject private var lockState: VaultSession
+    @State private var showRestore = false
+    @State private var restorePhrase = ""
+    @State private var restoreError: String?
 
     var body: some View {
         VStack(spacing: 18) {
@@ -92,8 +98,65 @@ struct LockedView: View {
             .controlSize(.large)
             .buttonStyle(.borderedProminent)
             .keyboardShortcut(.defaultAction)
+
+            if let err = lockState.lastError {
+                Text(err)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: 360)
+            }
+
+            // Escape hatch for a Secure Enclave key invalidated by biometric
+            // re-enrollment (.biometryCurrentSet): without this, a user
+            // holding the correct 24 words had NO way back into the app —
+            // isProvisioned stays true, so onboarding is unreachable.
+            Button("Restore from recovery phrase…") { showRestore = true }
+                .buttonStyle(.link)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+        .sheet(isPresented: $showRestore) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Restore from recovery phrase")
+                    .font(.headline)
+                Text("Re-provisions the vault key from your 24-word phrase (e.g. after Touch ID re-enrollment invalidated the Secure Enclave key). Your encrypted items are untouched.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextEditor(text: $restorePhrase)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(height: 100)
+                    .border(.quaternary)
+                if let restoreError {
+                    Text(restoreError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                HStack {
+                    Spacer()
+                    Button("Cancel") {
+                        restorePhrase = ""
+                        restoreError = nil
+                        showRestore = false
+                    }
+                    Button("Restore") {
+                        do {
+                            try lockState.resetVault()
+                            try lockState.provisionAndUnlock(
+                                mnemonic: restorePhrase.trimmingCharacters(in: .whitespacesAndNewlines))
+                            restorePhrase = ""
+                            restoreError = nil
+                            showRestore = false
+                        } catch {
+                            restoreError = "Restore failed: \(error.localizedDescription)"
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(restorePhrase.split(separator: " ").count < 12)
+                }
+            }
+            .padding(20)
+            .frame(width: 460)
+        }
     }
 }

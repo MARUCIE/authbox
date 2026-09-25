@@ -14,10 +14,30 @@ import (
 
 type WalletHandler struct {
 	walletService *service.WalletService
+	auditService  *service.AuditService // optional; nil-safe
 }
 
-func NewWalletHandler(walletService *service.WalletService) *WalletHandler {
-	return &WalletHandler{walletService: walletService}
+func NewWalletHandler(walletService *service.WalletService, auditService *service.AuditService) *WalletHandler {
+	return &WalletHandler{walletService: walletService, auditService: auditService}
+}
+
+func (h *WalletHandler) auditBroadcast(r *http.Request, userID uuid.UUID, decision, txid, coin, network string) {
+	if h.auditService == nil {
+		return
+	}
+	if _, err := h.auditService.LogEvent(r.Context(), userID, service.AuditEventRequest{
+		ActorType:    "user",
+		ActorID:      userID.String(),
+		Action:       "gateway.proxied",
+		ResourceType: "wallet_broadcast",
+		ResourceID:   txid,
+		Decision:     decision,
+		Metadata:     map[string]interface{}{"coin": coin, "network": network},
+		IPAddress:    r.RemoteAddr,
+		UserAgent:    r.UserAgent(),
+	}); err != nil {
+		slog.Warn("audit log write failed", "action", "wallet.broadcast", "error", err)
+	}
 }
 
 func (h *WalletHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
@@ -199,9 +219,12 @@ func (h *WalletHandler) Broadcast(w http.ResponseWriter, r *http.Request) {
 		// A rejected/invalid transaction or an unreachable node both surface here;
 		// the upstream message is the actionable signal, mapped to 502 like Balance.
 		slog.Warn("wallet broadcast failed", "user", userID, "coin", req.Coin, "network", req.Network, "error", err)
+		h.auditBroadcast(r, userID, "error", "", req.Coin, req.Network)
 		writeError(w, http.StatusBadGateway, "broadcast rejected: "+err.Error(), "UPSTREAM_ERROR")
 		return
 	}
+	// Money moved: this MUST leave an audit record (user, coin, network, txid).
+	h.auditBroadcast(r, userID, "allow", resp.Txid, req.Coin, req.Network)
 	writeJSON(w, http.StatusOK, resp)
 }
 

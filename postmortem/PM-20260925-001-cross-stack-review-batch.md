@@ -61,6 +61,47 @@ admin/telemetry surfaces in the console.
 - Untrusted integers (QR, explorer, server JSON) use non-trapping conversions
   (`Int(exactly:)`, decode-as-target-type) plus range validation.
 
+# Round 2 (Go API + macOS deep review, same day)
+A second pass covered services/api (never previously reviewed) and apps/macos.
+Fixed in the same branch:
+- CRITICAL: /auth/login/totp/verify was bound only by email — anyone knowing
+  the email could race the victim after their SRP proof and take over the
+  session (plus offline-cracking material). Now bound by a single-use random
+  loginToken minted at login/verify, ≤3 attempts, constant error strings;
+  pending SRP state is fetch-and-delete (also fixes data races on shared
+  big.Int state). Clients (web, extension) updated to the new contract.
+- TOTP replay: accepted counter step now persisted atomically
+  (users.totp_last_counter, migration 012) — same code can't be used twice
+  across login/verify/enable/disable.
+- Audit chain: appends are now transactional under a per-user advisory lock
+  and hash the SAME timestamp that is stored (was hashing service time while
+  the DB stored NOW() — false tamper alarms whenever the seconds differed).
+  Login outcomes and wallet broadcasts now write audit events (the chain was
+  permanently empty — LogEvent had zero callers).
+- Vault delta sync: per-item `version` was misused as a global pull cursor
+  (new items were silently skipped forever). New monotonic sync_seq column
+  (migration 013), cursor + syncToken in the API, SyncPush upserts
+  transactionally with a user-ownership guard.
+- LoginInit user enumeration (timing + early return) fixed with deterministic
+  fake-SRP work for unknown emails; pending map capped; TOTP dev-key fallback
+  restricted to local/development/test envs; UpdateItem/UpdateAgent now
+  validate like Create (empty ciphertext no longer destroys an item);
+  RefreshBalance fans out with errgroup and hard-fails malformed amounts;
+  session touches debounced DB-side + hourly expired-session reaper.
+- macOS: count-based agent ids collided and trapped the broker's capability
+  dictionary on every request (crash loop, persisted); broker answered only
+  the FIRST WebSocket message per connection; onboarding accepted checksum-
+  invalid mnemonics (silently wrong keys); clipboard secrets now concealed/
+  transient with 45s expiry; LockedView gained a recovery-phrase restore path
+  (biometric re-enrollment permanently locked users out); deterministic
+  generator now derives from the real seed phrase (vault-key-derived
+  passwords diverged across platforms); audit head anchor advances only after
+  a confirmed file write and updates in place (no delete/add crash window);
+  pre-onboarding "unlock" no longer opens the full app with no master key.
+- Parity: the TS derivePassword rejection-sampling fix is ported to Swift
+  Seed.derivePassword and the pinned cross-platform vectors regenerated —
+  the two engines stay byte-identical.
+
 # Triggers (machine-matchable)
 TRIGGER_REGEX: startsWith\(["']::ffff:
 TRIGGER_REGEX: for\s*\(const\s+\w+\s+of\s+privKeys\)\s*tx\.sign
@@ -74,20 +115,27 @@ TRIGGER_REGEX: SecRandomCopyBytes[\s\S]{0,80}\}\s*$
 TRIGGER_PATH: packages/mcp-protocol/src/proxy-security.ts
 TRIGGER_PATH: packages/crypto/src/wallet-tx.ts
 TRIGGER_PATH: apps/ios/AuthBoxCrypto/Sources/AuthBoxCrypto/TOTP.swift
+TRIGGER_REGEX: WHERE user_id = \$1 AND version >
+TRIGGER_REGEX: NSPasteboard\.general\.setString
+TRIGGER_REGEX: env != "production"
 
-# Known remaining risks (documented, not fixed in this batch)
+# Known remaining risks (documented, not fixed)
 - iOS SwiftData vault items are stored PLAINTEXT at rest (VaultItem.swift) — needs the macOS
   ciphertext-column design; architectural change.
 - iOS AutoFill extension is built around a plaintext shared-App-Group JSON store (dormant).
-- TOTP login (`/auth/login/totp/verify`) is not cryptographically bound to the SRP handshake
-  and skips M2 verification (web + extension + Go server change).
-- DNS-rebinding TOCTOU between `assertPublicDestination` and the bridge's own fetch — the
-  bridge must pin the vetted IPs in its lookup hook.
+- macOS list metadata (title, username, url, provider) is plaintext at rest with no search
+  feature using it; macOS Quick Connect falls back to an in-memory store on open failure
+  (import "succeeds" into a throwaway container); broker audit writes happen on the main
+  actor with no failed-auth rate limit.
 - Console `ONBOARDING_ENTRY_VIEW` is still recorded in an RSC render (now gated by auth
   middleware and skipped on error re-renders; a client beacon remains the right fix).
-- Web seed-vault create/restore flows land on /login (no local-first session); "Derive
-  Password" derives from the random vault key, contradicting its seed-recovery promise.
-- iOS WalletView re-derives HD addresses inside SwiftUI body per render (perf).
+- Go: register still returns EMAIL_EXISTS (explicit enumeration, kept for UX); SRP handshake
+  state is in-process memory (multi-replica deployments need a shared store; LoginInit is
+  still keyed by email between init and verify); /wallet/broadcast has no server-side
+  mainnet step-up; agent API keys + policies are minted/stored but no gateway endpoint
+  authenticates or evaluates them yet (the MCP bridge is the intended consumer).
+- NOTE: earlier revisions of this postmortem claimed the web TOTP path skips M2
+  verification — that was wrong; the web client verifies M2 at the login/verify step.
 
 # References
 - packages/mcp-protocol/src/proxy-security.ts, policy-engine.ts, server.ts

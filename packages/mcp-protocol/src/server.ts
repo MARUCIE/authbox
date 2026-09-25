@@ -6,7 +6,10 @@ import {
   type AccessDecision,
   type PendingApproval,
 } from "./policy-engine";
-import { sanitizeProxyRequest } from "./proxy-security";
+import {
+  sanitizeProxyRequest,
+  type SanitizedProxyRequest,
+} from "./proxy-security";
 import {
   authboxTools,
   type ProxyRequest,
@@ -31,10 +34,17 @@ export interface VaultBridge {
     serviceName: string,
   ): Promise<Record<string, string> | null>;
   listServices(userId: string): Promise<string[]>;
+  /**
+   * Execute the sanitized request with the stored credential injected.
+   * Implementations MUST connect to one of `request.resolvedAddresses`
+   * (keeping the URL hostname as SNI/Host) rather than re-resolving DNS —
+   * a fresh lookup at fetch time reopens the DNS-rebinding TOCTOU the
+   * sanitizer closed.
+   */
   proxyRequest(
     userId: string,
     serviceName: string,
-    request: ProxyRequest,
+    request: SanitizedProxyRequest,
   ): Promise<ProxyResponse>;
   getPolicies(agentId: string): Promise<AgentPolicy[]>;
   verifyApiKey(
@@ -423,7 +433,7 @@ export class AuthBoxMCPServer {
 
     // Sanitize BEFORE writing the "allowed" audit record, so SSRF/host-binding
     // blocks are audited as denials instead of being logged as allowed.
-    let proxyReq: ProxyRequest;
+    let proxyReq: SanitizedProxyRequest;
     try {
       proxyReq = await sanitizeProxyRequest(serviceName, {
         method: args.method as string,

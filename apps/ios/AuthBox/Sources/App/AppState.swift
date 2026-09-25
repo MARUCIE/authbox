@@ -203,6 +203,8 @@ final class AppState: ObservableObject {
         syncEngine = nil
         vaultKey = nil
         seed = nil
+        walletAddressCache = [:]
+        walletXpubCache = [:]
         vaultItems = []
         vaultState = KeychainManager.hasSeed() ? .locked : .empty
     }
@@ -317,16 +319,29 @@ final class AppState: ObservableObject {
         return WalletTx.isValidRecipient(address, coin: coin, network: network)
     }
 
+    // Memoized per descriptor: these are called from SwiftUI `body`, and a
+    // full HD derivation (HMAC-SHA512 chain + secp256k1) per row per render
+    // burns main-thread time and re-touches the in-memory seed needlessly.
+    // Cleared on lock alongside the seed.
+    private var walletAddressCache: [WalletAccountDescriptor: Wallet.WalletAddress] = [:]
+    private var walletXpubCache: [WalletAccountDescriptor: String] = [:]
+
     /// Derive the first receive address for an account. Returns nil when locked.
     func walletReceiveAddress(for descriptor: WalletAccountDescriptor) -> Wallet.WalletAddress? {
+        if let cached = walletAddressCache[descriptor] { return cached }
         guard let seed, let coin = Wallet.Coin(rawValue: descriptor.coin) else { return nil }
-        return Wallet.deriveAddress(seed: seed, coin: coin, options: deriveOptions(for: descriptor))
+        let derived = Wallet.deriveAddress(seed: seed, coin: coin, options: deriveOptions(for: descriptor))
+        walletAddressCache[descriptor] = derived
+        return derived
     }
 
     /// Account-level xpub (watch-only). Returns nil when locked.
     func walletAccountXpub(for descriptor: WalletAccountDescriptor) -> String? {
+        if let cached = walletXpubCache[descriptor] { return cached }
         guard let seed, let coin = Wallet.Coin(rawValue: descriptor.coin) else { return nil }
-        return Wallet.deriveAccount(seed: seed, coin: coin, options: deriveOptions(for: descriptor)).xpub
+        let xpub = Wallet.deriveAccount(seed: seed, coin: coin, options: deriveOptions(for: descriptor)).xpub
+        walletXpubCache[descriptor] = xpub
+        return xpub
     }
 
     // MARK: - Wallet Send (build + sign client-side, then relay)

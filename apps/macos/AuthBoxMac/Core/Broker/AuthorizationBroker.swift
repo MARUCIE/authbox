@@ -99,8 +99,14 @@ final class AuthorizationBroker: ObservableObject {
             if let data, !data.isEmpty {
                 self?.process(data, on: conn)
             }
-            if error == nil && !isComplete {
+            // NWProtocolWebSocket delivers every complete message with
+            // isComplete == true; gating the re-arm on !isComplete meant only
+            // the FIRST request per connection was ever answered, and dead
+            // sockets were never cancelled.
+            if error == nil {
                 self?.receive(on: conn)   // keep listening on a persistent socket
+            } else {
+                conn.cancel()
             }
         }
     }

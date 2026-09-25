@@ -19,6 +19,8 @@ describe("sanitizeProxyRequest", () => {
     expect(req.method).toBe("POST");
     expect(req.url).toBe("https://api.example.com/v1/messages");
     expect(req.headers).toEqual({ "Content-Type": "application/json" });
+    // The vetted addresses are pinned for the bridge (DNS-rebinding defense).
+    expect(req.resolvedAddresses).toEqual(["93.184.216.34"]);
   });
 
   it("denies localhost and private network SSRF targets", async () => {

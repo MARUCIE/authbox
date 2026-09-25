@@ -225,15 +225,17 @@ func (h *AuthHandler) LoginVerify(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) LoginVerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Email string `json:"email"`
-		Code  string `json:"code"`
+		// loginToken is the single-use token from the totpRequired response of
+		// /auth/login/verify; it binds this step to the SRP-verified client.
+		LoginToken string `json:"loginToken"`
+		Code       string `json:"code"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
 		return
 	}
 
-	if req.Email == "" || req.Code == "" {
+	if req.LoginToken == "" || req.Code == "" {
 		writeError(w, http.StatusBadRequest, "missing required fields", "BAD_REQUEST")
 		return
 	}
@@ -241,9 +243,11 @@ func (h *AuthHandler) LoginVerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	ipAddress := appmw.ClientIP(r)
 	userAgent := r.UserAgent()
 
-	resp, err := h.authService.LoginVerifyTOTP(r.Context(), req.Email, req.Code, ipAddress, userAgent)
+	resp, err := h.authService.LoginVerifyTOTP(r.Context(), req.LoginToken, req.Code, ipAddress, userAgent)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, err.Error(), "INVALID_CREDENTIALS")
+		// Constant message: err detail would be a pre-auth oracle for pending
+		// state and TOTP enrollment.
+		writeError(w, http.StatusUnauthorized, "invalid credentials", "INVALID_CREDENTIALS")
 		return
 	}
 

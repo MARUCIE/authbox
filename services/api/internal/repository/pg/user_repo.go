@@ -107,3 +107,18 @@ func (r *UserRepository) DisableTOTP(ctx context.Context, userID uuid.UUID) erro
 	)
 	return err
 }
+
+// ClaimTOTPCounter accepts the counter only if it is strictly newer than the
+// last accepted one, in a single atomic UPDATE — the check and the write must
+// not race between two requests presenting the same code.
+func (r *UserRepository) ClaimTOTPCounter(ctx context.Context, userID uuid.UUID, counter int64) (bool, error) {
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE users SET totp_last_counter = $2, updated_at = NOW()
+		 WHERE id = $1 AND totp_last_counter < $2`,
+		userID, counter,
+	)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
+}

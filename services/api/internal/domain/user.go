@@ -28,6 +28,8 @@ type User struct {
 	TOTPSecret        []byte
 	TOTPEnabled       bool
 	TOTPVerifiedAt    *time.Time
+	// TOTPLastCounter is the last accepted TOTP counter step (replay guard).
+	TOTPLastCounter int64
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }

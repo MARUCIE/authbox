@@ -84,6 +84,9 @@ function LoginView({ onLogin }: LoginViewProps) {
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [pendingTOTPEmail, setPendingTOTPEmail] = useState<string | null>(null);
+  // Single-use token from login/verify; the TOTP step must present it so the
+  // second factor is bound to the SRP handshake this popup completed.
+  const [pendingLoginToken, setPendingLoginToken] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -113,7 +116,7 @@ function LoginView({ onLogin }: LoginViewProps) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              email: pendingTOTPEmail,
+              loginToken: pendingLoginToken,
               code: totpCode.trim(),
             }),
           },
@@ -208,7 +211,11 @@ function LoginView({ onLogin }: LoginViewProps) {
       }
 
       if (verifyData.totpRequired) {
+        if (!verifyData.loginToken) {
+          throw new Error("Login response missing TOTP login token");
+        }
         setPendingTOTPEmail(email.trim());
+        setPendingLoginToken(verifyData.loginToken);
         setTotpCode("");
         return;
       }

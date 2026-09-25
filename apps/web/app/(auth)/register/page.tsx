@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { register } from '@/lib/auth';
+import { useVaultStore } from '@/lib/vault-store';
 import { estimateEntropy, strengthLabel, DEFAULT_OPTIONS } from '@/lib/password-generator';
 
 const STRENGTH_COLORS: Record<string, string> = {
@@ -48,7 +49,11 @@ export default function RegisterPage() {
     setStep('deriving');
 
     try {
-      await register(email, password);
+      // A seed ceremony (create/restore) leaves its seed-derived vault key in
+      // the store; registering must wrap THAT key, or the 24 words the user
+      // just backed up could never recover this account's vault.
+      const seedVaultKey = useVaultStore.getState().vaultKey ?? undefined;
+      await register(email, password, seedVaultKey);
       router.push('/login?registered=true');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed.');

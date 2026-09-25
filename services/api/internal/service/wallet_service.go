@@ -9,6 +9,8 @@ import (
 	"auth-box-api/internal/domain"
 
 	"github.com/google/uuid"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Canonical wallet enum vocabularies. These MUST stay identical to the shared
@@ -234,19 +236,44 @@ func (s *WalletService) RefreshBalance(ctx context.Context, id, userID uuid.UUID
 		return nil, err
 	}
 
+	// Fan out with bounded concurrency: sequential per-address calls (10s
+	// timeout each) blow the 30s request timeout after a handful of slow
+	// indexer responses. Malformed upstream amounts are ERRORS — silently
+	// skipping them persisted a lower balance than the user actually holds.
+	type addrTotals struct {
+		confirmed   *big.Int
+		unconfirmed *big.Int
+	}
+	totals := make([]addrTotals, len(addrs))
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(8)
+	for i := range addrs {
+		group.Go(func() error {
+			bal, err := s.balance.AddressBalance(groupCtx, account.Coin, account.Network, addrs[i].Address)
+			if err != nil {
+				return fmt.Errorf("balance lookup for %s failed: %w", addrs[i].Address, err)
+			}
+			c, ok := new(big.Int).SetString(bal.Confirmed, 10)
+			if !ok {
+				return fmt.Errorf("malformed confirmed balance for %s: %q", addrs[i].Address, bal.Confirmed)
+			}
+			u, ok := new(big.Int).SetString(bal.Unconfirmed, 10)
+			if !ok {
+				return fmt.Errorf("malformed unconfirmed balance for %s: %q", addrs[i].Address, bal.Unconfirmed)
+			}
+			totals[i] = addrTotals{confirmed: c, unconfirmed: u}
+			return nil
+		})
+	}
+	if err := group.Wait(); err != nil {
+		return nil, err
+	}
+
 	confirmed := new(big.Int)
 	unconfirmed := new(big.Int)
-	for i := range addrs {
-		bal, err := s.balance.AddressBalance(ctx, account.Coin, account.Network, addrs[i].Address)
-		if err != nil {
-			return nil, fmt.Errorf("balance lookup for %s failed: %w", addrs[i].Address, err)
-		}
-		if v, ok := new(big.Int).SetString(bal.Confirmed, 10); ok {
-			confirmed.Add(confirmed, v)
-		}
-		if v, ok := new(big.Int).SetString(bal.Unconfirmed, 10); ok {
-			unconfirmed.Add(unconfirmed, v)
-		}
+	for i := range totals {
+		confirmed.Add(confirmed, totals[i].confirmed)
+		unconfirmed.Add(unconfirmed, totals[i].unconfirmed)
 	}
 
 	if err := s.repo.UpdateAccountBalance(ctx, account.ID, confirmed.String()); err != nil {

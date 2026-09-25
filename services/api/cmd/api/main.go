@@ -118,6 +118,20 @@ func main() {
 	// Repositories
 	userRepo := pg.NewUserRepository(pool)
 	sessionRepo := pg.NewSessionRepository(pool)
+
+	// Session reaper: reads filter on expires_at, but without a periodic
+	// DELETE the sessions table grows without bound.
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			if n, err := sessionRepo.DeleteExpired(context.Background()); err != nil {
+				slog.Warn("session reaper failed", "error", err)
+			} else if n > 0 {
+				slog.Info("session reaper removed expired sessions", "count", n)
+			}
+		}
+	}()
 	vaultRepo := pg.NewVaultRepository(pool)
 	agentRepo := pg.NewAgentRepository(pool)
 	connRepo := pg.NewConnectionRepository(pool)
@@ -131,6 +145,7 @@ func main() {
 	agentService := service.NewAgentService(agentRepo)
 	connService := service.NewConnectionService(connRepo)
 	auditService := service.NewAuditService(auditRepo)
+	authService.WithAuditor(auditService)
 	walletService := service.NewWalletService(walletRepo, service.NewBalanceProvider(), service.NewBroadcastProvider(), service.NewTxPrepProvider())
 
 	// Handlers
@@ -140,7 +155,7 @@ func main() {
 	agentHandler := handler.NewAgentHandler(agentService)
 	connectionHandler := handler.NewConnectionHandler(connService)
 	auditHandler := handler.NewAuditHandler(auditService)
-	walletHandler := handler.NewWalletHandler(walletService)
+	walletHandler := handler.NewWalletHandler(walletService, auditService)
 	healthHandler := handler.NewHealthHandler(cfg)
 
 	// AUD-AUTH-02: configure the trusted-proxy allowlist before serving. Empty =

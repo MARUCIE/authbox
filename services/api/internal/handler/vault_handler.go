@@ -65,31 +65,40 @@ func (h *VaultHandler) SyncPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sinceVersion := 0
-	if v := r.URL.Query().Get("sinceVersion"); v != "" {
-		parsed, err := strconv.Atoi(v)
+	// Cursor: the highest syncSeq the client has already applied. Clients
+	// pass back the syncToken from the previous pull.
+	var afterSeq int64
+	if v := r.URL.Query().Get("after"); v != "" {
+		parsed, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "sinceVersion must be an integer", "BAD_REQUEST")
+			writeError(w, http.StatusBadRequest, "after must be an integer", "BAD_REQUEST")
 			return
 		}
-		if parsed < 0 {
-			parsed = 0
+		if parsed > 0 {
+			afterSeq = parsed
 		}
-		sinceVersion = parsed
 	}
 
 	limit := parsePaginationParam(r, "limit", 500, 1000)
 
-	items, err := h.vaultService.SyncPull(r.Context(), userID, sinceVersion, limit)
+	items, err := h.vaultService.SyncPull(r.Context(), userID, afterSeq, limit)
 	if err != nil {
 		slog.Error("sync pull failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "sync pull failed", "INTERNAL_ERROR")
 		return
 	}
 
+	nextCursor := afterSeq
+	for i := range items {
+		if items[i].SyncSeq > nextCursor {
+			nextCursor = items[i].SyncSeq
+		}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"items":   items,
-		"hasMore": len(items) == limit,
+		"items":     items,
+		"syncToken": strconv.FormatInt(nextCursor, 10),
+		"hasMore":   len(items) == limit,
 	})
 }
 
@@ -226,6 +235,17 @@ func (h *VaultHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	var req service.ItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+		return
+	}
+
+	// Mirror CreateItem's validation: without it a `{}` body base64-decodes
+	// to empty ciphertext/nonce/tag and irreversibly destroys the item.
+	if req.EncryptedData == "" || req.Nonce == "" || req.Tag == "" {
+		writeError(w, http.StatusBadRequest, "missing required fields", "BAD_REQUEST")
+		return
+	}
+	if req.ItemType != "" && !service.IsValidItemType(req.ItemType) {
+		writeError(w, http.StatusBadRequest, "invalid itemType", "BAD_REQUEST")
 		return
 	}
 

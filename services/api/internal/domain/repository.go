@@ -14,6 +14,10 @@ type UserRepository interface {
 	SetTOTPSecret(ctx context.Context, userID uuid.UUID, secret []byte) error
 	EnableTOTP(ctx context.Context, userID uuid.UUID) error
 	DisableTOTP(ctx context.Context, userID uuid.UUID) error
+	// ClaimTOTPCounter atomically records that `counter` was accepted for the
+	// user. It returns false when counter <= the last accepted step, which
+	// means the code is a replay and MUST be rejected (RFC 6238 §5.2).
+	ClaimTOTPCounter(ctx context.Context, userID uuid.UUID, counter int64) (bool, error)
 }
 
 // SessionRepository defines the contract for session persistence.
@@ -35,7 +39,10 @@ type VaultRepository interface {
 	ListItems(ctx context.Context, userID uuid.UUID, limit, offset int) ([]VaultItem, error)
 	UpdateItem(ctx context.Context, item *VaultItem, expectedVersion *int) error
 	DeleteItem(ctx context.Context, id, userID uuid.UUID) error
-	SyncPull(ctx context.Context, userID uuid.UUID, sinceVersion, limit int) ([]VaultItem, error)
+	SyncPull(ctx context.Context, userID uuid.UUID, afterSeq int64, limit int) ([]VaultItem, error)
+	// SyncUpsert inserts or updates the batch atomically; an update only
+	// applies when the existing row belongs to the same user.
+	SyncUpsert(ctx context.Context, items []*VaultItem) error
 }
 
 // AgentRepository defines the contract for agent persistence.
