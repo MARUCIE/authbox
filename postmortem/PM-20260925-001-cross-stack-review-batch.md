@@ -119,21 +119,40 @@ TRIGGER_REGEX: WHERE user_id = \$1 AND version >
 TRIGGER_REGEX: NSPasteboard\.general\.setString
 TRIGGER_REGEX: env != "production"
 
+# Round 3 follow-up (same day): autonomous optimization pass
+- iOS vault items are now CIPHERTEXT AT REST: `VaultItem` is a plain in-memory
+  class and persistence goes through the new `EncryptedVaultRecord` @Model
+  (id + timestamps visible; all content in one AES-256-GCM VaultItemPayload
+  blob under the vault key — the same envelope sync uses, mirroring macOS).
+  The store moved to a dedicated file (AuthBoxVault.store) and the legacy
+  plaintext default.store files are purged best-effort at init; local items
+  re-materialize from the CloudKit ciphertext sync.
+- /wallet/broadcast now enforces a SERVER-side mainnet step-up: accounts with
+  TOTP enabled must present a fresh (replay-protected) code; the web wallet's
+  mainnet confirm gained the input. A stolen session token alone can no
+  longer move mainnet funds on 2FA accounts.
+- macOS: Quick Connect and provider imports no longer fall back to a
+  throwaway in-memory store on open failure (write paths fail loudly; the
+  provider hub degrades to read-only with a visible error); broker failed-auth
+  audit seals are capped per minute so a local flood cannot grow the chain
+  unboundedly (denials themselves remain unconditional).
+- Go: TOTP replay and SyncPush validation are now pinned by service tests.
+
 # Known remaining risks (documented, not fixed)
-- iOS SwiftData vault items are stored PLAINTEXT at rest (VaultItem.swift) — needs the macOS
-  ciphertext-column design; architectural change.
-- iOS AutoFill extension is built around a plaintext shared-App-Group JSON store (dormant).
+- iOS AutoFill extension is built around a plaintext shared-App-Group JSON store (dormant;
+  nothing writes it — needs Keychain-access-group key sharing to do properly).
 - macOS list metadata (title, username, url, provider) is plaintext at rest with no search
-  feature using it; macOS Quick Connect falls back to an in-memory store on open failure
-  (import "succeeds" into a throwaway container); broker audit writes happen on the main
-  actor with no failed-auth rate limit.
+  feature using it; broker audit file/Keychain writes still happen on the main actor.
 - Console `ONBOARDING_ENTRY_VIEW` is still recorded in an RSC render (now gated by auth
   middleware and skipped on error re-renders; a client beacon remains the right fix).
 - Go: register still returns EMAIL_EXISTS (explicit enumeration, kept for UX); SRP handshake
   state is in-process memory (multi-replica deployments need a shared store; LoginInit is
-  still keyed by email between init and verify); /wallet/broadcast has no server-side
-  mainnet step-up; agent API keys + policies are minted/stored but no gateway endpoint
-  authenticates or evaluates them yet (the MCP bridge is the intended consumer).
+  still keyed by email between init and verify); agent API keys + policies are minted/stored
+  but no gateway endpoint authenticates or evaluates them yet (the MCP bridge is the
+  intended consumer).
+- iOS at-rest migration note: pre-existing local plaintext stores are deleted, not
+  converted — devices that never enabled CloudKit sync lose local-only items. Acceptable
+  pre-release (repo no-backward-compat rule) but worth a release note.
 - NOTE: earlier revisions of this postmortem claimed the web TOTP path skips M2
   verification — that was wrong; the web client verifies M2 at the login/verify step.
 

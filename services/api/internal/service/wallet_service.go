@@ -57,6 +57,9 @@ type BroadcastRequest struct {
 	Coin     string `json:"coin"`
 	Network  string `json:"network"`
 	RawTxHex string `json:"rawTxHex"`
+	// TOTPCode is required for MAINNET broadcasts when the user has 2FA
+	// enabled: a stolen session token alone must not be able to move funds.
+	TOTPCode string `json:"totpCode,omitempty"`
 }
 
 type AddAddressRequest struct {

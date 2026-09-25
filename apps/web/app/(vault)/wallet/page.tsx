@@ -159,6 +159,8 @@ export default function WalletPage() {
   const [sendMnemonic, setSendMnemonic] = useState('');
   const [sendReview, setSendReview] = useState<SendReview | null>(null);
   const [sendMainnetConfirm, setSendMainnetConfirm] = useState(false);
+  // Server-side mainnet step-up: accounts with 2FA must present a fresh code.
+  const [sendTotpCode, setSendTotpCode] = useState('');
   const [sendResult, setSendResult] = useState<{ txid: string } | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -330,6 +332,7 @@ export default function WalletPage() {
     setSendMnemonic('');
     setSendReview(null);
     setSendMainnetConfirm(false);
+    setSendTotpCode('');
     setSendResult(null);
   }
 
@@ -479,6 +482,7 @@ export default function WalletPage() {
         coin: selected.coin as 'btc' | 'eth',
         network: selected.network as 'mainnet' | 'testnet',
         rawTxHex: sendReview.rawTxHex,
+        ...(sendTotpCode.trim() ? { totpCode: sendTotpCode.trim() } : {}),
       });
       // The broadcast tx pays change into a fresh internal address; register
       // it now (watch-only, no seed needed) or the change UTXO disappears
@@ -1124,6 +1128,25 @@ export default function WalletPage() {
                         verified the recipient and amount.
                       </span>
                     </label>
+                  )}
+
+                  {isMainnet && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-medium" htmlFor="send-totp">
+                        Two-factor code
+                      </label>
+                      <Input
+                        id="send-totp"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="123456 (required if 2FA is enabled)"
+                        value={sendTotpCode}
+                        onChange={(e) => setSendTotpCode(e.target.value)}
+                      />
+                      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                        Mainnet broadcasts are step-up protected server-side when your account has 2FA.
+                      </p>
+                    </div>
                   )}
 
                   <div className="flex gap-3 justify-end pt-2">

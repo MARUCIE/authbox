@@ -166,8 +166,16 @@ final class AuthorizationCenter: ObservableObject {
     @discardableResult
     func quickConnect(content: String, agentName: String, vaultKey: Data,
                       importer: ProviderImportService? = nil) throws -> QuickConnectService.Outcome {
-        let imp = importer ?? ProviderImportService(
-            vault: VaultService(store: (try? VaultStore()) ?? (try! VaultStore(inMemory: true))))
+        // WRITE path: never fall back to a throwaway in-memory store here.
+        // With the fallback, a failed persistent-store open still reported
+        // "Imported N credentials" and issued an agent token — while the
+        // credentials were invisible everywhere else and vanished at quit.
+        let imp: ProviderImportService
+        if let importer {
+            imp = importer
+        } else {
+            imp = ProviderImportService(vault: VaultService(store: try VaultStore()))
+        }
         let outcome = try QuickConnectService(importer: imp, registrar: self)
             .connect(content: content, agentName: agentName, vaultKey: vaultKey)
         if !brokerRunning { startBroker() }

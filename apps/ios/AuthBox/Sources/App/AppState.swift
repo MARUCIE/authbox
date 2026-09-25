@@ -226,22 +226,25 @@ final class AppState: ObservableObject {
 
     func addItem(_ item: VaultItem) {
         vaultItems.append(item)
-        try? store?.insert(item)
+        if let vaultKey {
+            try? store?.insert(item, vaultKey: vaultKey)
+        }
         syncEngine?.recordLocalUpsert(id: item.id)
     }
 
     func deleteItem(_ item: VaultItem) {
         vaultItems.removeAll { $0.id == item.id }
-        try? store?.delete(item)
+        try? store?.delete(id: item.id)
         syncEngine?.recordLocalDelete(id: item.id)
     }
 
-    func saveChanges() {
-        try? store?.save()
-    }
-
-    /// Call after editing an existing item's fields in place, so the change syncs.
+    /// Call after editing an existing item's fields in place: re-encrypts the
+    /// item into its record and queues the change for sync.
     func didEditItem(_ item: VaultItem) {
+        item.updatedAt = Date()
+        if let vaultKey {
+            try? store?.update(item, vaultKey: vaultKey)
+        }
         syncEngine?.recordLocalUpsert(id: item.id)
     }
 
@@ -253,9 +256,10 @@ final class AppState: ObservableObject {
     /// Pure reload of the in-memory item list from the local store. Used both at unlock
     /// and after a sync pull applies remote changes — the latter must NOT restart sync.
     private func reloadItemsFromStore() {
-        guard let store else { return }
+        // Records are ciphertext at rest; decryption needs the in-memory key.
+        guard let store, let vaultKey else { return }
         do {
-            vaultItems = try store.fetchAll()
+            vaultItems = try store.fetchAll(vaultKey: vaultKey)
         } catch {
             print("Failed to load vault items: \(error)")
         }
@@ -470,6 +474,7 @@ extension AppState: VaultSyncEngine.VaultBackend {
     /// Never re-enqueues a push (no CRUD method is called), so pulls can't loop into pushes.
     func applyRemoteUpsert(id: UUID, payloadJSON: String, updatedAt: Date?) {
         guard let payload = try? JSONDecoder().decode(VaultItemPayload.self, from: Data(payloadJSON.utf8)) else { return }
+        guard let vaultKey else { return }
         if let existing = vaultItems.first(where: { $0.id == id }) {
             if let remoteAt = updatedAt, remoteAt < existing.updatedAt { return } // local is newer
             existing.title = payload.title
@@ -481,19 +486,19 @@ extension AppState: VaultSyncEngine.VaultBackend {
             existing.isFavorite = payload.isFavorite
             existing.otpauth = payload.otpauth
             if let remoteAt = updatedAt { existing.updatedAt = remoteAt }
-            try? store?.save()
+            try? store?.update(existing, vaultKey: vaultKey)
         } else {
             let item = payload.toVaultItem()
             item.id = id
             if let remoteAt = updatedAt { item.updatedAt = remoteAt }
-            try? store?.insert(item)
+            try? store?.insert(item, vaultKey: vaultKey)
         }
     }
 
     func applyRemoteDelete(id: UUID) {
-        guard let item = vaultItems.first(where: { $0.id == id }) else { return }
+        guard vaultItems.contains(where: { $0.id == id }) else { return }
         vaultItems.removeAll { $0.id == id }
-        try? store?.delete(item)
+        try? store?.delete(id: id)
     }
 
     func syncDidApplyRemoteChanges() {

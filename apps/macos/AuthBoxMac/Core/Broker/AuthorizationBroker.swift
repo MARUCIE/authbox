@@ -30,6 +30,28 @@ final class AuthorizationBroker: ObservableObject {
     private let capabilities: () -> [String: AgentCapability]
     private let queue = DispatchQueue(label: "com.authbox.mac.broker")
 
+    // Failed-auth flood guard: unknown-agent / bad-token intents are sealed
+    // into the audit chain, and each seal is a file write plus a Keychain
+    // update. Without a cap, any local process can spam the loopback socket
+    // and grow audit-chain.jsonl without bound while stalling the UI. Denials
+    // beyond the window cap are still denied — just not individually sealed.
+    private var failedAuthWindowStart = Date.distantPast
+    private var failedAuthCount = 0
+    private static let failedAuthWindow: TimeInterval = 60
+    private static let failedAuthSealCap = 20
+
+    /// True while the failed-auth budget for the current window lasts; every
+    /// call counts one failed attempt.
+    private func shouldSealFailedAuth() -> Bool {
+        let now = Date()
+        if now.timeIntervalSince(failedAuthWindowStart) > Self.failedAuthWindow {
+            failedAuthWindowStart = now
+            failedAuthCount = 0
+        }
+        failedAuthCount += 1
+        return failedAuthCount <= Self.failedAuthSealCap
+    }
+
     init(engine: PolicyEngine, audit: AuditLog,
          capabilities: @escaping () -> [String: AgentCapability]) {
         self.engine = engine
@@ -137,10 +159,12 @@ final class AuthorizationBroker: ObservableObject {
         // fail-closed, and the attempt is still sealed into the audit chain so a
         // brute-force or impersonation attempt is itself a tamper-evident Fact.
         guard let capability = capabilities()[intent.agentId] else {
-            return sealed(intent, AccessEffect(allowed: false, reason: "Unknown agent", appliedPolicies: []))
+            let effect = AccessEffect(allowed: false, reason: "Unknown agent", appliedPolicies: [])
+            return shouldSealFailedAuth() ? sealed(intent, effect) : effect
         }
         guard AgentToken.matches(intent.token, storedHash: capability.tokenHash) else {
-            return sealed(intent, AccessEffect(allowed: false, reason: "Agent authentication failed", appliedPolicies: []))
+            let effect = AccessEffect(allowed: false, reason: "Agent authentication failed", appliedPolicies: [])
+            return shouldSealFailedAuth() ? sealed(intent, effect) : effect
         }
 
         var effect = engine.evaluate(capability.policies, intent: intent)

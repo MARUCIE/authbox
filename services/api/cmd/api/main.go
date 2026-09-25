@@ -155,7 +155,7 @@ func main() {
 	agentHandler := handler.NewAgentHandler(agentService)
 	connectionHandler := handler.NewConnectionHandler(connService)
 	auditHandler := handler.NewAuditHandler(auditService)
-	walletHandler := handler.NewWalletHandler(walletService, auditService)
+	walletHandler := handler.NewWalletHandler(walletService, auditService, userRepo, totpService)
 	healthHandler := handler.NewHealthHandler(cfg)
 
 	// AUD-AUTH-02: configure the trusted-proxy allowlist before serving. Empty =

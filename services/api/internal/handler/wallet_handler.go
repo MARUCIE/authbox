@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"auth-box-api/internal/domain"
 	appmw "auth-box-api/internal/middleware"
 	"encoding/json"
 	"log/slog"
@@ -16,10 +17,20 @@ import (
 type WalletHandler struct {
 	walletService *service.WalletService
 	auditService  *service.AuditService // optional; nil-safe
+	// Step-up dependencies for mainnet broadcasts; optional (nil disables
+	// the gate, e.g. in tests without a user store).
+	userRepo    domain.UserRepository
+	totpService *service.TOTPService
 }
 
-func NewWalletHandler(walletService *service.WalletService, auditService *service.AuditService) *WalletHandler {
-	return &WalletHandler{walletService: walletService, auditService: auditService}
+func NewWalletHandler(walletService *service.WalletService, auditService *service.AuditService,
+	userRepo domain.UserRepository, totpService *service.TOTPService) *WalletHandler {
+	return &WalletHandler{
+		walletService: walletService,
+		auditService:  auditService,
+		userRepo:      userRepo,
+		totpService:   totpService,
+	}
 }
 
 func (h *WalletHandler) auditBroadcast(r *http.Request, userID uuid.UUID, decision, txid, coin, network string) {
@@ -213,6 +224,39 @@ func (h *WalletHandler) Broadcast(w http.ResponseWriter, r *http.Request) {
 	if !service.IsWellFormedRawTxHex(req.RawTxHex) {
 		writeError(w, http.StatusBadRequest, "rawTxHex must be even-length hex within size bounds", "BAD_REQUEST")
 		return
+	}
+
+	// Server-side mainnet step-up: client-side confirmation is not a control
+	// against a stolen session token. When the user has TOTP enabled, a
+	// MAINNET broadcast must present a fresh (replay-protected) code.
+	network := req.Network
+	if network == "" {
+		network = "mainnet"
+	}
+	if network == "mainnet" && h.userRepo != nil && h.totpService != nil {
+		user, err := h.userRepo.FindByID(r.Context(), userID)
+		if err != nil {
+			slog.Error("broadcast step-up user lookup failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "internal error", "INTERNAL_ERROR")
+			return
+		}
+		if user != nil && user.TOTPEnabled {
+			if req.TOTPCode == "" {
+				writeError(w, http.StatusForbidden, "mainnet broadcast requires a TOTP code", "STEP_UP_REQUIRED")
+				return
+			}
+			valid, err := h.totpService.Check(r.Context(), userID, req.TOTPCode)
+			if err != nil {
+				slog.Error("broadcast step-up totp check failed", "error", err)
+				writeError(w, http.StatusInternalServerError, "internal error", "INTERNAL_ERROR")
+				return
+			}
+			if !valid {
+				h.auditBroadcast(r, userID, "deny", "", req.Coin, network)
+				writeError(w, http.StatusForbidden, "invalid TOTP code", "STEP_UP_REQUIRED")
+				return
+			}
+		}
 	}
 
 	resp, err := h.walletService.BroadcastTransaction(r.Context(), req.Coin, req.Network, req.RawTxHex)

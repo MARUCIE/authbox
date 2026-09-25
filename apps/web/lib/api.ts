@@ -647,7 +647,13 @@ export const walletApi = {
   // UI's explicit double-confirm gate before reaching here.
   broadcast(
     token: string,
-    body: { coin: 'btc' | 'eth'; network?: 'mainnet' | 'testnet'; rawTxHex: string },
+    body: {
+      coin: 'btc' | 'eth';
+      network?: 'mainnet' | 'testnet';
+      rawTxHex: string;
+      /** Required for mainnet when the account has 2FA enabled (server step-up). */
+      totpCode?: string;
+    },
   ) {
     return request<{ coin: string; network: string; txid: string }>('/api/v1/wallet/broadcast', {
       method: 'POST',
