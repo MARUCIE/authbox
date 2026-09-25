@@ -170,18 +170,27 @@ actor APIClient {
         let nonce: String
         let tag: String
         let version: Int
+        let syncSeq: Int64?
         let itemType: String?
         let createdAt: String
         let updatedAt: String
     }
 
+    // Mirrors the Go handler exactly: cursor param `after`, response
+    // {items, syncToken, hasMore}. (The old sinceVersion/currentVersion shape
+    // never matched the server and would have failed decoding on first use.)
     struct SyncPullResponse: Codable {
-        let items: [VaultItemResponse]
-        let currentVersion: Int
+        let items: [VaultItemResponse]?
+        let syncToken: String
+        let hasMore: Bool
     }
 
-    func syncPull(sinceVersion: Int = 0) async throws -> SyncPullResponse {
-        try await get("/vault/sync?sinceVersion=\(sinceVersion)")
+    func syncPull(after: String? = nil) async throws -> SyncPullResponse {
+        var path = "/vault/sync"
+        if let after, !after.isEmpty {
+            path += "?after=\(after)"
+        }
+        return try await get(path)
     }
 
     struct SyncPushRequest: Codable {

@@ -48,7 +48,7 @@ export async function syncVault(): Promise<void> {
   const response = await vaultApi.syncPull(sessionToken, lastSync ?? undefined);
   const decryptedItems = new Map(getStoreState().items);
 
-  for (const item of response.items) {
+  for (const item of response.items ?? []) {
     try {
       const plaintext = await decryptVaultItem(vaultKey, {
         ciphertext: fromBase64(item.encryptedData),
@@ -63,9 +63,9 @@ export async function syncVault(): Promise<void> {
 
       decryptedItems.set(item.id, {
         id: item.id,
-        vaultId: item.vaultId,
+        vaultId: '',
         itemType: item.itemType,
-        revision: item.revision,
+        revision: item.version,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         name: parsed.name ?? 'Untitled',

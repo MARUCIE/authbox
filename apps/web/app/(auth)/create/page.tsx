@@ -73,8 +73,10 @@ export default function CreateVaultPage() {
     const seed = mnemonicToSeed(mnemonic, masterPassword);
     const keys = deriveAllKeys(seed);
 
-    // Store vault key in memory (Zustand)
+    // Store vault key in memory (Zustand) and hand it explicitly to the
+    // register step — register must only ever wrap a ceremony key.
     unlockVault(keys.vaultKey);
+    useVaultStore.getState().setPendingSeedVaultKey(keys.vaultKey);
 
     setStep('ready');
 

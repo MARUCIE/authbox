@@ -1,6 +1,7 @@
 package handler
 
 import (
+	appmw "auth-box-api/internal/middleware"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -33,7 +34,7 @@ func (h *WalletHandler) auditBroadcast(r *http.Request, userID uuid.UUID, decisi
 		ResourceID:   txid,
 		Decision:     decision,
 		Metadata:     map[string]interface{}{"coin": coin, "network": network},
-		IPAddress:    r.RemoteAddr,
+		IPAddress:    appmw.ClientIP(r),
 		UserAgent:    r.UserAgent(),
 	}); err != nil {
 		slog.Warn("audit log write failed", "action", "wallet.broadcast", "error", err)

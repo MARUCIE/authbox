@@ -125,6 +125,15 @@ func (h *VaultHandler) SyncPush(w http.ResponseWriter, r *http.Request) {
 
 	results, err := h.vaultService.SyncPush(r.Context(), userID, req)
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidSyncItem) {
+			writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
+			return
+		}
+		if errors.Is(err, domain.ErrItemNotFound) {
+			// An id in the batch belongs to another user.
+			writeError(w, http.StatusConflict, "item id conflict", "ITEM_ID_CONFLICT")
+			return
+		}
 		slog.Error("sync push failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "sync push failed", "INTERNAL_ERROR")
 		return

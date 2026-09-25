@@ -245,9 +245,14 @@ func (h *AuthHandler) LoginVerifyTOTP(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.authService.LoginVerifyTOTP(r.Context(), req.LoginToken, req.Code, ipAddress, userAgent)
 	if err != nil {
-		// Constant message: err detail would be a pre-auth oracle for pending
-		// state and TOTP enrollment.
-		writeError(w, http.StatusUnauthorized, "invalid credentials", "INVALID_CREDENTIALS")
+		if errors.Is(err, service.ErrInvalidLoginCredentials) {
+			// Constant message: err detail would be a pre-auth oracle for
+			// pending state and TOTP enrollment.
+			writeError(w, http.StatusUnauthorized, "invalid credentials", "INVALID_CREDENTIALS")
+			return
+		}
+		slog.Error("totp verify failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal error", "INTERNAL_ERROR")
 		return
 	}
 

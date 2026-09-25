@@ -21,6 +21,11 @@ import (
 // ErrEmailExists is returned when attempting to register an already-registered email.
 var ErrEmailExists = errors.New("email already registered")
 
+// ErrInvalidLoginCredentials marks authentication failures the handler maps to
+// a constant 401; any other error from the login flow is an internal fault
+// and must surface as a 5xx, not eat the user's retry budget.
+var ErrInvalidLoginCredentials = errors.New("invalid credentials")
+
 type RegisterRequest struct {
 	Email             string           `json:"email"`
 	SRPSalt           string           `json:"srpSalt"`
@@ -368,8 +373,6 @@ func (s *AuthService) issueSession(ctx context.Context, user *domain.User, m2 []
 // constant error so an unauthenticated caller learns nothing about pending
 // state or TOTP enrollment.
 func (s *AuthService) LoginVerifyTOTP(ctx context.Context, loginToken, totpCode, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
-	errInvalid := errors.New("invalid credentials")
-
 	// Fetch AND delete under one lock (single use); re-inserted below only
 	// while the retry budget lasts.
 	s.mu.Lock()
@@ -380,25 +383,39 @@ func (s *AuthService) LoginVerifyTOTP(ctx context.Context, loginToken, totpCode,
 	s.mu.Unlock()
 
 	if !exists || !pl.srpVerified || time.Since(pl.createdAt) > 5*time.Minute {
-		return nil, errInvalid
+		return nil, ErrInvalidLoginCredentials
+	}
+
+	restorePending := func() {
+		s.mu.Lock()
+		s.totpPending[loginToken] = pl
+		s.mu.Unlock()
 	}
 
 	user, err := s.userRepo.FindByID(ctx, pl.user.ID)
-	if err != nil || user == nil || !user.TOTPEnabled {
-		return nil, errInvalid
+	if err != nil {
+		// Backend fault, not a wrong code: keep the token alive and do not
+		// spend an attempt — a DB hiccup must not dead-end the login.
+		restorePending()
+		return nil, err
+	}
+	if user == nil || !user.TOTPEnabled {
+		return nil, ErrInvalidLoginCredentials
 	}
 	pl.user = user
 
 	valid, err := s.totpService.Check(ctx, user.ID, totpCode)
-	if err != nil || !valid {
+	if err != nil {
+		restorePending()
+		return nil, err
+	}
+	if !valid {
 		s.logAuth(ctx, user.ID, "user.login", "deny", ipAddress, userAgent)
 		pl.totpAttempts++
 		if pl.totpAttempts < maxTOTPAttempts {
-			s.mu.Lock()
-			s.totpPending[loginToken] = pl
-			s.mu.Unlock()
+			restorePending()
 		}
-		return nil, errInvalid
+		return nil, ErrInvalidLoginCredentials
 	}
 
 	// TOTP verified — issue session (m2 already sent in prior response)

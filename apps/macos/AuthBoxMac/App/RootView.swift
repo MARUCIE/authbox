@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthBoxCrypto
 
 /// The fused domains, surfaced as sidebar sections.
 enum AppSection: String, CaseIterable, Identifiable {
@@ -140,10 +141,18 @@ struct LockedView: View {
                         showRestore = false
                     }
                     Button("Restore") {
+                        let phrase = restorePhrase.trimmingCharacters(in: .whitespacesAndNewlines)
+                        // Validate BEFORE resetVault: clearing the wrapped key
+                        // first would flip isProvisioned and tear this sheet
+                        // down into onboarding on a typo'd phrase — the error
+                        // below would never render.
+                        guard Seed.validateMnemonic(phrase) else {
+                            restoreError = "Invalid recovery phrase. Check spelling and word order."
+                            return
+                        }
                         do {
                             try lockState.resetVault()
-                            try lockState.provisionAndUnlock(
-                                mnemonic: restorePhrase.trimmingCharacters(in: .whitespacesAndNewlines))
+                            try lockState.provisionAndUnlock(mnemonic: phrase)
                             restorePhrase = ""
                             restoreError = nil
                             showRestore = false

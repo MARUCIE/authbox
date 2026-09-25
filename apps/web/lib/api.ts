@@ -167,19 +167,23 @@ export const vaultApi = {
 
   syncPull(token: string, after?: string) {
     const params = after ? `?after=${encodeURIComponent(after)}` : '';
+    // Field names mirror the Go ItemResponse exactly: the item revision is
+    // serialized as `version`. (A phantom `revision` field here once made the
+    // optimistic-concurrency check silently never engage.)
     return request<{
       items: Array<{
         id: string;
-        vaultId: string;
         itemType: string;
         encryptedData: string;
         nonce: string;
         tag: string;
-        revision: number;
+        version: number;
+        syncSeq: number;
         createdAt: string;
         updatedAt: string;
-      }>;
+      }> | null;
       syncToken: string;
+      hasMore: boolean;
     }>(`/api/v1/vault/sync${params}`, { token });
   },
 
@@ -187,17 +191,18 @@ export const vaultApi = {
     token: string,
     body: {
       items: Array<{
-        id: string;
+        /** Present when re-pushing an existing item (server upserts by id). */
+        id?: string;
         itemType: string;
         encryptedData: string;
         nonce: string;
         tag: string;
-        uriHash?: string;
-        revision: number;
       }>;
     },
   ) {
-    return request<{ accepted: number; conflicts: string[] }>('/api/v1/vault/sync', {
+    return request<{
+      items: Array<{ id: string; version: number; syncSeq: number }>;
+    }>('/api/v1/vault/sync', {
       method: 'POST',
       token,
       body: JSON.stringify(body),
@@ -249,12 +254,11 @@ export const vaultApi = {
   getItem(token: string, itemId: string) {
     return request<{
       id: string;
-      vaultId: string;
       itemType: string;
       encryptedData: string;
       nonce: string;
       tag: string;
-      revision: number;
+      version: number;
       createdAt: string;
       updatedAt: string;
     }>(`/api/v1/vault/items/${itemId}`, { token });

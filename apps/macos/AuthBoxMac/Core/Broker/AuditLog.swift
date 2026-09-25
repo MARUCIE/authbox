@@ -202,13 +202,16 @@ final class AuditLog {
             seq: seq, timestamp: ts, agentId: intent.agentId, action: intent.action.rawValue,
             itemId: intent.itemId, allowed: effect.allowed, reason: effect.reason,
             prevHash: prev, hash: AuditLog.sha256Hex(canonical))
-        facts.append(fact)
         let sealed = store?.append(fact) ?? true   // SEC-002: seal to disk immediately
-        // BROKER-AUDIT-01: advance the out-of-file head anchor so a later deletion
-        // or truncation of this tail is detectable on next load — but ONLY when
-        // the fact actually reached the file; anchoring an unwritten fact makes
-        // the next launch read a legitimate chain as tampered.
+        // BROKER-AUDIT-01: the in-memory chain, the file, and the head anchor
+        // must stay in lockstep. Keeping an UNWRITTEN fact in `facts` would
+        // make the next successful append chain over a gap the file does not
+        // have — and the next launch would report a legitimate chain as
+        // tampered. A fact that failed to seal is dropped from the chain
+        // entirely (the decision still executes; only its audit record is
+        // lost, which the caller cannot fix by corrupting the chain).
         if sealed {
+            facts.append(fact)
             anchor?.save(AuditHead(count: facts.count, headHash: fact.hash))
         }
         return fact

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -221,23 +222,38 @@ type SyncPushRequest struct {
 	Items []ItemRequest `json:"items"`
 }
 
+// ErrInvalidSyncItem marks client-payload problems in a sync push (bad
+// encoding, empty fields, unknown types) — mapped to 400, not 500.
+var ErrInvalidSyncItem = errors.New("invalid sync item")
+
 func (s *VaultService) SyncPush(ctx context.Context, userID uuid.UUID, req SyncPushRequest) ([]ItemResponse, error) {
 	// Upsert, not blind insert: re-pushing existing items must update them in
 	// place, or every sync/retry duplicates the whole vault.
 	items := make([]*domain.VaultItem, 0, len(req.Items))
 	for i := range req.Items {
 		itemReq := req.Items[i]
+		// Mirror CreateItem's validation: without it a sync push could
+		// persist empty ciphertext or off-vocabulary item types.
+		if itemReq.EncryptedData == "" || itemReq.Nonce == "" || itemReq.Tag == "" {
+			return nil, fmt.Errorf("%w: missing required fields", ErrInvalidSyncItem)
+		}
+		if itemReq.ItemType == "" {
+			itemReq.ItemType = "login"
+		}
+		if !IsValidItemType(itemReq.ItemType) {
+			return nil, fmt.Errorf("%w: invalid itemType", ErrInvalidSyncItem)
+		}
 		data, err := base64.StdEncoding.DecodeString(itemReq.EncryptedData)
 		if err != nil {
-			return nil, errors.New("invalid encryptedData encoding")
+			return nil, fmt.Errorf("%w: invalid encryptedData encoding", ErrInvalidSyncItem)
 		}
 		nonce, err := base64.StdEncoding.DecodeString(itemReq.Nonce)
 		if err != nil {
-			return nil, errors.New("invalid nonce encoding")
+			return nil, fmt.Errorf("%w: invalid nonce encoding", ErrInvalidSyncItem)
 		}
 		tag, err := base64.StdEncoding.DecodeString(itemReq.Tag)
 		if err != nil {
-			return nil, errors.New("invalid tag encoding")
+			return nil, fmt.Errorf("%w: invalid tag encoding", ErrInvalidSyncItem)
 		}
 
 		item := &domain.VaultItem{
@@ -250,7 +266,7 @@ func (s *VaultService) SyncPush(ctx context.Context, userID uuid.UUID, req SyncP
 		if itemReq.ID != "" {
 			id, err := uuid.Parse(itemReq.ID)
 			if err != nil {
-				return nil, errors.New("invalid item id")
+				return nil, fmt.Errorf("%w: invalid item id", ErrInvalidSyncItem)
 			}
 			item.ID = id
 		} else {

@@ -49,11 +49,13 @@ export default function RegisterPage() {
     setStep('deriving');
 
     try {
-      // A seed ceremony (create/restore) leaves its seed-derived vault key in
-      // the store; registering must wrap THAT key, or the 24 words the user
-      // just backed up could never recover this account's vault.
-      const seedVaultKey = useVaultStore.getState().vaultKey ?? undefined;
+      // Only a key explicitly handed over by the seed CREATE ceremony is
+      // wrapped; any other in-memory vault key (an unlocked session, an
+      // abandoned flow) must never become this new account's key.
+      const seedVaultKey =
+        useVaultStore.getState().pendingSeedVaultKey ?? undefined;
       await register(email, password, seedVaultKey);
+      useVaultStore.getState().setPendingSeedVaultKey(null);
       router.push('/login?registered=true');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed.');
