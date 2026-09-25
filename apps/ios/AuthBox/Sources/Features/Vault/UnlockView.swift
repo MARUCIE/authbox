@@ -94,7 +94,13 @@ struct UnlockView: View {
 
         Task {
             do {
-                let seed = try KeychainManager.retrieveSeed()
+                // Task.detached: SecItemCopyMatching blocks its thread for the
+                // whole Face ID interaction, and a plain Task in a view
+                // inherits @MainActor — freezing the UI (and risking the
+                // watchdog) for the duration of the prompt.
+                let seed = try await Task.detached(priority: .userInitiated) {
+                    try KeychainManager.retrieveSeed()
+                }.value
                 try appState.unlockVault(withBiometrics: seed)
             } catch {
                 self.error = error.localizedDescription

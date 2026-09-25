@@ -29,6 +29,7 @@ public enum VaultBlobCodec {
     public enum CodecError: Error, Equatable {
         case missingField(String)
         case malformedBase64(String)
+        case malformedRecordName(String)
     }
 
     /// A decoded blob: the item's plaintext payload JSON plus its sync metadata.
@@ -46,11 +47,15 @@ public enum VaultBlobCodec {
         plaintextJSON: String,
         vaultKey: Data,
         updatedAt: Date,
-        zoneID: CKRecordZone.ID
+        zoneID: CKRecordZone.ID,
+        baseRecord: CKRecord? = nil
     ) throws -> CKRecord {
         let payload = try VaultCrypto.encryptVaultItem(vaultKey: vaultKey, plaintext: plaintextJSON)
         let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zoneID)
-        let record = CKRecord(recordType: recordType, recordID: recordID)
+        // Re-pushing after a serverRecordChanged conflict must build on the
+        // SERVER record so its change tag is carried; a fresh CKRecord would
+        // conflict forever.
+        let record = baseRecord ?? CKRecord(recordType: recordType, recordID: recordID)
         record[Field.ciphertext] = payload.ciphertext.base64EncodedString() as CKRecordValue
         record[Field.nonce] = payload.nonce.base64EncodedString() as CKRecordValue
         record[Field.tag] = payload.tag.base64EncodedString() as CKRecordValue
@@ -69,7 +74,12 @@ public enum VaultBlobCodec {
         let payload = EncryptedPayload(ciphertext: ciphertext, nonce: nonce, tag: tag)
         let json = try VaultCrypto.decryptVaultItem(vaultKey: vaultKey, payload: payload)
 
-        let id = UUID(uuidString: record.recordID.recordName) ?? UUID()
+        // A non-UUID record name must be rejected: substituting a fresh UUID
+        // would decode to a NEW id on every fetch, inserting an endless stream
+        // of duplicate items from one malformed record.
+        guard let id = UUID(uuidString: record.recordID.recordName) else {
+            throw CodecError.malformedRecordName(record.recordID.recordName)
+        }
         return DecodedBlob(id: id, plaintextJSON: json, updatedAt: record[Field.updatedAt] as? Date)
     }
 

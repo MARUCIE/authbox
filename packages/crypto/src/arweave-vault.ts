@@ -98,8 +98,11 @@ export async function archiveVault(
 ): Promise<VaultArchiveResult> {
   const arweave = getArweave();
 
-  // 1. Encrypt vault data with AES-256-GCM
-  const encrypted = await encryptAES256GCM(vaultKey, vaultData);
+  // 1. Encrypt vault data with AES-256-GCM. The version is bound into the
+  // authenticated additional data: Arweave tags are public and anyone can
+  // re-post an old blob under a forged higher Vault-Version tag, so the
+  // version must be cryptographically part of the ciphertext, not just a tag.
+  const encrypted = await encryptAES256GCM(vaultKey, vaultData, versionAAD(version));
 
   // 2. Combine ciphertext + nonce + tag into single blob
   const blob = new Uint8Array(
@@ -151,11 +154,18 @@ export async function archiveVault(
  *
  * @param vaultKey - 32-byte vault encryption key
  * @param txId - Arweave transaction ID of the vault blob
+ * @param version - Expected vault version (from the archive listing). GCM
+ *   authentication fails if the blob was not archived under this version,
+ *   which defeats rollback/replay via forged Vault-Version tags.
+ * @param expectedChecksum - Optional SHA-256 hex of the encrypted blob (from
+ *   the Vault-Checksum tag) to verify before decryption.
  * @returns Decrypted vault data
  */
 export async function retrieveVault(
   vaultKey: Uint8Array,
   txId: string,
+  version: number,
+  expectedChecksum?: string,
 ): Promise<Uint8Array> {
   const arweave = getArweave();
 
@@ -163,15 +173,23 @@ export async function retrieveVault(
   const data = await arweave.transactions.getData(txId, { decode: true });
   const blob = data instanceof Uint8Array ? data : new TextEncoder().encode(data as string);
 
-  // 2. Split blob into nonce (12) + tag (16) + ciphertext
+  // 2. Verify the checksum when the caller has one from the archive listing.
+  if (expectedChecksum) {
+    const actual = bytesToHex(sha256(blob));
+    if (actual !== expectedChecksum.toLowerCase()) {
+      throw new Error('Vault blob checksum mismatch: data corrupted or substituted');
+    }
+  }
+
+  // 3. Split blob into nonce (12) + tag (16) + ciphertext
   const nonceLen = 12;
   const tagLen = 16;
   const nonce = blob.slice(0, nonceLen);
   const tag = blob.slice(nonceLen, nonceLen + tagLen);
   const ciphertext = blob.slice(nonceLen + tagLen);
 
-  // 3. Decrypt
-  return decryptAES256GCM(vaultKey, { ciphertext, nonce, tag });
+  // 4. Decrypt, authenticating the expected version as AAD.
+  return decryptAES256GCM(vaultKey, { ciphertext, nonce, tag }, versionAAD(version));
 }
 
 /**
@@ -214,7 +232,10 @@ export async function findVaultArchives(
     }
   }`;
 
-  const response = await fetch('https://arweave.net/graphql', {
+  // Honor setArweaveGateway: querying production while uploads/downloads hit
+  // a custom gateway would silently return the wrong archive set.
+  const { host, port, protocol } = getArweave().api.config;
+  const response = await fetch(`${protocol}://${host}:${port}/graphql`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),
@@ -256,6 +277,11 @@ export async function estimateArchiveCost(sizeBytes: number): Promise<string> {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
+
+/** Authenticated additional data binding a blob to its vault version. */
+function versionAAD(version: number): Uint8Array {
+  return new TextEncoder().encode(`authbox-vault:v${version}`);
+}
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)

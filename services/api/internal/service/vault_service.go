@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -49,10 +50,17 @@ func (s *VaultService) GetVaultKey(ctx context.Context, userID uuid.UUID) (*Vaul
 
 // ItemRequest is the JSON body for creating/updating a vault item.
 type ItemRequest struct {
+	// ID is set by sync clients pushing an existing item (upsert); empty on
+	// plain creates.
+	ID            string `json:"id,omitempty"`
 	EncryptedData string `json:"encryptedData"`
 	Nonce         string `json:"nonce"`
 	Tag           string `json:"tag"`
 	ItemType      string `json:"itemType"`
+	// Revision is the version the client last saw. When set on an update it
+	// enables optimistic concurrency: a mismatch returns 409 instead of
+	// silently overwriting another device's newer edit.
+	Revision *int `json:"revision,omitempty"`
 }
 
 // ItemResponse is the JSON response for a single vault item.
@@ -63,6 +71,7 @@ type ItemResponse struct {
 	Tag           string `json:"tag"`
 	ItemType      string `json:"itemType"`
 	Version       int    `json:"version"`
+	SyncSeq       int64  `json:"syncSeq"`
 	CreatedAt     string `json:"createdAt"`
 	UpdatedAt     string `json:"updatedAt"`
 }
@@ -75,6 +84,7 @@ func itemToResponse(item *domain.VaultItem) ItemResponse {
 		Tag:           base64.StdEncoding.EncodeToString(item.Tag),
 		ItemType:      item.ItemType,
 		Version:       item.Version,
+		SyncSeq:       item.SyncSeq,
 		CreatedAt:     item.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 		UpdatedAt:     item.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
@@ -187,16 +197,16 @@ func (s *VaultService) UpdateItem(ctx context.Context, id, userID uuid.UUID, req
 		ItemType:      req.ItemType,
 	}
 
-	return s.vaultRepo.UpdateItem(ctx, item)
+	return s.vaultRepo.UpdateItem(ctx, item, req.Revision)
 }
 
 func (s *VaultService) DeleteItem(ctx context.Context, id, userID uuid.UUID) error {
 	return s.vaultRepo.DeleteItem(ctx, id, userID)
 }
 
-// SyncPull returns items with version > sinceVersion, limited to limit rows.
-func (s *VaultService) SyncPull(ctx context.Context, userID uuid.UUID, sinceVersion, limit int) ([]ItemResponse, error) {
-	items, err := s.vaultRepo.SyncPull(ctx, userID, sinceVersion, limit)
+// SyncPull returns items whose sync_seq is beyond the client's cursor.
+func (s *VaultService) SyncPull(ctx context.Context, userID uuid.UUID, afterSeq int64, limit int) ([]ItemResponse, error) {
+	items, err := s.vaultRepo.SyncPull(ctx, userID, afterSeq, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -212,14 +222,66 @@ type SyncPushRequest struct {
 	Items []ItemRequest `json:"items"`
 }
 
+// ErrInvalidSyncItem marks client-payload problems in a sync push (bad
+// encoding, empty fields, unknown types) — mapped to 400, not 500.
+var ErrInvalidSyncItem = errors.New("invalid sync item")
+
 func (s *VaultService) SyncPush(ctx context.Context, userID uuid.UUID, req SyncPushRequest) ([]ItemResponse, error) {
-	results := make([]ItemResponse, 0, len(req.Items))
-	for _, itemReq := range req.Items {
-		resp, err := s.CreateItem(ctx, userID, itemReq)
-		if err != nil {
-			return nil, err
+	// Upsert, not blind insert: re-pushing existing items must update them in
+	// place, or every sync/retry duplicates the whole vault.
+	items := make([]*domain.VaultItem, 0, len(req.Items))
+	for i := range req.Items {
+		itemReq := req.Items[i]
+		// Mirror CreateItem's validation: without it a sync push could
+		// persist empty ciphertext or off-vocabulary item types.
+		if itemReq.EncryptedData == "" || itemReq.Nonce == "" || itemReq.Tag == "" {
+			return nil, fmt.Errorf("%w: missing required fields", ErrInvalidSyncItem)
 		}
-		results = append(results, *resp)
+		if itemReq.ItemType == "" {
+			itemReq.ItemType = "login"
+		}
+		if !IsValidItemType(itemReq.ItemType) {
+			return nil, fmt.Errorf("%w: invalid itemType", ErrInvalidSyncItem)
+		}
+		data, err := base64.StdEncoding.DecodeString(itemReq.EncryptedData)
+		if err != nil {
+			return nil, fmt.Errorf("%w: invalid encryptedData encoding", ErrInvalidSyncItem)
+		}
+		nonce, err := base64.StdEncoding.DecodeString(itemReq.Nonce)
+		if err != nil {
+			return nil, fmt.Errorf("%w: invalid nonce encoding", ErrInvalidSyncItem)
+		}
+		tag, err := base64.StdEncoding.DecodeString(itemReq.Tag)
+		if err != nil {
+			return nil, fmt.Errorf("%w: invalid tag encoding", ErrInvalidSyncItem)
+		}
+
+		item := &domain.VaultItem{
+			UserID:        userID,
+			EncryptedData: data,
+			Nonce:         nonce,
+			Tag:           tag,
+			ItemType:      itemReq.ItemType,
+		}
+		if itemReq.ID != "" {
+			id, err := uuid.Parse(itemReq.ID)
+			if err != nil {
+				return nil, fmt.Errorf("%w: invalid item id", ErrInvalidSyncItem)
+			}
+			item.ID = id
+		} else {
+			item.ID = uuid.New()
+		}
+		items = append(items, item)
+	}
+
+	if err := s.vaultRepo.SyncUpsert(ctx, items); err != nil {
+		return nil, err
+	}
+
+	results := make([]ItemResponse, len(items))
+	for i := range items {
+		results[i] = itemToResponse(items[i])
 	}
 	return results, nil
 }

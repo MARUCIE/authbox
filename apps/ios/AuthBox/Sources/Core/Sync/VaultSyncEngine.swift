@@ -31,8 +31,11 @@ final class VaultSyncEngine {
     /// Swift 6 strict concurrency, and all calls happen on the main actor.
     @MainActor
     protocol VaultBackend: AnyObject {
-        /// The current local item payloads keyed by id, as `VaultItemPayload` JSON.
-        func localPayloadJSON(for id: UUID) -> String?
+        /// The current local item payload + its real edit time, keyed by id.
+        /// The edit time (NOT the push time) is what last-write-wins compares,
+        /// otherwise an offline device's stale edit pushed late overwrites a
+        /// newer one.
+        func localPayload(for id: UUID) -> (payloadJSON: String, updatedAt: Date)?
         /// Apply a pulled item (insert or update in place, preserving the id).
         func applyRemoteUpsert(id: UUID, payloadJSON: String, updatedAt: Date?)
         /// Apply a pulled deletion.
@@ -42,6 +45,9 @@ final class VaultSyncEngine {
     }
 
     private let logger = Logger(subsystem: "com.authbox.app", category: "VaultSync")
+    /// Server records from `.serverRecordChanged` conflicts, keyed by record id;
+    /// the next push of that id builds on the server record (change tag intact).
+    private var conflictBaseRecords: [CKRecord.ID: CKRecord] = [:]
     private let containerIdentifier = "iCloud.com.authbox.vault"
     private let zoneID = CKRecordZone.ID(zoneName: "Vault", ownerName: CKCurrentUserDefaultName)
     private let stateDefaultsKey = "authbox.cksync.stateSerialization"
@@ -127,9 +133,32 @@ extension VaultSyncEngine: CKSyncEngineDelegate {
             applyFetched(changes)
 
         case let .sentRecordZoneChanges(sent):
-            // Surface failures to the log; CKSyncEngine re-queues retryable ones itself.
+            // CKSyncEngine re-queues retryable failures itself, but NOT
+            // `.serverRecordChanged`: that one must be merged by hand or the
+            // losing device's edit is silently dropped forever.
             for failed in sent.failedRecordSaves {
                 logger.error("sync save failed: \(failed.record.recordID.recordName, privacy: .public) — \(failed.error.localizedDescription, privacy: .public)")
+                guard let ckError = failed.error as? CKError,
+                      ckError.code == .serverRecordChanged,
+                      let serverRecord = ckError.serverRecord else { continue }
+
+                // Adopt the server version locally (applyRemoteUpsert enforces
+                // last-write-wins, so a newer local edit survives) …
+                if let decoded = try? VaultBlobCodec.decode(serverRecord, vaultKey: vaultKey) {
+                    backend?.applyRemoteUpsert(id: decoded.id,
+                                               payloadJSON: decoded.plaintextJSON,
+                                               updatedAt: decoded.updatedAt)
+                    backend?.syncDidApplyRemoteChanges()
+                }
+
+                // … and when the local edit is newer, re-queue the save built
+                // on the server record so its change tag is carried.
+                if let id = UUID(uuidString: serverRecord.recordID.recordName),
+                   let local = backend?.localPayload(for: id),
+                   (serverRecord[VaultBlobCodec.Field.updatedAt] as? Date).map({ local.updatedAt > $0 }) ?? true {
+                    conflictBaseRecords[serverRecord.recordID] = serverRecord
+                    syncEngine.state.add(pendingRecordZoneChanges: [.saveRecord(serverRecord.recordID)])
+                }
             }
 
         case .accountChange, .willFetchChanges, .didFetchChanges,
@@ -162,10 +191,11 @@ extension VaultSyncEngine: CKSyncEngineDelegate {
         for change in pending {
             guard case let .saveRecord(recordID) = change else { continue }
             if let id = UUID(uuidString: recordID.recordName),
-               let payloadJSON = backend?.localPayloadJSON(for: id),
+               let local = backend?.localPayload(for: id),
                let record = try? VaultBlobCodec.makeRecord(
-                   id: id, plaintextJSON: payloadJSON, vaultKey: vaultKey,
-                   updatedAt: Date(), zoneID: zoneID) {
+                   id: id, plaintextJSON: local.payloadJSON, vaultKey: vaultKey,
+                   updatedAt: local.updatedAt, zoneID: zoneID,
+                   baseRecord: conflictBaseRecords.removeValue(forKey: recordID)) {
                 records[recordID] = record
             } else {
                 // The item is gone locally — drop it from the push queue.

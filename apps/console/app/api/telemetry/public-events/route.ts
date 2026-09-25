@@ -15,6 +15,11 @@ type PublicEventRequestBody = {
   ts?: string;
 };
 
+// Unauthenticated ingest: bound every attacker-controlled dimension.
+const MAX_METADATA_ENTRIES = 20;
+const MAX_METADATA_KEY_LENGTH = 100;
+const MAX_METADATA_VALUE_LENGTH = 500;
+
 function normalizeMetadata(input?: Record<string, unknown>) {
   if (!input || typeof input !== "object") {
     return undefined;
@@ -22,11 +27,17 @@ function normalizeMetadata(input?: Record<string, unknown>) {
 
   const entries: Array<[string, string]> = [];
   for (const [key, value] of Object.entries(input)) {
+    if (entries.length >= MAX_METADATA_ENTRIES) {
+      break;
+    }
     if (value === null || value === undefined) {
       continue;
     }
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      entries.push([key, String(value)]);
+      entries.push([
+        key.slice(0, MAX_METADATA_KEY_LENGTH),
+        String(value).slice(0, MAX_METADATA_VALUE_LENGTH)
+      ]);
     }
   }
 

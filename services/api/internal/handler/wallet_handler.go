@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"auth-box-api/internal/domain"
+	appmw "auth-box-api/internal/middleware"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -14,10 +16,40 @@ import (
 
 type WalletHandler struct {
 	walletService *service.WalletService
+	auditService  *service.AuditService // optional; nil-safe
+	// Step-up dependencies for mainnet broadcasts; optional (nil disables
+	// the gate, e.g. in tests without a user store).
+	userRepo    domain.UserRepository
+	totpService *service.TOTPService
 }
 
-func NewWalletHandler(walletService *service.WalletService) *WalletHandler {
-	return &WalletHandler{walletService: walletService}
+func NewWalletHandler(walletService *service.WalletService, auditService *service.AuditService,
+	userRepo domain.UserRepository, totpService *service.TOTPService) *WalletHandler {
+	return &WalletHandler{
+		walletService: walletService,
+		auditService:  auditService,
+		userRepo:      userRepo,
+		totpService:   totpService,
+	}
+}
+
+func (h *WalletHandler) auditBroadcast(r *http.Request, userID uuid.UUID, decision, txid, coin, network string) {
+	if h.auditService == nil {
+		return
+	}
+	if _, err := h.auditService.LogEvent(r.Context(), userID, service.AuditEventRequest{
+		ActorType:    "user",
+		ActorID:      userID.String(),
+		Action:       "gateway.proxied",
+		ResourceType: "wallet_broadcast",
+		ResourceID:   txid,
+		Decision:     decision,
+		Metadata:     map[string]interface{}{"coin": coin, "network": network},
+		IPAddress:    appmw.ClientIP(r),
+		UserAgent:    r.UserAgent(),
+	}); err != nil {
+		slog.Warn("audit log write failed", "action", "wallet.broadcast", "error", err)
+	}
 }
 
 func (h *WalletHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
@@ -194,14 +226,50 @@ func (h *WalletHandler) Broadcast(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Server-side mainnet step-up: client-side confirmation is not a control
+	// against a stolen session token. When the user has TOTP enabled, a
+	// MAINNET broadcast must present a fresh (replay-protected) code.
+	network := req.Network
+	if network == "" {
+		network = "mainnet"
+	}
+	if network == "mainnet" && h.userRepo != nil && h.totpService != nil {
+		user, err := h.userRepo.FindByID(r.Context(), userID)
+		if err != nil {
+			slog.Error("broadcast step-up user lookup failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "internal error", "INTERNAL_ERROR")
+			return
+		}
+		if user != nil && user.TOTPEnabled {
+			if req.TOTPCode == "" {
+				writeError(w, http.StatusForbidden, "mainnet broadcast requires a TOTP code", "STEP_UP_REQUIRED")
+				return
+			}
+			valid, err := h.totpService.Check(r.Context(), userID, req.TOTPCode)
+			if err != nil {
+				slog.Error("broadcast step-up totp check failed", "error", err)
+				writeError(w, http.StatusInternalServerError, "internal error", "INTERNAL_ERROR")
+				return
+			}
+			if !valid {
+				h.auditBroadcast(r, userID, "deny", "", req.Coin, network)
+				writeError(w, http.StatusForbidden, "invalid TOTP code", "STEP_UP_REQUIRED")
+				return
+			}
+		}
+	}
+
 	resp, err := h.walletService.BroadcastTransaction(r.Context(), req.Coin, req.Network, req.RawTxHex)
 	if err != nil {
 		// A rejected/invalid transaction or an unreachable node both surface here;
 		// the upstream message is the actionable signal, mapped to 502 like Balance.
 		slog.Warn("wallet broadcast failed", "user", userID, "coin", req.Coin, "network", req.Network, "error", err)
+		h.auditBroadcast(r, userID, "error", "", req.Coin, req.Network)
 		writeError(w, http.StatusBadGateway, "broadcast rejected: "+err.Error(), "UPSTREAM_ERROR")
 		return
 	}
+	// Money moved: this MUST leave an audit record (user, coin, network, txid).
+	h.auditBroadcast(r, userID, "allow", resp.Txid, req.Coin, req.Network)
 	writeJSON(w, http.StatusOK, resp)
 }
 

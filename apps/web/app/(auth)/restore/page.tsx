@@ -85,7 +85,10 @@ export default function RestoreVaultPage() {
     unlockVault(keys.vaultKey);
 
     setStep('done');
-    setTimeout(() => router.push('/passwords'), 1500);
+    // Vault items live server-side (encrypted); a session is needed to fetch
+    // them. Routing to /passwords without one bounces straight back to /login,
+    // so go there directly with the derived vault key held in memory.
+    setTimeout(() => router.push('/login'), 1500);
   }, [seedWords, masterPassword, unlockVault, router]);
 
   return (
@@ -235,6 +238,9 @@ export default function RestoreVaultPage() {
           </h2>
           <p className="text-sm" style={{ color: 'var(--tertiary)' }}>
             Your identity is yours. Unstoppable.
+          </p>
+          <p className="text-xs mt-2" style={{ color: 'var(--muted-foreground)' }}>
+            Next: sign in to load your synced vault...
           </p>
         </div>
       )}

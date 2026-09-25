@@ -40,7 +40,14 @@ const DEFAULT_KDF_PARAMS = {
 };
 
 function toBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
+  // Chunked conversion: spreading a large Uint8Array into fromCharCode
+  // overflows the call stack at roughly 64K elements (e.g. a long note).
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
 }
 
 function fromBase64(b64: string): Uint8Array {
@@ -59,6 +66,7 @@ export interface RegisterResult {
 export async function register(
   email: string,
   password: string,
+  existingVaultKey?: Uint8Array,
 ): Promise<RegisterResult> {
   // 1. Generate salt
   const salt = generateRandomBytes(32);
@@ -69,8 +77,10 @@ export async function register(
   // 3. Generate SRP verifier
   const { verifier } = await srpGenerateVerifier(email, password, salt);
 
-  // 4. Generate and encrypt vault key
-  const vaultKey = generateVaultKey();
+  // 4. Encrypt the vault key. A seed-ceremony flow (create/restore) passes
+  // its seed-derived vault key so the account wraps THAT key — otherwise a
+  // fresh random key is generated and the seed cannot recover it.
+  const vaultKey = existingVaultKey ?? generateVaultKey();
   const vaultKeyBundle = await encryptVaultKey(keys.encKey, vaultKey);
 
   // 5. Register with server
@@ -97,6 +107,8 @@ export interface PendingTOTPLogin {
   kind: "totp_required";
   email: string;
   encKey: Uint8Array;
+  /** Single-use token from login/verify; required by the TOTP step. */
+  loginToken: string;
 }
 
 export async function login(
@@ -148,10 +160,14 @@ export async function login(
   }
 
   if (verifyResponse.totpRequired) {
+    if (!verifyResponse.loginToken) {
+      throw new Error("Login response missing TOTP login token");
+    }
     return {
       kind: "totp_required",
       email,
       encKey: keys.encKey,
+      loginToken: verifyResponse.loginToken,
     };
   }
 
@@ -183,7 +199,7 @@ export async function verifyLoginTOTP(
   code: string,
 ): Promise<LoginResult> {
   const verifyResponse = await authApi.loginVerifyTOTP({
-    email: pending.email,
+    loginToken: pending.loginToken,
     code,
   });
 

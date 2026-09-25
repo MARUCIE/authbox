@@ -158,6 +158,12 @@ final class VaultSession: ObservableObject {
     /// The mnemonic itself is NEVER stored — it is the user's offline recovery.
     @discardableResult
     func provisionAndUnlock(mnemonic: String) throws -> Bool {
+        // A phrase with a wrong word (checksum failure) would silently
+        // provision a vault with the WRONG keys — recovery appears to succeed
+        // and every derivation is wrong with no error, ever.
+        guard Seed.validateMnemonic(mnemonic) else {
+            throw VaultSessionError.invalidMnemonic
+        }
         // SEC-008: zero the derived seed once the keys are extracted. The seed is
         // the root of all derived keys; it must not linger in this allocation
         // after provisioning. (The mnemonic String stays the user's offline
@@ -249,6 +255,17 @@ struct KeychainWrappedKeyStore: WrappedKeyStore {
         let status = SecItemDelete(baseQuery() as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainError.unwrapFailed("SecItemDelete \(status)")
+        }
+    }
+}
+
+enum VaultSessionError: LocalizedError {
+    case invalidMnemonic
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidMnemonic:
+            return "Invalid recovery phrase. Check spelling and word order."
         }
     }
 }

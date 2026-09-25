@@ -71,12 +71,16 @@ func parseCSV(s string) []string {
 
 func loadTOTPSecretKey(env string) []byte {
 	value := getEnv("AUTH_BOX_TOTP_SECRET_KEY", "")
-	if value == "" && env != "production" {
+	// The committed fallback key is ONLY for explicitly-local environments.
+	// Matching everything but the literal "production" meant "staging",
+	// "prod", "preprod" or a typo silently encrypted every TOTP seed with a
+	// key anyone with repo access holds.
+	if value == "" && (env == "local" || env == "development" || env == "test") {
 		value = "YXV0aGJveC1sb2NhbC1kZXYtdG90cC1rZXktdjEhISE="
 		slog.Warn("using local development TOTP secret encryption key; set AUTH_BOX_TOTP_SECRET_KEY outside local development")
 	}
 	if value == "" {
-		slog.Error("AUTH_BOX_TOTP_SECRET_KEY is required in production")
+		slog.Error("AUTH_BOX_TOTP_SECRET_KEY is required outside local development")
 		os.Exit(1)
 	}
 

@@ -43,14 +43,24 @@ struct AuditFileStore {
         }
     }
 
-    func append(_ fact: AuditFact) {
-        guard var line = try? JSONEncoder().encode(fact) else { return }
+    /// Returns false when the fact could NOT be sealed to disk (disk full,
+    /// unwritable path). Callers must not advance the head anchor past a fact
+    /// that never reached the file, or the next launch reports "TAMPERED" for
+    /// what was a write failure — while the decision record is genuinely lost.
+    @discardableResult
+    func append(_ fact: AuditFact) -> Bool {
+        guard var line = try? JSONEncoder().encode(fact) else { return false }
         line.append(0x0a)   // newline-delimited
         ensureFileExists()
-        guard let handle = try? FileHandle(forWritingTo: url) else { return }
+        guard let handle = try? FileHandle(forWritingTo: url) else { return false }
         defer { try? handle.close() }
-        _ = try? handle.seekToEnd()
-        try? handle.write(contentsOf: line)
+        do {
+            try handle.seekToEnd()
+            try handle.write(contentsOf: line)
+            return true
+        } catch {
+            return false
+        }
     }
 
     private func ensureFileExists() {
@@ -103,11 +113,18 @@ struct KeychainAuditHeadAnchor: AuditHeadAnchorStore {
 
     func save(_ head: AuditHead) {
         guard let data = try? JSONEncoder().encode(head) else { return }
-        var q = baseQuery()
-        SecItemDelete(q as CFDictionary)
-        q[kSecValueData as String] = data
-        q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        SecItemAdd(q as CFDictionary, nil)
+        // Update-in-place first: delete-then-add has a crash window that loses
+        // the anchor entirely, after which trust-on-first-use re-adopts
+        // whatever chain is on disk — exactly the truncation the anchor
+        // exists to catch.
+        let update: [String: Any] = [kSecValueData as String: data]
+        let status = SecItemUpdate(baseQuery() as CFDictionary, update as CFDictionary)
+        if status == errSecItemNotFound {
+            var q = baseQuery()
+            q[kSecValueData as String] = data
+            q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            SecItemAdd(q as CFDictionary, nil)
+        }
     }
 
     func clear() { SecItemDelete(baseQuery() as CFDictionary) }
@@ -185,11 +202,18 @@ final class AuditLog {
             seq: seq, timestamp: ts, agentId: intent.agentId, action: intent.action.rawValue,
             itemId: intent.itemId, allowed: effect.allowed, reason: effect.reason,
             prevHash: prev, hash: AuditLog.sha256Hex(canonical))
-        facts.append(fact)
-        store?.append(fact)   // SEC-002: seal to disk immediately
-        // BROKER-AUDIT-01: advance the out-of-file head anchor so a later deletion
-        // or truncation of this tail is detectable on next load.
-        anchor?.save(AuditHead(count: facts.count, headHash: fact.hash))
+        let sealed = store?.append(fact) ?? true   // SEC-002: seal to disk immediately
+        // BROKER-AUDIT-01: the in-memory chain, the file, and the head anchor
+        // must stay in lockstep. Keeping an UNWRITTEN fact in `facts` would
+        // make the next successful append chain over a gap the file does not
+        // have — and the next launch would report a legitimate chain as
+        // tampered. A fact that failed to seal is dropped from the chain
+        // entirely (the decision still executes; only its audit record is
+        // lost, which the caller cannot fix by corrupting the chain).
+        if sealed {
+            facts.append(fact)
+            anchor?.save(AuditHead(count: facts.count, headHash: fact.hash))
+        }
         return fact
     }
 

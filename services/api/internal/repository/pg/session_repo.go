@@ -101,11 +101,24 @@ func (r *SessionRepository) DeleteByID(ctx context.Context, sessionID uuid.UUID,
 	return err
 }
 
-// TouchSession updates last_active_at for a session.
+// TouchSession updates last_active_at for a session, debounced DB-side: the
+// write only happens when the stored value is stale by over a minute, so a
+// busy client does not turn every request into an UPDATE.
 func (r *SessionRepository) TouchSession(ctx context.Context, tokenHash []byte) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE sessions SET last_active_at = $1 WHERE token_hash = $2`,
+		`UPDATE sessions SET last_active_at = $1
+		 WHERE token_hash = $2 AND last_active_at < $1 - INTERVAL '1 minute'`,
 		time.Now().UTC(), tokenHash,
 	)
 	return err
+}
+
+// DeleteExpired removes sessions past their expiry. Reads already filter on
+// expires_at, but without a reaper the table grows forever.
+func (r *SessionRepository) DeleteExpired(ctx context.Context) (int64, error) {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM sessions WHERE expires_at < NOW()`)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
 }

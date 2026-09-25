@@ -100,16 +100,30 @@ func TestLoginVerifyWithTOTPAllowsFollowUpVerification(t *testing.T) {
 		t.Fatal("expected server proof to be returned before TOTP step")
 	}
 
-	pending, ok := service.pending[email]
+	if verifyResp.LoginToken == "" {
+		t.Fatal("expected a login token binding the TOTP step to this SRP handshake")
+	}
+	pending, ok := service.totpPending[verifyResp.LoginToken]
 	if !ok {
 		t.Fatal("pending login state was cleared before TOTP verification")
 	}
 	if !pending.srpVerified {
 		t.Fatal("pending login was not marked as SRP-verified")
 	}
+	// The email-keyed SRP handshake state is single-use and must be gone.
+	if _, ok := service.pending[email]; ok {
+		t.Fatal("email-keyed pending state should be consumed by LoginVerify")
+	}
 
 	code := generateTOTP(user.TOTPSecret, time.Now().Unix()/30)
-	finalResp, err := service.LoginVerifyTOTP(ctx, email, code, "127.0.0.1", "test-agent")
+
+	// A caller without the login token must not be able to complete the login,
+	// even with a valid code (this was an account-takeover vector).
+	if _, err := service.LoginVerifyTOTP(ctx, "forged-token", code, "127.0.0.1", "test-agent"); err == nil {
+		t.Fatal("expected TOTP verification to fail without the minted login token")
+	}
+
+	finalResp, err := service.LoginVerifyTOTP(ctx, verifyResp.LoginToken, code, "127.0.0.1", "test-agent")
 	if err != nil {
 		t.Fatalf("LoginVerifyTOTP: %v", err)
 	}
@@ -119,8 +133,13 @@ func TestLoginVerifyWithTOTPAllowsFollowUpVerification(t *testing.T) {
 	if len(sessionRepo.created) != 1 {
 		t.Fatalf("expected 1 session to be created, got %d", len(sessionRepo.created))
 	}
-	if _, ok := service.pending[email]; ok {
+	if _, ok := service.totpPending[verifyResp.LoginToken]; ok {
 		t.Fatal("pending login state was not cleared after successful TOTP verification")
+	}
+
+	// The token is single-use: replaying it must fail.
+	if _, err := service.LoginVerifyTOTP(ctx, verifyResp.LoginToken, code, "127.0.0.1", "test-agent"); err == nil {
+		t.Fatal("expected replayed login token to be rejected")
 	}
 }
 
@@ -194,12 +213,81 @@ func TestLoginVerifyRefreshesUserStateBeforeTOTPDecision(t *testing.T) {
 	}
 
 	code := generateTOTP(secret, time.Now().Unix()/30)
-	finalResp, err := service.LoginVerifyTOTP(ctx, email, code, "127.0.0.1", "test-agent")
+	finalResp, err := service.LoginVerifyTOTP(ctx, verifyResp.LoginToken, code, "127.0.0.1", "test-agent")
 	if err != nil {
 		t.Fatalf("LoginVerifyTOTP: %v", err)
 	}
 	if finalResp.SessionToken == "" {
 		t.Fatal("expected session token after refreshed TOTP verification")
+	}
+}
+
+func TestLoginVerifyTOTPBoundsFailedAttempts(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	email := "totp-attempts@authbox.io"
+	password := "MasterPassword!123"
+	salt := make([]byte, 32)
+	if _, err := rand.Read(salt); err != nil {
+		t.Fatalf("rand.Read: %v", err)
+	}
+
+	secret := []byte("01234567890123456789")
+	user := &domain.User{
+		ID:                uuid.New(),
+		Email:             email,
+		SRPSalt:           salt,
+		SRPVerifier:       testGenerateVerifier(email, password, salt),
+		EncryptedVaultKey: []byte("encrypted-vault-key"),
+		VaultKeyNonce:     []byte("123456789012"),
+		VaultKeyTag:       []byte("1234567890abcdef"),
+		KDFParams:         domain.DefaultKDFParams(),
+		TOTPEnabled:       true,
+		TOTPSecret:        secret,
+	}
+
+	userRepo := newFakeUserRepo(user)
+	service := NewAuthService(userRepo, &fakeSessionRepo{}, NewTOTPService(userRepo, testTOTPSecretKey), time.Hour)
+	encryptedSecret, err := service.totpService.encryptSecret(secret)
+	if err != nil {
+		t.Fatalf("encryptSecret: %v", err)
+	}
+	if err := userRepo.SetTOTPSecret(ctx, user.ID, encryptedSecret); err != nil {
+		t.Fatalf("SetTOTPSecret: %v", err)
+	}
+
+	clientState, err := newTestSRPClientState()
+	if err != nil {
+		t.Fatalf("newTestSRPClientState: %v", err)
+	}
+	initResp, err := service.LoginInit(ctx, LoginInitRequest{
+		Email:         email,
+		ClientPublicA: base64.StdEncoding.EncodeToString(clientState.publicA),
+	})
+	if err != nil {
+		t.Fatalf("LoginInit: %v", err)
+	}
+	serverPublicB, err := base64.StdEncoding.DecodeString(initResp.ServerPublicB)
+	if err != nil {
+		t.Fatalf("DecodeString: %v", err)
+	}
+	clientProof := clientState.computeProof(t, email, password, salt, serverPublicB)
+	verifyResp, err := service.LoginVerify(ctx, email, clientState.publicA, clientProof, "127.0.0.1", "test-agent")
+	if err != nil {
+		t.Fatalf("LoginVerify: %v", err)
+	}
+
+	// Burn the retry budget with wrong codes; the token must then be dead
+	// even for the correct code.
+	for i := 0; i < maxTOTPAttempts; i++ {
+		if _, err := service.LoginVerifyTOTP(ctx, verifyResp.LoginToken, "000000", "127.0.0.1", "test-agent"); err == nil {
+			t.Fatalf("attempt %d: expected wrong code to be rejected", i)
+		}
+	}
+	code := generateTOTP(secret, time.Now().Unix()/30)
+	if _, err := service.LoginVerifyTOTP(ctx, verifyResp.LoginToken, code, "127.0.0.1", "test-agent"); err == nil {
+		t.Fatal("expected login token to be invalidated after exhausting the retry budget")
 	}
 }
 
@@ -253,6 +341,18 @@ func (r *fakeUserRepo) EnableTOTP(_ context.Context, userID uuid.UUID) error {
 		user.TOTPVerifiedAt = &now
 	}
 	return nil
+}
+
+func (r *fakeUserRepo) ClaimTOTPCounter(_ context.Context, userID uuid.UUID, counter int64) (bool, error) {
+	u, ok := r.byID[userID]
+	if !ok {
+		return false, nil
+	}
+	if counter <= u.TOTPLastCounter {
+		return false, nil
+	}
+	u.TOTPLastCounter = counter
+	return true, nil
 }
 
 func (r *fakeUserRepo) DisableTOTP(_ context.Context, userID uuid.UUID) error {

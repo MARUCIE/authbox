@@ -10,11 +10,19 @@ interface VaultState {
   // Vault state
   status: VaultStatus;
   vaultKey: Uint8Array | null; // Decrypted vault key (in memory only)
+  /**
+   * Set ONLY by the seed create ceremony, consumed ONLY by /register.
+   * register() must never wrap "whatever vaultKey is lying around" — a user
+   * logged into account A who opens /register would otherwise key account B
+   * with A's vault key.
+   */
+  pendingSeedVaultKey: Uint8Array | null;
   items: Map<string, DecryptedVaultItem>;
   lastSync: string | null;
 
   // Actions
   setSession: (token: string, userId: string) => void;
+  setPendingSeedVaultKey: (key: Uint8Array | null) => void;
   clearSession: () => void;
   unlockVault: (vaultKey: Uint8Array) => void;
   lockVault: () => void;
@@ -52,11 +60,14 @@ export const useVaultStore = create<VaultState>((set) => ({
   userId: null,
   status: 'locked',
   vaultKey: null,
+  pendingSeedVaultKey: null,
   items: new Map(),
   lastSync: null,
 
   setSession: (token, userId) =>
     set({ sessionToken: token, userId }),
+
+  setPendingSeedVaultKey: (key) => set({ pendingSeedVaultKey: key }),
 
   clearSession: () =>
     set({

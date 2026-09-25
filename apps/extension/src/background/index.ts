@@ -104,7 +104,8 @@ async function handleMessage(
       if (!item) return { ok: false, error: 'Item not found' };
 
       // Determine which tab to send the autofill to
-      const tabId = sender.tab?.id;
+      let tabId = sender.tab?.id;
+      let tabUrl = sender.tab?.url;
       if (!tabId) {
         // If request came from popup, get the active tab
         const [activeTab] = await chrome.tabs.query({
@@ -112,19 +113,34 @@ async function handleMessage(
           currentWindow: true,
         });
         if (!activeTab?.id) return { ok: false, error: 'No active tab' };
-
-        // Send username then password to the active tab
-        await sendAutofillToTab(activeTab.id, item.username, item.password);
-      } else {
-        await sendAutofillToTab(tabId, item.username, item.password);
+        tabId = activeTab.id;
+        tabUrl = activeTab.url;
       }
 
+      // Origin binding: never inject a credential into a site it was not
+      // saved for — one mis-click would otherwise hand the password to a
+      // phishing page (or dump it into an arbitrary text input).
+      if (!credentialMatchesTab(item.uri, tabUrl)) {
+        return {
+          ok: false,
+          error: 'This credential is not saved for the current site',
+        };
+      }
+
+      await sendAutofillToTab(tabId, item.username, item.password);
       return { ok: true };
     }
 
     case 'FORM_DETECTED': {
-      // Match detected form URI against vault items and update badge
-      updateBadgeForUri(msg.payload.uri);
+      // Only the ACTIVE tab may drive the badge; a background tab's SPA
+      // mutations must not overwrite the count for the site being viewed.
+      const [activeTab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (sender.tab?.id !== undefined && sender.tab.id === activeTab?.id) {
+        updateBadgeForUri(msg.payload.uri);
+      }
       return { ok: true };
     }
 
@@ -149,6 +165,33 @@ async function handleMessage(
   }
 }
 
+/**
+ * True when the tab's hostname matches one of the credential's saved URIs
+ * (exact host or subdomain of it, ignoring a leading "www."). Credentials
+ * without any saved URI cannot be origin-verified and are never auto-filled.
+ */
+function credentialMatchesTab(itemUris: string[], tabUrl?: string): boolean {
+  if (!tabUrl || itemUris.length === 0) return false;
+
+  let tabHost: string;
+  try {
+    tabHost = new URL(tabUrl).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return false;
+  }
+
+  return itemUris.some((u) => {
+    let itemHost: string;
+    try {
+      itemHost = new URL(u).hostname.toLowerCase().replace(/^www\./, '');
+    } catch {
+      itemHost = u.toLowerCase().replace(/^www\./, '').split('/')[0];
+    }
+    if (!itemHost) return false;
+    return tabHost === itemHost || tabHost.endsWith(`.${itemHost}`);
+  });
+}
+
 /** Send username + password to a specific tab's content script. */
 async function sendAutofillToTab(
   tabId: number,
@@ -159,7 +202,12 @@ async function sendAutofillToTab(
   const usernameMsg: InjectAutofillMessage = {
     type: 'INJECT_AUTOFILL',
     payload: {
-      selector: 'input[type="email"], input[type="text"][autocomplete="username"], input[type="text"]',
+      // No bare input[type="text"] fallback: that would dump the username
+      // into whatever text box comes first (e.g. a logging search field).
+      selector:
+        'input[type="email"], input[type="text"][autocomplete="username"], ' +
+        'input[type="text"][name*="user" i], input[type="text"][name*="email" i], ' +
+        'input[type="text"][id*="user" i], input[type="text"][id*="email" i]',
       value: username,
     },
   };

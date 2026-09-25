@@ -2,8 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -15,6 +20,11 @@ import (
 
 // ErrEmailExists is returned when attempting to register an already-registered email.
 var ErrEmailExists = errors.New("email already registered")
+
+// ErrInvalidLoginCredentials marks authentication failures the handler maps to
+// a constant 401; any other error from the login flow is an internal fault
+// and must surface as a 5xx, not eat the user's retry budget.
+var ErrInvalidLoginCredentials = errors.New("invalid credentials")
 
 type RegisterRequest struct {
 	Email             string           `json:"email"`
@@ -49,24 +59,44 @@ type LoginVerifyResponse struct {
 	VaultKeyTag       string           `json:"vaultKeyTag,omitempty"`
 	KDFParams         domain.KDFParams `json:"kdfParams,omitempty"`
 	TOTPRequired      bool             `json:"totpRequired,omitempty"`
+	// LoginToken is a single-use random token minted when TOTP is required.
+	// It binds the TOTP step to the client that completed the SRP proof —
+	// without it, anyone who knew the email could race the victim to
+	// /auth/login/totp/verify and take over the session.
+	LoginToken string `json:"loginToken,omitempty"`
 }
 
 // pendingLogin holds ephemeral server-side SRP state between init and verify.
 type pendingLogin struct {
-	srp         *auth.SRPServer
-	user        *domain.User
-	createdAt   time.Time
-	srpVerified bool // set to true after SRP proof succeeds (guards TOTP bypass)
+	srp          *auth.SRPServer
+	user         *domain.User
+	createdAt    time.Time
+	srpVerified  bool // set to true after SRP proof succeeds (guards TOTP bypass)
+	totpAttempts int  // failed TOTP codes against this pending login
 }
+
+const maxTOTPAttempts = 3
+
+// maxPendingLogins caps the in-memory handshake map so unauthenticated
+// LoginInit calls cannot grow process memory without bound.
+const maxPendingLogins = 10000
 
 type AuthService struct {
 	userRepo    domain.UserRepository
 	sessionRepo domain.SessionRepository
 	totpService *TOTPService
 	sessionTTL  time.Duration
+	audit       *AuditService // optional; nil-safe
 
-	mu       sync.Mutex
-	pending  map[string]*pendingLogin // keyed by email
+	// enumKey feeds deterministic fake SRP parameters for unknown emails so
+	// LoginInit timing/output does not reveal whether an account exists.
+	enumKey []byte
+
+	mu      sync.Mutex
+	pending map[string]*pendingLogin // keyed by email (init -> verify)
+	// totpPending is keyed by a random single-use login token minted at
+	// LoginVerify, so the TOTP step is bound to the SRP-verified client.
+	totpPending map[string]*pendingLogin
 }
 
 func NewAuthService(userRepo domain.UserRepository, sessionRepo domain.SessionRepository, totpService *TOTPService, sessionTTL time.Duration) *AuthService {
@@ -76,9 +106,38 @@ func NewAuthService(userRepo domain.UserRepository, sessionRepo domain.SessionRe
 		totpService: totpService,
 		sessionTTL:  sessionTTL,
 		pending:     make(map[string]*pendingLogin),
+		totpPending: make(map[string]*pendingLogin),
+		enumKey:     make([]byte, 32),
+	}
+	if _, err := rand.Read(s.enumKey); err != nil {
+		panic("auth: cannot seed enumeration key: " + err.Error())
 	}
 	go s.cleanupPending()
 	return s
+}
+
+// WithAuditor wires the audit trail. Login outcomes are security events; a
+// credential product with an empty audit chain has no story to tell after an
+// incident.
+func (s *AuthService) WithAuditor(a *AuditService) *AuthService {
+	s.audit = a
+	return s
+}
+
+func (s *AuthService) logAuth(ctx context.Context, userID uuid.UUID, action, decision, ip, ua string) {
+	if s.audit == nil {
+		return
+	}
+	if _, err := s.audit.LogEvent(ctx, userID, AuditEventRequest{
+		ActorType: "user",
+		ActorID:   userID.String(),
+		Action:    action,
+		Decision:  decision,
+		IPAddress: ip,
+		UserAgent: ua,
+	}); err != nil {
+		slog.Warn("audit log write failed", "action", action, "error", err)
+	}
 }
 
 func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*RegisterResponse, error) {
@@ -143,7 +202,10 @@ func (s *AuthService) LoginInit(ctx context.Context, req LoginInitRequest) (*Log
 		return nil, err
 	}
 	if user == nil {
-		return nil, errors.New("invalid credentials")
+		// Unknown email: perform the SAME modular exponentiation against a
+		// deterministic fake verifier and return plausible salt/B. Returning
+		// early made known vs unknown emails separable by response timing.
+		return s.fakeLoginInit(req.Email)
 	}
 
 	srpServer, err := auth.NewSRPServer(user.SRPVerifier)
@@ -159,6 +221,10 @@ func (s *AuthService) LoginInit(ctx context.Context, req LoginInitRequest) (*Log
 	_ = clientA // We store it for verify step
 
 	s.mu.Lock()
+	if len(s.pending) >= maxPendingLogins {
+		s.mu.Unlock()
+		return nil, errors.New("too many pending logins")
+	}
 	s.pending[req.Email] = &pendingLogin{
 		srp:       srpServer,
 		user:      user,
@@ -174,8 +240,13 @@ func (s *AuthService) LoginInit(ctx context.Context, req LoginInitRequest) (*Log
 
 // LoginVerify validates the client's SRP proof and creates a session.
 func (s *AuthService) LoginVerify(ctx context.Context, email string, clientA, clientM1 []byte, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
+	// Fetch AND delete under one lock: pending state is single-use, so
+	// concurrent verify calls cannot race on the shared SRPServer big.Ints.
 	s.mu.Lock()
 	pl, ok := s.pending[email]
+	if ok {
+		delete(s.pending, email)
+	}
 	s.mu.Unlock()
 
 	if !ok {
@@ -184,37 +255,64 @@ func (s *AuthService) LoginVerify(ctx context.Context, email string, clientA, cl
 
 	m2, err := pl.srp.VerifyProof(clientA, clientM1)
 	if err != nil {
-		s.mu.Lock()
-		delete(s.pending, email)
-		s.mu.Unlock()
+		s.logAuth(ctx, pl.user.ID, "user.login", "deny", ipAddress, userAgent)
 		return nil, errors.New("invalid credentials")
 	}
 
 	currentUser, err := s.userRepo.FindByID(ctx, pl.user.ID)
 	if err != nil || currentUser == nil {
-		s.mu.Lock()
-		delete(s.pending, email)
-		s.mu.Unlock()
 		return nil, errors.New("invalid credentials")
 	}
 	pl.user = currentUser
 
-	// Check if TOTP 2FA is enabled — if so, require TOTP before issuing session.
-	// Mark SRP as verified so LoginVerifyTOTP can confirm proof was completed.
+	// TOTP 2FA enabled: mint a single-use login token that the TOTP step must
+	// present. Keying the second factor by email alone would let anyone who
+	// knows the email complete the login the victim's SRP proof opened.
 	if currentUser.TOTPEnabled {
+		loginToken, _, err := auth.GenerateSessionToken()
+		if err != nil {
+			return nil, err
+		}
 		pl.srpVerified = true
 		pl.createdAt = time.Now()
+		s.mu.Lock()
+		s.totpPending[loginToken] = pl
+		s.mu.Unlock()
 		return &LoginVerifyResponse{
 			ServerProofM2: base64.StdEncoding.EncodeToString(m2),
 			TOTPRequired:  true,
+			LoginToken:    loginToken,
 		}, nil
 	}
 
-	s.mu.Lock()
-	delete(s.pending, email)
-	s.mu.Unlock()
-
 	return s.issueSession(ctx, currentUser, m2, ipAddress, userAgent)
+}
+
+// fakeLoginInit produces a deterministic, plausible LoginInit response for a
+// nonexistent account, doing the same expensive SRP work as the real path.
+func (s *AuthService) fakeLoginInit(email string) (*LoginInitResponse, error) {
+	saltMAC := hmac.New(sha256.New, s.enumKey)
+	saltMAC.Write([]byte("salt:" + email))
+	fakeSalt := saltMAC.Sum(nil)
+
+	// Expand a 256-byte fake verifier deterministically from the email.
+	fakeVerifier := make([]byte, 0, 256)
+	for i := 0; len(fakeVerifier) < 256; i++ {
+		m := hmac.New(sha256.New, s.enumKey)
+		fmt.Fprintf(m, "verifier:%d:%s", i, email)
+		fakeVerifier = append(fakeVerifier, m.Sum(nil)...)
+	}
+	fakeVerifier = fakeVerifier[:256]
+
+	srpServer, err := auth.NewSRPServer(fakeVerifier)
+	if err != nil {
+		return nil, errors.New("invalid credentials")
+	}
+
+	return &LoginInitResponse{
+		SRPSalt:       base64.StdEncoding.EncodeToString(fakeSalt),
+		ServerPublicB: base64.StdEncoding.EncodeToString(srpServer.PublicB()),
+	}, nil
 }
 
 func (s *AuthService) Logout(ctx context.Context, tokenHash []byte) error {
@@ -255,6 +353,8 @@ func (s *AuthService) issueSession(ctx context.Context, user *domain.User, m2 []
 		return nil, err
 	}
 
+	s.logAuth(ctx, user.ID, "user.login", "allow", ipAddress, userAgent)
+
 	return &LoginVerifyResponse{
 		SessionToken:      token,
 		ServerProofM2:     base64.StdEncoding.EncodeToString(m2),
@@ -266,43 +366,57 @@ func (s *AuthService) issueSession(ctx context.Context, user *domain.User, m2 []
 }
 
 // LoginVerifyTOTP completes login when TOTP 2FA is required.
-// Called after LoginVerify returns totpRequired=true.
+// Called after LoginVerify returns totpRequired=true with a loginToken.
 //
-// Security: requires that SRP proof was completed first (srpVerified=true).
-// Without this check, an attacker with email + TOTP seed could bypass the
-// master password entirely.
-func (s *AuthService) LoginVerifyTOTP(ctx context.Context, email, totpCode, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
-	// Verify SRP proof was completed before allowing TOTP
+// Security: the login token is minted only after a successful SRP proof and
+// is single-use with a bounded retry budget. Every failure returns the same
+// constant error so an unauthenticated caller learns nothing about pending
+// state or TOTP enrollment.
+func (s *AuthService) LoginVerifyTOTP(ctx context.Context, loginToken, totpCode, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
+	// Fetch AND delete under one lock (single use); re-inserted below only
+	// while the retry budget lasts.
 	s.mu.Lock()
-	pl, exists := s.pending[email]
+	pl, exists := s.totpPending[loginToken]
+	if exists {
+		delete(s.totpPending, loginToken)
+	}
 	s.mu.Unlock()
 
-	if !exists || !pl.srpVerified {
-		return nil, errors.New("SRP authentication required before TOTP verification")
+	if !exists || !pl.srpVerified || time.Since(pl.createdAt) > 5*time.Minute {
+		return nil, ErrInvalidLoginCredentials
+	}
+
+	restorePending := func() {
+		s.mu.Lock()
+		s.totpPending[loginToken] = pl
+		s.mu.Unlock()
 	}
 
 	user, err := s.userRepo.FindByID(ctx, pl.user.ID)
-	if err != nil || user == nil {
-		return nil, errors.New("invalid credentials")
+	if err != nil {
+		// Backend fault, not a wrong code: keep the token alive and do not
+		// spend an attempt — a DB hiccup must not dead-end the login.
+		restorePending()
+		return nil, err
+	}
+	if user == nil || !user.TOTPEnabled {
+		return nil, ErrInvalidLoginCredentials
 	}
 	pl.user = user
 
-	if !user.TOTPEnabled {
-		return nil, errors.New("TOTP not enabled for this account")
-	}
-
 	valid, err := s.totpService.Check(ctx, user.ID, totpCode)
 	if err != nil {
+		restorePending()
 		return nil, err
 	}
 	if !valid {
-		return nil, errors.New("invalid TOTP code")
+		s.logAuth(ctx, user.ID, "user.login", "deny", ipAddress, userAgent)
+		pl.totpAttempts++
+		if pl.totpAttempts < maxTOTPAttempts {
+			restorePending()
+		}
+		return nil, ErrInvalidLoginCredentials
 	}
-
-	// Clean up pending state now that login is fully complete
-	s.mu.Lock()
-	delete(s.pending, email)
-	s.mu.Unlock()
 
 	// TOTP verified — issue session (m2 already sent in prior response)
 	return s.issueSession(ctx, user, nil, ipAddress, userAgent)
@@ -317,6 +431,11 @@ func (s *AuthService) cleanupPending() {
 		for email, pl := range s.pending {
 			if time.Since(pl.createdAt) > 5*time.Minute {
 				delete(s.pending, email)
+			}
+		}
+		for token, pl := range s.totpPending {
+			if time.Since(pl.createdAt) > 5*time.Minute {
+				delete(s.totpPending, token)
 			}
 		}
 		s.mu.Unlock()

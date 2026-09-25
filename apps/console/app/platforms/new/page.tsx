@@ -21,13 +21,17 @@ export default async function NewPlatformPage({ searchParams }: NewPlatformPageP
   const source = resolvedSearchParams?.source || "direct";
   const tenantId = resolvedSearchParams?.tenant_id || "public";
 
-  recordPublicEvent({
-    event: "ONBOARDING_ENTRY_VIEW",
-    route: "/platforms/new",
-    source,
-    persona: "P1_PLATFORM_ADMIN",
-    tenantId
-  });
+  // Count only genuine entries: the error-redirect re-render of this same
+  // page must not inflate the onboarding funnel denominator.
+  if (!resolvedSearchParams?.error) {
+    recordPublicEvent({
+      event: "ONBOARDING_ENTRY_VIEW",
+      route: "/platforms/new",
+      source,
+      persona: "P1_PLATFORM_ADMIN",
+      tenantId
+    });
+  }
 
   async function submit(formData: FormData) {
     "use server";
@@ -68,9 +72,9 @@ export default async function NewPlatformPage({ searchParams }: NewPlatformPageP
     redirect("/platforms?created=1");
   }
 
-  const errorMessage = resolvedSearchParams?.error
-    ? decodeURIComponent(resolvedSearchParams.error)
-    : "";
+  // Next.js already URL-decodes searchParams; decoding again would throw a
+  // URIError on values like "%zz" and 500 the page.
+  const errorMessage = resolvedSearchParams?.error ?? "";
 
   return (
     <PageShell

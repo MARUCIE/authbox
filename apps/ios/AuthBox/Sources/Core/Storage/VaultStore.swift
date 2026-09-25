@@ -2,75 +2,169 @@ import Foundation
 import SwiftData
 import AuthBoxCrypto
 
+/// Ciphertext-at-rest persistence row. Only the item id and timestamps are
+/// visible to the store (needed for lookup, ordering, and last-write-wins);
+/// every content field — title, username, password, notes, otpauth — lives
+/// inside one AES-256-GCM `VaultItemPayload` blob under the vault key. This
+/// mirrors the macOS VaultStore design and is the same envelope the CloudKit
+/// and server sync paths already use.
+@Model
+final class EncryptedVaultRecord {
+    @Attribute(.unique) var id: UUID
+    var ciphertext: Data
+    var nonce: Data
+    var tag: Data
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(id: UUID, ciphertext: Data, nonce: Data, tag: Data, createdAt: Date, updatedAt: Date) {
+        self.id = id
+        self.ciphertext = ciphertext
+        self.nonce = nonce
+        self.tag = tag
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
 /// Manages local vault persistence using SwiftData.
 ///
-/// Items are encrypted with the vault key before storage.
-/// The vault key itself lives only in memory (from Keychain on unlock).
+/// Items are encrypted with the vault key BEFORE they reach the store; the
+/// vault key itself lives only in memory (derived from the Keychain seed on
+/// unlock). Decrypted `VaultItem`s never touch disk.
 @MainActor
 final class VaultStore {
 
     private let modelContainer: ModelContainer
     private let modelContext: ModelContext
 
-    init() throws {
-        let schema = Schema([VaultItem.self])
-        let config = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            groupContainer: .none,  // DEV: restore .identifier("group.com.authbox.shared") when paid team is active
-            // Zero-knowledge invariant: the local SwiftData store must NEVER mirror to CloudKit.
-            // `cloudKitDatabase` defaults to `.automatic`, which silently turns on
-            // NSPersistentCloudKitContainer once the app carries the CloudKit entitlement (added for
-            // CKSyncEngine) — that would sync the PLAINTEXT VaultItem model to iCloud, bypassing the
-            // ciphertext VaultBlobCodec path entirely. `.none` keeps the store local-only; the sole
-            // CloudKit traffic is CKSyncEngine uploading AES-GCM ciphertext blobs. See ICLOUD_SYNC_ARCHITECTURE.md §2.
-            cloudKitDatabase: .none
-        )
+    /// Dedicated store file for the ciphertext schema. Using a NEW file (not
+    /// SwiftData's default.store) sidesteps schema migration from the old
+    /// plaintext VaultItem table entirely; the old file is purged below so
+    /// plaintext secrets do not linger on disk. Local storage is a cache —
+    /// the durable copies are the CloudKit/server ciphertext blobs.
+    private static var storeURL: URL {
+        URL.applicationSupportDirectory.appending(path: "AuthBoxVault.store")
+    }
+
+    init(inMemory: Bool = false) throws {
+        let schema = Schema([EncryptedVaultRecord.self])
+        let config: ModelConfiguration
+        if inMemory {
+            config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        } else {
+            try? FileManager.default.createDirectory(
+                at: URL.applicationSupportDirectory, withIntermediateDirectories: true)
+            Self.purgeLegacyPlaintextStore()
+            config = ModelConfiguration(
+                schema: schema,
+                url: Self.storeURL,
+                // Zero-knowledge invariant: the local SwiftData store must NEVER
+                // mirror to CloudKit. `.automatic` would silently enable
+                // NSPersistentCloudKitContainer under the CloudKit entitlement;
+                // the sole CloudKit traffic is CKSyncEngine's AES-GCM blobs.
+                cloudKitDatabase: .none
+            )
+        }
         modelContainer = try ModelContainer(for: schema, configurations: [config])
         modelContext = modelContainer.mainContext
     }
 
-    // MARK: - CRUD
-
-    func fetchAll() throws -> [VaultItem] {
-        let descriptor = FetchDescriptor<VaultItem>(
-            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
-        )
-        return try modelContext.fetch(descriptor)
+    /// Best-effort deletion of the pre-ciphertext store files, which held every
+    /// secret as plaintext columns. Items re-materialize from CloudKit sync.
+    private static func purgeLegacyPlaintextStore() {
+        let fm = FileManager.default
+        for suffix in ["default.store", "default.store-shm", "default.store-wal"] {
+            let url = URL.applicationSupportDirectory.appending(path: suffix)
+            try? fm.removeItem(at: url)
+        }
     }
 
-    func search(_ query: String) throws -> [VaultItem] {
-        let descriptor = FetchDescriptor<VaultItem>(
-            predicate: #Predicate<VaultItem> { item in
-                item.title.localizedStandardContains(query) ||
-                item.username.localizedStandardContains(query) ||
-                item.uri.localizedStandardContains(query)
-            },
+    // MARK: - CRUD (encrypting)
+
+    /// Decrypt every stored record with the vault key, newest first. A record
+    /// that fails authentication is skipped (corrupt row), never fatal.
+    func fetchAll(vaultKey: Data) throws -> [VaultItem] {
+        let descriptor = FetchDescriptor<EncryptedVaultRecord>(
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        let records = try modelContext.fetch(descriptor)
+        return records.compactMap { try? Self.decryptRecord($0, vaultKey: vaultKey) }
     }
 
-    func insert(_ item: VaultItem) throws {
-        modelContext.insert(item)
+    func insert(_ item: VaultItem, vaultKey: Data) throws {
+        let payload = try Self.encryptItem(item, vaultKey: vaultKey)
+        let record = EncryptedVaultRecord(
+            id: item.id,
+            ciphertext: payload.ciphertext,
+            nonce: payload.nonce,
+            tag: payload.tag,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+        modelContext.insert(record)
         try modelContext.save()
     }
 
-    func delete(_ item: VaultItem) throws {
-        modelContext.delete(item)
+    /// Re-encrypt an edited item into its existing record (insert when absent).
+    func update(_ item: VaultItem, vaultKey: Data) throws {
+        let id = item.id
+        let descriptor = FetchDescriptor<EncryptedVaultRecord>(
+            predicate: #Predicate<EncryptedVaultRecord> { $0.id == id }
+        )
+        guard let record = try modelContext.fetch(descriptor).first else {
+            try insert(item, vaultKey: vaultKey)
+            return
+        }
+        let payload = try Self.encryptItem(item, vaultKey: vaultKey)
+        record.ciphertext = payload.ciphertext
+        record.nonce = payload.nonce
+        record.tag = payload.tag
+        record.updatedAt = item.updatedAt
         try modelContext.save()
     }
 
-    func deleteAll() throws {
-        let items = try fetchAll()
-        for item in items {
-            modelContext.delete(item)
+    func delete(id: UUID) throws {
+        let descriptor = FetchDescriptor<EncryptedVaultRecord>(
+            predicate: #Predicate<EncryptedVaultRecord> { $0.id == id }
+        )
+        for record in try modelContext.fetch(descriptor) {
+            modelContext.delete(record)
         }
         try modelContext.save()
     }
 
-    func save() throws {
+    func deleteAll() throws {
+        let records = try modelContext.fetch(FetchDescriptor<EncryptedVaultRecord>())
+        for record in records {
+            modelContext.delete(record)
+        }
         try modelContext.save()
+    }
+
+    // MARK: - Envelope helpers
+
+    private static func encryptItem(_ item: VaultItem, vaultKey: Data) throws -> EncryptedPayload {
+        let json = try JSONEncoder().encode(VaultItemPayload(from: item))
+        guard let plaintext = String(data: json, encoding: .utf8) else {
+            throw AuthBoxError.decryptionFailed("Item payload is not valid UTF-8")
+        }
+        return try VaultCrypto.encryptVaultItem(vaultKey: vaultKey, plaintext: plaintext)
+    }
+
+    private static func decryptRecord(_ record: EncryptedVaultRecord, vaultKey: Data) throws -> VaultItem {
+        let payload = EncryptedPayload(
+            ciphertext: record.ciphertext,
+            nonce: record.nonce,
+            tag: record.tag
+        )
+        let json = try VaultCrypto.decryptVaultItem(vaultKey: vaultKey, payload: payload)
+        let decoded = try JSONDecoder().decode(VaultItemPayload.self, from: Data(json.utf8))
+        let item = decoded.toVaultItem()
+        item.id = record.id
+        item.createdAt = record.createdAt
+        item.updatedAt = record.updatedAt
+        return item
     }
 
     // MARK: - Encrypted Sync
@@ -94,10 +188,15 @@ final class VaultStore {
         vaultKey: Data,
         serverID: String
     ) throws -> VaultItem {
+        guard let ciphertextData = Data(base64Encoded: encryptedData),
+              let nonceData = Data(base64Encoded: nonce),
+              let tagData = Data(base64Encoded: tag) else {
+            throw AuthBoxError.decryptionFailed("Malformed base64 in sync payload")
+        }
         let payload = EncryptedPayload(
-            ciphertext: Data(base64Encoded: encryptedData)!,
-            nonce: Data(base64Encoded: nonce)!,
-            tag: Data(base64Encoded: tag)!
+            ciphertext: ciphertextData,
+            nonce: nonceData,
+            tag: tagData
         )
         let json = try VaultCrypto.decryptVaultItem(vaultKey: vaultKey, payload: payload)
         let decoded = try JSONDecoder().decode(VaultItemPayload.self, from: Data(json.utf8))

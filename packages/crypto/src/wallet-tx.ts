@@ -28,7 +28,7 @@
  */
 
 import * as btc from '@scure/btc-signer';
-import { hexToBytes } from '@noble/hashes/utils';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { Transaction as EthTransaction } from 'micro-eth-signer';
 import { derivePrivateKey, deriveAddress, type BtcScriptType, type WalletNetwork } from './wallet';
@@ -102,18 +102,31 @@ export function buildBtcTransaction(seed: Uint8Array, params: BuildBtcTxParams):
   }
 
   const net = btcNet(network);
-  const privKeys: Uint8Array[] = [];
+  // One derivation per unique address, not per UTXO: many UTXOs commonly sit
+  // on the same address, and each derivation is a full BIP-84 HD walk.
+  const keyByPath = new Map<string, Uint8Array>();
+  // Maps `${txid}:${vout}` (txid lowercase display order) to the owning key so
+  // that after coin selection each chosen input can be signed exactly once.
+  const keyByOutpoint = new Map<string, Uint8Array>();
 
   try {
     const inputs = utxos.map((u) => {
-      const priv = derivePrivateKey(seed, 'btc', {
-        account: u.account ?? 0,
-        change: u.change ?? 0,
-        index: u.index ?? 0,
-        scriptType,
-        network,
-      });
-      privKeys.push(priv);
+      const path = `${u.account ?? 0}/${u.change ?? 0}/${u.index ?? 0}`;
+      let priv = keyByPath.get(path);
+      if (!priv) {
+        priv = derivePrivateKey(seed, 'btc', {
+          account: u.account ?? 0,
+          change: u.change ?? 0,
+          index: u.index ?? 0,
+          scriptType,
+          network,
+        });
+        keyByPath.set(path, priv);
+      }
+      keyByOutpoint.set(
+        `${u.txid.toLowerCase().replace(/^0x/, '')}:${u.vout}`,
+        priv,
+      );
 
       const pub = secp256k1.getPublicKey(priv, true);
       const pay = scriptType === 'p2wpkh' ? btc.p2wpkh(pub, net) : btc.p2pkh(pub, net);
@@ -142,13 +155,26 @@ export function buildBtcTransaction(seed: Uint8Array, params: BuildBtcTxParams):
     }
 
     const tx = selected.tx;
-    // Each key signs only the inputs it owns; unselected candidates are no-ops.
-    for (const pk of privKeys) tx.sign(pk);
+    // Sign each SELECTED input with the key that owns it. Signing with keys
+    // whose UTXOs were not selected would make @scure/btc-signer throw
+    // "No inputs signed", and blanket tx.sign(pk) re-hashes every input per
+    // key (O(N^2) sighash+ECDSA for same-address UTXOs).
+    for (let i = 0; i < tx.inputsLength; i++) {
+      const input = tx.getInput(i);
+      if (!input.txid || input.index === undefined) {
+        throw new Error(`selected input ${i} is missing its outpoint`);
+      }
+      const key = keyByOutpoint.get(`${bytesToHex(input.txid)}:${input.index}`);
+      if (!key) {
+        throw new Error(`selected input ${i} does not match any candidate UTXO`);
+      }
+      tx.signIdx(key, i);
+    }
     tx.finalize();
 
     return { coin: 'btc', hex: tx.hex, txid: tx.id, fee: selected.fee, vsize: tx.vsize };
   } finally {
-    for (const pk of privKeys) pk.fill(0);
+    for (const pk of keyByPath.values()) pk.fill(0);
   }
 }
 

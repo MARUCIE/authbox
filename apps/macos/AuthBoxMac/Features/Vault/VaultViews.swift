@@ -75,8 +75,13 @@ struct VaultListView: View {
         }
         .sheet(isPresented: $showingAdd) {
             AddItemSheet { title, username, url, secret in
-                session.withVaultKey { key in
+                // Pre-onboarding "unlocked" state has no master key; a silent
+                // nil here dropped the typed secret with no error at all.
+                let saved = session.withVaultKey { key in
                     vm.add(title: title, username: username, url: url, secret: secret, vaultKey: key)
+                }
+                if saved == nil {
+                    vm.error = "Vault is not set up yet — complete onboarding before adding items."
                 }
             }
         }
@@ -177,9 +182,6 @@ struct ItemDetailView: View {
     }
 
     private func copy(_ s: String) {
-        #if canImport(AppKit)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(s, forType: .string)
-        #endif
+        SecretPasteboard.copy(s)
     }
 }

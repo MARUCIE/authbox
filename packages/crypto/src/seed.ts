@@ -288,24 +288,32 @@ export function derivePassword(
   const normalizedSite = site.toLowerCase();
   const expanded = hmac(sha512, siteKey, encoder.encode('password:' + normalizedSite + ':' + counter));
 
-  // Convert to password characters (uniform distribution via rejection sampling)
+  // Convert to password characters. True rejection sampling: bytes at or
+  // above the largest multiple of charset.length are discarded, so every
+  // character is exactly equally likely (a plain `byte % len` would make the
+  // first 256 % len characters measurably more frequent). Additional blocks
+  // are generated counter-indexed until the requested length is reached, so
+  // no silent cap applies.
+  const acceptLimit = Math.floor(256 / charset.length) * charset.length;
   const password: string[] = [];
+  let block = expanded;
   let byteIdx = 0;
+  let blockCounter = 0;
 
   while (password.length < length) {
-    if (byteIdx >= expanded.length) {
-      // Need more bytes -- rehash
-      const more = hmac(sha512, siteKey, new Uint8Array([...expanded, ...encoder.encode(password.length.toString())]));
-      for (let i = 0; i < more.length && password.length < length; i++) {
-        const charIdx = more[i] % charset.length;
-        password.push(charset[charIdx]);
-      }
-      break;
+    if (byteIdx >= block.length) {
+      blockCounter++;
+      block = hmac(
+        sha512,
+        siteKey,
+        encoder.encode(`password:${normalizedSite}:${counter}:${blockCounter}`),
+      );
+      byteIdx = 0;
     }
 
-    const charIdx = expanded[byteIdx] % charset.length;
-    password.push(charset[charIdx]);
-    byteIdx++;
+    const byte = block[byteIdx++];
+    if (byte >= acceptLimit) continue;
+    password.push(charset[byte % charset.length]);
   }
 
   return password.join('');

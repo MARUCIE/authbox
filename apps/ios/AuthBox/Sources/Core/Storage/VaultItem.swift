@@ -1,10 +1,15 @@
 import Foundation
-import SwiftData
 
-/// Local vault item model for SwiftData persistence.
-/// Items are stored encrypted; this model represents the decrypted view.
-@Model
-final class VaultItem {
+/// In-memory (decrypted) vault item.
+///
+/// This type is deliberately NOT a SwiftData model: persisting these fields as
+/// columns stored every password and 2FA secret as PLAINTEXT in the local
+/// SQLite file — readable from any unencrypted backup or file-level access,
+/// making Face ID and the seed cosmetic for at-rest security. Persistence goes
+/// through `EncryptedVaultRecord` (ciphertext + nonce + tag under the vault
+/// key, same AES-256-GCM `VaultItemPayload` envelope the sync path uses);
+/// decrypted items exist only in memory after unlock.
+final class VaultItem: Identifiable {
     var id: UUID
     var title: String
     var username: String
@@ -17,8 +22,7 @@ final class VaultItem {
     var isFavorite: Bool
 
     /// Authenticator (2FA) secret as an `otpauth://` URI or a bare base32 secret.
-    /// Empty when the item has no associated TOTP. The default value keeps
-    /// SwiftData lightweight migration happy for stores created before 2FA.
+    /// Empty when the item has no associated TOTP.
     var otpauth: String = ""
 
     init(
