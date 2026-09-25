@@ -173,9 +173,11 @@ const PolicyTypeEnum = z.enum([
 
 export const PolicyRulesSchema = z.object({
   allowedItemTypes: z.array(ItemTypeEnum).optional(),
-  allowedItemIds: z.array(uuid).optional(),
-  allowedFolderIds: z.array(uuid).optional(),
-  deniedItemIds: z.array(uuid).optional(),
+  // Item/folder scoping matches whatever identifier the gateway evaluates
+  // with (the MCP server passes service names, not UUIDs).
+  allowedItemIds: z.array(z.string().min(1)).optional(),
+  allowedFolderIds: z.array(z.string().min(1)).optional(),
+  deniedItemIds: z.array(z.string().min(1)).optional(),
 
   allowedActions: z
     .array(z.enum(['read', 'use', 'proxy']))
@@ -203,7 +205,9 @@ export const AgentPolicySchema = z.object({
   agentId: uuid,
   policyType: PolicyTypeEnum,
   rules: PolicyRulesSchema,
-  scopeFilter: z.string().optional(),
+  scopeFilter: z.record(z.unknown()).optional(),
+  priority: z.number().int(),
+  enabled: z.boolean(),
   createdAt: isoDate,
   updatedAt: isoDate,
 });

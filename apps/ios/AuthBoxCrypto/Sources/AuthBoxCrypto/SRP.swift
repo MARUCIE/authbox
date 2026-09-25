@@ -100,9 +100,10 @@ public enum SRP {
 
         repeat {
             var aBytes = Data(count: 32)
-            aBytes.withUnsafeMutableBytes { ptr in
-                _ = SecRandomCopyBytes(kSecRandomDefault, 32, ptr.baseAddress!)
+            let status = aBytes.withUnsafeMutableBytes { ptr in
+                SecRandomCopyBytes(kSecRandomDefault, 32, ptr.baseAddress!)
             }
+            precondition(status == errSecSuccess, "SecRandomCopyBytes failed: \(status)")
             a = dataToBigUInt(aBytes)
             A = g.power(a, modulus: N)
         } while A == 0

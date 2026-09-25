@@ -53,6 +53,10 @@ type ItemRequest struct {
 	Nonce         string `json:"nonce"`
 	Tag           string `json:"tag"`
 	ItemType      string `json:"itemType"`
+	// Revision is the version the client last saw. When set on an update it
+	// enables optimistic concurrency: a mismatch returns 409 instead of
+	// silently overwriting another device's newer edit.
+	Revision *int `json:"revision,omitempty"`
 }
 
 // ItemResponse is the JSON response for a single vault item.
@@ -187,7 +191,7 @@ func (s *VaultService) UpdateItem(ctx context.Context, id, userID uuid.UUID, req
 		ItemType:      req.ItemType,
 	}
 
-	return s.vaultRepo.UpdateItem(ctx, item)
+	return s.vaultRepo.UpdateItem(ctx, item, req.Revision)
 }
 
 func (s *VaultService) DeleteItem(ctx context.Context, id, userID uuid.UUID) error {

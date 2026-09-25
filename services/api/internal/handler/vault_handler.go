@@ -234,6 +234,10 @@ func (h *VaultHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "item not found", "NOT_FOUND")
 			return
 		}
+		if errors.Is(err, domain.ErrRevisionConflict) {
+			writeError(w, http.StatusConflict, "item was modified by another device; refresh and retry", "REVISION_CONFLICT")
+			return
+		}
 		slog.Error("update item failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to update item", "INTERNAL_ERROR")
 		return

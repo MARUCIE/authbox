@@ -33,7 +33,7 @@ type VaultRepository interface {
 	CreateItem(ctx context.Context, item *VaultItem) error
 	GetItem(ctx context.Context, id, userID uuid.UUID) (*VaultItem, error)
 	ListItems(ctx context.Context, userID uuid.UUID, limit, offset int) ([]VaultItem, error)
-	UpdateItem(ctx context.Context, item *VaultItem) error
+	UpdateItem(ctx context.Context, item *VaultItem, expectedVersion *int) error
 	DeleteItem(ctx context.Context, id, userID uuid.UUID) error
 	SyncPull(ctx context.Context, userID uuid.UUID, sinceVersion, limit int) ([]VaultItem, error)
 }

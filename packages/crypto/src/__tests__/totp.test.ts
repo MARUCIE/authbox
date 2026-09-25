@@ -105,4 +105,41 @@ describe("parseOtpauth", () => {
   it("returns null for a non-otpauth, non-base32 string", () => {
     expect(parseOtpauth("https://example.com")).toBeNull();
   });
+
+  it("rejects hostile digits/period instead of minting NaN codes or crashing", () => {
+    const base = "otpauth://totp/x?secret=JBSWY3DPEHPK3PXP";
+    expect(parseOtpauth(`${base}&digits=abc`)).toBeNull();
+    expect(parseOtpauth(`${base}&digits=10`)).toBeNull();
+    expect(parseOtpauth(`${base}&digits=0`)).toBeNull();
+    expect(parseOtpauth(`${base}&period=0`)).toBeNull();
+    expect(parseOtpauth(`${base}&period=-30`)).toBeNull();
+    expect(parseOtpauth(`${base}&period=999999`)).toBeNull();
+    // Sane values still parse.
+    expect(parseOtpauth(`${base}&digits=8&period=60`)).not.toBeNull();
+  });
+
+  it("survives malformed %-encoding in the label instead of throwing", () => {
+    const p = parseOtpauth("otpauth://totp/%E0%A4%A?secret=JBSWY3DPEHPK3PXP");
+    expect(p).not.toBeNull();
+    expect(p!.secret.length).toBeGreaterThan(0);
+  });
+});
+
+describe("base32Decode canonical-form checks", () => {
+  it("rejects embedded padding", () => {
+    expect(base32Decode("JB=SW")).toBeNull();
+  });
+
+  it("rejects non-zero leftover trailing bits (truncated/typo'd secret)", () => {
+    // "MZXW7" leaves trailing bits set (valid canonical form is "MZXW6");
+    // silently accepting it would produce valid-looking but wrong codes.
+    expect(base32Decode("MZXW6")).not.toBeNull();
+    expect(base32Decode("MZXW7")).toBeNull();
+  });
+
+  it("still accepts trailing padding, spaces, and dashes", () => {
+    expect(base32Decode("MZXW 6YTB-OI======")).toEqual(
+      new TextEncoder().encode("foobar"),
+    );
+  });
 });

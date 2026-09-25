@@ -536,7 +536,14 @@ function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function toBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
+  // Chunked conversion: spreading a large Uint8Array into fromCharCode
+  // overflows the call stack at roughly 64K elements (e.g. a long note).
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
 }
 
 function fromBase64(b64: string): Uint8Array {

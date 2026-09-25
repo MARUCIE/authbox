@@ -33,9 +33,12 @@ public enum Seed {
         // 1. Generate random entropy
         let entropyBytes = strength / 8
         var entropy = Data(count: entropyBytes)
-        entropy.withUnsafeMutableBytes { ptr in
-            _ = SecRandomCopyBytes(kSecRandomDefault, entropyBytes, ptr.baseAddress!)
+        let entropyStatus = entropy.withUnsafeMutableBytes { ptr in
+            SecRandomCopyBytes(kSecRandomDefault, entropyBytes, ptr.baseAddress!)
         }
+        // Data(count:) is zero-initialized; ignoring a failure here would
+        // silently mint a deterministic all-zeros mnemonic.
+        precondition(entropyStatus == errSecSuccess, "SecRandomCopyBytes failed: \(entropyStatus)")
 
         // 2. Checksum: first (strength/32) bits of SHA-256(entropy)
         let hash = Data(SHA256.hash(data: entropy))
@@ -124,7 +127,7 @@ public enum Seed {
 
         // PBKDF2-HMAC-SHA512, 2048 iterations, 64-byte output
         var derivedKey = Data(count: 64)
-        _ = derivedKey.withUnsafeMutableBytes { derivedPtr in
+        let kdfStatus = derivedKey.withUnsafeMutableBytes { derivedPtr in
             mnemonicData.withUnsafeBytes { passwordPtr in
                 saltData.withUnsafeBytes { saltPtr in
                     CCKeyDerivationPBKDF(
@@ -142,6 +145,7 @@ public enum Seed {
             }
         }
 
+        precondition(kdfStatus == Int32(kCCSuccess), "CCKeyDerivationPBKDF failed: \(kdfStatus)")
         return derivedKey
     }
 

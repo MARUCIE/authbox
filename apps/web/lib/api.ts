@@ -226,6 +226,8 @@ export const vaultApi = {
       encryptedData: string;
       nonce: string;
       tag: string;
+      /** Last-seen revision for optimistic concurrency (server returns 409 on mismatch). */
+      revision?: number;
     },
   ) {
     return request<{ status: string }>(`/api/v1/vault/items/${itemId}`, {

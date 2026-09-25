@@ -24,27 +24,33 @@ enum KeychainManager {
 
     /// Store seed in Keychain with biometric protection.
     static func storeSeed(_ seed: Data) throws {
-        // Delete existing seed first
-        deleteSeed()
-
-        let access = SecAccessControlCreateWithFlags(
+        // The access control is mandatory: silently omitting it would store
+        // the raw seed with default accessibility and no biometry gate.
+        guard let access = SecAccessControlCreateWithFlags(
             nil,
             kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             .biometryCurrentSet,
             nil
-        )
+        ) else {
+            throw AuthBoxError.keychainError("Failed to create seed access control")
+        }
 
-        var query: [String: Any] = [
+        let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: seedAccount,
             kSecValueData as String: seed,
+            kSecAttrAccessControl as String: access,
         ]
-        if let access {
-            query[kSecAttrAccessControl as String] = access
-        }
 
-        let status = SecItemAdd(query as CFDictionary, nil)
+        // Add first, delete-old only on success: deleting up front would
+        // destroy the existing seed if this add fails (e.g. biometry not
+        // enrolled for .biometryCurrentSet).
+        var status = SecItemAdd(query as CFDictionary, nil)
+        if status == errSecDuplicateItem {
+            deleteSeed()
+            status = SecItemAdd(query as CFDictionary, nil)
+        }
         guard status == errSecSuccess else {
             throw AuthBoxError.keychainError("Failed to store seed: \(status)")
         }

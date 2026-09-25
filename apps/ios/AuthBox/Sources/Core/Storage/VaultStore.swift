@@ -94,10 +94,15 @@ final class VaultStore {
         vaultKey: Data,
         serverID: String
     ) throws -> VaultItem {
+        guard let ciphertextData = Data(base64Encoded: encryptedData),
+              let nonceData = Data(base64Encoded: nonce),
+              let tagData = Data(base64Encoded: tag) else {
+            throw AuthBoxError.decryptionFailed("Malformed base64 in sync payload")
+        }
         let payload = EncryptedPayload(
-            ciphertext: Data(base64Encoded: encryptedData)!,
-            nonce: Data(base64Encoded: nonce)!,
-            tag: Data(base64Encoded: tag)!
+            ciphertext: ciphertextData,
+            nonce: nonceData,
+            tag: tagData
         )
         let json = try VaultCrypto.decryptVaultItem(vaultKey: vaultKey, payload: payload)
         let decoded = try JSONDecoder().decode(VaultItemPayload.self, from: Data(json.utf8))

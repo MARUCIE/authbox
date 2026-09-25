@@ -12,6 +12,9 @@ const ALLOWED_PROXY_METHODS = new Set([
 const MAX_PROXY_BODY_BYTES = 64 * 1024;
 const MAX_PROXY_HEADERS = 32;
 const HEADER_NAME_RE = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
+// RFC 7230 field-value: visible ASCII, obs-text, space and horizontal tab.
+// Blocks CR/LF/NUL so a value can never smuggle extra headers downstream.
+const HEADER_VALUE_RE = /^[\t\x20-\x7e\x80-\xff]*$/;
 
 const FORBIDDEN_PROXY_HEADERS = new Set([
   "authorization",
@@ -73,8 +76,10 @@ function parseProxyURL(value: string): URL {
     throw new Error("Proxy URL must be an absolute HTTP(S) URL");
   }
 
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new Error("Proxy URL must use http or https");
+  // Credentials are injected into proxied requests, so plaintext HTTP is
+  // never acceptable as a destination.
+  if (url.protocol !== "https:") {
+    throw new Error("Proxy URL must use https");
   }
 
   return url;
@@ -195,19 +200,120 @@ function isBlockedIPv4(address: string): boolean {
   );
 }
 
+/**
+ * Parse an IPv6 address into its eight 16-bit groups.
+ * Returns null when the address cannot be parsed (callers treat that as blocked).
+ */
+function parseIPv6Groups(address: string): number[] | null {
+  const zoneIndex = address.indexOf("%");
+  const addr = zoneIndex === -1 ? address : address.slice(0, zoneIndex);
+
+  const doubleColon = addr.indexOf("::");
+  if (doubleColon !== addr.lastIndexOf("::")) {
+    return null;
+  }
+
+  const head = doubleColon === -1 ? addr : addr.slice(0, doubleColon);
+  const tail = doubleColon === -1 ? "" : addr.slice(doubleColon + 2);
+
+  const parseGroups = (segment: string, isTail: boolean): number[] | null => {
+    if (segment === "") {
+      return [];
+    }
+    const parts = segment.split(":");
+    const groups: number[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (part.includes(".")) {
+        // Embedded IPv4 (e.g. ::ffff:169.254.169.254) must be the last part.
+        const isLast = i === parts.length - 1 && (isTail || doubleColon === -1);
+        if (!isLast) {
+          return null;
+        }
+        const octets = part.split(".").map((n) => Number.parseInt(n, 10));
+        if (
+          octets.length !== 4 ||
+          octets.some((n) => Number.isNaN(n) || n < 0 || n > 255)
+        ) {
+          return null;
+        }
+        groups.push((octets[0] << 8) | octets[1], (octets[2] << 8) | octets[3]);
+      } else {
+        if (!/^[0-9a-f]{1,4}$/.test(part)) {
+          return null;
+        }
+        groups.push(Number.parseInt(part, 16));
+      }
+    }
+    return groups;
+  };
+
+  const headGroups = parseGroups(head, doubleColon === -1);
+  const tailGroups = parseGroups(tail, true);
+  if (!headGroups || !tailGroups) {
+    return null;
+  }
+
+  if (doubleColon === -1) {
+    return headGroups.length === 8 ? headGroups : null;
+  }
+
+  const missing = 8 - headGroups.length - tailGroups.length;
+  if (missing < 1) {
+    return null;
+  }
+  return [...headGroups, ...new Array<number>(missing).fill(0), ...tailGroups];
+}
+
 function isBlockedIPv6(address: string): boolean {
-  const normalized = address.toLowerCase();
-  return (
-    normalized === "::" ||
-    normalized === "::1" ||
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe80:") ||
-    normalized.startsWith("ff") ||
-    normalized.startsWith("::ffff:10.") ||
-    normalized.startsWith("::ffff:127.") ||
-    normalized.startsWith("::ffff:192.168.")
-  );
+  const groups = parseIPv6Groups(address.toLowerCase());
+  if (!groups) {
+    return true;
+  }
+  const [g0, g1, g2, g3, g4, g5, g6, g7] = groups;
+  const embeddedIPv4 = (hi: number, lo: number) =>
+    `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+
+  const leadingZeros =
+    g0 === 0 && g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0;
+
+  // ::  and ::1 (unspecified / loopback) fall out of the IPv4-compatible
+  // check below (0.0.0.x is blocked), but keep them explicit.
+  if (leadingZeros && g5 === 0 && g6 === 0 && (g7 === 0 || g7 === 1)) {
+    return true;
+  }
+  // IPv4-mapped ::ffff:0:0/96 and IPv4-compatible ::/96 — apply IPv4 rules
+  // to the embedded address so ::ffff:169.254.169.254 etc. cannot bypass.
+  if (leadingZeros && (g5 === 0xffff || g5 === 0)) {
+    return isBlockedIPv4(embeddedIPv4(g6, g7));
+  }
+  // NAT64 well-known prefix 64:ff9b::/96 embeds an IPv4 destination.
+  if (g0 === 0x64 && g1 === 0xff9b && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0) {
+    return isBlockedIPv4(embeddedIPv4(g6, g7));
+  }
+  // 6to4 2002::/16 embeds the IPv4 address in the next two groups.
+  if (g0 === 0x2002) {
+    return isBlockedIPv4(embeddedIPv4(g1, g2));
+  }
+  // Teredo 2001:0::/32 embeds the client IPv4 XOR 0xffff in the last groups.
+  if (g0 === 0x2001 && g1 === 0) {
+    return isBlockedIPv4(embeddedIPv4(g6 ^ 0xffff, g7 ^ 0xffff));
+  }
+  // Documentation prefix 2001:db8::/32.
+  if (g0 === 0x2001 && g1 === 0x0db8) {
+    return true;
+  }
+  // ULA fc00::/7, link-local fe80::/10, multicast ff00::/8.
+  if ((g0 & 0xfe00) === 0xfc00) {
+    return true;
+  }
+  if ((g0 & 0xffc0) === 0xfe80) {
+    return true;
+  }
+  if ((g0 & 0xff00) === 0xff00) {
+    return true;
+  }
+  return false;
 }
 
 function sanitizeHeaders(
@@ -234,7 +340,11 @@ function sanitizeHeaders(
     if (FORBIDDEN_PROXY_HEADERS.has(normalizedName)) {
       throw new Error(`Proxy header is not allowed: ${name}`);
     }
-    sanitized[name] = String(value);
+    const stringValue = String(value);
+    if (!HEADER_VALUE_RE.test(stringValue)) {
+      throw new Error(`Proxy header value is invalid: ${name}`);
+    }
+    sanitized[name] = stringValue;
   }
 
   return sanitized;

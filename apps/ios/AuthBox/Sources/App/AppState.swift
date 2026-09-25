@@ -443,10 +443,11 @@ extension AppState: VaultSyncEngine.VaultBackend {
 
     /// Serialize a local item to the same `VaultItemPayload` JSON the sync codec expects.
     /// Returns nil if the item no longer exists locally — the engine then drops the push.
-    func localPayloadJSON(for id: UUID) -> String? {
+    func localPayload(for id: UUID) -> (payloadJSON: String, updatedAt: Date)? {
         guard let item = vaultItems.first(where: { $0.id == id }),
-              let data = try? JSONEncoder().encode(VaultItemPayload(from: item)) else { return nil }
-        return String(data: data, encoding: .utf8)
+              let data = try? JSONEncoder().encode(VaultItemPayload(from: item)),
+              let json = String(data: data, encoding: .utf8) else { return nil }
+        return (json, item.updatedAt)
     }
 
     /// Apply a pulled item, honoring last-write-wins by `updatedAt`. Mutates the existing
@@ -491,12 +492,14 @@ enum AuthBoxError: LocalizedError {
     case invalidMnemonic
     case vaultLocked
     case keychainError(String)
+    case decryptionFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .invalidMnemonic: "Invalid seed phrase"
         case .vaultLocked: "Vault is locked"
         case .keychainError(let msg): "Keychain error: \(msg)"
+        case .decryptionFailed(let msg): "Decryption failed: \(msg)"
         }
     }
 }

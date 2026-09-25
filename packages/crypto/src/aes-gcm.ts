@@ -22,6 +22,11 @@ function asBuffer(bytes: Uint8Array): ArrayBuffer {
  * Import a raw 32-byte key as a WebCrypto CryptoKey for AES-256-GCM.
  */
 async function importKey(key: Uint8Array): Promise<CryptoKey> {
+  if (key.length !== 32) {
+    // WebCrypto would silently accept 16/24 bytes and run AES-128/192 under
+    // an API named AES-256 — a truncated-key bug upstream must fail loudly.
+    throw new Error(`AES-256-GCM requires a 32-byte key, got ${key.length}`);
+  }
   return crypto.subtle.importKey(
     'raw',
     asBuffer(key),

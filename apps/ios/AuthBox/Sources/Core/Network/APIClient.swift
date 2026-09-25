@@ -107,8 +107,10 @@ actor APIClient {
         let initResp: LoginInitResponse = try await post("/auth/login/init", body: initReq)
 
         // Step 2: Client verify
-        let salt = Data(base64Encoded: initResp.srpSalt)!
-        let serverB = Data(base64Encoded: initResp.serverPublicB)!
+        guard let salt = Data(base64Encoded: initResp.srpSalt),
+              let serverB = Data(base64Encoded: initResp.serverPublicB) else {
+            throw APIError.invalidResponse
+        }
         let (clientProof, sessionKey) = try SRP.clientVerify(
             state: srpState,
             email: email,
@@ -146,10 +148,15 @@ actor APIClient {
 
         self.sessionToken = token
 
+        guard let encVaultKeyData = Data(base64Encoded: encVaultKey),
+              let nonceData = Data(base64Encoded: nonce),
+              let tagData = Data(base64Encoded: tag) else {
+            throw APIError.invalidResponse
+        }
         let bundle = VaultKeyBundle(
-            encryptedVaultKey: Data(base64Encoded: encVaultKey)!,
-            nonce: Data(base64Encoded: nonce)!,
-            tag: Data(base64Encoded: tag)!
+            encryptedVaultKey: encVaultKeyData,
+            nonce: nonceData,
+            tag: tagData
         )
 
         return (token, bundle)

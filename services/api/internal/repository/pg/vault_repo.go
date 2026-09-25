@@ -64,16 +64,35 @@ func (r *VaultRepository) ListItems(ctx context.Context, userID uuid.UUID, limit
 	return items, rows.Err()
 }
 
-func (r *VaultRepository) UpdateItem(ctx context.Context, item *domain.VaultItem) error {
-	tag, err := r.pool.Exec(ctx,
-		`UPDATE vault_items SET encrypted_data = $1, nonce = $2, tag = $3, item_type = $4, version = version + 1, updated_at = NOW()
-		 WHERE id = $5 AND user_id = $6`,
-		item.EncryptedData, item.Nonce, item.Tag, item.ItemType, item.ID, item.UserID,
-	)
+// UpdateItem writes the new ciphertext. When expectedVersion is non-nil the
+// update only applies if the stored version still matches (optimistic
+// concurrency); a stale write returns domain.ErrRevisionConflict so the
+// client can surface the conflict instead of silently losing an edit.
+func (r *VaultRepository) UpdateItem(ctx context.Context, item *domain.VaultItem, expectedVersion *int) error {
+	query := `UPDATE vault_items SET encrypted_data = $1, nonce = $2, tag = $3, item_type = $4, version = version + 1, updated_at = NOW()
+		 WHERE id = $5 AND user_id = $6`
+	args := []any{item.EncryptedData, item.Nonce, item.Tag, item.ItemType, item.ID, item.UserID}
+	if expectedVersion != nil {
+		query += ` AND version = $7`
+		args = append(args, *expectedVersion)
+	}
+
+	tag, err := r.pool.Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
 	if tag.RowsAffected() == 0 {
+		if expectedVersion != nil {
+			// Distinguish "gone" from "moved on": if the row exists the
+			// version check is what failed.
+			var exists bool
+			if err := r.pool.QueryRow(ctx,
+				`SELECT EXISTS(SELECT 1 FROM vault_items WHERE id = $1 AND user_id = $2)`,
+				item.ID, item.UserID,
+			).Scan(&exists); err == nil && exists {
+				return domain.ErrRevisionConflict
+			}
+		}
 		return domain.ErrItemNotFound
 	}
 	return nil

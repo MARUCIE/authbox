@@ -84,12 +84,32 @@ public enum WalletTx {
         switch coin {
         case .eth:
             guard let bytes = Data(ethHex: address), bytes.count == 20 else { return false }
-            return true
+            // EIP-55: a mixed-case address carries a checksum precisely so a
+            // typo'd or corrupted address is caught before funds move.
+            return hasValidEthChecksumIfMixedCase(address)
         case .btc:
             guard let (hrp, version, program) = Bech32.decodeSegwit(address), version == 0,
                   program.count == 20 || program.count == 32 else { return false }
             return hrp == (network == .testnet ? "tb" : "bc")
         }
+    }
+
+    /// EIP-55 validation: all-lowercase / all-uppercase hex carries no
+    /// checksum; any mixed-case pattern must match keccak256(lowercase hex).
+    static func hasValidEthChecksumIfMixedCase(_ address: String) -> Bool {
+        var hex = address
+        if hex.hasPrefix("0x") || hex.hasPrefix("0X") { hex = String(hex.dropFirst(2)) }
+        let lower = hex.lowercased()
+        if hex == lower || hex == hex.uppercased() { return true }
+
+        let checksum = Array(Keccak256.hash(Data(lower.utf8)))
+        for (i, ch) in hex.enumerated() {
+            guard ch.isLetter, i / 2 < checksum.count else { continue }
+            let byte = checksum[i / 2]
+            let nibble = i % 2 == 0 ? byte >> 4 : byte & 0x0f
+            if (nibble >= 8) != ch.isUppercase { return false }
+        }
+        return true
     }
 
     /// The 9 unsigned EIP-1559 fields in canonical order. Integers go through
@@ -217,6 +237,8 @@ public enum WalletTx {
         case badFeeRate
         case insufficientFunds
         case badAddress(String)
+        case badTxid(String)
+        case valueOverflow
     }
 
     /// P2WPKH dust threshold (satoshis): an output below this costs more to spend
@@ -243,6 +265,11 @@ public enum WalletTx {
         // copy-on-write Data makes in-place wiping of struct-array elements
         // unreliable — deriving on demand sidesteps that entirely).
         var resolved = try p.utxos.map { u -> BtcCandidate in
+            // A malformed txid would otherwise decode to Data() and produce a
+            // garbage outpoint that gets signed and broadcast.
+            guard let txidBytes = Data(ethHex: u.txid), txidBytes.count == 32 else {
+                throw BtcTxError.badTxid(u.txid)
+            }
             let opts = Wallet.DeriveOptions(account: u.account, change: u.change,
                                             index: u.index, scriptType: .p2wpkh, network: p.network)
             var priv = Wallet.derivePrivateKey(seed: seed, coin: .btc, options: opts)
@@ -264,11 +291,18 @@ public enum WalletTx {
 
         for input in resolved {
             selected.append(input)
-            inTotal += input.utxo.value
-            let feeWithChange = feeRate * UInt64(estimateVsize(inputs: selected.count,
-                                                              outputScripts: [recipientScript, changeScript]))
-            let feeNoChange = feeRate * UInt64(estimateVsize(inputs: selected.count,
-                                                            outputScripts: [recipientScript]))
+            // Overflow-checked: huge server-supplied values or fee tiers must
+            // throw, not trap, in the money path.
+            let (sum, sumOverflow) = inTotal.addingReportingOverflow(input.utxo.value)
+            guard !sumOverflow else { throw BtcTxError.valueOverflow }
+            inTotal = sum
+            let (feeWithChange, ov1) = feeRate.multipliedReportingOverflow(
+                by: UInt64(estimateVsize(inputs: selected.count,
+                                         outputScripts: [recipientScript, changeScript])))
+            let (feeNoChange, ov2) = feeRate.multipliedReportingOverflow(
+                by: UInt64(estimateVsize(inputs: selected.count,
+                                         outputScripts: [recipientScript])))
+            guard !ov1, !ov2 else { throw BtcTxError.valueOverflow }
             // Prefer a change output when the leftover clears dust; otherwise
             // spend the remainder as fee (no change output).
             if inTotal >= p.amountSats + feeWithChange {

@@ -109,6 +109,18 @@ interface SendReview {
   fee: string; // formatted network fee (coin units)
   total: string; // formatted amount + fee
   feeDetail: string; // e.g. "3 sat/vB · 141 vbytes" or "21000 gas · 31.5 gwei max"
+  /**
+   * BTC only: the change address the signed tx pays into, registered as a
+   * watch-only address after a successful broadcast. Without registration the
+   * change UTXO would be invisible to the server balance and to future sends.
+   */
+  changeAddress?: {
+    address: string;
+    derivationPath: string;
+    addressIndex: number;
+    publicKey: string;
+    alreadyRegistered: boolean;
+  };
 }
 
 type DialogMode = 'closed' | 'add' | 'send';
@@ -345,6 +357,7 @@ export default function WalletPage() {
       let rawTxHex: string;
       let feeUnits: bigint;
       let feeDetail: string;
+      let changeAddressInfo: SendReview['changeAddress'];
 
       if (isBtc) {
         const scriptType = (selected.scriptType as BtcScriptType) || 'p2wpkh';
@@ -355,10 +368,14 @@ export default function WalletPage() {
         // key per input. btcUtxos returns only {txid,vout,value} — the tag must
         // come from the address we queried, not the UTXO payload.
         const addrRes = await walletApi.listAddresses(sessionToken, selected.id);
+        // Fetch per-address UTXO sets in parallel: serial round-trips turn
+        // send-review into a multi-second stall once addresses accumulate.
+        const utxoResults = await Promise.all(
+          addrRes.addresses.map((a) => walletApi.btcUtxos(sessionToken, a.address, net)),
+        );
         const utxos: BtcSpendableUtxo[] = [];
-        for (const a of addrRes.addresses) {
-          const u = await walletApi.btcUtxos(sessionToken, a.address, net);
-          for (const x of u.utxos) {
+        addrRes.addresses.forEach((a, i) => {
+          for (const x of utxoResults[i].utxos) {
             utxos.push({
               txid: x.txid,
               vout: x.vout,
@@ -368,20 +385,26 @@ export default function WalletPage() {
               index: a.addressIndex,
             });
           }
-        }
+        });
         if (utxos.length === 0) throw new Error('No spendable funds on this account');
-        const changeAddress = deriveAddress(seed, 'btc', {
+        // Next unused internal (change) index; the derived address is stashed
+        // in the review so a successful broadcast registers it watch-only.
+        const changeIndex =
+          addrRes.addresses
+            .filter((a) => a.change === 1)
+            .reduce((max, a) => Math.max(max, a.addressIndex), -1) + 1;
+        const change = deriveAddress(seed, 'btc', {
           account: selected.accountIndex,
           change: 1,
-          index: 0,
+          index: changeIndex,
           network: net,
           scriptType,
-        }).address;
+        });
         const signed = buildBtcTransaction(seed, {
           utxos,
           to,
           amountSats: amount,
-          changeAddress,
+          changeAddress: change.address,
           feeRateSatPerVb: feeRate,
           network: net,
           scriptType,
@@ -389,6 +412,13 @@ export default function WalletPage() {
         rawTxHex = signed.hex;
         feeUnits = signed.fee;
         feeDetail = `${feeRate} sat/vB · ${signed.vsize} vbytes`;
+        changeAddressInfo = {
+          address: change.address,
+          derivationPath: change.path,
+          addressIndex: changeIndex,
+          publicKey: change.publicKey,
+          alreadyRegistered: addrRes.addresses.some((a) => a.address === change.address),
+        };
       } else {
         const sender = deriveAddress(seed, 'eth', {
           account: selected.accountIndex,
@@ -428,6 +458,7 @@ export default function WalletPage() {
         fee: formatUnits(feeUnits.toString(), meta.decimals),
         total: formatUnits(total.toString(), meta.decimals),
         feeDetail,
+        changeAddress: changeAddressInfo,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to prepare transaction');
@@ -449,6 +480,24 @@ export default function WalletPage() {
         network: selected.network as 'mainnet' | 'testnet',
         rawTxHex: sendReview.rawTxHex,
       });
+      // The broadcast tx pays change into a fresh internal address; register
+      // it now (watch-only, no seed needed) or the change UTXO disappears
+      // from the server balance and from future coin selection.
+      const change = sendReview.changeAddress;
+      if (change && !change.alreadyRegistered) {
+        try {
+          await walletApi.addAddress(sessionToken, selected.id, {
+            address: change.address,
+            derivationPath: change.derivationPath,
+            change: 1,
+            addressIndex: change.addressIndex,
+            publicKey: change.publicKey,
+          });
+        } catch {
+          // Non-fatal: funds are on-chain either way; the user can re-derive
+          // the change address from the seed. Surface nothing mid-broadcast.
+        }
+      }
       setSendResult({ txid: res.txid });
       setSendReview(null);
       await fetchAddresses(selected.id);
