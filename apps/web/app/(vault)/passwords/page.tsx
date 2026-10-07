@@ -236,7 +236,6 @@ export default function PasswordsPage() {
       <DerivePasswordDialog
         open={showDerive}
         onClose={() => setShowDerive(false)}
-        vaultKey={vaultKey}
       />
 
       {/* Import dialog */}

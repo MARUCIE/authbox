@@ -32,8 +32,11 @@ public struct TOTP: Equatable {
         account: String? = nil
     ) {
         self.secret = secret
-        self.digits = digits
-        self.period = period
+        // Defensive clamps: a stored item with hostile digits/period (e.g.
+        // synced from another device before parse-side validation existed)
+        // must never trap in code(at:) every time the item is rendered.
+        self.digits = min(max(digits, 6), 8)
+        self.period = min(max(period, 1), 300)
         self.algorithm = algorithm
         self.issuer = issuer
         self.account = account
@@ -105,14 +108,20 @@ public struct TOTP: Equatable {
 
         guard let comps = URLComponents(string: trimmed),
               comps.host?.lowercased() == "totp" else { return nil }
-        let query = Dictionary(uniqueKeysWithValues:
-            (comps.queryItems ?? []).map { ($0.name.lowercased(), $0.value ?? "") })
+        // uniquingKeysWith: a crafted URI with duplicate query keys must not
+        // trap (Dictionary(uniqueKeysWithValues:) crashes on duplicates).
+        let query = Dictionary(
+            (comps.queryItems ?? []).map { ($0.name.lowercased(), $0.value ?? "") },
+            uniquingKeysWith: { first, _ in first })
 
         guard let secretB32 = query["secret"],
               let secret = base32Decode(secretB32), !secret.isEmpty else { return nil }
 
         let digits = query["digits"].flatMap { Int($0) } ?? 6
         let period = query["period"].flatMap { Int($0) } ?? 30
+        // Hostile QR input: digits outside 6...8 breaks hotp's 10^digits and
+        // period <= 0 is a division-by-zero crash loop once the item is saved.
+        guard (6...8).contains(digits), (1...300).contains(period) else { return nil }
         let algo = query["algorithm"].flatMap { Algorithm(rawValue: $0.uppercased()) } ?? .sha1
 
         // Label = "/Issuer:account"; issuer query param overrides the label prefix.
@@ -191,11 +200,12 @@ public struct TOTP: Equatable {
     /// Decode an RFC 4648 base32 string (case-insensitive, padding and spaces
     /// tolerated) into raw bytes. Returns nil on an invalid character.
     public static func base32Decode(_ string: String) -> Data? {
-        let cleaned = string
+        // Only trailing padding is legal; an embedded "=" is a corrupt secret.
+        var cleaned = string
             .uppercased()
-            .replacingOccurrences(of: "=", with: "")
             .replacingOccurrences(of: " ", with: "")
             .replacingOccurrences(of: "-", with: "")
+        while cleaned.hasSuffix("=") { cleaned.removeLast() }
         guard !cleaned.isEmpty else { return nil }
 
         var lookup = [Character: UInt8]()
@@ -213,6 +223,11 @@ public struct TOTP: Equatable {
                 output.append(UInt8((value >> bits) & 0xff))
             }
         }
+
+        // Leftover bits must be zero: a truncated/typo'd final character would
+        // otherwise mint valid-looking but wrong codes. Matches the TS engine.
+        if bits > 0 && (value & ((1 << bits) - 1)) != 0 { return nil }
+
         return Data(output)
     }
 }

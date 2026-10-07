@@ -46,6 +46,15 @@ export type FunnelAlert = {
 };
 
 const MAX_RECENT_EVENTS = 500;
+// Attacker-facing caps: the ingest endpoint is unauthenticated, so every
+// dimension an event contributes to must be bounded.
+const MAX_FIELD_LENGTH = 200;
+const MAX_COUNTER_KEYS = 1000;
+const COUNTER_OVERFLOW_KEY = "__other__";
+// Cap how much of the NDJSON file is replayed on cold start; older history
+// beyond this tail only matters for all-time counters, not the 500-event
+// window, and reading an unbounded file blocks the first request.
+const MAX_LOAD_BYTES = 16 * 1024 * 1024;
 const telemetryFilePath =
   process.env.AUTH_BOX_CONSOLE_TELEMETRY_FILE ||
   path.join(process.cwd(), "outputs", "telemetry", "public-events.ndjson");
@@ -91,7 +100,34 @@ function toPercent(numerator: number, denominator: number): number {
 }
 
 function incrementMapValue(map: TelemetryMapCounter, key: string) {
-  map[key] = (map[key] || 0) + 1;
+  // Keys are attacker-chosen strings; without a cap a POST loop with random
+  // values grows process memory without bound.
+  const bucket =
+    key in map || Object.keys(map).length < MAX_COUNTER_KEYS
+      ? key
+      : COUNTER_OVERFLOW_KEY;
+  map[bucket] = (map[bucket] || 0) + 1;
+}
+
+function clampField(value: string): string {
+  return value.length > MAX_FIELD_LENGTH ? value.slice(0, MAX_FIELD_LENGTH) : value;
+}
+
+/** Reject or clamp a client-supplied timestamp into a sane server window. */
+function normalizeEventTimestamp(ts?: string): string {
+  const nowMs = Date.now();
+  if (!ts) {
+    return new Date(nowMs).toISOString();
+  }
+  const parsed = Date.parse(ts);
+  if (Number.isNaN(parsed)) {
+    return new Date(nowMs).toISOString();
+  }
+  // Forged far-past/future timestamps would skew window filters and trend
+  // buckets; allow modest clock skew only.
+  const weekMs = MINUTES_PER_WEEK * 60 * 1000;
+  const clamped = Math.min(Math.max(parsed, nowMs - weekMs), nowMs + 60 * 1000);
+  return new Date(clamped).toISOString();
 }
 
 function incrementCounters(counterMap: TelemetryCounters, eventName: PublicEventName) {
@@ -121,7 +157,23 @@ function ensureLoadedFromDisk() {
       return;
     }
 
-    const payload = fs.readFileSync(telemetryFilePath, "utf-8");
+    const { size } = fs.statSync(telemetryFilePath);
+    let payload: string;
+    if (size > MAX_LOAD_BYTES) {
+      // Read only the tail so a large history cannot stall the first request.
+      const fd = fs.openSync(telemetryFilePath, "r");
+      try {
+        const buffer = Buffer.alloc(MAX_LOAD_BYTES);
+        fs.readSync(fd, buffer, 0, MAX_LOAD_BYTES, size - MAX_LOAD_BYTES);
+        payload = buffer.toString("utf-8");
+        // Drop the (probably partial) first line.
+        payload = payload.slice(payload.indexOf("\n") + 1);
+      } finally {
+        fs.closeSync(fd);
+      }
+    } else {
+      payload = fs.readFileSync(telemetryFilePath, "utf-8");
+    }
     if (!payload.trim()) {
       return;
     }
@@ -160,12 +212,39 @@ function ensureLoadedFromDisk() {
   }
 }
 
-function persistEvent(eventRecord: PublicTelemetryEvent) {
+// Buffered async persistence: appendFileSync on the request path blocks the
+// event loop per event; instead lines accumulate briefly and are flushed with
+// one async append.
+let pendingLines: string[] = [];
+let flushScheduled = false;
+let telemetryDirReady = false;
+
+function flushPendingLines() {
+  flushScheduled = false;
+  if (pendingLines.length === 0) {
+    return;
+  }
+  const batch = pendingLines.join("");
+  pendingLines = [];
   try {
-    fs.mkdirSync(path.dirname(telemetryFilePath), { recursive: true });
-    fs.appendFileSync(telemetryFilePath, `${JSON.stringify(eventRecord)}\n`, "utf-8");
+    if (!telemetryDirReady) {
+      fs.mkdirSync(path.dirname(telemetryFilePath), { recursive: true });
+      telemetryDirReady = true;
+    }
+    fs.appendFile(telemetryFilePath, batch, "utf-8", () => {
+      // Ignore persistence failures to keep business flow unaffected.
+    });
   } catch {
     // Ignore persistence failures to keep business flow unaffected.
+  }
+}
+
+function persistEvent(eventRecord: PublicTelemetryEvent) {
+  pendingLines.push(`${JSON.stringify(eventRecord)}\n`);
+  if (!flushScheduled) {
+    flushScheduled = true;
+    const timer = setTimeout(flushPendingLines, 250);
+    timer.unref?.();
   }
 }
 
@@ -183,11 +262,11 @@ export function recordPublicEvent(input: {
   const eventRecord: PublicTelemetryEvent = {
     id: crypto.randomUUID(),
     event: input.event,
-    route: normalizeRoute(input.route),
-    source: input.source || "unknown",
-    persona: input.persona || "unknown",
-    tenant_id: input.tenantId || DEFAULT_TENANT_ID,
-    ts: input.ts || new Date().toISOString(),
+    route: clampField(normalizeRoute(input.route)),
+    source: clampField(input.source || "unknown"),
+    persona: clampField(input.persona || "unknown"),
+    tenant_id: clampField(input.tenantId || DEFAULT_TENANT_ID),
+    ts: normalizeEventTimestamp(input.ts),
     metadata: input.metadata
   };
 

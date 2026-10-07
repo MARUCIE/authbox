@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthBoxCrypto
 
 struct GeneratorView: View {
     @EnvironmentObject private var session: VaultSession
@@ -18,6 +19,12 @@ struct GeneratorView: View {
     @State private var useSymbols = true
     @State private var site = ""
     @State private var output = ""
+    // Deterministic mode derives from the REAL 24-word phrase, entered
+    // transiently and never stored. The vault key is NOT a substitute seed:
+    // iOS/web derive from the BIP-39 seed, so vault-key-derived passwords
+    // silently diverged across platforms — a same-mnemonic user regenerating
+    // on another device got a different password for the same site.
+    @State private var mnemonic = ""
 
     enum Mode: String, CaseIterable, Identifiable { case random = "Random", deterministic = "Deterministic"; var id: String { rawValue } }
 
@@ -44,6 +51,17 @@ struct GeneratorView: View {
             }
 
             if mode == .deterministic {
+                Section("Recovery phrase") {
+                    TextEditor(text: $mnemonic)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(height: 64)
+                    Text("Kept in memory only, cleared when you leave this screen.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    if !normalizedMnemonic.isEmpty && !mnemonicValid {
+                        Text("Invalid recovery phrase. Check spelling and word order.")
+                            .font(.caption).foregroundStyle(.red)
+                    }
+                }
                 Section("Site / context") {
                     TextField("e.g. github.com", text: $site)
                     Text("Same seed + same site → same password. Nothing is stored.")
@@ -53,7 +71,7 @@ struct GeneratorView: View {
 
             Section {
                 Button("Generate") { generate() }
-                    .disabled(mode == .deterministic && (site.isEmpty || !session.hasVaultKey))
+                    .disabled(mode == .deterministic && (site.isEmpty || !mnemonicValid))
                 if !output.isEmpty {
                     LabeledContent("Result") {
                         HStack {
@@ -66,6 +84,15 @@ struct GeneratorView: View {
         }
         .formStyle(.grouped)
         .navigationTitle("Generator")
+        .onDisappear { mnemonic = "" }   // never keep the phrase past this screen
+    }
+
+    private var normalizedMnemonic: String {
+        mnemonic.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var mnemonicValid: Bool {
+        !normalizedMnemonic.isEmpty && Seed.validateMnemonic(normalizedMnemonic)
     }
 
     private func generate() {
@@ -73,18 +100,15 @@ struct GeneratorView: View {
         case .random:
             output = PasswordGenerator.random(options)
         case .deterministic:
-            // The vault key doubles as the deterministic seed while unlocked.
-            // Borrow it (SEC-003) so the key copy is zeroed right after use.
-            if let result = session.withVaultKey({ PasswordGenerator.deterministic(seed: $0, site: site, options) }) {
-                output = result
-            }
+            guard mnemonicValid else { return }
+            // Real 64-byte BIP-39 seed, same as iOS/web — zeroed right after.
+            var seed = Seed.mnemonicToSeed(normalizedMnemonic)
+            defer { seed.resetBytes(in: 0..<seed.count) }
+            output = PasswordGenerator.deterministic(seed: seed, site: site, options)
         }
     }
 
     private func copy(_ s: String) {
-        #if canImport(AppKit)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(s, forType: .string)
-        #endif
+        SecretPasteboard.copy(s)
     }
 }

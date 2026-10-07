@@ -55,7 +55,39 @@ func (r *AuditRepository) GetLatestEvent(ctx context.Context, userID uuid.UUID) 
 }
 
 func (r *AuditRepository) CreateEvent(ctx context.Context, event *domain.AuditEvent) error {
-	// Compute hash chain
+	// The whole append is one transaction under a per-user advisory lock:
+	// prev-hash read + insert must be atomic or two concurrent events fork
+	// the chain, which verification then reports as tampering.
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx,
+		`SELECT pg_advisory_xact_lock(hashtext($1::text))`, event.UserID,
+	); err != nil {
+		return err
+	}
+
+	// Read the latest hash inside the lock; a value the service fetched
+	// earlier could already be stale.
+	var prevHash string
+	err = tx.QueryRow(ctx,
+		`SELECT event_hash FROM audit_events WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1`,
+		event.UserID,
+	).Scan(&prevHash)
+	if err != nil && err != pgx.ErrNoRows {
+		return err
+	}
+	event.PrevEventHash = prevHash
+
+	// Hash and STORE the same timestamp: hashing service time while the DB
+	// default NOW() got stored made verification fail whenever the two
+	// clocks landed in different seconds — false tamper alarms by design.
+	if event.CreatedAt.IsZero() {
+		event.CreatedAt = time.Now().UTC()
+	}
 	hashInput := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s",
 		event.PrevEventHash, event.ActorType, event.ActorID.String(),
 		event.Action, event.ResourceType, event.ResourceID,
@@ -64,15 +96,20 @@ func (r *AuditRepository) CreateEvent(ctx context.Context, event *domain.AuditEv
 	event.EventHash = fmt.Sprintf("%x", hash)
 
 	query := `INSERT INTO audit_events (user_id, actor_type, actor_id, action, resource_type,
-		resource_id, decision, metadata, event_hash, prev_event_hash, ip_address, user_agent)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		resource_id, decision, metadata, event_hash, prev_event_hash, ip_address, user_agent, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id, created_at`
 
-	return r.pool.QueryRow(ctx, query,
+	if err := tx.QueryRow(ctx, query,
 		event.UserID, event.ActorType, event.ActorID, event.Action,
 		event.ResourceType, event.ResourceID, event.Decision, event.Metadata,
 		event.EventHash, event.PrevEventHash, event.IPAddress, event.UserAgent,
-	).Scan(&event.ID, &event.CreatedAt)
+		event.CreatedAt,
+	).Scan(&event.ID, &event.CreatedAt); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (r *AuditRepository) ListEvents(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.AuditEvent, error) {

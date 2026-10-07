@@ -145,7 +145,10 @@ struct ProtobufReader {
             guard let v = readVarint() else { return nil }
             return Field(number: number, value: .varint(v))
         case 2:                                   // length-delimited
-            guard let len = readVarint(), let bytes = read(Int(len)) else { return nil }
+            // Int(exactly:) — a crafted varint up to 2^64-1 must not trap.
+            guard let len = readVarint(),
+                  let n = Int(exactly: len),
+                  let bytes = read(n) else { return nil }
             return Field(number: number, value: .lengthDelimited(bytes))
         case 5:                                   // 32-bit fixed — skip
             guard read(4) != nil else { return nil }
@@ -173,7 +176,9 @@ struct ProtobufReader {
     }
 
     private mutating func read(_ n: Int) -> Data? {
-        guard n >= 0, index + n <= data.count else { return nil }
+        // Compare via subtraction: `index + n` could overflow Int for a
+        // hostile length before the bound check rejects it.
+        guard n >= 0, n <= data.count - index else { return nil }
         let sub = data.subdata(in: index..<(index + n))
         index += n
         return sub

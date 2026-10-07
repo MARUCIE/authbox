@@ -10,6 +10,11 @@ import SwiftUI
 final class VaultViewModel: ObservableObject {
     @Published var items: [VaultItem] = []
     @Published var error: String?
+    /// Persistent store failed to open: the list stays readable (in-memory,
+    /// empty) but WRITES are blocked — adding a secret to a throwaway
+    /// container would report success and vanish at quit, the same bug class
+    /// fixed in Quick Connect and the provider hub.
+    @Published var storeUnavailable = false
     let service: VaultService
 
     init(service: VaultService? = nil) {
@@ -18,9 +23,9 @@ final class VaultViewModel: ObservableObject {
         } else {
             do { self.service = VaultService(store: try VaultStore()) }
             catch {
-                // Fall back to an in-memory store so the app stays usable; surface it.
                 self.service = VaultService(store: try! VaultStore(inMemory: true))
-                self.error = "Persistent store unavailable: \(error)"
+                self.storeUnavailable = true
+                self.error = "Vault storage is unavailable: \(error.localizedDescription). Adding items is disabled."
             }
         }
         reload()
@@ -29,6 +34,10 @@ final class VaultViewModel: ObservableObject {
     func reload() { items = (try? service.list()) ?? [] }
 
     func add(title: String, username: String, url: String, secret: VaultSecret, vaultKey: Data) {
+        guard !storeUnavailable else {
+            error = "Vault storage is unavailable — cannot add items."
+            return
+        }
         do { try service.add(title: title, username: username, urlString: url,
                              secret: secret, vaultKey: vaultKey); reload() }
         catch { self.error = "\(error)" }
@@ -40,6 +49,10 @@ final class VaultViewModel: ObservableObject {
     }
 
     func delete(_ id: UUID) {
+        guard !storeUnavailable else {
+            error = "Vault storage is unavailable — cannot delete items."
+            return
+        }
         do { try service.delete(id); reload() } catch { self.error = "\(error)" }
     }
 }
@@ -75,8 +88,13 @@ struct VaultListView: View {
         }
         .sheet(isPresented: $showingAdd) {
             AddItemSheet { title, username, url, secret in
-                session.withVaultKey { key in
+                // Pre-onboarding "unlocked" state has no master key; a silent
+                // nil here dropped the typed secret with no error at all.
+                let saved = session.withVaultKey { key in
                     vm.add(title: title, username: username, url: url, secret: secret, vaultKey: key)
+                }
+                if saved == nil {
+                    vm.error = "Vault is not set up yet — complete onboarding before adding items."
                 }
             }
         }
@@ -177,9 +195,6 @@ struct ItemDetailView: View {
     }
 
     private func copy(_ s: String) {
-        #if canImport(AppKit)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(s, forType: .string)
-        #endif
+        SecretPasteboard.copy(s)
     }
 }

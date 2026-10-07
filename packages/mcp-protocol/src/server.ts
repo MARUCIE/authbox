@@ -6,7 +6,10 @@ import {
   type AccessDecision,
   type PendingApproval,
 } from "./policy-engine";
-import { sanitizeProxyRequest } from "./proxy-security";
+import {
+  sanitizeProxyRequest,
+  type SanitizedProxyRequest,
+} from "./proxy-security";
 import {
   authboxTools,
   type ProxyRequest,
@@ -31,10 +34,17 @@ export interface VaultBridge {
     serviceName: string,
   ): Promise<Record<string, string> | null>;
   listServices(userId: string): Promise<string[]>;
+  /**
+   * Execute the sanitized request with the stored credential injected.
+   * Implementations MUST connect to one of `request.resolvedAddresses`
+   * (keeping the URL hostname as SNI/Host) rather than re-resolving DNS —
+   * a fresh lookup at fetch time reopens the DNS-rebinding TOCTOU the
+   * sanitizer closed.
+   */
   proxyRequest(
     userId: string,
     serviceName: string,
-    request: ProxyRequest,
+    request: SanitizedProxyRequest,
   ): Promise<ProxyResponse>;
   getPolicies(agentId: string): Promise<AgentPolicy[]>;
   verifyApiKey(
@@ -76,7 +86,7 @@ export class AuthBoxMCPServer {
 
   constructor(
     private bridge: VaultBridge,
-    private options: { port?: number } = {},
+    private options: { port?: number; host?: string } = {},
   ) {
     // Wire step-up approval notifications to the bridge
     this.policyEngine.onApprovalNeeded = (approval) => {
@@ -96,8 +106,11 @@ export class AuthBoxMCPServer {
 
   start(): void {
     const port = this.options.port ?? 19876;
+    // Local vault bridge: bind loopback only so LAN peers cannot reach the
+    // cleartext WebSocket or replay API keys.
+    const host = this.options.host ?? "127.0.0.1";
 
-    this.wss = new WebSocketServer({ port });
+    this.wss = new WebSocketServer({ port, host });
 
     this.wss.on("connection", (ws, req) => {
       const rawApiKey = req.headers["x-api-key"];
@@ -111,11 +124,13 @@ export class AuthBoxMCPServer {
       this.authenticate(ws, apiKey);
     });
 
-    // Reset rate limit counters every 5 minutes
+    // Prune expired rate limit windows every 5 minutes. Live windows are
+    // kept — clearing them would let agents restart their quota early.
     const interval = setInterval(
-      () => this.policyEngine.resetCounters(),
+      () => this.policyEngine.pruneExpiredCounters(),
       5 * 60 * 1000,
     );
+    interval.unref?.();
     this.wss.on("close", () => clearInterval(interval));
   }
 
@@ -147,7 +162,16 @@ export class AuthBoxMCPServer {
       this.sessions.set(ws, session);
 
       ws.on("message", (data) => {
-        this.handleMessage(session, data.toString());
+        this.handleMessage(session, data.toString()).catch(() => {
+          // handleMessage replies with JSON-RPC errors itself; a rejection
+          // here must never become an unhandled rejection that kills the
+          // whole vault server.
+          this.send(session.ws, {
+            jsonrpc: "2.0",
+            id: null,
+            error: { code: -32603, message: "Internal error" },
+          });
+        });
       });
 
       ws.on("close", () => {
@@ -163,7 +187,7 @@ export class AuthBoxMCPServer {
   }
 
   private async handleMessage(session: MCPSession, raw: string): Promise<void> {
-    let parsed: JsonRpcRequest;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
@@ -175,7 +199,27 @@ export class AuthBoxMCPServer {
       return;
     }
 
-    const { id, method, params } = parsed;
+    // JSON.parse accepts `null`, numbers, strings and arrays — none of which
+    // are valid JSON-RPC request objects. Destructuring null would throw.
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      this.send(session.ws, {
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32600, message: "Invalid Request" },
+      });
+      return;
+    }
+
+    const { id = null, method, params } = parsed as Partial<JsonRpcRequest>;
+
+    if (typeof method !== "string") {
+      this.send(session.ws, {
+        jsonrpc: "2.0",
+        id,
+        error: { code: -32600, message: "Invalid Request" },
+      });
+      return;
+    }
 
     try {
       let result: unknown;
@@ -283,6 +327,7 @@ export class AuthBoxMCPServer {
       const approved = await this.policyEngine.requestApproval(
         decision.pendingApprovalId,
         request,
+        decision.approvalTimeoutMs,
       );
       if (!approved) {
         decision.reason = "Step-up approval denied by user";
@@ -359,6 +404,7 @@ export class AuthBoxMCPServer {
       const approved = await this.policyEngine.requestApproval(
         decision.pendingApprovalId,
         request,
+        decision.approvalTimeoutMs,
       );
       if (!approved) {
         decision.reason = "Step-up approval denied by user";
@@ -377,21 +423,39 @@ export class AuthBoxMCPServer {
       decision.reason = "Step-up approval granted by user";
     }
 
-    await this.logAccess(session, "proxy_request", serviceName, decision);
-
     if (!decision.allowed) {
+      await this.logAccess(session, "proxy_request", serviceName, decision);
       return {
         content: [{ type: "text", text: `Access denied: ${decision.reason}` }],
         isError: true,
       };
     }
 
-    const proxyReq = await sanitizeProxyRequest(serviceName, {
-      method: args.method as string,
-      url: args.url as string,
-      headers: args.headers as Record<string, string> | undefined,
-      body: args.body as string | undefined,
-    });
+    // Sanitize BEFORE writing the "allowed" audit record, so SSRF/host-binding
+    // blocks are audited as denials instead of being logged as allowed.
+    let proxyReq: SanitizedProxyRequest;
+    try {
+      proxyReq = await sanitizeProxyRequest(serviceName, {
+        method: args.method as string,
+        url: args.url as string,
+        headers: args.headers as Record<string, string> | undefined,
+        body: args.body as string | undefined,
+      });
+    } catch (err) {
+      const reason =
+        err instanceof Error ? err.message : "Proxy request blocked";
+      await this.logAccess(session, "proxy_request", serviceName, {
+        allowed: false,
+        reason,
+        appliedPolicies: decision.appliedPolicies,
+      });
+      return {
+        content: [{ type: "text", text: `Proxy request blocked: ${reason}` }],
+        isError: true,
+      };
+    }
+
+    await this.logAccess(session, "proxy_request", serviceName, decision);
 
     try {
       const response = await this.bridge.proxyRequest(
@@ -471,8 +535,10 @@ export class AuthBoxMCPServer {
           policies: decision.appliedPolicies,
         },
       });
-    } catch {
-      // Audit logging should not break the request flow
+    } catch (err) {
+      // Audit logging must not break the request flow, but a silently dead
+      // audit trail in a credential vault must at least be visible.
+      console.error("[authbox-mcp] audit log write failed:", err);
     }
   }
 

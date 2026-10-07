@@ -6,6 +6,7 @@ import { Dialog } from '@/components/vault/dialog';
 import {
   derivePassword,
   mnemonicToSeed,
+  validateMnemonic,
   setWordlist,
   type DerivePasswordOptions,
 } from '@authbox/crypto';
@@ -16,18 +17,21 @@ setWordlist(ENGLISH_WORDLIST);
 interface DerivePasswordDialogProps {
   open: boolean;
   onClose: () => void;
-  vaultKey: Uint8Array | null;
 }
 
 /**
  * Deterministic Password Derivation dialog.
  *
- * This is the v3 "unstoppable" feature: derive a password from seed + site name.
- * No storage needed — same seed + site always produces the same password.
- * Users can regenerate all passwords from their 24-word seed phrase alone.
+ * Derives a password from the user's ACTUAL 24-word seed phrase + site name,
+ * entered transiently here (like the wallet send flow) and dropped on close.
+ * The account vault key must NOT be used as a seed stand-in: for registered
+ * accounts it is random and unrelated to the seed, so passwords "derived"
+ * from it would be unrecoverable from the 24 words — the exact failure this
+ * feature promises to prevent.
  */
-export function DerivePasswordDialog({ open, onClose, vaultKey }: DerivePasswordDialogProps) {
+export function DerivePasswordDialog({ open, onClose }: DerivePasswordDialogProps) {
   const [site, setSite] = useState('');
+  const [mnemonic, setMnemonic] = useState('');
   const [length, setLength] = useState(20);
   const [counter, setCounter] = useState(0);
   const [lowercase, setLowercase] = useState(true);
@@ -45,20 +49,24 @@ export function DerivePasswordDialog({ open, onClose, vaultKey }: DerivePassword
     symbols,
   }), [length, counter, lowercase, uppercase, digits, symbols]);
 
-  // Derive password when site changes (uses vaultKey as seed proxy)
+  const normalizedMnemonic = mnemonic.trim().replace(/\s+/g, ' ');
+  const mnemonicValid = normalizedMnemonic.length > 0 && validateMnemonic(normalizedMnemonic);
+
   const derivedPassword = useMemo(() => {
-    if (!vaultKey || !site.trim()) return '';
+    if (!mnemonicValid || !site.trim()) return '';
     try {
-      // Use vault key as seed material (derived from the same HD tree)
-      // In production, this should use the full 64-byte seed stored in memory
-      const seedProxy = new Uint8Array(64);
-      seedProxy.set(vaultKey, 0);
-      seedProxy.set(vaultKey, 32);
-      return derivePassword(seedProxy, site.trim(), options);
+      const seed = mnemonicToSeed(normalizedMnemonic);
+      return derivePassword(seed, site.trim(), options);
     } catch {
       return '';
     }
-  }, [vaultKey, site, options]);
+  }, [mnemonicValid, normalizedMnemonic, site, options]);
+
+  const handleClose = useCallback(() => {
+    setMnemonic(''); // drop the secret before the dialog unmounts
+    setSite('');
+    onClose();
+  }, [onClose]);
 
   const handleCopy = useCallback(async () => {
     if (!derivedPassword) return;
@@ -76,7 +84,7 @@ export function DerivePasswordDialog({ open, onClose, vaultKey }: DerivePassword
   }, [derivedPassword]);
 
   return (
-    <Dialog open={open} onClose={onClose} title="Derive Password">
+    <Dialog open={open} onClose={handleClose} title="Derive Password">
       <div className="flex flex-col gap-5">
         {/* Explanation */}
         <div className="rounded-lg p-3" style={{ background: 'var(--surface-highest)' }}>
@@ -85,6 +93,27 @@ export function DerivePasswordDialog({ open, onClose, vaultKey }: DerivePassword
             Same seed + same site = same password, every time.
             <strong style={{ color: 'var(--primary)' }}> No storage needed.</strong>
           </p>
+        </div>
+
+        {/* Seed input — transient, never stored */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium">Recovery Phrase</label>
+          <textarea
+            placeholder="Enter your 24-word seed phrase (kept in memory only, cleared on close)"
+            value={mnemonic}
+            onChange={(e) => setMnemonic(e.target.value)}
+            rows={3}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            className="w-full rounded-md border px-3 py-2 text-sm font-mono"
+            style={{ background: 'var(--surface-low)', borderColor: 'var(--outline)' }}
+          />
+          {mnemonic.trim().length > 0 && !mnemonicValid && (
+            <p className="text-xs" style={{ color: 'var(--destructive)' }}>
+              Invalid recovery phrase. Check spelling and word order.
+            </p>
+          )}
         </div>
 
         {/* Site input */}
@@ -190,10 +219,10 @@ export function DerivePasswordDialog({ open, onClose, vaultKey }: DerivePassword
           </div>
         )}
 
-        {!site.trim() && (
+        {(!site.trim() || !mnemonicValid) && (
           <div className="text-center py-4">
             <p className="text-xs" style={{ color: 'var(--outline)' }}>
-              Enter a site name to derive a password
+              Enter your recovery phrase and a site name to derive a password
             </p>
           </div>
         )}

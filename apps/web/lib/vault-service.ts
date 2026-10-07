@@ -13,7 +13,14 @@ import { vaultApi, ApiError } from './api';
 import { useVaultStore, type DecryptedVaultItem } from './vault-store';
 
 function toBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
+  // Chunked conversion: spreading a large Uint8Array into fromCharCode
+  // overflows the call stack at roughly 64K elements (e.g. a long note).
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
 }
 
 function fromBase64(b64: string): Uint8Array {
@@ -41,7 +48,7 @@ export async function syncVault(): Promise<void> {
   const response = await vaultApi.syncPull(sessionToken, lastSync ?? undefined);
   const decryptedItems = new Map(getStoreState().items);
 
-  for (const item of response.items) {
+  for (const item of response.items ?? []) {
     try {
       const plaintext = await decryptVaultItem(vaultKey, {
         ciphertext: fromBase64(item.encryptedData),
@@ -56,9 +63,9 @@ export async function syncVault(): Promise<void> {
 
       decryptedItems.set(item.id, {
         id: item.id,
-        vaultId: item.vaultId,
+        vaultId: '',
         itemType: item.itemType,
-        revision: item.revision,
+        revision: item.version,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         name: parsed.name ?? 'Untitled',
@@ -154,11 +161,23 @@ export async function updateVaultItem(
 
   const encrypted = await encryptVaultItem(vaultKey, plaintext);
 
-  await vaultApi.updateItem(sessionToken, itemId, {
-    encryptedData: toBase64(encrypted.ciphertext),
-    nonce: toBase64(encrypted.nonce),
-    tag: toBase64(encrypted.tag),
-  });
+  try {
+    await vaultApi.updateItem(sessionToken, itemId, {
+      encryptedData: toBase64(encrypted.ciphertext),
+      nonce: toBase64(encrypted.nonce),
+      tag: toBase64(encrypted.tag),
+      // Optimistic concurrency: without this, two devices editing the same
+      // item silently overwrite each other (last PUT wins, edits lost).
+      revision: existing.revision,
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 409) {
+      throw new Error(
+        'This item was changed on another device. Sync your vault and reapply your edit.',
+      );
+    }
+    throw err;
+  }
 
   useVaultStore.getState().updateItem(itemId, {
     ...existing,

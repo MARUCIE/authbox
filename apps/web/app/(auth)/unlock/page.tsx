@@ -23,7 +23,10 @@ export default function UnlockPage() {
     setLoading(true);
 
     try {
-      const token = sessionToken ?? sessionStorage.getItem('authbox_session');
+      // The session token lives only in Zustand memory by design — nothing
+      // ever writes a sessionStorage fallback, and even if one existed the
+      // vault layout would still bounce to /login without the store token.
+      const token = sessionToken;
       if (!token) {
         router.push('/login');
         return;

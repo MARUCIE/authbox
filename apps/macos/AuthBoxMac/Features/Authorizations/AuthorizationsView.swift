@@ -35,7 +35,10 @@ final class AuthorizationCenter: ObservableObject {
     private lazy var broker = AuthorizationBroker(
         engine: engine, audit: audit,
         capabilities: { [weak self] in
-            Dictionary(uniqueKeysWithValues: (self?.capabilities ?? []).map { ($0.id, $0) })
+            // uniquingKeysWith: persisted duplicate ids (from the old
+            // count-based minting) must not trap the broker on every request.
+            Dictionary((self?.capabilities ?? []).map { ($0.id, $0) },
+                       uniquingKeysWith: { first, _ in first })
         })
 
     init(engine: PolicyEngine? = nil,
@@ -112,7 +115,10 @@ final class AuthorizationCenter: ObservableObject {
                              maxRequests: Int? = nil,
                              windowSeconds: Int? = nil,
                              requireStepUp: Bool) -> IssuedAgentGrant {
-        let agentId = "agent_\(name.lowercased().replacingOccurrences(of: " ", with: "_"))_\(capabilities.count)"
+        // A random suffix, not capabilities.count: grant/revoke sequences made
+        // count-based ids collide, and duplicate ids crashed the broker's
+        // capability dictionary on every incoming request after relaunch.
+        let agentId = "agent_\(name.lowercased().replacingOccurrences(of: " ", with: "_"))_\(UUID().uuidString.prefix(8).lowercased())"
         var policies: [AgentPolicy] = []
         let stamp = Date(timeIntervalSince1970: 0)
         if !allowedItemTypes.isEmpty {
@@ -160,8 +166,16 @@ final class AuthorizationCenter: ObservableObject {
     @discardableResult
     func quickConnect(content: String, agentName: String, vaultKey: Data,
                       importer: ProviderImportService? = nil) throws -> QuickConnectService.Outcome {
-        let imp = importer ?? ProviderImportService(
-            vault: VaultService(store: (try? VaultStore()) ?? (try! VaultStore(inMemory: true))))
+        // WRITE path: never fall back to a throwaway in-memory store here.
+        // With the fallback, a failed persistent-store open still reported
+        // "Imported N credentials" and issued an agent token — while the
+        // credentials were invisible everywhere else and vanished at quit.
+        let imp: ProviderImportService
+        if let importer {
+            imp = importer
+        } else {
+            imp = ProviderImportService(vault: VaultService(store: try VaultStore()))
+        }
         let outcome = try QuickConnectService(importer: imp, registrar: self)
             .connect(content: content, agentName: agentName, vaultKey: vaultKey)
         if !brokerRunning { startBroker() }
@@ -289,8 +303,7 @@ struct AuthorizationsView: View {
             set: { if !$0 { issuedToken = nil } })) {
             Button("Copy") {
                 if let t = issuedToken {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(t, forType: .string)
+                    SecretPasteboard.copy(t)
                 }
                 issuedToken = nil; quickConnectNote = nil
             }
@@ -501,8 +514,12 @@ struct QuickConnectSheet: View {
     private var existingCount: Int { existing.reduce(0) { $0 + $1.count } }
 
     /// Live classification of the pasted config — shows scope before granting.
-    private var preview: EnvImportResult? {
-        content.isEmpty ? nil : EnvParser.parseAndClassify(content)
+    /// Cached in @State: as a computed property the full regex classification
+    /// ran up to three times per render, per keystroke, on the main thread.
+    @State private var preview: EnvImportResult?
+
+    private func refreshPreview(for newContent: String) {
+        preview = newContent.isEmpty ? nil : EnvParser.parseAndClassify(newContent)
     }
     private var scopedCategories: [String] {
         guard let preview else { return [] }
@@ -602,6 +619,7 @@ struct QuickConnectSheet: View {
             TextEditor(text: $content)
                 .font(.system(.callout, design: .monospaced))
                 .frame(height: 130)
+                .onChange(of: content) { _, newValue in refreshPreview(for: newValue) }
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
                 .overlay(alignment: .topLeading) {
                     if content.isEmpty {

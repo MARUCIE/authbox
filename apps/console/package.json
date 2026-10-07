@@ -8,12 +8,12 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "15.5.18",
+    "next": "15.5.26",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "@types/node": "25.2.3",
+    "@types/node": "20.17.6",
     "@types/react": "19.2.14",
     "typescript": "5.9.3"
   }

@@ -132,14 +132,14 @@ struct CrossPlatformTests {
     func pwGithub() {
         let seed = Seed.mnemonicToSeed(Self.M24)
         let pw = Seed.derivePassword(seed: seed, site: "github.com")
-        #expect(pw == "d$^ton](I(^8R{dprpi%")
+        #expect(pw == "dtonI8R{pr%?ZkH,q:xF")
     }
 
     @Test("password(google.com) matches TypeScript")
     func pwGoogle() {
         let seed = Seed.mnemonicToSeed(Self.M24)
         let pw = Seed.derivePassword(seed: seed, site: "google.com")
-        #expect(pw == "D#}2Nu[$(cHb}ii44F3-")
+        #expect(pw == "D2Nu[(cHb}i43-ji|x1?")
     }
 
     @Test("password(github.com, counter=1) matches TypeScript")
@@ -147,7 +147,7 @@ struct CrossPlatformTests {
         let seed = Seed.mnemonicToSeed(Self.M24)
         let pw = Seed.derivePassword(seed: seed, site: "github.com",
             options: DerivePasswordOptions(counter: 1))
-        #expect(pw == "+JKp-h1l#r=i{uVa)vLR")
+        #expect(pw == "JKp-1l#Va)vLR!1&2x=D")
     }
 
     @Test("password is case-insensitive")
@@ -156,7 +156,7 @@ struct CrossPlatformTests {
         let pw1 = Seed.derivePassword(seed: seed, site: "github.com")
         let pw2 = Seed.derivePassword(seed: seed, site: "GitHub.com")
         #expect(pw1 == pw2)
-        #expect(pw1 == "d$^ton](I(^8R{dprpi%")
+        #expect(pw1 == "dtonI8R{pr%?ZkH,q:xF")
     }
 
     @Test("password(test.com, lower-only, 32) matches TypeScript")
@@ -170,7 +170,7 @@ struct CrossPlatformTests {
                 digits: false,
                 symbols: false
             ))
-        #expect(pw == "eexvvnlecbqmsrlpxgopjvhhwtyggkkt")
+        #expect(pw == "eexvvnlecbqmslpxgopvhhwtygkktfns")
     }
 
     @Test("password(stripe.com, 16) matches TypeScript")
@@ -178,6 +178,6 @@ struct CrossPlatformTests {
         let seed = Seed.mnemonicToSeed(Self.M24)
         let pw = Seed.derivePassword(seed: seed, site: "stripe.com",
             options: DerivePasswordOptions(length: 16))
-        #expect(pw == "tmF<:3_WCO#;71rL")
+        #expect(pw == "tmF<:3_WCO#;71rI")
     }
 }

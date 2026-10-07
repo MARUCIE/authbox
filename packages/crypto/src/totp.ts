@@ -109,10 +109,14 @@ export function parseOtpauth(raw: string): TOTPParams | null {
   const secret = base32Decode(secretB32);
   if (!secret || secret.length === 0) return null;
 
+  // Hostile or buggy QR codes can carry garbage here: digits=abc would yield
+  // a literal "NaN" code and period=0 a division-by-zero crash downstream.
   const digitsParam = url.searchParams.get("digits");
   const periodParam = url.searchParams.get("period");
-  const digits = digitsParam ? parseInt(digitsParam, 10) : 6;
-  const period = periodParam ? parseInt(periodParam, 10) : 30;
+  const digits = digitsParam ? Number.parseInt(digitsParam, 10) : 6;
+  const period = periodParam ? Number.parseInt(periodParam, 10) : 30;
+  if (!Number.isInteger(digits) || digits < 6 || digits > 8) return null;
+  if (!Number.isInteger(period) || period < 1 || period > 300) return null;
   const algoRaw = (url.searchParams.get("algorithm") ?? "SHA1").toUpperCase();
   const algorithm: OTPAlgorithm =
     algoRaw === "SHA256" || algoRaw === "SHA512" ? algoRaw : "SHA1";
@@ -120,7 +124,15 @@ export function parseOtpauth(raw: string): TOTPParams | null {
   // Label = "/Issuer:account"; the issuer query param overrides the label prefix.
   let issuer = url.searchParams.get("issuer") || undefined;
   let account: string | undefined;
-  const label = decodeURIComponent(url.pathname.replace(/^\//, ""));
+  const rawLabel = url.pathname.replace(/^\//, "");
+  let label: string;
+  try {
+    label = decodeURIComponent(rawLabel);
+  } catch {
+    // Malformed %-encoding in the label must not abort the parse (or a whole
+    // multi-line import) — the secret is still perfectly usable.
+    label = rawLabel;
+  }
   if (label) {
     const colon = label.indexOf(":");
     if (colon >= 0) {
@@ -161,11 +173,12 @@ const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 /** Decode an RFC 4648 base32 string (case-insensitive, padding/space tolerant). */
 export function base32Decode(input: string): Uint8Array | null {
+  // Only trailing padding is legal; an embedded "=" is a corrupt secret.
   const cleaned = input
     .toUpperCase()
-    .replace(/=/g, "")
     .replace(/ /g, "")
-    .replace(/-/g, "");
+    .replace(/-/g, "")
+    .replace(/=+$/, "");
   if (cleaned.length === 0) return null;
 
   const lookup: Record<string, number> = {};
@@ -184,6 +197,11 @@ export function base32Decode(input: string): Uint8Array | null {
       out.push((value >> bits) & 0xff);
     }
   }
+
+  // Leftover bits must be zero, otherwise the input was truncated or has a
+  // typo'd final character — better to reject than to mint wrong codes.
+  if (bits > 0 && (value & ((1 << bits) - 1)) !== 0) return null;
+
   return new Uint8Array(out);
 }
 

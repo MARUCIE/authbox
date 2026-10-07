@@ -14,6 +14,8 @@ export interface AccessDecision {
   appliedPolicies: string[];
   /** When step-up is required, this contains a request ID to track the approval. */
   pendingApprovalId?: string;
+  /** Timeout for the step-up approval, from the policy's approvalTimeoutSeconds. */
+  approvalTimeoutMs?: number;
 }
 
 export interface PendingApproval {
@@ -28,7 +30,10 @@ export interface PendingApproval {
 }
 
 export class PolicyEngine {
-  private rateLimitCounters = new Map<string, { count: number; windowStart: number }>();
+  private rateLimitCounters = new Map<
+    string,
+    { count: number; windowStart: number; windowMs: number }
+  >();
   private pendingApprovals = new Map<string, PendingApproval>();
 
   /** Callback invoked when step-up approval is needed. Set by the MCP server. */
@@ -48,14 +53,34 @@ export class PolicyEngine {
     }
 
     const applied: string[] = [];
+    let pendingApprovalId: string | undefined;
+    let approvalTimeoutMs: number | undefined;
 
     for (const policy of enabled) {
       const result = this.evaluatePolicy(policy, request);
       applied.push(policy.id);
 
       if (!result.allowed) {
+        if (result.pendingApprovalId) {
+          // Step-up is only surfaced if every other policy passes, so a later
+          // user approval cannot override an unrelated deny.
+          pendingApprovalId ??= result.pendingApprovalId;
+          approvalTimeoutMs ??=
+            (policy.rules.approvalTimeoutSeconds ?? 60) * 1000;
+          continue;
+        }
         return { allowed: false, reason: result.reason, appliedPolicies: applied };
       }
+    }
+
+    if (pendingApprovalId) {
+      return {
+        allowed: false,
+        reason: 'Step-up approval required',
+        appliedPolicies: applied,
+        pendingApprovalId,
+        approvalTimeoutMs,
+      };
     }
 
     return { allowed: true, reason: 'All policies passed', appliedPolicies: applied };
@@ -64,7 +89,7 @@ export class PolicyEngine {
   private evaluatePolicy(
     policy: AgentPolicy,
     request: AccessRequest,
-  ): { allowed: boolean; reason: string } {
+  ): { allowed: boolean; reason: string; pendingApprovalId?: string } {
     const rules = policy.rules;
 
     switch (policy.policyType) {
@@ -73,7 +98,7 @@ export class PolicyEngine {
       case 'action_perm':
         return this.checkActionPermission(rules, request);
       case 'rate_limit':
-        return this.checkRateLimit(request.agentId, rules);
+        return this.checkRateLimit(request.agentId, policy.id, rules);
       case 'time_window':
         return this.checkTimeWindow(rules);
       case 'step_up':
@@ -142,6 +167,7 @@ export class PolicyEngine {
 
   private checkRateLimit(
     agentId: string,
+    policyId: string,
     rules: PolicyRules,
   ): { allowed: boolean; reason: string } {
     if (!rules.maxRequests || !rules.windowSeconds) {
@@ -150,11 +176,13 @@ export class PolicyEngine {
 
     const now = Date.now();
     const windowMs = rules.windowSeconds * 1000;
-    const key = agentId;
+    // Key per policy so multiple rate_limit policies (e.g. per-minute and
+    // per-hour) for one agent track independent windows.
+    const key = `${agentId}:${policyId}`;
     const counter = this.rateLimitCounters.get(key);
 
     if (!counter || now - counter.windowStart > windowMs) {
-      this.rateLimitCounters.set(key, { count: 1, windowStart: now });
+      this.rateLimitCounters.set(key, { count: 1, windowStart: now, windowMs });
       return { allowed: true, reason: 'Rate limit check passed' };
     }
 
@@ -222,6 +250,15 @@ export class PolicyEngine {
     timeoutMs = 60_000,
   ): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
+      // Auto-reject on timeout; cleared when the user resolves first.
+      const timer = setTimeout(() => {
+        if (this.pendingApprovals.has(approvalId)) {
+          this.pendingApprovals.delete(approvalId);
+          resolve(false);
+        }
+      }, timeoutMs);
+      timer.unref?.();
+
       const pending: PendingApproval = {
         id: approvalId,
         agentId: request.agentId,
@@ -231,6 +268,7 @@ export class PolicyEngine {
         reason: 'Step-up approval required for this action',
         createdAt: Date.now(),
         resolve: (approved: boolean) => {
+          clearTimeout(timer);
           this.pendingApprovals.delete(approvalId);
           resolve(approved);
         },
@@ -240,14 +278,6 @@ export class PolicyEngine {
 
       // Notify the bridge (extension popup) about the approval request
       this.onApprovalNeeded?.(pending);
-
-      // Auto-reject on timeout
-      setTimeout(() => {
-        if (this.pendingApprovals.has(approvalId)) {
-          this.pendingApprovals.delete(approvalId);
-          resolve(false);
-        }
-      }, timeoutMs);
     });
   }
 
@@ -267,7 +297,16 @@ export class PolicyEngine {
     return Array.from(this.pendingApprovals.values());
   }
 
-  resetCounters(): void {
-    this.rateLimitCounters.clear();
+  /**
+   * Drop rate-limit counters whose window has fully elapsed. Never clears
+   * live windows — a blanket reset would let agents restart their quota.
+   */
+  pruneExpiredCounters(): void {
+    const now = Date.now();
+    for (const [key, counter] of this.rateLimitCounters) {
+      if (now - counter.windowStart > counter.windowMs) {
+        this.rateLimitCounters.delete(key);
+      }
+    }
   }
 }

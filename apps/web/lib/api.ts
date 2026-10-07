@@ -111,13 +111,15 @@ export const authApi = {
         keyLength: number;
       };
       totpRequired?: boolean;
+      /** Single-use token binding the TOTP step to this SRP handshake. */
+      loginToken?: string;
     }>('/api/v1/auth/login/verify', {
       method: 'POST',
       body: JSON.stringify(body),
     });
   },
 
-  loginVerifyTOTP(body: { email: string; code: string }) {
+  loginVerifyTOTP(body: { loginToken: string; code: string }) {
     return request<{
       sessionToken: string;
       serverProofM2: string;
@@ -165,19 +167,23 @@ export const vaultApi = {
 
   syncPull(token: string, after?: string) {
     const params = after ? `?after=${encodeURIComponent(after)}` : '';
+    // Field names mirror the Go ItemResponse exactly: the item revision is
+    // serialized as `version`. (A phantom `revision` field here once made the
+    // optimistic-concurrency check silently never engage.)
     return request<{
       items: Array<{
         id: string;
-        vaultId: string;
         itemType: string;
         encryptedData: string;
         nonce: string;
         tag: string;
-        revision: number;
+        version: number;
+        syncSeq: number;
         createdAt: string;
         updatedAt: string;
-      }>;
+      }> | null;
       syncToken: string;
+      hasMore: boolean;
     }>(`/api/v1/vault/sync${params}`, { token });
   },
 
@@ -185,17 +191,18 @@ export const vaultApi = {
     token: string,
     body: {
       items: Array<{
-        id: string;
+        /** Present when re-pushing an existing item (server upserts by id). */
+        id?: string;
         itemType: string;
         encryptedData: string;
         nonce: string;
         tag: string;
-        uriHash?: string;
-        revision: number;
       }>;
     },
   ) {
-    return request<{ accepted: number; conflicts: string[] }>('/api/v1/vault/sync', {
+    return request<{
+      items: Array<{ id: string; version: number; syncSeq: number }>;
+    }>('/api/v1/vault/sync', {
       method: 'POST',
       token,
       body: JSON.stringify(body),
@@ -226,6 +233,8 @@ export const vaultApi = {
       encryptedData: string;
       nonce: string;
       tag: string;
+      /** Last-seen revision for optimistic concurrency (server returns 409 on mismatch). */
+      revision?: number;
     },
   ) {
     return request<{ status: string }>(`/api/v1/vault/items/${itemId}`, {
@@ -245,12 +254,11 @@ export const vaultApi = {
   getItem(token: string, itemId: string) {
     return request<{
       id: string;
-      vaultId: string;
       itemType: string;
       encryptedData: string;
       nonce: string;
       tag: string;
-      revision: number;
+      version: number;
       createdAt: string;
       updatedAt: string;
     }>(`/api/v1/vault/items/${itemId}`, { token });
@@ -639,7 +647,13 @@ export const walletApi = {
   // UI's explicit double-confirm gate before reaching here.
   broadcast(
     token: string,
-    body: { coin: 'btc' | 'eth'; network?: 'mainnet' | 'testnet'; rawTxHex: string },
+    body: {
+      coin: 'btc' | 'eth';
+      network?: 'mainnet' | 'testnet';
+      rawTxHex: string;
+      /** Required for mainnet when the account has 2FA enabled (server step-up). */
+      totpCode?: string;
+    },
   ) {
     return request<{ coin: string; network: string; txid: string }>('/api/v1/wallet/broadcast', {
       method: 'POST',

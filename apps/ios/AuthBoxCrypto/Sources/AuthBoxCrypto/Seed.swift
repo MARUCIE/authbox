@@ -33,9 +33,12 @@ public enum Seed {
         // 1. Generate random entropy
         let entropyBytes = strength / 8
         var entropy = Data(count: entropyBytes)
-        entropy.withUnsafeMutableBytes { ptr in
-            _ = SecRandomCopyBytes(kSecRandomDefault, entropyBytes, ptr.baseAddress!)
+        let entropyStatus = entropy.withUnsafeMutableBytes { ptr in
+            SecRandomCopyBytes(kSecRandomDefault, entropyBytes, ptr.baseAddress!)
         }
+        // Data(count:) is zero-initialized; ignoring a failure here would
+        // silently mint a deterministic all-zeros mnemonic.
+        precondition(entropyStatus == errSecSuccess, "SecRandomCopyBytes failed: \(entropyStatus)")
 
         // 2. Checksum: first (strength/32) bits of SHA-256(entropy)
         let hash = Data(SHA256.hash(data: entropy))
@@ -124,7 +127,7 @@ public enum Seed {
 
         // PBKDF2-HMAC-SHA512, 2048 iterations, 64-byte output
         var derivedKey = Data(count: 64)
-        _ = derivedKey.withUnsafeMutableBytes { derivedPtr in
+        let kdfStatus = derivedKey.withUnsafeMutableBytes { derivedPtr in
             mnemonicData.withUnsafeBytes { passwordPtr in
                 saltData.withUnsafeBytes { saltPtr in
                     CCKeyDerivationPBKDF(
@@ -142,6 +145,7 @@ public enum Seed {
             }
         }
 
+        precondition(kdfStatus == Int32(kCCSuccess), "CCKeyDerivationPBKDF failed: \(kdfStatus)")
         return derivedKey
     }
 
@@ -263,26 +267,29 @@ public enum Seed {
         let hmacKey = SymmetricKey(data: siteKey)
         let expanded = Data(HMAC<SHA512>.authenticationCode(for: expandInput, using: hmacKey))
 
-        // Convert to password characters
+        // Convert to password characters. True rejection sampling, in exact
+        // parity with the TypeScript engine (seed.ts): bytes at or above the
+        // largest multiple of the charset size are discarded so every
+        // character is equally likely, and additional counter-indexed blocks
+        // are generated until the requested length is reached (no silent cap).
+        let acceptLimit = (256 / charsetArray.count) * charsetArray.count
         var password: [Character] = []
+        var block = expanded
         var byteIdx = 0
+        var blockCounter = 0
 
         while password.count < length {
-            if byteIdx >= expanded.count {
-                // Need more bytes -- rehash (matches TS behavior)
-                var moreInput = expanded
-                moreInput.append(Data(String(password.count).utf8))
-                let more = Data(HMAC<SHA512>.authenticationCode(for: moreInput, using: hmacKey))
-                for i in 0..<more.count where password.count < length {
-                    let charIdx = Int(more[i]) % charsetArray.count
-                    password.append(charsetArray[charIdx])
-                }
-                break
+            if byteIdx >= block.count {
+                blockCounter += 1
+                let blockInput = Data("password:\(normalizedSite):\(counter):\(blockCounter)".utf8)
+                block = Data(HMAC<SHA512>.authenticationCode(for: blockInput, using: hmacKey))
+                byteIdx = 0
             }
 
-            let charIdx = Int(expanded[byteIdx]) % charsetArray.count
-            password.append(charsetArray[charIdx])
+            let byte = Int(block[byteIdx])
             byteIdx += 1
+            if byte >= acceptLimit { continue }
+            password.append(charsetArray[byte % charsetArray.count])
         }
 
         return String(password)

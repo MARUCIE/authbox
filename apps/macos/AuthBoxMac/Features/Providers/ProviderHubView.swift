@@ -13,6 +13,10 @@ final class ProviderHubViewModel: ObservableObject {
     @Published var preview: EnvImportResult?
     @Published var health: [UUID: HealthCheckResult] = [:]
     @Published var error: String?
+    /// Persistent store failed to open: the UI stays readable but imports are
+    /// BLOCKED — writing secrets into a throwaway in-memory container would
+    /// report success while the credentials vanish at quit.
+    @Published var storeUnavailable = false
 
     private let vault: VaultService
     private let importer: ProviderImportService
@@ -21,8 +25,13 @@ final class ProviderHubViewModel: ObservableObject {
         let v: VaultService
         if let vault { v = vault }
         else {
-            let store = (try? VaultStore()) ?? (try! VaultStore(inMemory: true))
-            v = VaultService(store: store)
+            do {
+                v = VaultService(store: try VaultStore())
+            } catch {
+                v = VaultService(store: try! VaultStore(inMemory: true))
+                self.storeUnavailable = true
+                self.error = "Vault storage is unavailable: \(error.localizedDescription). Imports are disabled."
+            }
         }
         self.vault = v
         self.importer = ProviderImportService(vault: v)
@@ -38,6 +47,10 @@ final class ProviderHubViewModel: ObservableObject {
     }
 
     func runImport(vaultKey: Data) {
+        guard !storeUnavailable else {
+            error = "Vault storage is unavailable — cannot import credentials."
+            return
+        }
         guard let preview else { return }
         do { try importer.importCredentials(preview, vaultKey: vaultKey); self.preview = nil; reload() }
         catch { self.error = "\(error)" }

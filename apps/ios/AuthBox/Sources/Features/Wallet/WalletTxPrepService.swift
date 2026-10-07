@@ -72,12 +72,14 @@ struct WalletTxPrepService {
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw TxPrepError.badResponse }
 
         struct Status: Decodable { let confirmed: Bool }
-        struct Utxo: Decodable { let txid: String; let vout: Int; let value: UInt64; let status: Status }
+        // vout decodes as UInt32 directly: a negative or oversized value from a
+        // hostile/buggy explorer must fail decoding, not trap in UInt32(_:).
+        struct Utxo: Decodable { let txid: String; let vout: UInt32; let value: UInt64; let status: Status }
         let utxos = try JSONDecoder().decode([Utxo].self, from: data)
 
         return utxos
             .filter { $0.status.confirmed }   // only spend confirmed value
-            .map { WalletTx.BtcSpendableUtxo(txid: $0.txid, vout: UInt32($0.vout), value: $0.value,
+            .map { WalletTx.BtcSpendableUtxo(txid: $0.txid, vout: $0.vout, value: $0.value,
                                              account: accountIndex, change: 0, index: 0) }
     }
 

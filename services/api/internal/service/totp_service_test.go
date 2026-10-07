@@ -77,3 +77,45 @@ func hasTOTPSecretEnvelope(secret []byte) bool {
 	return len(secret) > len(totpSecretEnvelopePrefix) &&
 		string(secret[:len(totpSecretEnvelopePrefix)]) == totpSecretEnvelopePrefix
 }
+
+func TestTOTPCheckRejectsReplayedCode(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	secret := []byte("01234567890123456789")
+	user := &domain.User{
+		ID:          uuid.New(),
+		Email:       "totp-replay@authbox.io",
+		KDFParams:   domain.DefaultKDFParams(),
+		TOTPEnabled: true,
+	}
+	userRepo := newFakeUserRepo(user)
+	service := NewTOTPService(userRepo, testTOTPSecretKey)
+	encrypted, err := service.encryptSecret(secret)
+	if err != nil {
+		t.Fatalf("encryptSecret: %v", err)
+	}
+	if err := userRepo.SetTOTPSecret(ctx, user.ID, encrypted); err != nil {
+		t.Fatalf("SetTOTPSecret: %v", err)
+	}
+
+	code := generateTOTP(secret, time.Now().Unix()/30)
+
+	valid, err := service.Check(ctx, user.ID, code)
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	if !valid {
+		t.Fatal("expected a fresh code to be accepted")
+	}
+
+	// RFC 6238 §5.2: the SAME code (same counter step) must be rejected on
+	// replay — across any of the TOTP-consuming endpoints.
+	valid, err = service.Check(ctx, user.ID, code)
+	if err != nil {
+		t.Fatalf("Check (replay): %v", err)
+	}
+	if valid {
+		t.Fatal("expected a replayed code to be rejected")
+	}
+}

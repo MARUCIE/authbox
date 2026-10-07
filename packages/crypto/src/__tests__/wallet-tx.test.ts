@@ -95,6 +95,41 @@ describe('buildBtcTransaction — UTXO selection + p2wpkh signing', () => {
     expect(signed.vsize).toBeGreaterThan(0);
   });
 
+  it('signs when coin selection uses a subset of multi-address candidates', () => {
+    // Three UTXOs across address indices 0/1/2; the small send needs only one
+    // input. Signing must not fail on the keys whose UTXOs were not selected
+    // (regression: blanket tx.sign(pk) threw "No inputs signed").
+    const signed = buildBtcTransaction(seed, {
+      utxos: [
+        { txid: 'a'.repeat(64), vout: 0, value: 500000n, index: 0 },
+        { txid: 'b'.repeat(64), vout: 1, value: 400000n, index: 1 },
+        { txid: 'c'.repeat(64), vout: 2, value: 300000n, index: 2 },
+      ],
+      to: BTC_ADDR_0,
+      amountSats: 10000n,
+      changeAddress: BTC_ADDR_0,
+      feeRateSatPerVb: 2,
+    });
+    expect(signed.txid).toMatch(/^[0-9a-f]{64}$/);
+    expect(signed.fee).toBeGreaterThan(0n);
+  });
+
+  it('signs multiple selected UTXOs that share one address', () => {
+    // Both inputs are needed to fund the send; both sit on the same address,
+    // so one derived key must sign two distinct inputs exactly once each.
+    const signed = buildBtcTransaction(seed, {
+      utxos: [
+        { txid: 'd'.repeat(64), vout: 0, value: 120000n },
+        { txid: 'e'.repeat(64), vout: 1, value: 120000n },
+      ],
+      to: BTC_ADDR_0,
+      amountSats: 200000n,
+      changeAddress: BTC_ADDR_0,
+      feeRateSatPerVb: 2,
+    });
+    expect(signed.txid).toMatch(/^[0-9a-f]{64}$/);
+  });
+
   it('is deterministic for a fixed input set', () => {
     const mk = () =>
       buildBtcTransaction(seed, {

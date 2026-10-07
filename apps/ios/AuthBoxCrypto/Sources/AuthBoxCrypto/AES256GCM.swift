@@ -79,9 +79,12 @@ public enum AES256GCM {
     /// Generate cryptographically secure random bytes.
     public static func generateRandomBytes(_ count: Int) -> Data {
         var bytes = Data(count: count)
-        bytes.withUnsafeMutableBytes { ptr in
-            _ = SecRandomCopyBytes(kSecRandomDefault, count, ptr.baseAddress!)
+        let status = bytes.withUnsafeMutableBytes { ptr in
+            SecRandomCopyBytes(kSecRandomDefault, count, ptr.baseAddress!)
         }
+        // All-zero "random" vault keys/salts on RNG failure would be silent
+        // catastrophe; for key material, crashing is correct.
+        precondition(status == errSecSuccess, "SecRandomCopyBytes failed: \(status)")
         return bytes
     }
 }

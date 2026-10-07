@@ -37,6 +37,11 @@ export interface SRPClientState {
 
 function bigintToBytes(n: bigint, length: number): Uint8Array {
   const hex = n.toString(16).padStart(length * 2, "0");
+  if (hex.length > length * 2) {
+    // Silently truncating would compute proofs over a mangled value (e.g. an
+    // oversized serverPublicB from a hostile server) instead of rejecting it.
+    throw new Error(`value does not fit in ${length} bytes`);
+  }
   const bytes = new Uint8Array(length);
   for (let i = 0; i < length; i++) {
     bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);

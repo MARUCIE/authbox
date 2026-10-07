@@ -173,6 +173,38 @@ describe('Deterministic Password Derivation', () => {
     expect(pw0).not.toBe(pw1);
   });
 
+  it('honors lengths beyond one HMAC block (regression: silent 128-char cap)', () => {
+    const pw = derivePassword(seed, 'github.com', { length: 200 });
+    expect(pw).toHaveLength(200);
+    // Long output must still be deterministic and a prefix-extension of the
+    // same stream, not a re-seeded one.
+    expect(derivePassword(seed, 'github.com', { length: 200 })).toBe(pw);
+  });
+
+  it('samples characters uniformly (rejection sampling, no modulo bias)', () => {
+    // Digits-only gives charset length 10; 256 % 10 = 6, so a plain modulo
+    // would make chars 0-5 about 4% more frequent than 6-9. Over 20k samples
+    // each digit's share must sit near 10%.
+    const counts = new Map<string, number>();
+    for (let c = 0; c < 100; c++) {
+      const pw = derivePassword(seed, 'bias-test.com', {
+        length: 200,
+        lowercase: false,
+        uppercase: false,
+        digits: true,
+        symbols: false,
+        counter: c,
+      });
+      for (const ch of pw) counts.set(ch, (counts.get(ch) ?? 0) + 1);
+    }
+    const total = [...counts.values()].reduce((a, b) => a + b, 0);
+    for (let d = 0; d <= 9; d++) {
+      const share = (counts.get(String(d)) ?? 0) / total;
+      expect(share).toBeGreaterThan(0.08);
+      expect(share).toBeLessThan(0.12);
+    }
+  });
+
   it('respects character class options', () => {
     const pw = derivePassword(seed, 'test.com', {
       length: 30,

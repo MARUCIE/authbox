@@ -22,14 +22,25 @@ function getAPIBaseURL(): string {
   );
 }
 
-const apiToken =
-  process.env.AUTH_BOX_CONSOLE_API_TOKEN ||
-  process.env.NEXT_PUBLIC_API_TOKEN ||
-  "local-admin-token";
+// Server-only admin token. Never read from a NEXT_PUBLIC_* variable — those
+// are inlined into client bundles — and never default to a known literal in
+// production: a missing token must fail closed, not open with
+// "local-admin-token".
+function getAPIToken(): string {
+  const configured = process.env.AUTH_BOX_CONSOLE_API_TOKEN;
+  if (configured?.trim()) {
+    return configured.trim();
+  }
+  if (process.env.NODE_ENV !== "production") {
+    return "local-admin-token";
+  }
+  throw new Error(
+    "Missing AUTH_BOX_CONSOLE_API_TOKEN for console runtime"
+  );
+}
+
 const apiAuthSource =
-  process.env.AUTH_BOX_CONSOLE_AUTH_SOURCE ||
-  process.env.NEXT_PUBLIC_API_AUTH_SOURCE ||
-  "console";
+  process.env.AUTH_BOX_CONSOLE_AUTH_SOURCE || "console";
 
 export type APIErrorPayload = {
   code: string;
@@ -80,7 +91,7 @@ async function parseJSON(res: Response) {
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers || {});
   headers.set("Content-Type", "application/json");
-  headers.set("Authorization", `Bearer ${apiToken}`);
+  headers.set("Authorization", `Bearer ${getAPIToken()}`);
   headers.set("X-Auth-Source", apiAuthSource);
 
   const res = await fetch(`${getAPIBaseURL()}${path}`, {
@@ -117,13 +128,13 @@ export function apiEntry() {
   try {
     return {
       baseURL: getAPIBaseURL(),
-      hasToken: Boolean(apiToken),
+      hasToken: Boolean(getAPIToken()),
       authSource: apiAuthSource
     };
   } catch (error) {
     return {
       baseURL: "UNCONFIGURED",
-      hasToken: Boolean(apiToken),
+      hasToken: Boolean(process.env.AUTH_BOX_CONSOLE_API_TOKEN),
       authSource: apiAuthSource,
       configError:
         error instanceof Error ? error.message : "missing API base configuration"
