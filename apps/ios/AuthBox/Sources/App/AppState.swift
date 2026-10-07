@@ -184,6 +184,11 @@ final class AppState: ObservableObject {
 
         try KeychainManager.storeSeed(seed)
 
+        // Adopting a new identity: rows encrypted under a previous vault key
+        // can never decrypt again and would otherwise linger as invisible,
+        // undeletable ciphertext.
+        try? store?.deleteAll()
+
         self.seed = seed
         self.vaultKey = keys.vaultKey
         self.vaultState = .unlocked
@@ -216,6 +221,11 @@ final class AppState: ObservableObject {
         let seed = Seed.mnemonicToSeed(mnemonic)
         try KeychainManager.storeSeed(seed)
         let keys = Seed.deriveAllKeys(seed: seed)
+        // Restoring a (possibly different) mnemonic over an existing install:
+        // purge rows from the previous key — they cannot decrypt under the
+        // new one and would present as a silently empty-but-stuck vault.
+        // Items for THIS seed re-materialize from the CloudKit ciphertext.
+        try? store?.deleteAll()
         self.seed = seed
         self.vaultKey = keys.vaultKey
         self.vaultState = .unlocked
@@ -259,7 +269,11 @@ final class AppState: ObservableObject {
         // Records are ciphertext at rest; decryption needs the in-memory key.
         guard let store, let vaultKey else { return }
         do {
-            vaultItems = try store.fetchAll(vaultKey: vaultKey)
+            let result = try store.fetchAll(vaultKey: vaultKey)
+            vaultItems = result.items
+            if result.undecryptable > 0 {
+                print("WARN: \(result.undecryptable) vault record(s) do not decrypt under the current key")
+            }
         } catch {
             print("Failed to load vault items: \(error)")
         }
@@ -472,9 +486,11 @@ extension AppState: VaultSyncEngine.VaultBackend {
     /// Apply a pulled item, honoring last-write-wins by `updatedAt`. Mutates the existing
     /// managed object in place when present, otherwise inserts a new one with the id preserved.
     /// Never re-enqueues a push (no CRUD method is called), so pulls can't loop into pushes.
-    func applyRemoteUpsert(id: UUID, payloadJSON: String, updatedAt: Date?) {
+    func applyRemoteUpsert(id: UUID, payloadJSON: String, updatedAt: Date?, vaultKey: Data) {
+        // Uses the engine-provided key, NOT self.vaultKey: a lockVault() that
+        // raced ahead of this in-flight event must not drop the remote change
+        // (the store write is ciphertext; nothing plaintext is exposed).
         guard let payload = try? JSONDecoder().decode(VaultItemPayload.self, from: Data(payloadJSON.utf8)) else { return }
-        guard let vaultKey else { return }
         if let existing = vaultItems.first(where: { $0.id == id }) {
             if let remoteAt = updatedAt, remoteAt < existing.updatedAt { return } // local is newer
             existing.title = payload.title
@@ -496,7 +512,8 @@ extension AppState: VaultSyncEngine.VaultBackend {
     }
 
     func applyRemoteDelete(id: UUID) {
-        guard vaultItems.contains(where: { $0.id == id }) else { return }
+        // Delete from the store unconditionally: the record may exist on disk
+        // without being in the in-memory list (undecryptable rows, lock race).
         vaultItems.removeAll { $0.id == id }
         try? store?.delete(id: id)
     }

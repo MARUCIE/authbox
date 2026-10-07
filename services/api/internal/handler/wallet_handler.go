@@ -242,16 +242,33 @@ func (h *WalletHandler) Broadcast(w http.ResponseWriter, r *http.Request) {
 		}
 		if user != nil && user.TOTPEnabled {
 			if req.TOTPCode == "" {
+				// A stolen session probing whether 2FA gates the account must
+				// leave an audit trace, same as a wrong code.
+				h.auditBroadcast(r, userID, "deny", "", req.Coin, network)
 				writeError(w, http.StatusForbidden, "mainnet broadcast requires a TOTP code", "STEP_UP_REQUIRED")
 				return
 			}
-			valid, err := h.totpService.Check(r.Context(), userID, req.TOTPCode)
+			outcome, err := h.totpService.CheckDetailed(r.Context(), userID, req.TOTPCode)
 			if err != nil {
 				slog.Error("broadcast step-up totp check failed", "error", err)
 				writeError(w, http.StatusInternalServerError, "internal error", "INTERNAL_ERROR")
 				return
 			}
-			if !valid {
+			switch outcome {
+			case service.TOTPCheckOK:
+				// proceed
+			case service.TOTPCheckReplayed:
+				// The code was correct but its 30s step was already consumed
+				// (typically by the login moments earlier, or by a broadcast
+				// retry after an upstream 502). This is an authenticated flow,
+				// so being specific is safe — and "invalid code" would send
+				// the user hunting for a typo that does not exist.
+				h.auditBroadcast(r, userID, "deny", "", req.Coin, network)
+				writeError(w, http.StatusForbidden,
+					"this code was already used — wait for the next code from your authenticator",
+					"TOTP_CODE_ALREADY_USED")
+				return
+			default:
 				h.auditBroadcast(r, userID, "deny", "", req.Coin, network)
 				writeError(w, http.StatusForbidden, "invalid TOTP code", "STEP_UP_REQUIRED")
 				return

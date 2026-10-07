@@ -1145,6 +1145,8 @@ export default function WalletPage() {
                       />
                       <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                         Mainnet broadcasts are step-up protected server-side when your account has 2FA.
+                        Each code works once — if you just signed in with the current code, wait for
+                        your authenticator to show the next one.
                       </p>
                     </div>
                   )}

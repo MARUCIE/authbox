@@ -155,25 +155,51 @@ func (s *TOTPService) Disable(ctx context.Context, userID uuid.UUID, code string
 	return s.userRepo.DisableTOTP(ctx, userID)
 }
 
+// CheckOutcome distinguishes a wrong code from a correct-but-already-used
+// one. Pre-auth flows must collapse both to a constant error, but an
+// AUTHENTICATED flow (mainnet broadcast step-up) should tell the user "wait
+// for the next code" instead of implying a typo.
+type CheckOutcome int
+
+const (
+	TOTPCheckInvalid CheckOutcome = iota
+	TOTPCheckReplayed
+	TOTPCheckOK
+)
+
 // Check validates a TOTP code (used during login if TOTP is enabled).
 func (s *TOTPService) Check(ctx context.Context, userID uuid.UUID, code string) (bool, error) {
+	outcome, err := s.CheckDetailed(ctx, userID, code)
+	return outcome == TOTPCheckOK, err
+}
+
+// CheckDetailed validates a TOTP code and reports WHY it failed.
+// Every accepted code claims its counter step (replay protection).
+func (s *TOTPService) CheckDetailed(ctx context.Context, userID uuid.UUID, code string) (CheckOutcome, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return false, err
+		return TOTPCheckInvalid, err
 	}
 	if user == nil || !user.TOTPEnabled {
-		return false, nil
+		return TOTPCheckInvalid, nil
 	}
 	secret, err := s.decryptSecret(user.TOTPSecret)
 	if err != nil {
-		return false, err
+		return TOTPCheckInvalid, err
 	}
 	counter, ok := matchTOTP(secret, code, time.Now())
 	if !ok {
-		return false, nil
+		return TOTPCheckInvalid, nil
 	}
 	// Reject replays: the same code (same counter step) is accepted once.
-	return s.userRepo.ClaimTOTPCounter(ctx, userID, counter)
+	claimed, err := s.userRepo.ClaimTOTPCounter(ctx, userID, counter)
+	if err != nil {
+		return TOTPCheckInvalid, err
+	}
+	if !claimed {
+		return TOTPCheckReplayed, nil
+	}
+	return TOTPCheckOK, nil
 }
 
 const totpSecretEnvelopePrefix = "authbox-totp-v1:"

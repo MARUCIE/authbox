@@ -37,7 +37,11 @@ final class VaultSyncEngine {
         /// newer one.
         func localPayload(for id: UUID) -> (payloadJSON: String, updatedAt: Date)?
         /// Apply a pulled item (insert or update in place, preserving the id).
-        func applyRemoteUpsert(id: UUID, payloadJSON: String, updatedAt: Date?)
+        /// `vaultKey` is the ENGINE's own key copy: an in-flight fetched event
+        /// can land just after lockVault() nils AppState's key, and dropping
+        /// the change there would lose it forever (CKSyncEngine marks the
+        /// fetch consumed via the next stateUpdate).
+        func applyRemoteUpsert(id: UUID, payloadJSON: String, updatedAt: Date?, vaultKey: Data)
         /// Apply a pulled deletion.
         func applyRemoteDelete(id: UUID)
         /// Called after a batch of pulls so the UI can refresh.
@@ -147,7 +151,8 @@ extension VaultSyncEngine: CKSyncEngineDelegate {
                 if let decoded = try? VaultBlobCodec.decode(serverRecord, vaultKey: vaultKey) {
                     backend?.applyRemoteUpsert(id: decoded.id,
                                                payloadJSON: decoded.plaintextJSON,
-                                               updatedAt: decoded.updatedAt)
+                                               updatedAt: decoded.updatedAt,
+                                               vaultKey: vaultKey)
                     backend?.syncDidApplyRemoteChanges()
                 }
 
@@ -218,7 +223,8 @@ extension VaultSyncEngine: CKSyncEngineDelegate {
                 logger.error("could not decode pulled record \(record.recordID.recordName, privacy: .public)")
                 continue
             }
-            backend?.applyRemoteUpsert(id: decoded.id, payloadJSON: decoded.plaintextJSON, updatedAt: decoded.updatedAt)
+            backend?.applyRemoteUpsert(id: decoded.id, payloadJSON: decoded.plaintextJSON,
+                                       updatedAt: decoded.updatedAt, vaultKey: vaultKey)
             changed = true
         }
         for deletion in changes.deletions {

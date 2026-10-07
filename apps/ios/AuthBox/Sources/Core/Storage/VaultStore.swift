@@ -83,13 +83,24 @@ final class VaultStore {
     // MARK: - CRUD (encrypting)
 
     /// Decrypt every stored record with the vault key, newest first. A record
-    /// that fails authentication is skipped (corrupt row), never fatal.
-    func fetchAll(vaultKey: Data) throws -> [VaultItem] {
+    /// that fails authentication is skipped (never fatal) but COUNTED: rows
+    /// that do not authenticate under the current key usually mean the vault
+    /// key changed (different mnemonic restored over an existing install) —
+    /// silently hiding them would present an empty vault with zero errors.
+    func fetchAll(vaultKey: Data) throws -> (items: [VaultItem], undecryptable: Int) {
         let descriptor = FetchDescriptor<EncryptedVaultRecord>(
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         )
         let records = try modelContext.fetch(descriptor)
-        return records.compactMap { try? Self.decryptRecord($0, vaultKey: vaultKey) }
+        var undecryptable = 0
+        let items: [VaultItem] = records.compactMap { record in
+            guard let item = try? Self.decryptRecord(record, vaultKey: vaultKey) else {
+                undecryptable += 1
+                return nil
+            }
+            return item
+        }
+        return (items, undecryptable)
     }
 
     func insert(_ item: VaultItem, vaultKey: Data) throws {

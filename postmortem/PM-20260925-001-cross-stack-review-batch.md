@@ -138,6 +138,31 @@ TRIGGER_REGEX: env != "production"
   unboundedly (denials themselves remain unconditional).
 - Go: TOTP replay and SyncPush validation are now pinned by service tests.
 
+# Round 4 (2026-10-07): focused review of the optimization commit
+An adversarial pass over commit 716e4ef found 5 defects, all fixed:
+- The login-then-broadcast flow was guaranteed a 403 for up to 30s: login
+  claims the current TOTP counter step, and the broadcast step-up re-presents
+  the same still-displayed code, which replay protection rejects as "invalid
+  TOTP code". The step-up now distinguishes TOTP_CODE_ALREADY_USED ("wait for
+  the next code") from a wrong code — safe to be specific in an
+  authenticated flow — and the web confirm explains one-time codes.
+- A third macOS in-memory-store fallback survived the earlier sweep
+  (VaultViewModel.add wrote secrets into a throwaway container on store-open
+  failure); writes are now blocked with a visible error, same as Quick
+  Connect and the provider hub.
+- iOS: restoring a different mnemonic over an existing install silently
+  showed an empty vault while old-key ciphertext rows lingered undeletable;
+  create/restore now purge the local store (items re-materialize from
+  CloudKit) and fetchAll counts+logs undecryptable rows instead of hiding
+  them; applyRemoteDelete deletes from the store even when the id is not in
+  memory.
+- iOS: a remote change pulled in the instant after lockVault() was silently
+  dropped and marked consumed; the sync engine now passes ITS OWN vault-key
+  copy into applyRemoteUpsert so in-flight events always persist (ciphertext
+  write only — nothing plaintext is exposed post-lock).
+- The missing-TOTP-code mainnet denial now writes the audit event the commit
+  message already promised.
+
 # Known remaining risks (documented, not fixed)
 - iOS AutoFill extension is built around a plaintext shared-App-Group JSON store (dormant;
   nothing writes it — needs Keychain-access-group key sharing to do properly).
