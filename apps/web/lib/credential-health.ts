@@ -324,13 +324,6 @@ export function hasHealthCheck(providerId: string): boolean {
 }
 
 /**
- * Get list of all providers with health checks.
- */
-export function healthCheckProviders(): string[] {
-  return Object.keys(HEALTH_CHECKS);
-}
-
-/**
  * Run a health check for a single credential.
  *
  * @param providerId - Provider ID from the catalog
@@ -393,24 +386,4 @@ export async function checkCredentialHealth(
       latencyMs: Date.now() - startTime,
     };
   }
-}
-
-/**
- * Run health checks for multiple credentials in parallel (max 5 concurrent).
- */
-export async function batchHealthCheck(
-  credentials: Array<{ providerId: string; fields: Record<string, string> }>,
-): Promise<HealthCheckResult[]> {
-  const results: HealthCheckResult[] = [];
-  const concurrency = 5;
-
-  for (let i = 0; i < credentials.length; i += concurrency) {
-    const batch = credentials.slice(i, i + concurrency);
-    const batchResults = await Promise.all(
-      batch.map((c) => checkCredentialHealth(c.providerId, c.fields)),
-    );
-    results.push(...batchResults);
-  }
-
-  return results;
 }
