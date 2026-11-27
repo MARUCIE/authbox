@@ -5,14 +5,14 @@ import {
   type AccessRequest,
   type AccessDecision,
   type PendingApproval,
-} from "./policy-engine";
-import { sanitizeProxyRequest } from "./proxy-security";
+} from "./policy-engine.js";
+import { sanitizeProxyRequest } from "./proxy-security.js";
 import {
   authboxTools,
   type ProxyRequest,
   type ProxyResponse,
   type ToolCallResult,
-} from "./tools";
+} from "./tools.js";
 
 export interface AuditEvent {
   actorType: "agent";

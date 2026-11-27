@@ -1,4 +1,4 @@
-import type { ItemType } from './vault';
+import type { ItemType } from './vault.js';
 
 export enum AgentType {
   MCPClient = 'mcp_client',

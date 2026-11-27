@@ -1,6 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import type { ProxyRequest } from "./tools";
+import type { ProxyRequest } from "./tools.js";
 
 const ALLOWED_PROXY_METHODS = new Set([
   "GET",

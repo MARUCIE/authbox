@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { mnemonicToSeed } from '../seed';
+import { mnemonicToSeed } from '../seed.js';
 import {
   deriveAddress,
   deriveAccount,
   derivePrivateKey,
   deriveAddressFromMnemonic,
   ethAddressFromPublicKey,
-} from '../wallet';
+} from '../wallet.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
 
 /**

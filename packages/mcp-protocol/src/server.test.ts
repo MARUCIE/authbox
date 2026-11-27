@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createConnection } from "node:net";
 import WebSocket from "ws";
-import { AuthBoxMCPServer, type VaultBridge } from "./server";
+import { AuthBoxMCPServer, type VaultBridge } from "./server.js";
 
 const PORT = 19911;
 

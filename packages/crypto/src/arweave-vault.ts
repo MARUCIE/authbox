@@ -17,7 +17,7 @@
 
 import Arweave from 'arweave';
 import { sha256 } from '@noble/hashes/sha256';
-import { encryptAES256GCM, decryptAES256GCM } from './aes-gcm';
+import { encryptAES256GCM, decryptAES256GCM } from './aes-gcm.js';
 
 // ─── Arweave Client ───────────────────────────────────────────────────────
 

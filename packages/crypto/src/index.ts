@@ -1,18 +1,18 @@
-export { deriveKeys, type DerivedKeys } from "./argon2";
+export { deriveKeys, type DerivedKeys } from "./argon2.js";
 export {
   encryptAES256GCM,
   decryptAES256GCM,
   generateRandomBytes,
   type EncryptedPayload,
-} from "./aes-gcm";
-export { deriveSubKey, type SubKeyPurpose } from "./hkdf";
+} from "./aes-gcm.js";
+export { deriveSubKey, type SubKeyPurpose } from "./hkdf.js";
 export {
   srpGenerateVerifier,
   srpClientInit,
   srpClientVerify,
   srpVerifyServerProof,
   type SRPClientState,
-} from "./srp";
+} from "./srp.js";
 export {
   generateMnemonic,
   validateMnemonic,
@@ -25,8 +25,8 @@ export {
   KeyPurpose,
   type SeedKeyBundle,
   type DerivePasswordOptions,
-} from "./seed";
-export { ENGLISH_WORDLIST } from "./wordlist-en";
+} from "./seed.js";
+export { ENGLISH_WORDLIST } from "./wordlist-en.js";
 export {
   archiveVault,
   retrieveVault,
@@ -36,7 +36,7 @@ export {
   setArweaveGateway,
   type VaultArchiveResult,
   type VaultArchiveMetadata,
-} from "./arweave-vault";
+} from "./arweave-vault.js";
 export {
   generateVaultKey,
   encryptVaultKey,
@@ -44,7 +44,7 @@ export {
   encryptVaultItem,
   decryptVaultItem,
   type VaultKeyBundle,
-} from "./vault-crypto";
+} from "./vault-crypto.js";
 export {
   deriveAccount,
   deriveAddress,
@@ -57,7 +57,7 @@ export {
   type WalletAddress,
   type WalletAccount,
   type DeriveAddressOptions,
-} from "./wallet";
+} from "./wallet.js";
 export {
   buildBtcTransaction,
   buildEthTransaction,
@@ -66,7 +66,7 @@ export {
   type SignedBtcTransaction,
   type BuildEthTxParams,
   type SignedEthTransaction,
-} from "./wallet-tx";
+} from "./wallet-tx.js";
 export {
   parseAmount,
   selectBtcFeeRate,
@@ -74,7 +74,7 @@ export {
   ethChainId,
   type BtcFeeTiers,
   type BtcFeeTier,
-} from "./wallet-send";
+} from "./wallet-send.js";
 export {
   totpCode,
   hotpCode,
@@ -86,5 +86,5 @@ export {
   base32Encode,
   type TOTPParams,
   type OTPAlgorithm,
-} from "./totp";
-export { parseOTPImport, parseMigration } from "./otp-migration";
+} from "./totp.js";
+export { parseOTPImport, parseMigration } from "./otp-migration.js";

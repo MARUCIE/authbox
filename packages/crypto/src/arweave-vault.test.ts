@@ -14,16 +14,16 @@ import {
   estimateArchiveCost,
   findVaultArchives,
   setArweaveGateway,
-} from './arweave-vault';
-import { encryptAES256GCM, decryptAES256GCM, generateRandomBytes } from './aes-gcm';
+} from './arweave-vault.js';
+import { encryptAES256GCM, decryptAES256GCM, generateRandomBytes } from './aes-gcm.js';
 import { sha256 } from '@noble/hashes/sha256';
 import {
   setWordlist,
   generateMnemonic,
   mnemonicToSeed,
   deriveAllKeys,
-} from './seed';
-import { ENGLISH_WORDLIST } from './wordlist-en';
+} from './seed.js';
+import { ENGLISH_WORDLIST } from './wordlist-en.js';
 
 // ─── Setup ────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentPolicy } from '@authbox/shared';
-import { PolicyEngine } from './policy-engine';
+import { PolicyEngine } from './policy-engine.js';
 
 function policy(overrides: Partial<AgentPolicy>): AgentPolicy {
   return {

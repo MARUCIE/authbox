@@ -1,4 +1,4 @@
-import { parseOtpauth, type TOTPParams, type OTPAlgorithm } from "./totp";
+import { parseOtpauth, type TOTPParams, type OTPAlgorithm } from "./totp.js";
 
 /**
  * Importing existing 2FA accounts on the web — the TS port of the iOS

@@ -7,7 +7,7 @@ import {
   getProvider,
   getProvidersByCategory,
   matchEnvVar,
-} from './credential-catalog';
+} from './credential-catalog.js';
 
 // The catalog is the single source for provider templates on web and, via
 // scripts/gen-swift-catalog.ts, on iOS/macOS. These checks keep its internal

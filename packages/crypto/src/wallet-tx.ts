@@ -31,7 +31,7 @@ import * as btc from '@scure/btc-signer';
 import { hexToBytes } from '@noble/hashes/utils';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { Transaction as EthTransaction } from 'micro-eth-signer';
-import { derivePrivateKey, deriveAddress, type BtcScriptType, type WalletNetwork } from './wallet';
+import { derivePrivateKey, deriveAddress, type BtcScriptType, type WalletNetwork } from './wallet.js';
 
 // ─── Bitcoin ──────────────────────────────────────────────────────────────────
 

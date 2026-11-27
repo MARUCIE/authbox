@@ -1,6 +1,6 @@
 import { argon2id } from 'hash-wasm';
-import { generateRandomBytes } from './aes-gcm';
-import { deriveSubKey } from './hkdf';
+import { generateRandomBytes } from './aes-gcm.js';
+import { deriveSubKey } from './hkdf.js';
 
 export interface DerivedKeys {
   authKey: Uint8Array; // For SRP authentication
