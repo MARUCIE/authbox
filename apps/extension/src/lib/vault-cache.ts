@@ -11,6 +11,7 @@
 import { deriveKeys, decryptVaultKey, decryptVaultItem } from '@authbox/crypto';
 import type { LoginItem, VaultItem, EncryptedVaultItem, ItemType } from '@authbox/shared';
 import { getApiBase } from './config';
+import { parseStoredItem, uriMatchesPage } from './item-format';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -141,14 +142,15 @@ export async function unlock(password: string): Promise<boolean> {
           nonce: fromBase64(item.nonce),
           tag: fromBase64(item.tag),
         });
-        const parsed = JSON.parse(plaintext) as VaultItem;
-        // Ensure server metadata is preserved
-        parsed.id = item.id;
-        parsed.itemType = item.itemType as ItemType;
-        parsed.revision = item.revision;
-        parsed.createdAt = item.createdAt;
-        parsed.updatedAt = item.updatedAt;
-        decryptedItems.push(parsed);
+        decryptedItems.push(
+          parseStoredItem(plaintext, {
+            id: item.id,
+            itemType: item.itemType,
+            revision: item.revision,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+          }),
+        );
       } catch {
         // Skip items that fail to decrypt (corrupted or wrong key)
         console.warn(`[vault-cache] Failed to decrypt item ${item.id}`);
@@ -220,43 +222,15 @@ export function search(
     (item): item is LoginItem => item.itemType === ('login' as ItemType),
   );
 
-  // Extract domain from URI for matching
-  let uriDomain: string | null = null;
-  if (uri) {
-    try {
-      uriDomain = new URL(uri).hostname.replace(/^www\./, '');
-    } catch {
-      uriDomain = uri.toLowerCase();
-    }
-  }
-
   const q = query.toLowerCase();
 
   return loginItems
     .filter((item) => {
-      // URI-based matching (highest priority for autofill)
-      if (uriDomain) {
-        const uriMatch = item.uri.some((u) => {
-          try {
-            return new URL(u).hostname.replace(/^www\./, '') === uriDomain;
-          } catch {
-            return u.toLowerCase().includes(uriDomain!);
-          }
-        });
-        if (uriMatch) return true;
+      // Page matching for autofill: exact origin only (see uriMatchesPage).
+      if (uri) {
+        return item.uri.some((u) => uriMatchesPage(u, uri)) || (q !== '' && textMatches(item, q));
       }
-
-      // Text query matching
-      if (q) {
-        return (
-          item.name.toLowerCase().includes(q) ||
-          item.username.toLowerCase().includes(q) ||
-          item.uri.some((u) => u.toLowerCase().includes(q))
-        );
-      }
-
-      // If URI was provided but didn't match, and no text query, exclude
-      return !uriDomain;
+      return q === '' || textMatches(item, q);
     })
     .map(({ id, name, username, uri: itemUri }) => ({
       id,
@@ -264,6 +238,14 @@ export function search(
       username,
       uri: itemUri,
     }));
+}
+
+function textMatches(item: LoginItem, q: string): boolean {
+  return (
+    item.name.toLowerCase().includes(q) ||
+    item.username.toLowerCase().includes(q) ||
+    item.uri.some((u) => u.toLowerCase().includes(q))
+  );
 }
 
 /** Get a single item by ID (for autofill). */

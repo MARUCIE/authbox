@@ -335,8 +335,9 @@ function LockedView({ onUnlock, onLogout }: LockedViewProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = password.trim();
-    if (!trimmed) return;
+    // Send the password exactly as typed: login uses it untrimmed, so a
+    // trimmed copy would derive a different key and never unlock.
+    if (!password.trim()) return;
 
     setSubmitting(true);
     setError("");
@@ -344,7 +345,7 @@ function LockedView({ onUnlock, onLogout }: LockedViewProps) {
     try {
       const response: GenericResponse = await chrome.runtime.sendMessage({
         type: "UNLOCK_VAULT",
-        payload: { password: trimmed },
+        payload: { password },
       });
 
       if (response.ok) {
@@ -471,10 +472,15 @@ function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
   }, [query]);
 
   const handleItemClick = async (itemId: string) => {
-    await chrome.runtime.sendMessage({
+    const response: GenericResponse = await chrome.runtime.sendMessage({
       type: "AUTOFILL_REQUEST",
       payload: { itemId },
     });
+    if (!response?.ok) {
+      // e.g. the login is saved for a different site than the open tab
+      setSearchError(response?.error ?? "Autofill failed");
+      return;
+    }
     window.close();
   };
 
