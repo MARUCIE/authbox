@@ -69,25 +69,27 @@ export function parseStoredItem(plaintext: string, meta: ItemMeta): VaultItem {
   return login;
 }
 
-/** Origin with a leading "www." dropped from the host, or null if unparsable. */
-function comparableOrigin(uri: string): string | null {
+/** Scheme, host (leading "www." dropped) and port, or null if unparsable. */
+function originParts(uri: string): { scheme: string; hostPort: string } | null {
   try {
     const u = new URL(uri);
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
     const host = u.hostname.replace(/^www\./, '');
-    return `${u.protocol}//${host}${u.port ? `:${u.port}` : ''}`;
+    return { scheme: u.protocol, hostPort: `${host}${u.port ? `:${u.port}` : ''}` };
   } catch {
     return null;
   }
 }
 
 /**
- * True when a saved address belongs to the page: same scheme, host (ignoring
- * a leading www.) and port. Never a substring test, so "hub.com" does not
- * match a "github.com" item and an http:// page does not get https:// logins.
+ * True when a saved address belongs to the page: same host (ignoring a
+ * leading www.) and port, and either the same scheme or an http:// login on
+ * the https:// version of the site. Never a substring test, so "hub.com" does
+ * not match a "github.com" item, and an http:// page never gets https:// logins.
  */
 export function uriMatchesPage(savedUri: string, pageUrl: string): boolean {
-  const saved = comparableOrigin(normalizeUri(savedUri));
-  const page = comparableOrigin(pageUrl);
-  return saved !== null && saved === page;
+  const saved = originParts(normalizeUri(savedUri));
+  const page = originParts(pageUrl);
+  if (!saved || !page || saved.hostPort !== page.hostPort) return false;
+  return saved.scheme === page.scheme || (saved.scheme === 'http:' && page.scheme === 'https:');
 }

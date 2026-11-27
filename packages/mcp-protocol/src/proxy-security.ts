@@ -258,7 +258,7 @@ function isBlockedIPv6(address: string): boolean {
   }
   return (
     (g[0] === 0x64 && g[1] === 0xff9b && g[2] === 1) || // 64:ff9b:1::/48 local NAT64
-    (g[0] === 0x100 && zeroUpTo(4)) || // 100::/64 discard
+    (g[0] === 0x100 && g[1] === 0 && g[2] === 0 && g[3] === 0) || // 100::/64 discard
     (g[0] === 0x2001 && g[1] === 0) || // 2001::/32 Teredo
     (g[0] === 0x2001 && g[1] === 0xdb8) || // 2001:db8::/32 documentation
     (g[0] & 0xfe00) === 0xfc00 || // fc00::/7 unique local

@@ -90,12 +90,13 @@ async function handleMessage(
   sender: chrome.runtime.MessageSender,
 ): Promise<GenericResponse | StatusResponse | SearchResponse> {
   if (msg.type === 'FORM_DETECTED') {
-    // The only message a content script sends. Use the tab's real URL, not
-    // the one the page put in the payload.
-    if (sender.id !== chrome.runtime.id || !sender.tab?.url) {
+    // The only message a content script sends. Use the sending frame's real
+    // URL, not the one the page put in the payload. sender.url is set for
+    // content scripts without the "tabs" permission; sender.tab.url is not.
+    if (sender.id !== chrome.runtime.id || !sender.tab || sender.frameId !== 0 || !sender.url) {
       return { ok: false, error: 'Not allowed' };
     }
-    updateBadgeForUri(sender.tab.url);
+    updateBadgeForUri(sender.url);
     return { ok: true };
   }
   if (!fromExtensionPage(sender)) {

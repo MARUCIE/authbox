@@ -32,6 +32,8 @@ test('matches by exact origin, never by substring', () => {
   assert.equal(uriMatchesPage('github.com', 'https://b.com/'), false);
   assert.equal(uriMatchesPage('github.com', 'https://github.com.evil.example/'), false);
   assert.equal(uriMatchesPage('https://bank.example', 'http://bank.example/'), false);
+  assert.equal(uriMatchesPage('http://github.com', 'https://github.com/login'), true);
+  assert.equal(uriMatchesPage('http://github.com', 'https://hub.com/'), false);
   assert.equal(uriMatchesPage('https://app.example:8443', 'https://app.example/'), false);
   assert.equal(uriMatchesPage('not a url at all', 'https://a.com/'), false);
   assert.equal(uriMatchesPage('javascript:alert(1)', 'https://a.com/'), false);

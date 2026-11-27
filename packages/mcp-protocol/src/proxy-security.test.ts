@@ -51,6 +51,7 @@ describe("sanitizeProxyRequest", () => {
       "64:ff9b::a9fe:a9fe", // NAT64 of 169.254.169.254
       "2002:a9fe:a9fe::1", // 6to4 of 169.254.169.254
       "fec0::1",
+      "100::1", // discard prefix
       "fe80::1%eth0",
       "fd00::1",
       "::1",
