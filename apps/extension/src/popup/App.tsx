@@ -84,6 +84,8 @@ function LoginView({ onLogin }: LoginViewProps) {
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [pendingTOTPEmail, setPendingTOTPEmail] = useState<string | null>(null);
+  // Single-use challenge from the SRP step; the server requires it for TOTP.
+  const [pendingTOTPChallenge, setPendingTOTPChallenge] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -115,6 +117,7 @@ function LoginView({ onLogin }: LoginViewProps) {
             body: JSON.stringify({
               email: pendingTOTPEmail,
               code: totpCode.trim(),
+              loginChallenge: pendingTOTPChallenge,
             }),
           },
         );
@@ -208,6 +211,10 @@ function LoginView({ onLogin }: LoginViewProps) {
       }
 
       if (verifyData.totpRequired) {
+        if (!verifyData.loginChallenge) {
+          throw new Error("Login response missing TOTP challenge");
+        }
+        setPendingTOTPChallenge(verifyData.loginChallenge);
         setPendingTOTPEmail(email.trim());
         setTotpCode("");
         return;

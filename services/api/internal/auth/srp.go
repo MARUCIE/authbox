@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"errors"
 	"math/big"
 )
@@ -81,12 +82,10 @@ func (s *SRPServer) PublicB() []byte {
 // clientM1 is the client's proof = H(H(N) XOR H(g) | H(email) | salt | A | B | S).
 // For simplicity we use M1 = H(A | B | S) and M2 = H(A | M1 | S).
 func (s *SRPServer) VerifyProof(clientA, clientM1 []byte) ([]byte, error) {
-	A := new(big.Int).SetBytes(clientA)
-
-	// Safety check: A mod N != 0
-	if new(big.Int).Mod(A, srpN).Sign() == 0 {
-		return nil, errors.New("srp: A mod N is zero")
+	if err := ValidateClientPublic(clientA); err != nil {
+		return nil, err
 	}
+	A := new(big.Int).SetBytes(clientA)
 	s.A = A
 
 	// u = H(A | B)
@@ -120,6 +119,21 @@ func (s *SRPServer) VerifyProof(clientA, clientM1 []byte) ([]byte, error) {
 	// M2 = H(A | M1 | K)
 	M2 := hashBytes(Apad, clientM1, K)
 	return M2, nil
+}
+
+// ValidateClientPublic enforces the SRP-6a safety check on the client's public
+// value: 0 < A < N. Values that are 0 mod N force the shared secret to a known
+// constant; values >= N are non-canonical encodings of the same group element
+// and are rejected so one A has exactly one byte representation.
+func ValidateClientPublic(clientA []byte) error {
+	if len(clientA) == 0 || len(clientA) > len(srpN.Bytes()) {
+		return errors.New("srp: client public value has invalid length")
+	}
+	A := new(big.Int).SetBytes(clientA)
+	if A.Sign() == 0 || A.Cmp(srpN) >= 0 {
+		return errors.New("srp: client public value out of range")
+	}
+	return nil
 }
 
 // --- Helpers ---
@@ -169,12 +183,5 @@ func randBigInt(bits int) (*big.Int, error) {
 }
 
 func constantTimeEqual(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	var v byte
-	for i := range a {
-		v |= a[i] ^ b[i]
-	}
-	return v == 0
+	return subtle.ConstantTimeCompare(a, b) == 1
 }

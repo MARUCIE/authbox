@@ -225,25 +225,35 @@ func (h *AuthHandler) LoginVerify(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) LoginVerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Email string `json:"email"`
-		Code  string `json:"code"`
+		Email          string `json:"email"`
+		Code           string `json:"code"`
+		LoginChallenge string `json:"loginChallenge"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
 		return
 	}
 
-	if req.Email == "" || req.Code == "" {
+	if req.Email == "" || req.Code == "" || req.LoginChallenge == "" {
 		writeError(w, http.StatusBadRequest, "missing required fields", "BAD_REQUEST")
+		return
+	}
+	if len(req.Code) > 16 || len(req.LoginChallenge) > 128 {
+		writeError(w, http.StatusBadRequest, "field length exceeds limit", "BAD_REQUEST")
 		return
 	}
 
 	ipAddress := appmw.ClientIP(r)
 	userAgent := r.UserAgent()
 
-	resp, err := h.authService.LoginVerifyTOTP(r.Context(), req.Email, req.Code, ipAddress, userAgent)
+	resp, err := h.authService.LoginVerifyTOTP(r.Context(), req.Email, req.LoginChallenge, req.Code, ipAddress, userAgent)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, err.Error(), "INVALID_CREDENTIALS")
+		if !errors.Is(err, service.ErrInvalidCredentials) {
+			slog.Error("totp login verify failed", "error", err)
+		}
+		// Same vague answer for every failure: never reveal whether the
+		// challenge, the account state or the code was the problem.
+		writeError(w, http.StatusUnauthorized, "invalid credentials", "INVALID_CREDENTIALS")
 		return
 	}
 

@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"auth-box-api/internal/domain"
@@ -24,6 +25,15 @@ import (
 type TOTPService struct {
 	userRepo     domain.UserRepository
 	secretCipher cipher.AEAD
+
+	// usedSteps records, per user, the newest time step a code was accepted
+	// for. RFC 6238 §5.2: a verifier must not accept the same OTP twice, so a
+	// code that was shoulder-surfed, phished or logged cannot be replayed
+	// inside its ~90s validity window. In-process state: correct for the
+	// single API instance this service runs as; a multi-replica deployment
+	// would need this in the database or Redis.
+	mu        sync.Mutex
+	usedSteps map[uuid.UUID]int64
 }
 
 func NewTOTPService(userRepo domain.UserRepository, secretKey []byte) *TOTPService {
@@ -35,7 +45,7 @@ func NewTOTPService(userRepo domain.UserRepository, secretKey []byte) *TOTPServi
 	if err != nil {
 		panic("invalid TOTP secret encryption cipher")
 	}
-	return &TOTPService{userRepo: userRepo, secretCipher: aead}
+	return &TOTPService{userRepo: userRepo, secretCipher: aead, usedSteps: make(map[uuid.UUID]int64)}
 }
 
 type TOTPEnrollResponse struct {
@@ -107,7 +117,7 @@ func (s *TOTPService) Verify(ctx context.Context, userID uuid.UUID, code string)
 		return err
 	}
 
-	if !validateTOTP(secret, code, time.Now()) {
+	if !s.acceptCode(userID, secret, code, time.Now()) {
 		return fmt.Errorf("invalid TOTP code")
 	}
 
@@ -132,7 +142,7 @@ func (s *TOTPService) Disable(ctx context.Context, userID uuid.UUID, code string
 		return err
 	}
 
-	if !validateTOTP(secret, code, time.Now()) {
+	if !s.acceptCode(userID, secret, code, time.Now()) {
 		return fmt.Errorf("invalid TOTP code")
 	}
 
@@ -152,7 +162,32 @@ func (s *TOTPService) Check(ctx context.Context, userID uuid.UUID, code string) 
 	if err != nil {
 		return false, err
 	}
-	return validateTOTP(secret, code, time.Now()), nil
+	return s.acceptCode(userID, secret, code, time.Now()), nil
+}
+
+// acceptCode validates code and, if it matches, consumes its time step so the
+// same code (or an older one) is rejected on any later call for this user.
+func (s *TOTPService) acceptCode(userID uuid.UUID, secret []byte, code string, now time.Time) bool {
+	step, ok := matchTOTPStep(secret, code, now)
+	if !ok {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if last, seen := s.usedSteps[userID]; seen && step <= last {
+		return false
+	}
+	s.usedSteps[userID] = step
+	if len(s.usedSteps) > 4096 {
+		// Entries older than the validity window can never block a code again.
+		horizon := now.Unix()/30 - 2
+		for id, last := range s.usedSteps {
+			if last < horizon {
+				delete(s.usedSteps, id)
+			}
+		}
+	}
+	return true
 }
 
 const totpSecretEnvelopePrefix = "authbox-totp-v1:"
@@ -199,16 +234,21 @@ func (s *TOTPService) decryptSecret(envelope []byte) ([]byte, error) {
 	return secret, nil
 }
 
-func validateTOTP(secret []byte, code string, now time.Time) bool {
-	// Allow 1 step window (30s before, current, 30s after).
-	// Uses constant-time comparison to prevent timing attacks.
+// matchTOTPStep checks code against the current step and one step either side
+// (clock skew) and returns the step it matched. Every candidate is compared in
+// constant time so timing does not reveal which step, if any, matched.
+func matchTOTPStep(secret []byte, code string, now time.Time) (int64, bool) {
 	counter := now.Unix() / 30
-	match := 0
+	var matched int64
+	found := 0
 	for i := int64(-1); i <= 1; i++ {
-		expected := generateTOTP(secret, counter+i)
-		match |= subtle.ConstantTimeCompare([]byte(expected), []byte(code))
+		eq := subtle.ConstantTimeCompare([]byte(generateTOTP(secret, counter+i)), []byte(code))
+		if eq == 1 {
+			matched = counter + i
+		}
+		found |= eq
 	}
-	return match == 1
+	return matched, found == 1
 }
 
 func generateTOTP(secret []byte, counter int64) string {

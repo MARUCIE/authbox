@@ -111,13 +111,14 @@ export const authApi = {
         keyLength: number;
       };
       totpRequired?: boolean;
+      loginChallenge?: string;
     }>('/api/v1/auth/login/verify', {
       method: 'POST',
       body: JSON.stringify(body),
     });
   },
 
-  loginVerifyTOTP(body: { email: string; code: string }) {
+  loginVerifyTOTP(body: { email: string; code: string; loginChallenge: string }) {
     return request<{
       sessionToken: string;
       serverProofM2: string;

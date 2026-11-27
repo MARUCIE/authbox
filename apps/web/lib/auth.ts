@@ -97,6 +97,8 @@ export interface PendingTOTPLogin {
   kind: "totp_required";
   email: string;
   encKey: Uint8Array;
+  /** Single-use challenge from the SRP step; binds the TOTP step to this client. */
+  loginChallenge: string;
 }
 
 export async function login(
@@ -148,10 +150,14 @@ export async function login(
   }
 
   if (verifyResponse.totpRequired) {
+    if (!verifyResponse.loginChallenge) {
+      throw new Error("Login response missing TOTP challenge");
+    }
     return {
       kind: "totp_required",
       email,
       encKey: keys.encKey,
+      loginChallenge: verifyResponse.loginChallenge,
     };
   }
 
@@ -185,6 +191,7 @@ export async function verifyLoginTOTP(
   const verifyResponse = await authApi.loginVerifyTOTP({
     email: pending.email,
     code,
+    loginChallenge: pending.loginChallenge,
   });
 
   const vaultKey = await decryptVaultKey(pending.encKey, {

@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"sync"
 	"time"
@@ -49,14 +51,45 @@ type LoginVerifyResponse struct {
 	VaultKeyTag       string           `json:"vaultKeyTag,omitempty"`
 	KDFParams         domain.KDFParams `json:"kdfParams,omitempty"`
 	TOTPRequired      bool             `json:"totpRequired,omitempty"`
+	// LoginChallenge is returned with TOTPRequired and must be echoed back to
+	// /auth/login/totp/verify. It binds the TOTP step to the client that
+	// completed SRP.
+	LoginChallenge string `json:"loginChallenge,omitempty"`
 }
 
-// pendingLogin holds ephemeral server-side SRP state between init and verify.
-type pendingLogin struct {
-	srp         *auth.SRPServer
-	user        *domain.User
-	createdAt   time.Time
-	srpVerified bool // set to true after SRP proof succeeds (guards TOTP bypass)
+// ErrInvalidCredentials is the single, deliberately vague error every login
+// failure maps to, so responses never reveal which step or check failed.
+var ErrInvalidCredentials = errors.New("invalid credentials")
+
+const (
+	// pendingLoginTTL bounds how long an SRP handshake or a TOTP challenge stays
+	// usable between steps.
+	pendingLoginTTL = 5 * time.Minute
+	// maxTOTPAttempts caps wrong TOTP codes per login challenge. A 6-digit code
+	// with a ±1 step window has 3 valid values out of 10^6; five guesses per
+	// fully-authenticated SRP handshake keeps online guessing impractical.
+	maxTOTPAttempts = 5
+)
+
+// pendingSRP is the server half of one in-flight SRP handshake. It is keyed by
+// email AND the client's ephemeral A, so a second LoginInit for the same email
+// (from anyone) cannot overwrite or hijack another client's attempt, and it is
+// consumed exactly once by LoginVerify.
+type pendingSRP struct {
+	srp       *auth.SRPServer
+	userID    uuid.UUID
+	createdAt time.Time
+}
+
+// pendingMFA is a login that passed SRP and now waits for a TOTP code. It is
+// keyed by the hash of a random loginChallenge that only the client which
+// completed SRP receives, so knowing the email alone is never enough to submit
+// TOTP guesses for someone else's half-finished login.
+type pendingMFA struct {
+	userID    uuid.UUID
+	email     string
+	createdAt time.Time
+	failures  int
 }
 
 type AuthService struct {
@@ -65,8 +98,9 @@ type AuthService struct {
 	totpService *TOTPService
 	sessionTTL  time.Duration
 
-	mu       sync.Mutex
-	pending  map[string]*pendingLogin // keyed by email
+	mu         sync.Mutex
+	pendingSRP map[string]*pendingSRP // keyed by srpKey(email, A)
+	pendingMFA map[string]*pendingMFA // keyed by challengeKey(loginChallenge)
 }
 
 func NewAuthService(userRepo domain.UserRepository, sessionRepo domain.SessionRepository, totpService *TOTPService, sessionTTL time.Duration) *AuthService {
@@ -75,10 +109,21 @@ func NewAuthService(userRepo domain.UserRepository, sessionRepo domain.SessionRe
 		sessionRepo: sessionRepo,
 		totpService: totpService,
 		sessionTTL:  sessionTTL,
-		pending:     make(map[string]*pendingLogin),
+		pendingSRP:  make(map[string]*pendingSRP),
+		pendingMFA:  make(map[string]*pendingMFA),
 	}
 	go s.cleanupPending()
 	return s
+}
+
+func srpKey(email string, clientA []byte) string {
+	h := sha256.Sum256(clientA)
+	return email + "\x00" + hex.EncodeToString(h[:])
+}
+
+func challengeKey(challenge string) string {
+	h := sha256.Sum256([]byte(challenge))
+	return hex.EncodeToString(h[:])
 }
 
 func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*RegisterResponse, error) {
@@ -138,12 +183,20 @@ func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*Regis
 }
 
 func (s *AuthService) LoginInit(ctx context.Context, req LoginInitRequest) (*LoginInitResponse, error) {
+	clientA, err := base64.StdEncoding.DecodeString(req.ClientPublicA)
+	if err != nil {
+		return nil, errors.New("invalid clientPublicA encoding")
+	}
+	if err := auth.ValidateClientPublic(clientA); err != nil {
+		return nil, err
+	}
+
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, err
 	}
 	if user == nil {
-		return nil, errors.New("invalid credentials")
+		return nil, ErrInvalidCredentials
 	}
 
 	srpServer, err := auth.NewSRPServer(user.SRPVerifier)
@@ -151,17 +204,10 @@ func (s *AuthService) LoginInit(ctx context.Context, req LoginInitRequest) (*Log
 		return nil, err
 	}
 
-	// Decode client's A to validate it
-	clientA, err := base64.StdEncoding.DecodeString(req.ClientPublicA)
-	if err != nil {
-		return nil, errors.New("invalid clientPublicA encoding")
-	}
-	_ = clientA // We store it for verify step
-
 	s.mu.Lock()
-	s.pending[req.Email] = &pendingLogin{
+	s.pendingSRP[srpKey(req.Email, clientA)] = &pendingSRP{
 		srp:       srpServer,
-		user:      user,
+		userID:    user.ID,
 		createdAt: time.Now(),
 	}
 	s.mu.Unlock()
@@ -172,47 +218,64 @@ func (s *AuthService) LoginInit(ctx context.Context, req LoginInitRequest) (*Log
 	}, nil
 }
 
-// LoginVerify validates the client's SRP proof and creates a session.
-func (s *AuthService) LoginVerify(ctx context.Context, email string, clientA, clientM1 []byte, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
+// takePendingSRP removes and returns the handshake for (email, A). Taking it
+// makes every handshake single-use: a failed or replayed proof cannot be
+// retried against the same server ephemeral, and concurrent verifies cannot
+// race on the same SRPServer.
+func (s *AuthService) takePendingSRP(email string, clientA []byte) (*pendingSRP, bool) {
+	key := srpKey(email, clientA)
 	s.mu.Lock()
-	pl, ok := s.pending[email]
-	s.mu.Unlock()
-
+	defer s.mu.Unlock()
+	pl, ok := s.pendingSRP[key]
 	if !ok {
-		return nil, errors.New("no pending login for this email")
+		return nil, false
+	}
+	delete(s.pendingSRP, key)
+	if time.Since(pl.createdAt) > pendingLoginTTL {
+		return nil, false
+	}
+	return pl, true
+}
+
+// LoginVerify validates the client's SRP proof. Without TOTP it issues the
+// session directly; with TOTP it returns a single-use loginChallenge that the
+// same client must present to LoginVerifyTOTP.
+func (s *AuthService) LoginVerify(ctx context.Context, email string, clientA, clientM1 []byte, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
+	pl, ok := s.takePendingSRP(email, clientA)
+	if !ok {
+		return nil, ErrInvalidCredentials
 	}
 
 	m2, err := pl.srp.VerifyProof(clientA, clientM1)
 	if err != nil {
-		s.mu.Lock()
-		delete(s.pending, email)
-		s.mu.Unlock()
-		return nil, errors.New("invalid credentials")
+		return nil, ErrInvalidCredentials
 	}
 
-	currentUser, err := s.userRepo.FindByID(ctx, pl.user.ID)
+	// Re-read the user: TOTP may have been enabled (or the account removed)
+	// between LoginInit and LoginVerify.
+	currentUser, err := s.userRepo.FindByID(ctx, pl.userID)
 	if err != nil || currentUser == nil {
-		s.mu.Lock()
-		delete(s.pending, email)
-		s.mu.Unlock()
-		return nil, errors.New("invalid credentials")
+		return nil, ErrInvalidCredentials
 	}
-	pl.user = currentUser
 
-	// Check if TOTP 2FA is enabled — if so, require TOTP before issuing session.
-	// Mark SRP as verified so LoginVerifyTOTP can confirm proof was completed.
 	if currentUser.TOTPEnabled {
-		pl.srpVerified = true
-		pl.createdAt = time.Now()
+		challenge, _, err := auth.GenerateSessionToken()
+		if err != nil {
+			return nil, err
+		}
+		s.mu.Lock()
+		s.pendingMFA[challengeKey(challenge)] = &pendingMFA{
+			userID:    currentUser.ID,
+			email:     email,
+			createdAt: time.Now(),
+		}
+		s.mu.Unlock()
 		return &LoginVerifyResponse{
-			ServerProofM2: base64.StdEncoding.EncodeToString(m2),
-			TOTPRequired:  true,
+			ServerProofM2:  base64.StdEncoding.EncodeToString(m2),
+			TOTPRequired:   true,
+			LoginChallenge: challenge,
 		}, nil
 	}
-
-	s.mu.Lock()
-	delete(s.pending, email)
-	s.mu.Unlock()
 
 	return s.issueSession(ctx, currentUser, m2, ipAddress, userAgent)
 }
@@ -255,68 +318,100 @@ func (s *AuthService) issueSession(ctx context.Context, user *domain.User, m2 []
 		return nil, err
 	}
 
-	return &LoginVerifyResponse{
+	resp := &LoginVerifyResponse{
 		SessionToken:      token,
 		ServerProofM2:     base64.StdEncoding.EncodeToString(m2),
 		EncryptedVaultKey: base64.StdEncoding.EncodeToString(user.EncryptedVaultKey),
 		VaultKeyNonce:     base64.StdEncoding.EncodeToString(user.VaultKeyNonce),
 		VaultKeyTag:       base64.StdEncoding.EncodeToString(user.VaultKeyTag),
 		KDFParams:         user.KDFParams,
-	}, nil
+	}
+	return resp, nil
 }
 
-// LoginVerifyTOTP completes login when TOTP 2FA is required.
-// Called after LoginVerify returns totpRequired=true.
+// LoginVerifyTOTP completes a login that LoginVerify answered with
+// totpRequired=true.
 //
-// Security: requires that SRP proof was completed first (srpVerified=true).
-// Without this check, an attacker with email + TOTP seed could bypass the
-// master password entirely.
-func (s *AuthService) LoginVerifyTOTP(ctx context.Context, email, totpCode, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
-	// Verify SRP proof was completed before allowing TOTP
+// Security: the caller must present the loginChallenge returned by the SRP
+// step, so only the client that proved knowledge of the master password can
+// submit codes. Each challenge allows maxTOTPAttempts wrong codes, expires
+// after pendingLoginTTL, and yields at most one session.
+func (s *AuthService) LoginVerifyTOTP(ctx context.Context, email, loginChallenge, totpCode, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
+	if loginChallenge == "" {
+		return nil, ErrInvalidCredentials
+	}
+	key := challengeKey(loginChallenge)
+
 	s.mu.Lock()
-	pl, exists := s.pending[email]
+	pm, ok := s.pendingMFA[key]
+	if ok && (pm.email != email || time.Since(pm.createdAt) > pendingLoginTTL) {
+		ok = false
+	}
+	var userID uuid.UUID
+	if ok {
+		userID = pm.userID
+	}
 	s.mu.Unlock()
-
-	if !exists || !pl.srpVerified {
-		return nil, errors.New("SRP authentication required before TOTP verification")
+	if !ok {
+		return nil, ErrInvalidCredentials
 	}
 
-	user, err := s.userRepo.FindByID(ctx, pl.user.ID)
-	if err != nil || user == nil {
-		return nil, errors.New("invalid credentials")
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
 	}
-	pl.user = user
-
-	if !user.TOTPEnabled {
-		return nil, errors.New("TOTP not enabled for this account")
+	if user == nil || !user.TOTPEnabled {
+		s.dropPendingMFA(key)
+		return nil, ErrInvalidCredentials
 	}
 
 	valid, err := s.totpService.Check(ctx, user.ID, totpCode)
 	if err != nil {
 		return nil, err
 	}
-	if !valid {
-		return nil, errors.New("invalid TOTP code")
-	}
 
-	// Clean up pending state now that login is fully complete
 	s.mu.Lock()
-	delete(s.pending, email)
+	pm, ok = s.pendingMFA[key]
+	if !ok {
+		// A concurrent request already consumed or exhausted this challenge.
+		s.mu.Unlock()
+		return nil, ErrInvalidCredentials
+	}
+	if !valid {
+		pm.failures++
+		if pm.failures >= maxTOTPAttempts {
+			delete(s.pendingMFA, key)
+		}
+		s.mu.Unlock()
+		return nil, ErrInvalidCredentials
+	}
+	delete(s.pendingMFA, key)
 	s.mu.Unlock()
 
-	// TOTP verified — issue session (m2 already sent in prior response)
+	// m2 was already returned by LoginVerify.
 	return s.issueSession(ctx, user, nil, ipAddress, userAgent)
 }
 
-// cleanupPending removes stale login attempts older than 5 minutes.
+func (s *AuthService) dropPendingMFA(key string) {
+	s.mu.Lock()
+	delete(s.pendingMFA, key)
+	s.mu.Unlock()
+}
+
+// cleanupPending removes handshakes and challenges older than pendingLoginTTL.
 func (s *AuthService) cleanupPending() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for range ticker.C {
 		s.mu.Lock()
-		for email, pl := range s.pending {
-			if time.Since(pl.createdAt) > 5*time.Minute {
-				delete(s.pending, email)
+		for key, pl := range s.pendingSRP {
+			if time.Since(pl.createdAt) > pendingLoginTTL {
+				delete(s.pendingSRP, key)
+			}
+		}
+		for key, pm := range s.pendingMFA {
+			if time.Since(pm.createdAt) > pendingLoginTTL {
+				delete(s.pendingMFA, key)
 			}
 		}
 		s.mu.Unlock()

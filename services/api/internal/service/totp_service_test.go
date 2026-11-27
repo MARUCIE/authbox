@@ -77,3 +77,43 @@ func hasTOTPSecretEnvelope(secret []byte) bool {
 	return len(secret) > len(totpSecretEnvelopePrefix) &&
 		string(secret[:len(totpSecretEnvelopePrefix)]) == totpSecretEnvelopePrefix
 }
+
+// Regression (RFC 6238 §5.2): an accepted code must not be accepted again.
+func TestTOTPCheckRejectsReplayOfAcceptedCode(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	secret := []byte("01234567890123456789")
+	user := &domain.User{ID: uuid.New(), Email: "totp-replay@authbox.io", KDFParams: domain.DefaultKDFParams(), TOTPEnabled: true}
+	userRepo := newFakeUserRepo(user)
+	service := NewTOTPService(userRepo, testTOTPSecretKey)
+	enc, err := service.encryptSecret(secret)
+	if err != nil {
+		t.Fatalf("encryptSecret: %v", err)
+	}
+	if err := userRepo.SetTOTPSecret(ctx, user.ID, enc); err != nil {
+		t.Fatalf("SetTOTPSecret: %v", err)
+	}
+
+	now := time.Now().Unix() / 30
+	current := generateTOTP(secret, now)
+	ok, err := service.Check(ctx, user.ID, current)
+	if err != nil || !ok {
+		t.Fatalf("first use of a valid code must pass: ok=%v err=%v", ok, err)
+	}
+	ok, _ = service.Check(ctx, user.ID, current)
+	if ok {
+		t.Fatal("the same code was accepted twice")
+	}
+	ok, _ = service.Check(ctx, user.ID, generateTOTP(secret, now-1))
+	if ok {
+		t.Fatal("an older step was accepted after a newer one was consumed")
+	}
+
+	// Another user's state is independent.
+	other := &domain.User{ID: uuid.New(), Email: "totp-other@authbox.io", KDFParams: domain.DefaultKDFParams(), TOTPEnabled: true, TOTPSecret: enc}
+	userRepo.byID[other.ID] = other
+	if ok, _ := service.Check(ctx, other.ID, current); !ok {
+		t.Fatal("replay state leaked across users")
+	}
+}
