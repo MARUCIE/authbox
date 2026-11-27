@@ -66,6 +66,8 @@ interface JsonRpcResponse {
 }
 
 const MCP_VERSION = "2024-11-05";
+/** Largest WebSocket frame accepted. JSON-RPC tool calls are small. */
+const MAX_PAYLOAD_BYTES = 1024 * 1024;
 const SERVER_NAME = "authbox-vault";
 const SERVER_VERSION = "2.0.0";
 
@@ -76,7 +78,11 @@ export class AuthBoxMCPServer {
 
   constructor(
     private bridge: VaultBridge,
-    private options: { port?: number } = {},
+    /**
+     * `host` defaults to loopback: the server hands out vault credentials, so
+     * it is reachable from other machines only when a caller opts in.
+     */
+    private options: { port?: number; host?: string } = {},
   ) {
     // Wire step-up approval notifications to the bridge
     this.policyEngine.onApprovalNeeded = (approval) => {
@@ -97,9 +103,20 @@ export class AuthBoxMCPServer {
   start(): void {
     const port = this.options.port ?? 19876;
 
-    this.wss = new WebSocketServer({ port });
+    this.wss = new WebSocketServer({
+      port,
+      host: this.options.host ?? "127.0.0.1",
+      maxPayload: MAX_PAYLOAD_BYTES,
+    });
 
     this.wss.on("connection", (ws, req) => {
+      // Listen for socket errors before anything else. Without a listener, one
+      // malformed frame on an unauthenticated socket raised an unhandled
+      // 'error' event and took the whole process down.
+      ws.on("error", () => {
+        this.sessions.delete(ws);
+      });
+
       const rawApiKey = req.headers["x-api-key"];
       const apiKey = Array.isArray(rawApiKey) ? undefined : rawApiKey;
 
@@ -148,14 +165,12 @@ export class AuthBoxMCPServer {
       this.sessions.set(ws, session);
 
       ws.on("message", (data) => {
-        this.handleMessage(session, data.toString());
+        this.handleMessage(session, data.toString()).catch(() => {
+          ws.close(1011, "Internal error");
+        });
       });
 
       ws.on("close", () => {
-        this.sessions.delete(ws);
-      });
-
-      ws.on("error", () => {
         this.sessions.delete(ws);
       });
     } catch {
@@ -164,7 +179,7 @@ export class AuthBoxMCPServer {
   }
 
   private async handleMessage(session: MCPSession, raw: string): Promise<void> {
-    let parsed: JsonRpcRequest;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
@@ -176,7 +191,16 @@ export class AuthBoxMCPServer {
       return;
     }
 
-    const { id, method, params } = parsed;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      this.send(session.ws, {
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32600, message: "Invalid Request" },
+      });
+      return;
+    }
+
+    const { id, method, params } = parsed as JsonRpcRequest;
 
     try {
       let result: unknown;
@@ -445,7 +469,11 @@ export class AuthBoxMCPServer {
       };
     }
 
-    const services = await this.bridge.listServices(session.userId);
+    // Policy item scopes name services, so hide the ones this agent may not use.
+    const services = this.policyEngine.visibleItems(
+      policies,
+      await this.bridge.listServices(session.userId),
+    );
 
     return {
       content: [{ type: "text", text: JSON.stringify({ services }) }],

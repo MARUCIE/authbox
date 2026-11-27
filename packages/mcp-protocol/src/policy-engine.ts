@@ -62,6 +62,23 @@ export class PolicyEngine {
     return { allowed: true, reason: 'All policies passed', appliedPolicies: applied };
   }
 
+  /**
+   * Narrow a list of item IDs to the ones every enabled item_scope policy lets
+   * the agent see: explicitly denied IDs are removed, and an allow-list keeps
+   * only its own entries. Used so list_available_services does not reveal
+   * services the agent is barred from.
+   */
+  visibleItems(policies: AgentPolicy[], itemIds: string[]): string[] {
+    const scopes = policies.filter((p) => p.enabled && p.policyType === 'item_scope');
+    return itemIds.filter((id) =>
+      scopes.every(
+        (p) =>
+          !p.rules.deniedItemIds?.includes(id) &&
+          (!p.rules.allowedItemIds || p.rules.allowedItemIds.includes(id)),
+      ),
+    );
+  }
+
   private evaluatePolicy(
     policy: AgentPolicy,
     request: AccessRequest,
