@@ -76,3 +76,23 @@ Related:
 ### Consequences
 - 正向：故障检测与容量规划可量化。
 - 负向：需要额外工程投入（监控、压测、告警治理）。
+
+---
+
+## ADR-004: 字节编解码只有一个实现，应用只经由包的 dist 使用 workspace 包
+- Status: Accepted
+- Date: 2026-11-27
+
+### Context
+- base64 在 web 和扩展里有 5 份手写副本，hex 在 crypto 内部有 2 份。手写副本都用 `String.fromCharCode(...bytes)`，blob 超过约 125 KB 时抛 `RangeError`。
+- web 和扩展用 tsconfig `paths` 直接编译 `packages/*/src`，绕过了包的 `exports`；同一个包在 Node、vitest、Next、Vite 下解析到不同文件。
+
+### Decision
+- `@authbox/crypto` 的 `encoding.ts`（`toBase64`/`fromBase64`/`toHex`/`fromHex`）是唯一编解码实现，分块转换，从根入口和 `@authbox/crypto/encoding` 子路径导出（子路径让扩展弹窗保持懒加载 crypto 主体）。
+- 删除所有应用层和包内副本；删除 tsconfig 中指向 `packages/*/src` 的 `paths`。应用只经由 `exports` 解析到 `dist`，turbo 的 `build`/`typecheck`/`dev` 都依赖 `^build`。
+- 编码输出与旧实现逐字节一致（测试对 256 个字节值与 Node `Buffer` 对拍），存储格式不变。
+
+### Consequences
+- 正向：大 blob 不再崩溃；包在所有运行时解析到同一份产物；改编解码只改一处。
+- 负向：直接跑单个应用的 dev/typecheck 前需先构建 packages（turbo 自动完成）。
+- 守门：`scripts/check-architecture.mjs` 禁止新增本地编解码和指向 src 的 paths（第 6 批落地）。

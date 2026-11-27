@@ -13,12 +13,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "composite": true,
-    "paths": {
-      "@authbox/crypto": ["./packages/crypto/src"],
-      "@authbox/shared": ["./packages/shared/src"],
-      "@authbox/mcp-protocol": ["./packages/mcp-protocol/src"]
-    }
+    "composite": true
   },
   "exclude": ["node_modules", "dist", ".next", ".turbo"]
 }

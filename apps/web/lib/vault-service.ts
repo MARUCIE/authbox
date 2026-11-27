@@ -7,24 +7,11 @@
  * Flow: User action -> encrypt with vaultKey -> API call -> update store
  * Flow: Sync pull -> receive encrypted blobs -> decrypt with vaultKey -> populate store
  */
-import { encryptVaultItem, decryptVaultItem } from '@authbox/crypto';
+import { encryptVaultItem, decryptVaultItem, toBase64, fromBase64 } from '@authbox/crypto';
 import type { VaultItem, ItemType } from '@authbox/shared';
 import { vaultApi, ApiError } from './api';
 import { useVaultStore, type DecryptedVaultItem } from './vault-store';
 import { collectPages } from './paginate';
-
-function toBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-function fromBase64(b64: string): Uint8Array {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
 
 function getStoreState() {
   return useVaultStore.getState();

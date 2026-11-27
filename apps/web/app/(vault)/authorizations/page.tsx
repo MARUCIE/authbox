@@ -1,16 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { encryptAES256GCM, generateRandomBytes } from '@authbox/crypto';
+import { encryptAES256GCM, generateRandomBytes, toBase64 } from '@authbox/crypto';
 import { useVaultStore } from '@/lib/vault-store';
 import { connectionApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog } from '@/components/vault/dialog';
-
-function toBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
-}
 
 interface ConnectionItem {
   id: string;

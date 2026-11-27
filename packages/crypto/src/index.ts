@@ -1,3 +1,4 @@
+export { toBase64, fromBase64, toHex, fromHex } from "./encoding.js";
 export { deriveKeys, type DerivedKeys } from "./argon2.js";
 export {
   encryptAES256GCM,

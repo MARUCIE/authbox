@@ -42,6 +42,7 @@ import { HDKey } from '@scure/bip32';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { keccak_256 } from '@noble/hashes/sha3';
 import { mnemonicToSeed } from './seed.js';
+import { toHex } from './encoding.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -142,20 +143,14 @@ export function ethAddressFromPublicKey(compressedPublicKey: Uint8Array): string
   const hashed = keccak_256(uncompressed);
   const addrBytes = hashed.slice(-20);
 
-  const hex = bytesToHex(addrBytes);
-  const checksumHash = bytesToHex(keccak_256(new TextEncoder().encode(hex)));
+  const hex = toHex(addrBytes);
+  const checksumHash = toHex(keccak_256(new TextEncoder().encode(hex)));
 
   let out = '0x';
   for (let i = 0; i < hex.length; i++) {
     out += parseInt(checksumHash[i], 16) >= 8 ? hex[i].toUpperCase() : hex[i];
   }
   return out;
-}
-
-function bytesToHex(bytes: Uint8Array): string {
-  let s = '';
-  for (const b of bytes) s += b.toString(16).padStart(2, '0');
-  return s;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -207,7 +202,7 @@ export function deriveAddress(seed: Uint8Array, coin: Coin, options: DeriveAddre
     network,
     address,
     path,
-    publicKey: bytesToHex(node.publicKey),
+    publicKey: toHex(node.publicKey),
     account,
     change,
     index,

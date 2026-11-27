@@ -28,10 +28,10 @@
  */
 
 import * as btc from '@scure/btc-signer';
-import { hexToBytes } from '@noble/hashes/utils';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { Transaction as EthTransaction } from 'micro-eth-signer';
 import { derivePrivateKey, deriveAddress, type BtcScriptType, type WalletNetwork } from './wallet.js';
+import { fromHex } from './encoding.js';
 
 // ─── Bitcoin ──────────────────────────────────────────────────────────────────
 
@@ -137,7 +137,7 @@ export function buildBtcTransaction(seed: Uint8Array, params: BuildBtcTxParams):
       if (!u.prevTxHex) {
         throw new Error(`legacy p2pkh input ${u.txid}:${u.vout} requires prevTxHex (nonWitnessUtxo)`);
       }
-      return { txid: u.txid, index: u.vout, nonWitnessUtxo: hexToBytes(u.prevTxHex.replace(/^0x/, '')) };
+      return { txid: u.txid, index: u.vout, nonWitnessUtxo: fromHex(u.prevTxHex.replace(/^0x/, '')) };
     });
 
     const selected = btc.selectUTXO(inputs, [{ address: to, amount: amountSats }], 'default', {

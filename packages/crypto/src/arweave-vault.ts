@@ -18,6 +18,7 @@
 import Arweave from 'arweave';
 import { sha256 } from '@noble/hashes/sha256';
 import { encryptAES256GCM, decryptAES256GCM } from './aes-gcm.js';
+import { toHex } from './encoding.js';
 
 // ─── Arweave Client ───────────────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ export interface VaultArchiveMetadata {
 export function deriveIdentityHash(vaultKey: Uint8Array): string {
   const firstHash = sha256(vaultKey);
   const doubleHash = sha256(firstHash);
-  const hex = bytesToHex(doubleHash);
+  const hex = toHex(doubleHash);
   // Validate hex format before use in GraphQL queries
   if (!/^[0-9a-f]{64}$/i.test(hex)) {
     throw new Error('Identity hash derivation produced invalid hex');
@@ -110,7 +111,7 @@ export async function archiveVault(
   blob.set(encrypted.ciphertext, encrypted.nonce.length + encrypted.tag.length);
 
   // 3. Compute checksum of encrypted blob
-  const checksum = bytesToHex(sha256(blob));
+  const checksum = toHex(sha256(blob));
 
   // 4. Derive identity hash (public tag, does NOT reveal key)
   const identityHash = deriveIdentityHash(vaultKey);
@@ -253,12 +254,4 @@ export async function estimateArchiveCost(sizeBytes: number): Promise<string> {
   const arweave = getArweave();
   const cost = await arweave.transactions.getPrice(sizeBytes);
   return arweave.ar.winstonToAr(cost);
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────
-
-function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
 }

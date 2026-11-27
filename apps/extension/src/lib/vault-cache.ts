@@ -8,21 +8,10 @@
  * AES-256-GCM vault key decryption, and per-item decryption.
  */
 
-import { deriveKeys, decryptVaultKey, decryptVaultItem } from '@authbox/crypto';
+import { deriveKeys, decryptVaultKey, decryptVaultItem, fromBase64 } from '@authbox/crypto';
 import type { LoginItem, VaultItem, EncryptedVaultItem, ItemType } from '@authbox/shared';
 import { getApiBase } from './config';
 import { parseStoredItem, uriMatchesPage } from './item-format';
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-function fromBase64(b64: string): Uint8Array {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
 
 // ── State ───────────────────────────────────────────────────────────────────
 

@@ -1,4 +1,5 @@
 import { parseOtpauth, type TOTPParams, type OTPAlgorithm } from "./totp.js";
+import { fromBase64 } from "./encoding.js";
 
 /**
  * Importing existing 2FA accounts on the web — the TS port of the iOS
@@ -47,10 +48,7 @@ function base64ToBytes(input: string): Uint8Array | null {
     let clean = input.replace(/\s/g, "");
     const remainder = clean.length % 4;
     if (remainder > 0) clean += "=".repeat(4 - remainder);
-    const bin = atob(clean);
-    const out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out;
+    return fromBase64(clean);
   } catch {
     return null;
   }

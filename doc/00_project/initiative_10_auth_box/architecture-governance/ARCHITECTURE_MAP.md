@@ -67,8 +67,8 @@ Ownership:
 
 | ID | Concept | Copies | Where |
 | --- | --- | --- | --- |
-| D-01 | base64 bytes⇄string | 4 + 2 | web/lib/auth.ts, web/lib/vault-service.ts, web/app/(vault)/authorizations/page.tsx, extension/src/popup/App.tsx, extension/src/lib/vault-cache.ts. All use `String.fromCharCode(...bytes)`, which throws `RangeError` once a blob passes the engine's argument limit (~125 KB) |
-| D-02 | bytes→hex | 2 | crypto/src/wallet.ts, crypto/src/arweave-vault.ts |
+| D-01 | base64 bytes⇄string (resolved, batch 3) | 4 + 2 | web/lib/auth.ts, web/lib/vault-service.ts, web/app/(vault)/authorizations/page.tsx, extension/src/popup/App.tsx, extension/src/lib/vault-cache.ts. All use `String.fromCharCode(...bytes)`, which throws `RangeError` once a blob passes the engine's argument limit (~125 KB) |
+| D-02 | bytes→hex (resolved, batch 3) | 2 | crypto/src/wallet.ts, crypto/src/arweave-vault.ts |
 | D-03 | API base URL resolution | 3 | web/lib/api.ts, extension/src/lib/config.ts, console/lib/api.ts (different env names per runtime, intended) |
 | D-04 | HTTP client for the Go API | 2 | web/lib/api.ts (typed, error class) vs raw `fetch` in extension popup + vault-cache |
 | D-05 | Paginated item loading | 2 | web/lib/paginate.ts vs hand loop in extension/src/lib/vault-cache.ts |

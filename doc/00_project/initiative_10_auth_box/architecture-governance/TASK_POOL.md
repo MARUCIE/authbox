@@ -10,7 +10,7 @@ the replaced code before it is committed.
 | T-02 | Make `pnpm test` meaningful for @authbox/shared (real tests, not an always-failing script) | med | low | done (batch 1) |
 | T-03 | Delete stale compiled artifacts in packages/shared/src (D-06) | med | low | done (batch 2) |
 | T-04 | Delete unused zod validation module and its dependency (D-09); drop other unused dependencies and dead exports | med | low | done (batch 2) |
-| T-05 | One base64 / hex codec in @authbox/crypto, chunk-safe; migrate every copy (D-01, D-02) | high | low | todo |
+| T-05 | One base64 / hex codec in @authbox/crypto, chunk-safe; migrate every copy (D-01, D-02) | high | low | done (batch 3) |
 | T-06 | Go: one HTTP response package (envelope, codes, content type) used by handler, auth middleware, rate limiter, security middleware (D-07) | high | low | todo |
 | T-07 | Go: one request-boundary helper set (authenticated user, id params, body decode) | high | low | todo |
 | T-08 | Go: one service-error → HTTP mapping; not-found always a sentinel error, never `nil, nil` | high | med | todo |
