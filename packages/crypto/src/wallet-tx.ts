@@ -238,6 +238,12 @@ export function buildEthTransaction(seed: Uint8Array, params: BuildEthTxParams):
 
   if (amountWei < 0n) throw new Error('amount must be >= 0 wei');
   if (nonce < 0n) throw new Error('nonce must be >= 0');
+  // `network` picks the key path; `chainId` picks the chain the signature is
+  // valid on. A mismatch signs with one key family for the other chain (e.g.
+  // a testnet key moving real mainnet ETH), so refuse it.
+  if ((network === 'mainnet') !== (chainId === 1n)) {
+    throw new Error(`chainId ${chainId} does not match network ${network}`);
+  }
 
   const expectedAddress = deriveAddress(seed, 'eth', { account, change, index, network }).address;
   const priv = derivePrivateKey(seed, 'eth', { account, change, index, network });

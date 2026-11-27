@@ -14,6 +14,22 @@ import (
 	"github.com/google/uuid"
 )
 
+// writeConnectionError maps connection-service errors: client mistakes become
+// 400 or 409, a missing row 404, anything else a logged 500.
+func writeConnectionError(w http.ResponseWriter, err error, op string) {
+	switch {
+	case errors.Is(err, service.ErrInvalidConnection):
+		writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
+	case errors.Is(err, domain.ErrConflict):
+		writeError(w, http.StatusConflict, "this provider account is already connected", "CONFLICT")
+	case errors.Is(err, domain.ErrConnectionNotFound):
+		writeError(w, http.StatusNotFound, "connection not found", "NOT_FOUND")
+	default:
+		slog.Error(op+" failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to "+op, "INTERNAL_ERROR")
+	}
+}
+
 type ConnectionHandler struct {
 	connService *service.ConnectionService
 }
@@ -35,23 +51,9 @@ func (h *ConnectionHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if req.Provider == "" {
-		writeError(w, http.StatusBadRequest, "provider is required", "BAD_REQUEST")
-		return
-	}
-	if len(req.Provider) > 64 {
-		writeError(w, http.StatusBadRequest, "provider exceeds 64 characters", "BAD_REQUEST")
-		return
-	}
-	if req.AccessTokenEnc == "" || req.AccessTokenNonce == "" || req.AccessTokenTag == "" {
-		writeError(w, http.StatusBadRequest, "access token encryption fields are required", "BAD_REQUEST")
-		return
-	}
-
 	resp, err := h.connService.CreateConnection(r.Context(), userID, req)
 	if err != nil {
-		slog.Error("create connection failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to create connection", "INTERNAL_ERROR")
+		writeConnectionError(w, err, "create connection")
 		return
 	}
 
@@ -124,12 +126,7 @@ func (h *ConnectionHandler) UpdateConnection(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := h.connService.UpdateConnection(r.Context(), connID, userID, req); err != nil {
-		if errors.Is(err, domain.ErrConnectionNotFound) {
-			writeError(w, http.StatusNotFound, "connection not found", "NOT_FOUND")
-			return
-		}
-		slog.Error("update connection failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to update connection", "INTERNAL_ERROR")
+		writeConnectionError(w, err, "update connection")
 		return
 	}
 

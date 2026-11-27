@@ -11,3 +11,7 @@ var (
 	ErrConnectionNotFound    = errors.New("connection not found")
 	ErrWalletAccountNotFound = errors.New("wallet account not found")
 )
+
+// ErrConflict means a write hit a unique constraint (for example a second
+// agent with the same name). Handlers map it to 409.
+var ErrConflict = errors.New("already exists")

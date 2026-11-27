@@ -2,7 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"auth-box-api/internal/auth"
 	"auth-box-api/internal/service"
@@ -41,7 +44,7 @@ func (h *TOTPHandler) Enroll(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.totpService.Enroll(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error(), "TOTP_ERROR")
+		writeTOTPError(w, err, "enroll TOTP")
 		return
 	}
 
@@ -64,7 +67,7 @@ func (h *TOTPHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.totpService.Verify(r.Context(), userID, req.Code); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error(), "TOTP_ERROR")
+		writeTOTPError(w, err, "verify TOTP")
 		return
 	}
 
@@ -87,9 +90,20 @@ func (h *TOTPHandler) Disable(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.totpService.Disable(r.Context(), userID, req.Code); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error(), "TOTP_ERROR")
+		writeTOTPError(w, err, "disable TOTP")
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "totp_disabled"})
+}
+
+// writeTOTPError shows user-actionable TOTP errors with 400 and hides
+// everything else behind a logged, generic 500.
+func writeTOTPError(w http.ResponseWriter, err error, op string) {
+	if errors.Is(err, service.ErrTOTPInput) {
+		writeError(w, http.StatusBadRequest, strings.TrimPrefix(err.Error(), service.ErrTOTPInput.Error()+": "), "TOTP_ERROR")
+		return
+	}
+	slog.Error(op+" failed", "error", err)
+	writeError(w, http.StatusInternalServerError, "failed to "+op, "INTERNAL_ERROR")
 }

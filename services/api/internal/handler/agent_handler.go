@@ -14,16 +14,20 @@ import (
 	"github.com/google/uuid"
 )
 
-// Valid enums for agent and policy types.
-// Must match the web client's AGENT_TYPES (apps/web/.../agents/page.tsx) and the
-// shared AgentType enum. The server previously diverged: it lacked "mcp_client"
-// (the UI default + flagship MCP use case) and used "gpt" where every other layer
-// uses "chatgpt" — so registering an MCP-client or ChatGPT agent failed with 400.
-var validAgentTypes = map[string]bool{
-	"mcp_client": true, "claude": true, "chatgpt": true, "gemini": true, "custom": true,
-}
-var validPolicyTypes = map[string]bool{
-	"item_scope": true, "action_perm": true, "rate_limit": true, "time_window": true, "step_up": true,
+// writeAgentError maps agent-service errors: client mistakes become 400 or
+// 409, a missing row 404, anything else a logged 500 with a generic message.
+func writeAgentError(w http.ResponseWriter, err error, notFound error, notFoundMsg, op string) {
+	switch {
+	case errors.Is(err, service.ErrInvalidAgent):
+		writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
+	case errors.Is(err, domain.ErrConflict):
+		writeError(w, http.StatusConflict, "an agent with this name already exists", "CONFLICT")
+	case notFound != nil && errors.Is(err, notFound):
+		writeError(w, http.StatusNotFound, notFoundMsg, "NOT_FOUND")
+	default:
+		slog.Error(op+" failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to "+op, "INTERNAL_ERROR")
+	}
 }
 
 type AgentHandler struct {
@@ -47,23 +51,9 @@ func (h *AgentHandler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
-		writeError(w, http.StatusBadRequest, "name is required", "BAD_REQUEST")
-		return
-	}
-	if len(req.Name) > 128 {
-		writeError(w, http.StatusBadRequest, "name exceeds 128 characters", "BAD_REQUEST")
-		return
-	}
-	if req.AgentType != "" && !validAgentTypes[req.AgentType] {
-		writeError(w, http.StatusBadRequest, "invalid agentType", "BAD_REQUEST")
-		return
-	}
-
 	resp, err := h.agentService.CreateAgent(r.Context(), userID, req)
 	if err != nil {
-		slog.Error("create agent failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to create agent", "INTERNAL_ERROR")
+		writeAgentError(w, err, nil, "", "create agent")
 		return
 	}
 
@@ -136,12 +126,7 @@ func (h *AgentHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.agentService.UpdateAgent(r.Context(), agentID, userID, req); err != nil {
-		if errors.Is(err, domain.ErrAgentNotFound) {
-			writeError(w, http.StatusNotFound, "agent not found", "NOT_FOUND")
-			return
-		}
-		slog.Error("update agent failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to update agent", "INTERNAL_ERROR")
+		writeAgentError(w, err, domain.ErrAgentNotFound, "agent not found", "update agent")
 		return
 	}
 
@@ -207,19 +192,9 @@ func (h *AgentHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.PolicyType == "" {
-		writeError(w, http.StatusBadRequest, "policyType is required", "BAD_REQUEST")
-		return
-	}
-	if !validPolicyTypes[req.PolicyType] {
-		writeError(w, http.StatusBadRequest, "invalid policyType", "BAD_REQUEST")
-		return
-	}
-
 	resp, err := h.agentService.CreatePolicy(r.Context(), agentID, req)
 	if err != nil {
-		slog.Error("create policy failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to create policy", "INTERNAL_ERROR")
+		writeAgentError(w, err, nil, "", "create policy")
 		return
 	}
 
@@ -301,12 +276,7 @@ func (h *AgentHandler) UpdatePolicy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.agentService.UpdatePolicy(r.Context(), agentID, policyID, req); err != nil {
-		if errors.Is(err, domain.ErrPolicyNotFound) {
-			writeError(w, http.StatusNotFound, "policy not found", "NOT_FOUND")
-			return
-		}
-		slog.Error("update policy failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to update policy", "INTERNAL_ERROR")
+		writeAgentError(w, err, domain.ErrPolicyNotFound, "policy not found", "update policy")
 		return
 	}
 

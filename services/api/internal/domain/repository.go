@@ -31,6 +31,8 @@ type SessionRepository interface {
 // VaultRepository defines the contract for vault persistence.
 type VaultRepository interface {
 	CreateItem(ctx context.Context, item *VaultItem) error
+	// CreateItems inserts all items or none.
+	CreateItems(ctx context.Context, items []*VaultItem) error
 	GetItem(ctx context.Context, id, userID uuid.UUID) (*VaultItem, error)
 	ListItems(ctx context.Context, userID uuid.UUID, limit, offset int) ([]VaultItem, error)
 	UpdateItem(ctx context.Context, item *VaultItem) error

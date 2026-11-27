@@ -28,12 +28,12 @@ func NewAgentRepository(pool *pgxpool.Pool) *AgentRepository {
 // --- Agent CRUD ---
 
 func (r *AgentRepository) CreateAgent(ctx context.Context, agent *domain.Agent) error {
-	return r.pool.QueryRow(ctx,
+	return mapUniqueViolation(r.pool.QueryRow(ctx,
 		`INSERT INTO agents (user_id, name, description, agent_type, api_key_hash, status)
 		 VALUES ($1, $2, $3, $4, $5, $6)
 		 RETURNING id, created_at, updated_at`,
 		agent.UserID, agent.Name, agent.Description, agent.AgentType, agent.APIKeyHash, agent.Status,
-	).Scan(&agent.ID, &agent.CreatedAt, &agent.UpdatedAt)
+	).Scan(&agent.ID, &agent.CreatedAt, &agent.UpdatedAt))
 }
 
 func (r *AgentRepository) GetAgent(ctx context.Context, id, userID uuid.UUID) (*domain.Agent, error) {
@@ -79,7 +79,7 @@ func (r *AgentRepository) UpdateAgent(ctx context.Context, agent *domain.Agent) 
 		agent.Name, agent.Description, agent.AgentType, agent.Status, agent.ID, agent.UserID,
 	)
 	if err != nil {
-		return err
+		return mapUniqueViolation(err)
 	}
 	if tag.RowsAffected() == 0 {
 		return errAgentNotFound

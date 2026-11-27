@@ -225,9 +225,8 @@ type SyncPushRequest struct {
 	Items []ItemRequest `json:"items"`
 }
 
-// SyncPush stores a batch of new items. Every item is validated before the
-// first write, so one malformed entry rejects the batch instead of leaving
-// the earlier entries half-applied.
+// SyncPush stores a batch of new items atomically: every item is validated
+// first, then all are inserted in one transaction.
 func (s *VaultService) SyncPush(ctx context.Context, userID uuid.UUID, req SyncPushRequest) ([]ItemResponse, error) {
 	items := make([]*domain.VaultItem, 0, len(req.Items))
 	for i, itemReq := range req.Items {
@@ -237,11 +236,11 @@ func (s *VaultService) SyncPush(ctx context.Context, userID uuid.UUID, req SyncP
 		}
 		items = append(items, item)
 	}
+	if err := s.vaultRepo.CreateItems(ctx, items); err != nil {
+		return nil, err
+	}
 	results := make([]ItemResponse, 0, len(items))
 	for _, item := range items {
-		if err := s.vaultRepo.CreateItem(ctx, item); err != nil {
-			return nil, err
-		}
 		results = append(results, itemToResponse(item))
 	}
 	return results, nil

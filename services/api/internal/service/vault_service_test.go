@@ -21,6 +21,14 @@ func (r *recordingVaultRepo) CreateItem(_ context.Context, item *domain.VaultIte
 	r.created = append(r.created, item)
 	return nil
 }
+func (r *recordingVaultRepo) CreateItems(ctx context.Context, items []*domain.VaultItem) error {
+	for _, item := range items {
+		if err := r.CreateItem(ctx, item); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (r *recordingVaultRepo) GetItem(context.Context, uuid.UUID, uuid.UUID) (*domain.VaultItem, error) {
 	return nil, nil
 }

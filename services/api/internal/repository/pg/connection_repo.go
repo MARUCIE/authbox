@@ -23,7 +23,7 @@ func NewConnectionRepository(pool *pgxpool.Pool) *ConnectionRepository {
 }
 
 func (r *ConnectionRepository) CreateConnection(ctx context.Context, conn *domain.AuthConnection) error {
-	return r.pool.QueryRow(ctx,
+	return mapUniqueViolation(r.pool.QueryRow(ctx,
 		`INSERT INTO auth_connections (user_id, provider, provider_account_id, display_name,
 		  access_token_enc, access_token_nonce, access_token_tag,
 		  refresh_token_enc, refresh_token_nonce, refresh_token_tag,
@@ -34,7 +34,7 @@ func (r *ConnectionRepository) CreateConnection(ctx context.Context, conn *domai
 		conn.AccessTokenEnc, conn.AccessTokenNonce, conn.AccessTokenTag,
 		conn.RefreshTokenEnc, conn.RefreshTokenNonce, conn.RefreshTokenTag,
 		conn.TokenExpiresAt, conn.Scopes, conn.Status, conn.Metadata,
-	).Scan(&conn.ID, &conn.CreatedAt, &conn.UpdatedAt)
+	).Scan(&conn.ID, &conn.CreatedAt, &conn.UpdatedAt))
 }
 
 func (r *ConnectionRepository) GetConnection(ctx context.Context, id, userID uuid.UUID) (*domain.AuthConnection, error) {
@@ -98,7 +98,7 @@ func (r *ConnectionRepository) UpdateConnection(ctx context.Context, conn *domai
 		conn.TokenExpiresAt, conn.Scopes, conn.Status, conn.Metadata, conn.ID, conn.UserID,
 	)
 	if err != nil {
-		return err
+		return mapUniqueViolation(err)
 	}
 	if tag.RowsAffected() == 0 {
 		return errConnectionNotFound

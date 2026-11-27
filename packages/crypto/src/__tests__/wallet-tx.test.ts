@@ -53,6 +53,13 @@ describe('buildEthTransaction — EIP-1559 signing', () => {
     expect(EthTransaction.fromHex(b.hex).sender.toLowerCase()).toBe(ETH_ADDR_0.toLowerCase());
   });
 
+  it('refuses a chainId that does not match the key network', () => {
+    expect(() => buildEthTransaction(seed, { ...baseParams, network: 'testnet' })).toThrow(/does not match network/);
+    expect(() => buildEthTransaction(seed, { ...baseParams, chainId: 11155111n })).toThrow(/does not match network/);
+    const sepolia = buildEthTransaction(seed, { ...baseParams, chainId: 11155111n, network: 'testnet' });
+    expect(EthTransaction.fromHex(sepolia.hex).raw.chainId).toBe(11155111n);
+  });
+
   it('the signed payload independently recovers to the same sender', () => {
     const signed = buildEthTransaction(seed, baseParams);
     const parsed = EthTransaction.fromHex(signed.hex);

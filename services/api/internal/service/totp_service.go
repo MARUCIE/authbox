@@ -11,6 +11,7 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -54,6 +55,16 @@ type TOTPEnrollResponse struct {
 }
 
 // IsEnabled returns whether TOTP is enabled for the user.
+// ErrTOTPInput marks a TOTP request the user can act on (wrong code, already
+// enabled, not enrolled). Handlers show its message with 400; every other error
+// (database, secret decryption) is logged and answered with a generic 500 so
+// internal details never reach the client.
+var ErrTOTPInput = errors.New("totp request rejected")
+
+func totpInputError(reason string) error {
+	return fmt.Errorf("%w: %s", ErrTOTPInput, reason)
+}
+
 func (s *TOTPService) IsEnabled(ctx context.Context, userID uuid.UUID) (bool, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -72,10 +83,10 @@ func (s *TOTPService) Enroll(ctx context.Context, userID uuid.UUID) (*TOTPEnroll
 		return nil, err
 	}
 	if user == nil {
-		return nil, fmt.Errorf("user not found")
+		return nil, totpInputError("user not found")
 	}
 	if user.TOTPEnabled {
-		return nil, fmt.Errorf("TOTP already enabled")
+		return nil, totpInputError("TOTP already enabled")
 	}
 
 	// Generate 20-byte secret
@@ -106,10 +117,10 @@ func (s *TOTPService) Verify(ctx context.Context, userID uuid.UUID, code string)
 		return err
 	}
 	if user == nil {
-		return fmt.Errorf("user not found")
+		return totpInputError("user not found")
 	}
 	if user.TOTPSecret == nil {
-		return fmt.Errorf("TOTP not enrolled")
+		return totpInputError("TOTP not enrolled")
 	}
 
 	secret, err := s.decryptSecret(user.TOTPSecret)
@@ -118,7 +129,7 @@ func (s *TOTPService) Verify(ctx context.Context, userID uuid.UUID, code string)
 	}
 
 	if !s.acceptCode(userID, secret, code, time.Now()) {
-		return fmt.Errorf("invalid TOTP code")
+		return totpInputError("invalid TOTP code")
 	}
 
 	return s.userRepo.EnableTOTP(ctx, userID)
@@ -131,10 +142,10 @@ func (s *TOTPService) Disable(ctx context.Context, userID uuid.UUID, code string
 		return err
 	}
 	if user == nil {
-		return fmt.Errorf("user not found")
+		return totpInputError("user not found")
 	}
 	if !user.TOTPEnabled {
-		return fmt.Errorf("TOTP not enabled")
+		return totpInputError("TOTP not enabled")
 	}
 
 	secret, err := s.decryptSecret(user.TOTPSecret)
@@ -143,7 +154,7 @@ func (s *TOTPService) Disable(ctx context.Context, userID uuid.UUID, code string
 	}
 
 	if !s.acceptCode(userID, secret, code, time.Now()) {
-		return fmt.Errorf("invalid TOTP code")
+		return totpInputError("invalid TOTP code")
 	}
 
 	return s.userRepo.DisableTOTP(ctx, userID)
