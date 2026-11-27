@@ -45,6 +45,9 @@ importers:
 
   apps/extension:
     dependencies:
+      '@authbox/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@authbox/crypto':
         specifier: workspace:*
         version: link:../../packages/crypto
@@ -107,6 +110,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@authbox/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@authbox/crypto':
         specifier: workspace:*
         version: link:../../packages/crypto
@@ -162,6 +168,19 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+
+  packages/api-client:
+    dependencies:
+      '@authbox/crypto':
+        specifier: workspace:*
+        version: link:../crypto
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@25.2.3)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.21.0)
 
   packages/crypto:
     dependencies:

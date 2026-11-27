@@ -14,7 +14,7 @@ the replaced code before it is committed.
 | T-06 | Go: one HTTP response package (envelope, codes, content type) used by handler, auth middleware, rate limiter, security middleware (D-07) | high | low | done (batch 4) |
 | T-07 | Go: one request-boundary helper set (authenticated user, id params, body decode) | high | low | done (batch 4) |
 | T-08 | Go: one service-error → HTTP mapping; not-found always a sentinel error, never `nil, nil` | high | med | done (batch 4) |
-| T-09 | Extension uses the same typed API client and pagination as web (D-04, D-05) | high | med | todo |
+| T-09 | Extension uses the same typed API client and pagination as web (D-04, D-05) | high | med | done (batch 5) |
 | T-10 | Executable architecture rules: Go layer-direction test; TS boundary check (no app→app, no package→app imports, no build output in src, no local codec copies) | high | low | todo |
 | T-11 | CI workflow that builds, typechecks and tests every workspace + Go + architecture rules on every PR | high | low | todo |
 | P-01 | Move the SRP verifier to a memory-hard KDF (needs every client to migrate) | high | high | pending-decision (owner) |

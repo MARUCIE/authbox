@@ -57,8 +57,9 @@ Ownership:
 
 | Package | Depends on | Consumers |
 | --- | --- | --- |
-| @authbox/crypto | @noble/*, @scure/* | web, extension, scripts/e2e |
-| @authbox/shared | zod (only for an unused module) | web (3 imports), extension (2), mcp-protocol (3) |
+| @authbox/crypto | @noble/*, @scure/* | web, extension, api-client, scripts/e2e |
+| @authbox/api-client | crypto (only under `./login`) | web, extension. Owns the Go API transport, error type, wire types and the SRP login handshake (since batch 5) |
+| @authbox/shared | none | web, extension, mcp-protocol. Domain model only: decrypted vault items, agent policy, credential catalog (wire types live in api-client) |
 | @authbox/mcp-protocol | shared | none inside the repo (published surface) |
 
 ## 4. Duplicate / parallel implementations found
@@ -68,12 +69,14 @@ Ownership:
 | D-01 | base64 bytes⇄string (resolved, batch 3) | 4 + 2 | web/lib/auth.ts, web/lib/vault-service.ts, web/app/(vault)/authorizations/page.tsx, extension/src/popup/App.tsx, extension/src/lib/vault-cache.ts. All use `String.fromCharCode(...bytes)`, which throws `RangeError` once a blob passes the engine's argument limit (~125 KB) |
 | D-02 | bytes→hex (resolved, batch 3) | 2 | crypto/src/wallet.ts, crypto/src/arweave-vault.ts |
 | D-03 | API base URL resolution | 3 | web/lib/api.ts, extension/src/lib/config.ts, console/lib/api.ts (different env names per runtime, intended) |
-| D-04 | HTTP client for the Go API | 2 | web/lib/api.ts (typed, error class) vs raw `fetch` in extension popup + vault-cache |
-| D-05 | Paginated item loading | 2 | web/lib/paginate.ts vs hand loop in extension/src/lib/vault-cache.ts |
+| D-04 | HTTP client for the Go API (resolved, batch 5) | 2 | web/lib/api.ts (typed, error class) vs raw `fetch` in extension popup + vault-cache |
+| D-05 | Paginated item loading (resolved, batch 5) | 2 | web/lib/paginate.ts vs hand loop in extension/src/lib/vault-cache.ts |
 | D-06 | Compiled artifacts next to sources | 1 set | packages/shared/src/**/*.{js,d.ts,js.map}, stale (no wallet or credential-catalog output) |
 | D-07 | JSON error writer | 4 | see §2 |
 | D-08 | Lockfiles for apps/console | 2 | pnpm-lock.yaml (workspace) and apps/console/package-lock.json (used by the release gate) |
-| D-09 | Wire validation schemas | 1 unused | packages/shared/src/validation (zod, 344 lines, zero importers); the Go API is the validator of record |
+| D-09 | Wire validation schemas (resolved, batch 2) | 1 unused | packages/shared/src/validation (zod, 344 lines, zero importers); the Go API is the validator of record |
+| D-10 | SRP login handshake (resolved, batch 5) | 2 | web/lib/auth.ts and extension popup each ran init → keys → M1 → M2 check |
+| D-11 | Wire DTO types (resolved, batch 5) | 2 | inline in web/lib/api.ts vs an unused model in shared/types (auth, audit, wallet, EncryptedVaultItem); the shared one was wrong (`revision` instead of `version`) and the extension trusted it |
 
 ## 5. Toolchain truth
 

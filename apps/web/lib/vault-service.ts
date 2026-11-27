@@ -11,7 +11,7 @@ import { encryptVaultItem, decryptVaultItem, toBase64, fromBase64 } from '@authb
 import type { VaultItem, ItemType } from '@authbox/shared';
 import { vaultApi, ApiError } from './api';
 import { useVaultStore, type DecryptedVaultItem } from './vault-store';
-import { collectPages } from './paginate';
+import { collectPages } from '@authbox/api-client';
 
 function getStoreState() {
   return useVaultStore.getState();

@@ -4,8 +4,8 @@ import type {
   SearchResponse,
   StatusResponse,
 } from "@/lib/messages";
-import { toBase64, fromBase64 } from "@authbox/crypto/encoding";
-import { VAULT_URL, getApiBase } from "@/lib/config";
+import { api } from "@/lib/api";
+import { VAULT_URL } from "@/lib/config";
 
 const SEARCH_DEBOUNCE_MS = 200;
 
@@ -107,124 +107,35 @@ function LoginView({ onLogin }: LoginViewProps) {
     setError("");
 
     try {
-      const apiBase = getApiBase();
-
       if (pendingTOTPEmail) {
-        const verifyTOTPRes = await fetch(
-          `${apiBase}/api/v1/auth/login/totp/verify`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: pendingTOTPEmail,
-              code: totpCode.trim(),
-              loginChallenge: pendingTOTPChallenge,
-            }),
-          },
-        );
-        if (!verifyTOTPRes.ok) {
-          const body = await verifyTOTPRes
-            .json()
-            .catch(() => ({ error: "TOTP verification failed" }));
-          throw new Error(body.error ?? "TOTP verification failed");
-        }
-        const verifyTOTPData = await verifyTOTPRes.json();
+        const session = await api.authApi.loginVerifyTOTP({
+          email: pendingTOTPEmail,
+          code: totpCode.trim(),
+          loginChallenge: pendingTOTPChallenge ?? "",
+        });
         await chrome.runtime.sendMessage({
           type: "SET_SESSION",
-          payload: { token: verifyTOTPData.sessionToken },
+          payload: { token: session.sessionToken },
         });
         onLogin();
         return;
       }
 
-      // Import crypto functions dynamically to keep initial load fast
-      const {
-        deriveKeys,
-        srpClientInit,
-        srpClientVerify,
-        srpVerifyServerProof,
-      } = await import("@authbox/crypto");
+      // Loaded on demand to keep the popup's first paint free of the crypto bundle.
+      const { srpLogin } = await import("@authbox/api-client/login");
+      const outcome = await srpLogin(api.authApi, email.trim(), password);
 
-      // 1. SRP client init
-      const clientState = await srpClientInit();
-
-      // 2. Send A to server
-      const initRes = await fetch(`${apiBase}/api/v1/auth/login/init`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          clientPublicA: toBase64(clientState.ephemeralPublic),
-        }),
-      });
-      if (!initRes.ok) {
-        const body = await initRes
-          .json()
-          .catch(() => ({ error: "Login failed" }));
-        throw new Error(body.error ?? "Login failed");
-      }
-      const initData = await initRes.json();
-
-      // 3. Derive keys from password + salt
-      const salt = fromBase64(initData.srpSalt);
-      const keys = await deriveKeys(password, salt);
-
-      // 4. SRP client verify
-      const serverPublicB = fromBase64(initData.serverPublicB);
-      const { clientProof, sessionKey } = await srpClientVerify(
-        clientState,
-        email.trim(),
-        password,
-        salt,
-        serverPublicB,
-      );
-
-      // 5. Send proof to server
-      const verifyRes = await fetch(`${apiBase}/api/v1/auth/login/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          clientPublicA: toBase64(clientState.ephemeralPublic),
-          clientProofM1: toBase64(clientProof),
-        }),
-      });
-      if (!verifyRes.ok) {
-        const body = await verifyRes
-          .json()
-          .catch(() => ({ error: "Verification failed" }));
-        throw new Error(body.error ?? "Verification failed");
-      }
-      const verifyData = await verifyRes.json();
-
-      if (!verifyData.serverProofM2) {
-        throw new Error("Login response missing SRP server proof");
-      }
-      if (
-        !srpVerifyServerProof(
-          clientState,
-          clientProof,
-          sessionKey,
-          fromBase64(verifyData.serverProofM2),
-        )
-      ) {
-        throw new Error("SRP server proof verification failed");
-      }
-
-      if (verifyData.totpRequired) {
-        if (!verifyData.loginChallenge) {
-          throw new Error("Login response missing TOTP challenge");
-        }
-        setPendingTOTPChallenge(verifyData.loginChallenge);
+      if (outcome.kind === "totp_required") {
+        setPendingTOTPChallenge(outcome.loginChallenge);
         setPendingTOTPEmail(email.trim());
         setTotpCode("");
         return;
       }
 
-      // 6. Store session token in background service worker
+      // Store session token in background service worker
       await chrome.runtime.sendMessage({
         type: "SET_SESSION",
-        payload: { token: verifyData.sessionToken },
+        payload: { token: outcome.session.sessionToken },
       });
 
       onLogin();
