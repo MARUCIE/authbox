@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { PublicEventName } from "./public-telemetry-events";
+import { isPublicEventName, type PublicEventName } from "./public-telemetry-events";
 
 export type PublicTelemetryEvent = {
   id: string;
@@ -46,6 +46,12 @@ export type FunnelAlert = {
 };
 
 const MAX_RECENT_EVENTS = 500;
+// Counter maps are keyed by client-supplied strings; past this many distinct
+// keys new ones are counted together under OTHER_KEY.
+const MAX_COUNTER_KEYS = 1000;
+const OTHER_KEY = "(other)";
+// The event log is rotated to <file>.1 once it reaches this size.
+const MAX_LOG_BYTES = 10 * 1024 * 1024;
 const telemetryFilePath =
   process.env.AUTH_BOX_CONSOLE_TELEMETRY_FILE ||
   path.join(process.cwd(), "outputs", "telemetry", "public-events.ndjson");
@@ -67,9 +73,9 @@ function createEmptyCounters(): TelemetryCounters {
 
 const counters: TelemetryCounters = createEmptyCounters();
 
-const routeCounters: TelemetryMapCounter = {};
-const sourceCounters: TelemetryMapCounter = {};
-const tenantCounters: TelemetryMapCounter = {};
+const routeCounters: TelemetryMapCounter = Object.create(null);
+const sourceCounters: TelemetryMapCounter = Object.create(null);
+const tenantCounters: TelemetryMapCounter = Object.create(null);
 const events: PublicTelemetryEvent[] = [];
 let loadedFromDisk = false;
 
@@ -91,7 +97,8 @@ function toPercent(numerator: number, denominator: number): number {
 }
 
 function incrementMapValue(map: TelemetryMapCounter, key: string) {
-  map[key] = (map[key] || 0) + 1;
+  const slot = key in map || Object.keys(map).length < MAX_COUNTER_KEYS ? key : OTHER_KEY;
+  map[slot] = (map[slot] || 0) + 1;
 }
 
 function incrementCounters(counterMap: TelemetryCounters, eventName: PublicEventName) {
@@ -133,6 +140,7 @@ function ensureLoadedFromDisk() {
         if (
           !parsed ||
           !parsed.event ||
+          !isPublicEventName(parsed.event) ||
           !parsed.route ||
           !parsed.source ||
           !parsed.persona ||
@@ -163,6 +171,9 @@ function ensureLoadedFromDisk() {
 function persistEvent(eventRecord: PublicTelemetryEvent) {
   try {
     fs.mkdirSync(path.dirname(telemetryFilePath), { recursive: true });
+    if (fs.existsSync(telemetryFilePath) && fs.statSync(telemetryFilePath).size >= MAX_LOG_BYTES) {
+      fs.renameSync(telemetryFilePath, `${telemetryFilePath}.1`);
+    }
     fs.appendFileSync(telemetryFilePath, `${JSON.stringify(eventRecord)}\n`, "utf-8");
   } catch {
     // Ignore persistence failures to keep business flow unaffected.
@@ -294,9 +305,9 @@ function buildDualFunnelMetrics(counterMap: TelemetryCounters) {
 
 function aggregateFromEvents(inputEvents: PublicTelemetryEvent[]) {
   const aggregateCounters = createEmptyCounters();
-  const aggregateRouteCounters: TelemetryMapCounter = {};
-  const aggregateSourceCounters: TelemetryMapCounter = {};
-  const aggregateTenantCounters: TelemetryMapCounter = {};
+  const aggregateRouteCounters: TelemetryMapCounter = Object.create(null);
+  const aggregateSourceCounters: TelemetryMapCounter = Object.create(null);
+  const aggregateTenantCounters: TelemetryMapCounter = Object.create(null);
 
   for (const eventItem of inputEvents) {
     incrementCounters(aggregateCounters, eventItem.event);

@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { isPublicEventName } from "../../../../lib/public-telemetry-events";
 import { recordPublicEvent } from "../../../../lib/public-telemetry-store";
+import {
+  MAX_BODY_BYTES,
+  MAX_LABEL_LENGTH,
+  MAX_ROUTE_LENGTH,
+  clip,
+  normalizeMetadata,
+  normalizeTimestamp
+} from "../../../../lib/public-telemetry-input";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,37 +19,27 @@ type PublicEventRequestBody = {
   source?: string;
   persona?: string;
   tenant_id?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: unknown;
   ts?: string;
 };
 
-function normalizeMetadata(input?: Record<string, unknown>) {
-  if (!input || typeof input !== "object") {
-    return undefined;
-  }
-
-  const entries: Array<[string, string]> = [];
-  for (const [key, value] of Object.entries(input)) {
-    if (value === null || value === undefined) {
-      continue;
-    }
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      entries.push([key, String(value)]);
-    }
-  }
-
-  if (entries.length === 0) {
-    return undefined;
-  }
-
-  return Object.fromEntries(entries);
-}
-
 export async function POST(request: Request) {
+  const tooLarge = NextResponse.json(
+    { code: "PAYLOAD_TOO_LARGE", message: "Telemetry events are limited to 8 KB." },
+    { status: 413 }
+  );
+  if (Number(request.headers.get("content-length") || 0) > MAX_BODY_BYTES) {
+    return tooLarge;
+  }
+
   let payload: PublicEventRequestBody;
 
   try {
-    payload = (await request.json()) as PublicEventRequestBody;
+    const text = await request.text();
+    if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
+      return tooLarge;
+    }
+    payload = JSON.parse(text) as PublicEventRequestBody;
   } catch {
     return NextResponse.json(
       { code: "INVALID_JSON", message: "Request body must be valid JSON." },
@@ -49,7 +47,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const event = payload?.event || "";
+  const event = typeof payload?.event === "string" ? payload.event : "";
   if (!isPublicEventName(event)) {
     return NextResponse.json(
       { code: "INVALID_EVENT", message: "Unsupported telemetry event." },
@@ -59,12 +57,12 @@ export async function POST(request: Request) {
 
   const recorded = recordPublicEvent({
     event,
-    route: typeof payload.route === "string" ? payload.route : "/",
-    source: typeof payload.source === "string" ? payload.source : "unknown",
-    persona: typeof payload.persona === "string" ? payload.persona : "unknown",
-    tenantId: typeof payload.tenant_id === "string" ? payload.tenant_id : undefined,
+    route: clip(payload.route, MAX_ROUTE_LENGTH) ?? "/",
+    source: clip(payload.source, MAX_LABEL_LENGTH) ?? "unknown",
+    persona: clip(payload.persona, MAX_LABEL_LENGTH) ?? "unknown",
+    tenantId: clip(payload.tenant_id, MAX_LABEL_LENGTH),
     metadata: normalizeMetadata(payload.metadata),
-    ts: typeof payload.ts === "string" ? payload.ts : undefined
+    ts: normalizeTimestamp(payload.ts)
   });
 
   return NextResponse.json(

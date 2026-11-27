@@ -54,8 +54,8 @@ func TestDuplicateNamesReturnErrConflict(t *testing.T) {
 	if err := agents.CreateAgent(ctx, second); err != nil {
 		t.Fatalf("second agent: %v", err)
 	}
-	second.Name = "bot"
-	if err := agents.UpdateAgent(ctx, second); !errors.Is(err, domain.ErrConflict) {
+	rename := func(a *domain.Agent) error { a.Name = "bot"; return nil }
+	if err := agents.UpdateAgent(ctx, second.ID, user.ID, rename); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("rename onto an existing name: err = %v, want ErrConflict", err)
 	}
 

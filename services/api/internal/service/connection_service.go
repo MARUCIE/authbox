@@ -281,53 +281,47 @@ func (s *ConnectionService) UpdateConnection(ctx context.Context, id, userID uui
 		}
 	}
 
-	conn, err := s.connRepo.GetConnection(ctx, id, userID)
-	if err != nil {
-		return err
-	}
-	if conn == nil {
-		return domain.ErrConnectionNotFound
-	}
-
-	if req.Provider != "" {
-		conn.Provider = req.Provider
-	}
-	if req.ProviderAccountID != "" {
-		conn.ProviderAccountID = req.ProviderAccountID
-	}
-	if req.DisplayName != "" {
-		conn.DisplayName = req.DisplayName
-	}
-	if req.Status != "" {
-		conn.Status = req.Status
-	}
-	if req.Scopes != nil {
-		conn.Scopes = req.Scopes
-	}
-	if req.AccessTokenEnc != "" || req.AccessTokenNonce != "" || req.AccessTokenTag != "" {
-		if conn.AccessTokenEnc, conn.AccessTokenNonce, conn.AccessTokenTag, err =
-			decodeToken(req.AccessTokenEnc, req.AccessTokenNonce, req.AccessTokenTag, "accessToken"); err != nil {
-			return err
+	return s.connRepo.UpdateConnection(ctx, id, userID, func(conn *domain.AuthConnection) error {
+		var err error
+		if req.Provider != "" {
+			conn.Provider = req.Provider
 		}
-	}
-	if req.RefreshTokenEnc != "" || req.RefreshTokenNonce != "" || req.RefreshTokenTag != "" {
-		if conn.RefreshTokenEnc, conn.RefreshTokenNonce, conn.RefreshTokenTag, err =
-			decodeToken(req.RefreshTokenEnc, req.RefreshTokenNonce, req.RefreshTokenTag, "refreshToken"); err != nil {
-			return err
+		if req.ProviderAccountID != "" {
+			conn.ProviderAccountID = req.ProviderAccountID
 		}
-	}
-	if req.TokenExpiresAt != nil {
-		if conn.TokenExpiresAt, err = parseExpiry(*req.TokenExpiresAt); err != nil {
-			return err
+		if req.DisplayName != "" {
+			conn.DisplayName = req.DisplayName
 		}
-	}
-	if req.Metadata != "" {
-		if conn.Metadata, err = decodeMetadata(req.Metadata); err != nil {
-			return err
+		if req.Status != "" {
+			conn.Status = req.Status
 		}
-	}
-
-	return s.connRepo.UpdateConnection(ctx, conn)
+		if req.Scopes != nil {
+			conn.Scopes = req.Scopes
+		}
+		if req.AccessTokenEnc != "" || req.AccessTokenNonce != "" || req.AccessTokenTag != "" {
+			if conn.AccessTokenEnc, conn.AccessTokenNonce, conn.AccessTokenTag, err =
+				decodeToken(req.AccessTokenEnc, req.AccessTokenNonce, req.AccessTokenTag, "accessToken"); err != nil {
+				return err
+			}
+		}
+		if req.RefreshTokenEnc != "" || req.RefreshTokenNonce != "" || req.RefreshTokenTag != "" {
+			if conn.RefreshTokenEnc, conn.RefreshTokenNonce, conn.RefreshTokenTag, err =
+				decodeToken(req.RefreshTokenEnc, req.RefreshTokenNonce, req.RefreshTokenTag, "refreshToken"); err != nil {
+				return err
+			}
+		}
+		if req.TokenExpiresAt != nil {
+			if conn.TokenExpiresAt, err = parseExpiry(*req.TokenExpiresAt); err != nil {
+				return err
+			}
+		}
+		if req.Metadata != "" {
+			if conn.Metadata, err = decodeMetadata(req.Metadata); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *ConnectionService) DeleteConnection(ctx context.Context, id, userID uuid.UUID) error {

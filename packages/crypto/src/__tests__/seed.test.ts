@@ -189,4 +189,14 @@ describe('Deterministic Password Derivation', () => {
     const pw2 = derivePassword(seed, 'github.com');
     expect(pw1).toBe(pw2);
   });
+
+  it('derivePassword returns the requested length past 128 characters, keeping earlier output', () => {
+    const fixed = new Uint8Array(64).map((_, i) => i);
+    // Output of the previous implementation, which stopped at 128 characters.
+    const first128 = "[(,Jem,wI<(pD{qPL)E+hT14c5&NG*PDV%UN9Cqvlx{,4MjY3SdYsigvhX95GiI$lS4q(b57xK999LLo}}BE>DuXS:QQ5xXng+Tk[}533(dC=-*pXh+}bcP]|k5+I3;U";
+    expect(derivePassword(fixed, 'Example.com', { length: 128, counter: 3 })).toBe(first128);
+    const long = derivePassword(fixed, 'Example.com', { length: 200, counter: 3 });
+    expect(long).toHaveLength(200);
+    expect(long.startsWith(first128)).toBe(true);
+  });
 });

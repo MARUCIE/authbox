@@ -288,23 +288,21 @@ export function derivePassword(
   const normalizedSite = site.toLowerCase();
   const expanded = hmac(sha512, siteKey, encoder.encode('password:' + normalizedSite + ':' + counter));
 
-  // Convert to password characters (uniform distribution via rejection sampling)
+  // Map bytes to characters with `byte % charset.length`. This carries a small
+  // modulo bias; it is kept because changing it would change every password
+  // already derived. Each further 64-byte block hashes the previous block plus
+  // the count so far, so passwords of any length come out (earlier versions
+  // stopped at 128 characters), and the first 128 characters are unchanged.
   const password: string[] = [];
+  let block = expanded;
   let byteIdx = 0;
 
   while (password.length < length) {
-    if (byteIdx >= expanded.length) {
-      // Need more bytes -- rehash
-      const more = hmac(sha512, siteKey, new Uint8Array([...expanded, ...encoder.encode(password.length.toString())]));
-      for (let i = 0; i < more.length && password.length < length; i++) {
-        const charIdx = more[i] % charset.length;
-        password.push(charset[charIdx]);
-      }
-      break;
+    if (byteIdx >= block.length) {
+      block = hmac(sha512, siteKey, new Uint8Array([...block, ...encoder.encode(password.length.toString())]));
+      byteIdx = 0;
     }
-
-    const charIdx = expanded[byteIdx] % charset.length;
-    password.push(charset[charIdx]);
+    password.push(charset[block[byteIdx] % charset.length]);
     byteIdx++;
   }
 

@@ -45,11 +45,13 @@ type AgentRepository interface {
 	CreateAgent(ctx context.Context, agent *Agent) error
 	GetAgent(ctx context.Context, id, userID uuid.UUID) (*Agent, error)
 	ListAgents(ctx context.Context, userID uuid.UUID) ([]Agent, error)
-	UpdateAgent(ctx context.Context, agent *Agent) error
+	// UpdateAgent locks the row, lets apply change it and writes it back in
+	// one transaction, so concurrent partial updates do not undo each other.
+	UpdateAgent(ctx context.Context, id, userID uuid.UUID, apply func(*Agent) error) error
 	DeleteAgent(ctx context.Context, id, userID uuid.UUID) error
 	CreatePolicy(ctx context.Context, policy *AgentPolicy) error
 	ListPolicies(ctx context.Context, agentID uuid.UUID) ([]AgentPolicy, error)
-	UpdatePolicy(ctx context.Context, policy *AgentPolicy) error
+	UpdatePolicy(ctx context.Context, agentID, policyID uuid.UUID, apply func(*AgentPolicy) error) error
 	DeletePolicy(ctx context.Context, id, agentID uuid.UUID) error
 }
 
@@ -58,7 +60,7 @@ type ConnectionRepository interface {
 	CreateConnection(ctx context.Context, conn *AuthConnection) error
 	GetConnection(ctx context.Context, id, userID uuid.UUID) (*AuthConnection, error)
 	ListConnections(ctx context.Context, userID uuid.UUID) ([]AuthConnection, error)
-	UpdateConnection(ctx context.Context, conn *AuthConnection) error
+	UpdateConnection(ctx context.Context, id, userID uuid.UUID, apply func(*AuthConnection) error) error
 	DeleteConnection(ctx context.Context, id, userID uuid.UUID) error
 }
 

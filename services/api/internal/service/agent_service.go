@@ -258,26 +258,21 @@ func (s *AgentService) UpdateAgent(ctx context.Context, id, userID uuid.UUID, re
 	if err := validateAgentFields(req.Name, req.AgentType, req.Status); err != nil {
 		return err
 	}
-	agent, err := s.agentRepo.GetAgent(ctx, id, userID)
-	if err != nil {
-		return err
-	}
-	if agent == nil {
-		return domain.ErrAgentNotFound
-	}
-	if req.Name != "" {
-		agent.Name = req.Name
-	}
-	if req.Description != "" {
-		agent.Description = req.Description
-	}
-	if req.AgentType != "" {
-		agent.AgentType = req.AgentType
-	}
-	if req.Status != "" {
-		agent.Status = req.Status
-	}
-	return s.agentRepo.UpdateAgent(ctx, agent)
+	return s.agentRepo.UpdateAgent(ctx, id, userID, func(agent *domain.Agent) error {
+		if req.Name != "" {
+			agent.Name = req.Name
+		}
+		if req.Description != "" {
+			agent.Description = req.Description
+		}
+		if req.AgentType != "" {
+			agent.AgentType = req.AgentType
+		}
+		if req.Status != "" {
+			agent.Status = req.Status
+		}
+		return nil
+	})
 }
 
 func (s *AgentService) DeleteAgent(ctx context.Context, id, userID uuid.UUID) error {
@@ -360,37 +355,24 @@ func (s *AgentService) UpdatePolicy(ctx context.Context, agentID, policyID uuid.
 		}
 	}
 
-	policies, err := s.agentRepo.ListPolicies(ctx, agentID)
-	if err != nil {
-		return err
-	}
-	var policy *domain.AgentPolicy
-	for i := range policies {
-		if policies[i].ID == policyID {
-			policy = &policies[i]
-			break
+	return s.agentRepo.UpdatePolicy(ctx, agentID, policyID, func(policy *domain.AgentPolicy) error {
+		if req.PolicyType != "" {
+			policy.PolicyType = req.PolicyType
 		}
-	}
-	if policy == nil {
-		return domain.ErrPolicyNotFound
-	}
-
-	if req.PolicyType != "" {
-		policy.PolicyType = req.PolicyType
-	}
-	if len(req.Rules) > 0 {
-		policy.Rules = []byte(req.Rules)
-	}
-	if len(req.ScopeFilter) > 0 {
-		policy.ScopeFilter = scopeFilter
-	}
-	if req.Priority != nil {
-		policy.Priority = *req.Priority
-	}
-	if req.Enabled != nil {
-		policy.Enabled = *req.Enabled
-	}
-	return s.agentRepo.UpdatePolicy(ctx, policy)
+		if len(req.Rules) > 0 {
+			policy.Rules = []byte(req.Rules)
+		}
+		if len(req.ScopeFilter) > 0 {
+			policy.ScopeFilter = scopeFilter
+		}
+		if req.Priority != nil {
+			policy.Priority = *req.Priority
+		}
+		if req.Enabled != nil {
+			policy.Enabled = *req.Enabled
+		}
+		return nil
+	})
 }
 
 func (s *AgentService) DeletePolicy(ctx context.Context, policyID, agentID uuid.UUID) error {

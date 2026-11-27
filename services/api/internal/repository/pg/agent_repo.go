@@ -72,19 +72,30 @@ func (r *AgentRepository) ListAgents(ctx context.Context, userID uuid.UUID) ([]d
 	return agents, rows.Err()
 }
 
-func (r *AgentRepository) UpdateAgent(ctx context.Context, agent *domain.Agent) error {
-	tag, err := r.pool.Exec(ctx,
-		`UPDATE agents SET name = $1, description = $2, agent_type = $3, status = $4, updated_at = NOW()
-		 WHERE id = $5 AND user_id = $6`,
-		agent.Name, agent.Description, agent.AgentType, agent.Status, agent.ID, agent.UserID,
-	)
-	if err != nil {
+func (r *AgentRepository) UpdateAgent(ctx context.Context, id, userID uuid.UUID, apply func(*domain.Agent) error) error {
+	return pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		agent := &domain.Agent{}
+		err := tx.QueryRow(ctx,
+			`SELECT id, user_id, name, description, agent_type, api_key_hash, status, last_active_at, created_at, updated_at
+			 FROM agents WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+			id, userID,
+		).Scan(&agent.ID, &agent.UserID, &agent.Name, &agent.Description, &agent.AgentType, &agent.APIKeyHash, &agent.Status, &agent.LastActiveAt, &agent.CreatedAt, &agent.UpdatedAt)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errAgentNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if err := apply(agent); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx,
+			`UPDATE agents SET name = $1, description = $2, agent_type = $3, status = $4, updated_at = NOW()
+			 WHERE id = $5`,
+			agent.Name, agent.Description, agent.AgentType, agent.Status, agent.ID,
+		)
 		return mapUniqueViolation(err)
-	}
-	if tag.RowsAffected() == 0 {
-		return errAgentNotFound
-	}
-	return nil
+	})
 }
 
 func (r *AgentRepository) DeleteAgent(ctx context.Context, id, userID uuid.UUID) error {
@@ -134,19 +145,30 @@ func (r *AgentRepository) ListPolicies(ctx context.Context, agentID uuid.UUID) (
 	return policies, rows.Err()
 }
 
-func (r *AgentRepository) UpdatePolicy(ctx context.Context, policy *domain.AgentPolicy) error {
-	tag, err := r.pool.Exec(ctx,
-		`UPDATE agent_policies SET policy_type = $1, rules = $2, scope_filter = $3, priority = $4, enabled = $5, updated_at = NOW()
-		 WHERE id = $6 AND agent_id = $7`,
-		policy.PolicyType, policy.Rules, policy.ScopeFilter, policy.Priority, policy.Enabled, policy.ID, policy.AgentID,
-	)
-	if err != nil {
+func (r *AgentRepository) UpdatePolicy(ctx context.Context, agentID, policyID uuid.UUID, apply func(*domain.AgentPolicy) error) error {
+	return pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		var p domain.AgentPolicy
+		err := tx.QueryRow(ctx,
+			`SELECT id, agent_id, policy_type, rules, scope_filter, priority, enabled, created_at, updated_at
+			 FROM agent_policies WHERE id = $1 AND agent_id = $2 FOR UPDATE`,
+			policyID, agentID,
+		).Scan(&p.ID, &p.AgentID, &p.PolicyType, &p.Rules, &p.ScopeFilter, &p.Priority, &p.Enabled, &p.CreatedAt, &p.UpdatedAt)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errPolicyNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if err := apply(&p); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx,
+			`UPDATE agent_policies SET policy_type = $1, rules = $2, scope_filter = $3, priority = $4, enabled = $5, updated_at = NOW()
+			 WHERE id = $6`,
+			p.PolicyType, p.Rules, p.ScopeFilter, p.Priority, p.Enabled, p.ID,
+		)
 		return err
-	}
-	if tag.RowsAffected() == 0 {
-		return errPolicyNotFound
-	}
-	return nil
+	})
 }
 
 func (r *AgentRepository) DeletePolicy(ctx context.Context, id, agentID uuid.UUID) error {

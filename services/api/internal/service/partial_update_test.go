@@ -27,9 +27,15 @@ func (r *memConnRepo) GetConnection(_ context.Context, id, userID uuid.UUID) (*d
 	return &c, nil
 }
 
-func (r *memConnRepo) UpdateConnection(_ context.Context, c *domain.AuthConnection) error {
-	saved := *c
-	r.stored = &saved
+func (r *memConnRepo) UpdateConnection(_ context.Context, id, userID uuid.UUID, apply func(*domain.AuthConnection) error) error {
+	if r.stored == nil || r.stored.ID != id || r.stored.UserID != userID {
+		return domain.ErrConnectionNotFound
+	}
+	c := *r.stored
+	if err := apply(&c); err != nil {
+		return err
+	}
+	r.stored = &c
 	return nil
 }
 
@@ -123,9 +129,15 @@ func (r *memAgentRepo) GetAgent(_ context.Context, id, userID uuid.UUID) (*domai
 	return &a, nil
 }
 
-func (r *memAgentRepo) UpdateAgent(_ context.Context, a *domain.Agent) error {
-	saved := *a
-	r.agent = &saved
+func (r *memAgentRepo) UpdateAgent(_ context.Context, id, userID uuid.UUID, apply func(*domain.Agent) error) error {
+	if r.agent == nil || r.agent.ID != id || r.agent.UserID != userID {
+		return domain.ErrAgentNotFound
+	}
+	a := *r.agent
+	if err := apply(&a); err != nil {
+		return err
+	}
+	r.agent = &a
 	return nil
 }
 
@@ -135,13 +147,18 @@ func (r *memAgentRepo) ListPolicies(_ context.Context, agentID uuid.UUID) ([]dom
 	return out, nil
 }
 
-func (r *memAgentRepo) UpdatePolicy(_ context.Context, p *domain.AgentPolicy) error {
+func (r *memAgentRepo) UpdatePolicy(_ context.Context, agentID, policyID uuid.UUID, apply func(*domain.AgentPolicy) error) error {
 	for i := range r.policies {
-		if r.policies[i].ID == p.ID {
-			r.policies[i] = *p
+		if r.policies[i].ID == policyID && r.policies[i].AgentID == agentID {
+			p := r.policies[i]
+			if err := apply(&p); err != nil {
+				return err
+			}
+			r.policies[i] = p
+			return nil
 		}
 	}
-	return nil
+	return domain.ErrPolicyNotFound
 }
 
 func (r *memAgentRepo) CreatePolicy(_ context.Context, p *domain.AgentPolicy) error {
