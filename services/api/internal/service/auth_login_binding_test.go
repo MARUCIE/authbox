@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -232,5 +234,49 @@ func TestLoginInitRejectsOutOfRangeClientPublic(t *testing.T) {
 	}
 	if len(f.service.pendingSRP) != 0 {
 		t.Fatal("rejected A must not create pending state")
+	}
+}
+
+// gatedUserRepo holds FindByID callers until want of them have arrived (or a
+// short timeout passes), so concurrent requests overlap deterministically.
+type gatedUserRepo struct {
+	domain.UserRepository
+	calls   atomic.Int32
+	want    int32
+	release chan struct{}
+	once    sync.Once
+}
+
+func (g *gatedUserRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+	if g.calls.Add(1) >= g.want {
+		g.once.Do(func() { close(g.release) })
+	}
+	select {
+	case <-g.release:
+	case <-time.After(300 * time.Millisecond):
+	}
+	return g.UserRepository.FindByID(ctx, id)
+}
+
+func TestLoginVerifyTOTPConcurrentGuessesShareTheAttemptBudget(t *testing.T) {
+	t.Parallel()
+	f := newTOTPLoginFixture(t)
+	challenge := f.passSRP(t)
+	const guesses = 20
+	gate := &gatedUserRepo{UserRepository: f.service.userRepo, want: guesses, release: make(chan struct{})}
+	f.service.userRepo = gate
+
+	var wg sync.WaitGroup
+	for i := 0; i < guesses; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, _ = f.service.LoginVerifyTOTP(context.Background(), f.email, challenge, f.wrongCode(), "ip", "ua")
+		}()
+	}
+	wg.Wait()
+
+	if got := gate.calls.Load(); got > maxTOTPAttempts {
+		t.Fatalf("%d parallel guesses reached the code check, budget is %d", got, maxTOTPAttempts)
 	}
 }

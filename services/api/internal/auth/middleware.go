@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -12,6 +13,9 @@ type contextKey string
 
 const userIDKey contextKey = "userID"
 const tokenHashKey contextKey = "tokenHash"
+
+// touchSessionTimeout bounds the background last_active_at update.
+const touchSessionTimeout = 5 * time.Second
 
 // UserIDFromContext extracts the authenticated user's ID from the request context.
 func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
@@ -62,8 +66,13 @@ func Middleware(validator SessionValidator) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Update session last_active_at (fire-and-forget, non-blocking)
-			go validator.TouchSession(context.Background(), tokenHash)
+			// Update session last_active_at off the request path. The timeout
+			// keeps a stalled database from piling up one goroutine per request.
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), touchSessionTimeout)
+				defer cancel()
+				_ = validator.TouchSession(ctx, tokenHash)
+			}()
 
 			ctx := context.WithValue(r.Context(), userIDKey, userID)
 			ctx = context.WithValue(ctx, tokenHashKey, tokenHash)

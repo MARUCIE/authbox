@@ -17,7 +17,7 @@ func TestSecurityHeaders(t *testing.T) {
 	checks := map[string]string{
 		"X-Content-Type-Options":            "nosniff",
 		"X-Frame-Options":                   "DENY",
-		"X-XSS-Protection":                  "1; mode=block",
+		"X-XSS-Protection":                  "0",
 		"Referrer-Policy":                   "no-referrer",
 		"X-Permitted-Cross-Domain-Policies": "none",
 	}

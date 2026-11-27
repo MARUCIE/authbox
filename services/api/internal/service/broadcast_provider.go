@@ -165,7 +165,7 @@ func (p *BroadcastProvider) ethBroadcast(ctx context.Context, network, rawHex st
 			Message string `json:"message"`
 		} `json:"error"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
+	if err := decodeUpstreamJSON(resp.Body, &rpcResp); err != nil {
 		return "", err
 	}
 	if rpcResp.Error != nil {

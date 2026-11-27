@@ -38,7 +38,9 @@ func SecurityHeaders(next http.Handler) http.Handler {
 			"default-src 'none'; connect-src 'self'; frame-ancestors 'none'")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		// "0" turns off the legacy XSS auditor, which could itself be abused to
+		// leak or block page content; the CSP above is the real XSS defence.
+		w.Header().Set("X-XSS-Protection", "0")
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Permitted-Cross-Domain-Policies", "none")

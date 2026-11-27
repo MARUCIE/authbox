@@ -89,7 +89,7 @@ type pendingMFA struct {
 	userID    uuid.UUID
 	email     string
 	createdAt time.Time
-	failures  int
+	attempts  int // codes submitted against this challenge
 }
 
 type AuthService struct {
@@ -334,7 +334,7 @@ func (s *AuthService) issueSession(ctx context.Context, user *domain.User, m2 []
 //
 // Security: the caller must present the loginChallenge returned by the SRP
 // step, so only the client that proved knowledge of the master password can
-// submit codes. Each challenge allows maxTOTPAttempts wrong codes, expires
+// submit codes. Each challenge accepts at most maxTOTPAttempts codes, counted before checking, expires
 // after pendingLoginTTL, and yields at most one session.
 func (s *AuthService) LoginVerifyTOTP(ctx context.Context, email, loginChallenge, totpCode, ipAddress, userAgent string) (*LoginVerifyResponse, error) {
 	if loginChallenge == "" {
@@ -349,6 +349,13 @@ func (s *AuthService) LoginVerifyTOTP(ctx context.Context, email, loginChallenge
 	}
 	var userID uuid.UUID
 	if ok {
+		// Reserve the attempt before checking the code, so concurrent
+		// guesses against one challenge still total at most maxTOTPAttempts.
+		pm.attempts++
+		if pm.attempts > maxTOTPAttempts {
+			delete(s.pendingMFA, key)
+			ok = false
+		}
 		userID = pm.userID
 	}
 	s.mu.Unlock()
@@ -378,8 +385,7 @@ func (s *AuthService) LoginVerifyTOTP(ctx context.Context, email, loginChallenge
 		return nil, ErrInvalidCredentials
 	}
 	if !valid {
-		pm.failures++
-		if pm.failures >= maxTOTPAttempts {
+		if pm.attempts >= maxTOTPAttempts {
 			delete(s.pendingMFA, key)
 		}
 		s.mu.Unlock()

@@ -175,7 +175,7 @@ func (p *TxPrepProvider) ethCall(ctx context.Context, base, method string, param
 			Message string `json:"message"`
 		} `json:"error"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
+	if err := decodeUpstreamJSON(resp.Body, &rpcResp); err != nil {
 		return "", err
 	}
 	if rpcResp.Error != nil {
@@ -197,7 +197,7 @@ func (p *TxPrepProvider) getJSON(ctx context.Context, endpoint string, out inter
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("indexer status %d", resp.StatusCode)
 	}
-	return json.NewDecoder(resp.Body).Decode(out)
+	return decodeUpstreamJSON(resp.Body, out)
 }
 
 // hexToDecimal converts a 0x-prefixed hex quantity to a decimal string.
