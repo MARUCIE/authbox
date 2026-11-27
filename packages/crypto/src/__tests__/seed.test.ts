@@ -190,13 +190,13 @@ describe('Deterministic Password Derivation', () => {
     expect(pw1).toBe(pw2);
   });
 
-  it('derivePassword returns the requested length past 128 characters, keeping earlier output', () => {
+  it('derivePassword keeps its output and refuses lengths it cannot fill', () => {
     const fixed = new Uint8Array(64).map((_, i) => i);
-    // Output of the previous implementation, which stopped at 128 characters.
+    // Golden output of the implementation shared with iOS.
     const first128 = "[(,Jem,wI<(pD{qPL)E+hT14c5&NG*PDV%UN9Cqvlx{,4MjY3SdYsigvhX95GiI$lS4q(b57xK999LLo}}BE>DuXS:QQ5xXng+Tk[}533(dC=-*pXh+}bcP]|k5+I3;U";
     expect(derivePassword(fixed, 'Example.com', { length: 128, counter: 3 })).toBe(first128);
-    const long = derivePassword(fixed, 'Example.com', { length: 200, counter: 3 });
-    expect(long).toHaveLength(200);
-    expect(long.startsWith(first128)).toBe(true);
+    for (const length of [0, 129, 200, 1.5, Number.POSITIVE_INFINITY]) {
+      expect(() => derivePassword(fixed, 'Example.com', { length })).toThrow(/length/);
+    }
   });
 });

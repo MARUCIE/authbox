@@ -7,7 +7,8 @@ import {
   MAX_ROUTE_LENGTH,
   clip,
   normalizeMetadata,
-  normalizeTimestamp
+  normalizeTimestamp,
+  readBodyLimited
 } from "../../../../lib/public-telemetry-input";
 
 export const dynamic = "force-dynamic";
@@ -35,8 +36,8 @@ export async function POST(request: Request) {
   let payload: PublicEventRequestBody;
 
   try {
-    const text = await request.text();
-    if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
+    const text = await readBodyLimited(request.body, MAX_BODY_BYTES);
+    if (text === null) {
       return tooLarge;
     }
     payload = JSON.parse(text) as PublicEventRequestBody;

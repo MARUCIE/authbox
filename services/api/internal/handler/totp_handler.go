@@ -67,11 +67,14 @@ func (h *TOTPHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.totpService.Verify(r.Context(), userID, req.Code); err != nil {
+	newlyEnabled, err := h.totpService.Verify(r.Context(), userID, req.Code)
+	if err != nil {
 		writeTOTPError(w, err, "verify TOTP")
 		return
 	}
-	recordAudit(h.audit, r, userID, "totp.enable", "user", userID.String())
+	if newlyEnabled {
+		recordAudit(h.audit, r, userID, "totp.enable", "user", userID.String())
+	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "totp_enabled"})
 }

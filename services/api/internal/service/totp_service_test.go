@@ -42,7 +42,7 @@ func TestTOTPEnrollStoresEncryptedSecretAndVerifiesRawCode(t *testing.T) {
 	}
 
 	code := generateTOTP(rawSecret, time.Now().Unix()/30)
-	if err := service.Verify(ctx, user.ID, code); err != nil {
+	if _, err := service.Verify(ctx, user.ID, code); err != nil {
 		t.Fatalf("Verify: %v", err)
 	}
 	if !userRepo.byID[user.ID].TOTPEnabled {

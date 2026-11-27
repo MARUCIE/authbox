@@ -49,3 +49,35 @@ export function normalizeTimestamp(value: unknown): string | undefined {
   const at = Date.parse(value);
   return Number.isNaN(at) ? undefined : new Date(at).toISOString();
 }
+
+/**
+ * Read a request body as text, giving up (null) as soon as it passes `max`
+ * bytes, whether or not the client sent a Content-Length.
+ */
+export async function readBodyLimited(body: ReadableStream<Uint8Array> | null, max: number): Promise<string | null> {
+  if (!body) {
+    return "";
+  }
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const joined = new Uint8Array(size);
+  let at = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, at);
+    at += chunk.byteLength;
+  }
+  return new TextDecoder().decode(joined);
+}

@@ -4,6 +4,7 @@ import {
   clip,
   normalizeMetadata,
   normalizeTimestamp,
+  readBodyLimited,
   MAX_METADATA_ENTRIES,
   MAX_METADATA_VALUE_LENGTH
 } from "./public-telemetry-input.ts";
@@ -28,4 +29,18 @@ test("timestamps must parse", () => {
   assert.equal(normalizeTimestamp("2026-11-27T08:00:00Z"), "2026-11-27T08:00:00.000Z");
   assert.equal(normalizeTimestamp("not a date"), undefined);
   assert.equal(normalizeTimestamp("x".repeat(100)), undefined);
+});
+
+test("a body is cut off once it passes the limit, without a length header", async () => {
+  let pulled = 0;
+  const endless = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulled++;
+      controller.enqueue(new Uint8Array(1024));
+    }
+  });
+  assert.equal(await readBodyLimited(endless, 8 * 1024), null);
+  assert.ok(pulled < 20, `read ${pulled} chunks`);
+  const small = new Blob(["{\"event\":\"x\"}"]).stream();
+  assert.equal(await readBodyLimited(small, 8 * 1024), '{"event":"x"}');
 });

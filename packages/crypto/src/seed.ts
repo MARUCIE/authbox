@@ -238,6 +238,9 @@ export interface DerivePasswordOptions {
   counter?: number;    // Default: 0 (increment to generate new password for same site)
 }
 
+/** Longest password derivePassword returns; the same limit applies on iOS. */
+export const MAX_DERIVED_PASSWORD_LENGTH = 128;
+
 /**
  * Deterministically derive a password for a specific site from the seed.
  *
@@ -265,6 +268,10 @@ export function derivePassword(
     counter = 0,
   } = options;
 
+  if (!Number.isInteger(length) || length < 1 || length > MAX_DERIVED_PASSWORD_LENGTH) {
+    throw new Error(`length must be a whole number from 1 to ${MAX_DERIVED_PASSWORD_LENGTH}`);
+  }
+
   // Build character set
   let charset = '';
   if (lowercase) charset += PASSWORD_CHARS.lower;
@@ -288,21 +295,25 @@ export function derivePassword(
   const normalizedSite = site.toLowerCase();
   const expanded = hmac(sha512, siteKey, encoder.encode('password:' + normalizedSite + ':' + counter));
 
-  // Map bytes to characters with `byte % charset.length`. This carries a small
-  // modulo bias; it is kept because changing it would change every password
-  // already derived. Each further 64-byte block hashes the previous block plus
-  // the count so far, so passwords of any length come out (earlier versions
-  // stopped at 128 characters), and the first 128 characters are unchanged.
+  // Map bytes to characters with `byte % charset.length` (a small modulo
+  // bias, kept so existing derived passwords do not change). Two 64-byte
+  // blocks give at most 128 characters, matching the iOS implementation.
   const password: string[] = [];
-  let block = expanded;
   let byteIdx = 0;
 
   while (password.length < length) {
-    if (byteIdx >= block.length) {
-      block = hmac(sha512, siteKey, new Uint8Array([...block, ...encoder.encode(password.length.toString())]));
-      byteIdx = 0;
+    if (byteIdx >= expanded.length) {
+      // Need more bytes -- rehash
+      const more = hmac(sha512, siteKey, new Uint8Array([...expanded, ...encoder.encode(password.length.toString())]));
+      for (let i = 0; i < more.length && password.length < length; i++) {
+        const charIdx = more[i] % charset.length;
+        password.push(charset[charIdx]);
+      }
+      break;
     }
-    password.push(charset[block[byteIdx] % charset.length]);
+
+    const charIdx = expanded[byteIdx] % charset.length;
+    password.push(charset[charIdx]);
     byteIdx++;
   }
 

@@ -111,28 +111,34 @@ func (s *TOTPService) Enroll(ctx context.Context, userID uuid.UUID) (*TOTPEnroll
 }
 
 // Verify checks a TOTP code and enables TOTP if valid.
-func (s *TOTPService) Verify(ctx context.Context, userID uuid.UUID, code string) error {
+//
+// newlyEnabled reports whether this call turned TOTP on, as opposed to
+// re-checking a code for an account that already had it on.
+func (s *TOTPService) Verify(ctx context.Context, userID uuid.UUID, code string) (newlyEnabled bool, err error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if user == nil {
-		return totpInputError("user not found")
+		return false, totpInputError("user not found")
 	}
 	if user.TOTPSecret == nil {
-		return totpInputError("TOTP not enrolled")
+		return false, totpInputError("TOTP not enrolled")
 	}
 
 	secret, err := s.decryptSecret(user.TOTPSecret)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if !s.acceptCode(userID, secret, code, time.Now()) {
-		return totpInputError("invalid TOTP code")
+		return false, totpInputError("invalid TOTP code")
 	}
 
-	return s.userRepo.EnableTOTP(ctx, userID)
+	if err := s.userRepo.EnableTOTP(ctx, userID); err != nil {
+		return false, err
+	}
+	return !user.TOTPEnabled, nil
 }
 
 // Disable disables TOTP after verifying the current code.
