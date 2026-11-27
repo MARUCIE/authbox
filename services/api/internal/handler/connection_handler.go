@@ -32,10 +32,11 @@ func writeConnectionError(w http.ResponseWriter, err error, op string) {
 
 type ConnectionHandler struct {
 	connService *service.ConnectionService
+	audit       auditRecorder
 }
 
-func NewConnectionHandler(connService *service.ConnectionService) *ConnectionHandler {
-	return &ConnectionHandler{connService: connService}
+func NewConnectionHandler(connService *service.ConnectionService, audit auditRecorder) *ConnectionHandler {
+	return &ConnectionHandler{connService: connService, audit: audit}
 }
 
 func (h *ConnectionHandler) CreateConnection(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +58,7 @@ func (h *ConnectionHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	recordAudit(h.audit, r, userID, "connection.create", "connection", resp.ID)
 	writeJSON(w, http.StatusCreated, resp)
 }
 
@@ -129,6 +131,7 @@ func (h *ConnectionHandler) UpdateConnection(w http.ResponseWriter, r *http.Requ
 		writeConnectionError(w, err, "update connection")
 		return
 	}
+	recordAudit(h.audit, r, userID, "connection.update", "connection", connID.String())
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
@@ -155,6 +158,7 @@ func (h *ConnectionHandler) DeleteConnection(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusInternalServerError, "failed to delete connection", "INTERNAL_ERROR")
 		return
 	}
+	recordAudit(h.audit, r, userID, "connection.delete", "connection", connID.String())
 
 	w.WriteHeader(http.StatusNoContent)
 }

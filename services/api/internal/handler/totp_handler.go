@@ -13,10 +13,11 @@ import (
 
 type TOTPHandler struct {
 	totpService *service.TOTPService
+	audit       auditRecorder
 }
 
-func NewTOTPHandler(totpService *service.TOTPService) *TOTPHandler {
-	return &TOTPHandler{totpService: totpService}
+func NewTOTPHandler(totpService *service.TOTPService, audit auditRecorder) *TOTPHandler {
+	return &TOTPHandler{totpService: totpService, audit: audit}
 }
 
 func (h *TOTPHandler) Status(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +71,7 @@ func (h *TOTPHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		writeTOTPError(w, err, "verify TOTP")
 		return
 	}
+	recordAudit(h.audit, r, userID, "totp.enable", "user", userID.String())
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "totp_enabled"})
 }
@@ -93,6 +95,7 @@ func (h *TOTPHandler) Disable(w http.ResponseWriter, r *http.Request) {
 		writeTOTPError(w, err, "disable TOTP")
 		return
 	}
+	recordAudit(h.audit, r, userID, "totp.disable", "user", userID.String())
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "totp_disabled"})
 }

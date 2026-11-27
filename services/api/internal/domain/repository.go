@@ -64,8 +64,10 @@ type ConnectionRepository interface {
 
 // AuditRepository defines the contract for audit event persistence.
 type AuditRepository interface {
-	GetLatestEvent(ctx context.Context, userID uuid.UUID) (*AuditEvent, error)
-	CreateEvent(ctx context.Context, event *AuditEvent) error
+	// AppendEvent links the event to the user's latest one and stores it. It
+	// sets PrevEventHash, CreatedAt, EventHash and ID; appends for one user are
+	// serialized so concurrent writers cannot fork the chain.
+	AppendEvent(ctx context.Context, event *AuditEvent) error
 	ListEvents(ctx context.Context, userID uuid.UUID, limit, offset int) ([]AuditEvent, error)
 	VerifyChain(ctx context.Context, userID uuid.UUID) (bool, int, error)
 }

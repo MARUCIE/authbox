@@ -32,10 +32,11 @@ func writeAgentError(w http.ResponseWriter, err error, notFound error, notFoundM
 
 type AgentHandler struct {
 	agentService *service.AgentService
+	audit        auditRecorder
 }
 
-func NewAgentHandler(agentService *service.AgentService) *AgentHandler {
-	return &AgentHandler{agentService: agentService}
+func NewAgentHandler(agentService *service.AgentService, audit auditRecorder) *AgentHandler {
+	return &AgentHandler{agentService: agentService, audit: audit}
 }
 
 func (h *AgentHandler) CreateAgent(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +57,7 @@ func (h *AgentHandler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 		writeAgentError(w, err, nil, "", "create agent")
 		return
 	}
+	recordAudit(h.audit, r, userID, "agent.create", "agent", resp.ID)
 
 	writeJSON(w, http.StatusCreated, resp)
 }
@@ -129,6 +131,7 @@ func (h *AgentHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		writeAgentError(w, err, domain.ErrAgentNotFound, "agent not found", "update agent")
 		return
 	}
+	recordAudit(h.audit, r, userID, "agent.update", "agent", agentID.String())
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
@@ -155,6 +158,7 @@ func (h *AgentHandler) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to delete agent", "INTERNAL_ERROR")
 		return
 	}
+	recordAudit(h.audit, r, userID, "agent.delete", "agent", agentID.String())
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -197,6 +201,7 @@ func (h *AgentHandler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 		writeAgentError(w, err, nil, "", "create policy")
 		return
 	}
+	recordAudit(h.audit, r, userID, "policy.create", "policy", resp.ID)
 
 	writeJSON(w, http.StatusCreated, resp)
 }
@@ -279,6 +284,7 @@ func (h *AgentHandler) UpdatePolicy(w http.ResponseWriter, r *http.Request) {
 		writeAgentError(w, err, domain.ErrPolicyNotFound, "policy not found", "update policy")
 		return
 	}
+	recordAudit(h.audit, r, userID, "policy.update", "policy", policyID.String())
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
@@ -323,6 +329,7 @@ func (h *AgentHandler) DeletePolicy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to delete policy", "INTERNAL_ERROR")
 		return
 	}
+	recordAudit(h.audit, r, userID, "policy.delete", "policy", policyID.String())
 
 	w.WriteHeader(http.StatusNoContent)
 }
