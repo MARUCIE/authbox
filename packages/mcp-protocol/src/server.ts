@@ -111,9 +111,10 @@ export class AuthBoxMCPServer {
       this.authenticate(ws, apiKey);
     });
 
-    // Reset rate limit counters every 5 minutes
+    // Free memory held by finished rate-limit windows. Live windows are kept:
+    // clearing them here used to hand out a fresh budget every 5 minutes.
     const interval = setInterval(
-      () => this.policyEngine.resetCounters(),
+      () => this.policyEngine.pruneExpiredCounters(),
       5 * 60 * 1000,
     );
     this.wss.on("close", () => clearInterval(interval));

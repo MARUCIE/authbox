@@ -34,7 +34,7 @@ type RegisterResponse struct {
 }
 
 type LoginInitRequest struct {
-	Email        string `json:"email"`
+	Email         string `json:"email"`
 	ClientPublicA string `json:"clientPublicA"`
 }
 

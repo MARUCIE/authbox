@@ -263,6 +263,19 @@ if (sessionToken) {
     const { status: s5 } = await apiCall('PUT', `/api/v1/vault/items/${vaultItemId}`, updateData, sessionToken);
     assert(s5 === 200, `Update item → 200 (got ${s5})`);
 
+    // Re-encrypt without itemType (the web client's edit path) keeps the stored type
+    const { itemType: _omit, ...reencrypt } = updateData;
+    const { status: s5b } = await apiCall('PUT', `/api/v1/vault/items/${vaultItemId}`, reencrypt, sessionToken);
+    assert(s5b === 200, `Update item without itemType → 200 (got ${s5b})`);
+    const { data: d5b } = await apiCall('GET', `/api/v1/vault/items/${vaultItemId}`, null, sessionToken);
+    assert(d5b.itemType === 'login', `itemType kept after update (got ${d5b.itemType})`);
+
+    // Invalid input is a client error, not a 500
+    const { status: s5c } = await apiCall('PUT', `/api/v1/vault/items/${vaultItemId}`, { ...updateData, itemType: 'bogus' }, sessionToken);
+    assert(s5c === 400, `Update with unknown itemType → 400 (got ${s5c})`);
+    const { status: s5d } = await apiCall('POST', '/api/v1/vault/sync', { items: [itemData, { ...itemData, nonce: 'not base64!' }] }, sessionToken);
+    assert(s5d === 400, `Sync push with one malformed item → 400 (got ${s5d})`);
+
     // Delete item
     const { status: s6 } = await apiCall('DELETE', `/api/v1/vault/items/${vaultItemId}`, null, sessionToken);
     assert(s6 === 200 || s6 === 204, `Delete item → 2xx (got ${s6})`);

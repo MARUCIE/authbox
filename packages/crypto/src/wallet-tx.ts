@@ -85,6 +85,14 @@ function btcNet(network: WalletNetwork) {
 }
 
 /**
+ * Sanity ceiling on the BTC fee rate accepted for signing. Fee tiers come from
+ * the API's relay of a public mempool feed; a compromised or spoofed feed could
+ * otherwise make the user sign away most of a balance as fee. Historic peaks
+ * stayed well under this, so a legitimate rate never reaches it.
+ */
+export const MAX_BTC_FEE_RATE_SAT_PER_VB = 5000;
+
+/**
  * Build and sign a Bitcoin transaction entirely on the client.
  *
  * Coin selection, change calculation, and fee estimation are delegated to
@@ -99,6 +107,9 @@ export function buildBtcTransaction(seed: Uint8Array, params: BuildBtcTxParams):
   if (amountSats <= 0n) throw new Error('amount must be a positive number of satoshis');
   if (!Number.isFinite(feeRateSatPerVb) || feeRateSatPerVb < 1) {
     throw new Error('fee rate must be >= 1 sat/vByte');
+  }
+  if (feeRateSatPerVb > MAX_BTC_FEE_RATE_SAT_PER_VB) {
+    throw new Error(`fee rate above ${MAX_BTC_FEE_RATE_SAT_PER_VB} sat/vByte refused`);
   }
 
   const net = btcNet(network);
@@ -142,8 +153,25 @@ export function buildBtcTransaction(seed: Uint8Array, params: BuildBtcTxParams):
     }
 
     const tx = selected.tx;
-    // Each key signs only the inputs it owns; unselected candidates are no-ops.
-    for (const pk of privKeys) tx.sign(pk);
+    // Sign input-by-input: selectUTXO usually picks a subset of the candidates,
+    // so most derived keys own no selected input. (tx.sign(pk) throws
+    // "No inputs signed" for such a key, which made every send from a wallet
+    // holding unneeded UTXOs fail.) A key that does not own input i makes
+    // signIdx throw; that is expected and skipped.
+    const signedInputs = new Set<number>();
+    for (const pk of privKeys) {
+      for (let i = 0; i < tx.inputsLength; i++) {
+        if (signedInputs.has(i)) continue;
+        try {
+          if (tx.signIdx(pk, i)) signedInputs.add(i);
+        } catch {
+          // not this key's input
+        }
+      }
+    }
+    if (signedInputs.size !== tx.inputsLength) {
+      throw new Error(`signed ${signedInputs.size} of ${tx.inputsLength} selected inputs`);
+    }
     tx.finalize();
 
     return { coin: 'btc', hex: tx.hex, txid: tx.id, fee: selected.fee, vsize: tx.vsize };

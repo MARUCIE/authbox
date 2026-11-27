@@ -115,6 +115,10 @@ func (h *VaultHandler) SyncPush(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results, err := h.vaultService.SyncPush(r.Context(), userID, req)
+	if errors.Is(err, service.ErrInvalidItem) {
+		writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
+		return
+	}
 	if err != nil {
 		slog.Error("sync push failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "sync push failed", "INTERNAL_ERROR")
@@ -174,6 +178,10 @@ func (h *VaultHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := h.vaultService.CreateItem(r.Context(), userID, req)
+	if errors.Is(err, service.ErrInvalidItem) {
+		writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
+		return
+	}
 	if err != nil {
 		slog.Error("create item failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to create item", "INTERNAL_ERROR")
@@ -230,6 +238,10 @@ func (h *VaultHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.vaultService.UpdateItem(r.Context(), itemID, userID, req); err != nil {
+		if errors.Is(err, service.ErrInvalidItem) {
+			writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
+			return
+		}
 		if errors.Is(err, domain.ErrItemNotFound) {
 			writeError(w, http.StatusNotFound, "item not found", "NOT_FOUND")
 			return

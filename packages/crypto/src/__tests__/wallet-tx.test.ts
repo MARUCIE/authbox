@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mnemonicToSeed } from '../seed';
 import { deriveAddress, derivePrivateKey } from '../wallet';
-import { buildBtcTransaction, buildEthTransaction } from '../wallet-tx';
+import { buildBtcTransaction, buildEthTransaction, MAX_BTC_FEE_RATE_SAT_PER_VB } from '../wallet-tx';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { Transaction as EthTransaction } from 'micro-eth-signer';
 
@@ -118,6 +118,50 @@ describe('buildBtcTransaction — UTXO selection + p2wpkh signing', () => {
       network: 'testnet',
     });
     expect(signed.txid).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  // Regression: tx.sign(pk) throws "No inputs signed" for a key that owns no
+  // selected input, so any wallet with more UTXOs than a send needs could not spend.
+  it('signs when coin selection leaves some candidate UTXOs unused', () => {
+    const signed = buildBtcTransaction(seed, {
+      utxos: [
+        { txid: 'c'.repeat(64), vout: 0, value: 1_000_000n, index: 0 },
+        { txid: 'd'.repeat(64), vout: 0, value: 1_000_000n, index: 1 },
+        { txid: 'e'.repeat(64), vout: 2, value: 1_000_000n, index: 2 },
+      ],
+      to: BTC_ADDR_0,
+      amountSats: 10_000n,
+      changeAddress: BTC_ADDR_0,
+      feeRateSatPerVb: 2,
+    });
+    expect(signed.txid).toMatch(/^[0-9a-f]{64}$/);
+    expect(signed.fee).toBeGreaterThan(0n);
+  });
+
+  it('signs inputs owned by different derived keys in one transaction', () => {
+    const signed = buildBtcTransaction(seed, {
+      utxos: [
+        { txid: 'c'.repeat(64), vout: 0, value: 60_000n, index: 0 },
+        { txid: 'd'.repeat(64), vout: 0, value: 60_000n, index: 3 },
+      ],
+      to: BTC_ADDR_0,
+      amountSats: 100_000n,
+      changeAddress: BTC_ADDR_0,
+      feeRateSatPerVb: 2,
+    });
+    expect(signed.txid).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('refuses an implausibly high fee rate', () => {
+    expect(() =>
+      buildBtcTransaction(seed, {
+        utxos: [utxo],
+        to: BTC_ADDR_0,
+        amountSats: 1000n,
+        changeAddress: BTC_ADDR_0,
+        feeRateSatPerVb: MAX_BTC_FEE_RATE_SAT_PER_VB + 1,
+      }),
+    ).toThrow(/fee rate above/);
   });
 
   it('rejects an empty UTXO set', () => {

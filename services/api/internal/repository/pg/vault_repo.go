@@ -66,7 +66,7 @@ func (r *VaultRepository) ListItems(ctx context.Context, userID uuid.UUID, limit
 
 func (r *VaultRepository) UpdateItem(ctx context.Context, item *domain.VaultItem) error {
 	tag, err := r.pool.Exec(ctx,
-		`UPDATE vault_items SET encrypted_data = $1, nonce = $2, tag = $3, item_type = $4, version = version + 1, updated_at = NOW()
+		`UPDATE vault_items SET encrypted_data = $1, nonce = $2, tag = $3, item_type = COALESCE(NULLIF($4, ''), item_type), version = version + 1, updated_at = NOW()
 		 WHERE id = $5 AND user_id = $6`,
 		item.EncryptedData, item.Nonce, item.Tag, item.ItemType, item.ID, item.UserID,
 	)
