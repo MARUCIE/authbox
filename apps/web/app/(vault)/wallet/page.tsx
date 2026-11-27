@@ -109,6 +109,31 @@ interface SendReview {
   fee: string; // formatted network fee (coin units)
   total: string; // formatted amount + fee
   feeDetail: string; // e.g. "3 sat/vB · 141 vbytes" or "21000 gas · 31.5 gwei max"
+  // BTC only: the change address the tx pays into. It is registered with the
+  // account before broadcast, or the change would vanish from the balance.
+  change?: { address: string; path: string; index: number; publicKey: string };
+}
+
+interface WalletAccountKeys {
+  coin: string;
+  network: string;
+  accountIndex: number;
+  scriptType?: string | null;
+  xpub: string;
+}
+
+// The seed is typed in by hand on every derive and send. A phrase that is
+// valid but belongs to a different wallet would sign from (or register
+// addresses of) someone else's keys, so check it reproduces this account.
+function assertSeedMatchesAccount(seed: Uint8Array, account: WalletAccountKeys): void {
+  const derived = deriveAccount(seed, account.coin as Coin, {
+    account: account.accountIndex,
+    network: account.network as WalletNetwork,
+    ...(account.coin === 'btc' && account.scriptType ? { scriptType: account.scriptType as BtcScriptType } : {}),
+  });
+  if (derived.xpub !== account.xpub) {
+    throw new Error('This recovery phrase does not belong to this account.');
+  }
 }
 
 type DialogMode = 'closed' | 'add' | 'send';
@@ -285,6 +310,7 @@ export default function WalletPage() {
       const nextIndex =
         addresses.filter((a) => a.change === 0).reduce((max, a) => Math.max(max, a.addressIndex), -1) + 1;
       const seed = mnemonicToSeed(phrase);
+      assertSeedMatchesAccount(seed, selected);
       const isBtc = selected.coin === 'btc';
       const next = deriveAddress(seed, selected.coin as Coin, {
         account: selected.accountIndex,
@@ -341,10 +367,12 @@ export default function WalletPage() {
       if (!to) throw new Error('Enter a recipient address');
       const amount = parseAmount(sendAmount, meta.decimals); // throws on bad input
       const seed = mnemonicToSeed(phrase);
+      assertSeedMatchesAccount(seed, selected);
 
       let rawTxHex: string;
       let feeUnits: bigint;
       let feeDetail: string;
+      let change: SendReview['change'];
 
       if (isBtc) {
         const scriptType = (selected.scriptType as BtcScriptType) || 'p2wpkh';
@@ -370,18 +398,28 @@ export default function WalletPage() {
           }
         }
         if (utxos.length === 0) throw new Error('No spendable funds on this account');
-        const changeAddress = deriveAddress(seed, 'btc', {
+        // A fresh internal address per send, starting at 0 so change paid to
+        // the first slot by earlier versions is picked up once it is listed.
+        const changeIndex =
+          addrRes.addresses.filter((a) => a.change === 1).reduce((max, a) => Math.max(max, a.addressIndex), -1) + 1;
+        const changeAddr = deriveAddress(seed, 'btc', {
           account: selected.accountIndex,
           change: 1,
-          index: 0,
+          index: changeIndex,
           network: net,
           scriptType,
-        }).address;
+        });
+        change = {
+          address: changeAddr.address,
+          path: changeAddr.path,
+          index: changeIndex,
+          publicKey: changeAddr.publicKey,
+        };
         const signed = buildBtcTransaction(seed, {
           utxos,
           to,
           amountSats: amount,
-          changeAddress,
+          changeAddress: changeAddr.address,
           feeRateSatPerVb: feeRate,
           network: net,
           scriptType,
@@ -428,6 +466,7 @@ export default function WalletPage() {
         fee: formatUnits(feeUnits.toString(), meta.decimals),
         total: formatUnits(total.toString(), meta.decimals),
         feeDetail,
+        change,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to prepare transaction');
@@ -444,6 +483,17 @@ export default function WalletPage() {
     setSending(true);
     setError(null);
     try {
+      if (sendReview.change) {
+        // Register first: if this fails nothing is sent, and if the broadcast
+        // fails afterwards an unused change address is harmless.
+        await walletApi.addAddress(sessionToken, selected.id, {
+          address: sendReview.change.address,
+          derivationPath: sendReview.change.path,
+          change: 1,
+          addressIndex: sendReview.change.index,
+          publicKey: sendReview.change.publicKey,
+        });
+      }
       const res = await walletApi.broadcast(sessionToken, {
         coin: selected.coin as 'btc' | 'eth',
         network: selected.network as 'mainnet' | 'testnet',

@@ -138,7 +138,7 @@ func (h *VaultHandler) ListItems(w http.ResponseWriter, r *http.Request) {
 	}
 
 	limit := parsePaginationParam(r, "limit", 100, 500)
-	offset := parsePaginationParam(r, "offset", 0, 5000)
+	offset := parsePaginationParam(r, "offset", 0, 100000)
 
 	items, err := h.vaultService.ListItems(r.Context(), userID, limit, offset)
 	if err != nil {

@@ -64,7 +64,7 @@ func (r *VaultRepository) GetItem(ctx context.Context, id, userID uuid.UUID) (*d
 func (r *VaultRepository) ListItems(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.VaultItem, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, encrypted_data, nonce, tag, item_type, version, created_at, updated_at
-		 FROM vault_items WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+		 FROM vault_items WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3`,
 		userID, limit, offset,
 	)
 	if err != nil {

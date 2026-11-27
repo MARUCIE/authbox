@@ -164,22 +164,19 @@ export const vaultApi = {
     }>('/api/v1/vault/key', { token });
   },
 
-  syncPull(token: string, after?: string) {
-    const params = after ? `?after=${encodeURIComponent(after)}` : '';
+  listItems(token: string, limit: number, offset: number) {
     return request<{
       items: Array<{
         id: string;
-        vaultId: string;
         itemType: string;
         encryptedData: string;
         nonce: string;
         tag: string;
-        revision: number;
+        version: number;
         createdAt: string;
         updatedAt: string;
       }>;
-      syncToken: string;
-    }>(`/api/v1/vault/sync${params}`, { token });
+    }>(`/api/v1/vault/items?limit=${limit}&offset=${offset}`, { token });
   },
 
   syncPush(

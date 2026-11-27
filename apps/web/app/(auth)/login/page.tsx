@@ -44,6 +44,9 @@ function LoginForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    // Cleared in finally: a failed login must not leave the timer moving the
+    // handshake view back over the form and its error message.
+    let stepTimer: ReturnType<typeof setInterval> | undefined;
 
     try {
       if (pendingTOTP) {
@@ -55,13 +58,14 @@ function LoginForm() {
       setActiveStep(0);
 
       // Simulate step progression (actual SRP happens inside login())
-      const stepTimer = setInterval(() => {
+      stepTimer = setInterval(() => {
         setActiveStep((prev) => (prev < SRP_STEPS.length - 2 ? prev + 1 : prev));
       }, 600);
 
       const result = await login(email, password);
 
       clearInterval(stepTimer);
+      stepTimer = undefined;
       if (result.kind === 'totp_required') {
         setPendingTOTP(result);
         setTotpCode('');
@@ -77,6 +81,7 @@ function LoginForm() {
       );
       setActiveStep(-1);
     } finally {
+      clearInterval(stepTimer);
       setLoading(false);
     }
   }

@@ -11,6 +11,7 @@ import { encryptVaultItem, decryptVaultItem } from '@authbox/crypto';
 import type { VaultItem, ItemType } from '@authbox/shared';
 import { vaultApi, ApiError } from './api';
 import { useVaultStore, type DecryptedVaultItem } from './vault-store';
+import { collectPages } from './paginate';
 
 function toBase64(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes));
@@ -29,19 +30,26 @@ function getStoreState() {
   return useVaultStore.getState();
 }
 
+/** Items per request when loading the vault (the API allows up to 500). */
+const ITEM_PAGE_SIZE = 500;
+
 /**
- * Pull all encrypted items from the server, decrypt them, and populate the store.
+ * Load every encrypted item from the server, decrypt it, and replace the
+ * store's items. A full reload also drops items deleted on another device.
  */
 export async function syncVault(): Promise<void> {
-  const { sessionToken, vaultKey, lastSync } = getStoreState();
+  const { sessionToken, vaultKey } = getStoreState();
   if (!sessionToken || !vaultKey) {
     throw new Error('Vault is locked');
   }
 
-  const response = await vaultApi.syncPull(sessionToken, lastSync ?? undefined);
-  const decryptedItems = new Map(getStoreState().items);
+  const encrypted = await collectPages(
+    async (limit, offset) => (await vaultApi.listItems(sessionToken, limit, offset)).items,
+    ITEM_PAGE_SIZE,
+  );
+  const decryptedItems = new Map<string, DecryptedVaultItem>();
 
-  for (const item of response.items) {
+  for (const item of encrypted) {
     try {
       const plaintext = await decryptVaultItem(vaultKey, {
         ciphertext: fromBase64(item.encryptedData),
@@ -56,9 +64,9 @@ export async function syncVault(): Promise<void> {
 
       decryptedItems.set(item.id, {
         id: item.id,
-        vaultId: item.vaultId,
+        vaultId: '',
         itemType: item.itemType,
-        revision: item.revision,
+        revision: item.version,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         name: parsed.name ?? 'Untitled',
@@ -72,9 +80,11 @@ export async function syncVault(): Promise<void> {
     }
   }
 
+  // The vault may have been locked while the pages were loading.
+  if (getStoreState().vaultKey !== vaultKey) return;
   useVaultStore.setState({
     items: decryptedItems,
-    lastSync: response.syncToken,
+    lastSync: new Date().toISOString(),
   });
 }
 

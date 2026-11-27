@@ -64,13 +64,22 @@ async function fetchVaultKey(token: string): Promise<VaultKeyData> {
   return res.json();
 }
 
+const ITEM_PAGE_SIZE = 500;
+const MAX_ITEMS = 100_000;
+
+/** Every item, page by page (the API returns at most 500 per request). */
 async function fetchVaultItems(token: string): Promise<EncryptedVaultItem[]> {
-  const res = await fetch(`${getApiBase()}/api/v1/vault/items`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Failed to fetch vault items: ${res.status}`);
-  const data = await res.json();
-  return data.items ?? [];
+  const all: EncryptedVaultItem[] = [];
+  for (let offset = 0; offset < MAX_ITEMS; offset += ITEM_PAGE_SIZE) {
+    const res = await fetch(`${getApiBase()}/api/v1/vault/items?limit=${ITEM_PAGE_SIZE}&offset=${offset}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Failed to fetch vault items: ${res.status}`);
+    const page: EncryptedVaultItem[] = (await res.json()).items ?? [];
+    all.push(...page);
+    if (page.length < ITEM_PAGE_SIZE) return all;
+  }
+  throw new Error(`More than ${MAX_ITEMS} vault items`);
 }
 
 // ── SRP Login (extension needs its own session) ─────────────────────────────

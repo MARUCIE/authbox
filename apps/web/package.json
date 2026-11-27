@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start --port 3010",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test lib/*.test.ts"
   },
   "dependencies": {
     "@authbox/crypto": "workspace:*",
