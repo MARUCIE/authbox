@@ -15,8 +15,8 @@ the replaced code before it is committed.
 | T-07 | Go: one request-boundary helper set (authenticated user, id params, body decode) | high | low | done (batch 4) |
 | T-08 | Go: one service-error → HTTP mapping; not-found always a sentinel error, never `nil, nil` | high | med | done (batch 4) |
 | T-09 | Extension uses the same typed API client and pagination as web (D-04, D-05) | high | med | done (batch 5) |
-| T-10 | Executable architecture rules: Go layer-direction test; TS boundary check (no app→app, no package→app imports, no build output in src, no local codec copies) | high | low | todo |
-| T-11 | CI workflow that builds, typechecks and tests every workspace + Go + architecture rules on every PR | high | low | todo |
+| T-10 | Executable architecture rules: Go layer-direction test; TS boundary check (no app→app, no package→app imports, no build output in src, no local codec copies) | high | low | done (batch 6) |
+| T-11 | CI workflow that builds, typechecks and tests every workspace + Go + architecture rules on every PR | high | low | done (batch 6) |
 | P-01 | Move the SRP verifier to a memory-hard KDF (needs every client to migrate) | high | high | pending-decision (owner) |
 | P-02 | apps/console has two lockfiles (D-08); release gate uses npm. Switch the gate to pnpm and drop package-lock.json? | med | med | pending-decision |
 | P-03 | apps/console `platforms` pages call `/api/v1/platforms`, which no backend in this repo serves, with a default bearer token `local-admin-token`. Delete the feature or point it at a real API? | med | med | pending-decision (product) |

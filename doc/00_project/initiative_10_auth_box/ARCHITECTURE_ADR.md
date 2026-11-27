@@ -142,3 +142,30 @@ Related:
 - 正向：协议改动只改一处；扩展与 web 的登录行为一致；扩展弹窗的加密代码块从 228 KB 降到 94 KB（按需加载的模块可以被 tree-shake）。
 - 行为变化：扩展登录现在也要求完成登录的响应包含完整的 vault 凭据（与 web 一致，服务端一直返回这些字段）；缓存项的 `revision` 取 API 的 `version`。
 - 守门：`scripts/check-architecture.mjs` 禁止应用直接 `fetch` Go API 路径（第 6 批落地）。
+
+---
+
+## ADR-007: 架构规则写成会失败的检查，并在每个 PR 上运行
+- Status: Accepted
+- Date: 2026-11-27
+
+### Context
+- 第 1–5 批收敛的边界（一个编解码、一个响应包、一个 API 客户端、依赖方向）只靠文档和自觉维持，下一次改动就可能重新长出副本。
+- 原有 CI 只在合并到 main 的 PR 上触发，而且不构建、不测试 packages、web 和扩展；叠加 PR 完全没有检查。
+
+### Decision
+- Go：`services/api/internal/archtest`（只有测试文件，随 `go test ./...` 运行）
+  - 每个内部包有一张允许导入的白名单；名单之外的导入、或没有登记的新包，都会失败。`cmd/api` 是组装根，不受限。
+  - 只有 `internal/httpx` 能编码响应：其他文件不能调用 `json.NewEncoder`、`http.Error`；handler 和 middleware 不能用 `fmt.Fprint*` 写响应。
+- TypeScript：`scripts/check-architecture.mjs`
+  - 不允许应用互相导入，不允许包导入应用，不允许用相对路径伸进别的包。
+  - 只能通过包的 `exports` 导入；`packages/*/src` 里不能有编译产物；tsconfig 不能用 `paths` 指向 `packages/*/src`。
+  - base64/hex 只在 `packages/crypto/src/encoding.ts` 实现。
+  - Go API 的 base URL 和 `/api/v1` 路径只出现在 api-client 和两个应用的配置文件里。
+- 两套规则都带自测：把违规样例喂给规则，确认每条都会报错，避免"永远不触发"的假检查。
+- `.github/workflows/ci.yml`：每个 PR（任何目标分支）和推送到 main 时运行架构规则、pnpm 构建/类型检查/测试（packages、web、扩展）、`go vet`/`go test`、真实 Postgres 上的仓储集成测试和全链路 e2e。
+
+### Consequences
+- 正向：回退到旧写法会在 CI 里直接失败，并指出该放到哪个模块。
+- 范围：apps/console 不在检查范围（独立 lockfile，待定 P-02）；钱包 e2e 依赖公共区块索引服务，不进 CI。
+- 新增包时要在 `allowedImports` 登记，这是有意的：新包的层级需要一次明确决定。

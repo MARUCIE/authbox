@@ -1,0 +1,128 @@
+name: CI
+
+# Runs on every pull request (any base branch, so stacked PRs are checked too)
+# and on pushes to main. Covers the pnpm workspace members that ship (packages,
+# web, extension), the Go API, the architecture rules (ADR-007) and the
+# full-stack e2e against a real Postgres.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  architecture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Rules fire on known violations
+        run: node scripts/check-architecture.mjs --self-test
+      - name: Working tree follows the rules
+        run: node scripts/check-architecture.mjs
+
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build, typecheck and test
+        run: >-
+          pnpm turbo run build typecheck test
+          --filter='./packages/*' --filter=@authbox/web --filter=@authbox/extension
+
+  go:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: authbox
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      AUTH_BOX_DB_DSN: postgres://postgres:postgres@localhost:5432/authbox?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/api/go.mod
+          cache-dependency-path: services/api/go.sum
+      - run: go vet ./...
+      - name: Unit and architecture tests
+        run: go test ./...
+      - name: Apply migrations
+        run: go run ./cmd/api -migrate-only -migrations-dir ./migrations
+      - name: Repository integration tests (real Postgres)
+        env:
+          AUTH_BOX_TEST_DB_DSN: ${{ env.AUTH_BOX_DB_DSN }}
+        run: go test -count=1 -tags integration ./internal/repository/pg/
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: authbox
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      AUTH_BOX_DB_DSN: postgres://postgres:postgres@localhost:5432/authbox?sslmode=disable
+      AUTH_BOX_HTTP_ADDR: ":4010"
+      AUTH_BOX_ALLOWED_ORIGINS: http://localhost:3010
+      AUTH_BOX_AUTH_RATE_LIMIT: "1000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/api/go.mod
+          cache-dependency-path: services/api/go.sum
+      - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm turbo run build --filter='./packages/*'
+      - name: Start API
+        working-directory: services/api
+        run: |
+          go build -o "$RUNNER_TEMP/authbox-api" ./cmd/api
+          "$RUNNER_TEMP/authbox-api" -migrate-only -migrations-dir ./migrations
+          "$RUNNER_TEMP/authbox-api" -migrations-dir ./migrations > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 50); do curl -sf localhost:4010/health >/dev/null && exit 0; sleep 0.2; done
+          cat "$RUNNER_TEMP/api.log"; exit 1
+      - name: API e2e
+        run: node scripts/e2e-test.mjs http://localhost:4010
+      - name: api-client against the live API
+        env:
+          AUTHBOX_API_URL: http://localhost:4010
+        run: pnpm --filter @authbox/api-client test
+      - name: API log
+        if: failure()
+        run: cat "$RUNNER_TEMP/api.log"

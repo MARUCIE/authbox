@@ -42,7 +42,8 @@ cmd/api ─┬─> config
 
 Measured import edges (go list, 2026-11-27): handler→{auth, config, domain, middleware, service};
 service→{auth, domain}; repository/pg→{domain}; domain→∅. No cycles. The direction is correct but
-was not enforced by anything (task P-10).
+was not enforced by anything at baseline; since batch 6 `internal/archtest` fails `go test` on any
+import outside the allow-list, and on any package missing from it.
 
 Ownership:
 
@@ -84,7 +85,7 @@ Ownership:
 | --- | --- |
 | `pnpm install --frozen-lockfile` | fails: lockfile pins next 15.5.18, console manifest asks for ^15.5.29 |
 | `pnpm test` (turbo) | fails: @authbox/shared has a `vitest run` script and no tests |
-| CI | release-gate runs Go tests and the console npm build only; packages, web and extension are not built or tested in CI, and workflows only trigger for PRs into main |
+| CI | release-gate runs Go tests and the console npm build only; packages, web and extension are not built or tested in CI, and workflows only trigger for PRs into main. Since batch 6: `ci.yml` on every PR (see ADR-007) |
 | Go `go vet`, `go test ./...` | green |
 | packages vitest | crypto 124 pass / 2 skip, mcp-protocol 13 pass |
 | app node tests | web 5, extension 4, console 4 pass |
