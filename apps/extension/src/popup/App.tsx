@@ -4,7 +4,8 @@ import type {
   SearchResponse,
   StatusResponse,
 } from "@/lib/messages";
-import { VAULT_URL, getApiBase } from "@/lib/config";
+import { api } from "@/lib/api";
+import { VAULT_URL } from "@/lib/config";
 
 const SEARCH_DEBOUNCE_MS = 200;
 
@@ -84,6 +85,8 @@ function LoginView({ onLogin }: LoginViewProps) {
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [pendingTOTPEmail, setPendingTOTPEmail] = useState<string | null>(null);
+  // Single-use challenge from the SRP step; the server requires it for TOTP.
+  const [pendingTOTPChallenge, setPendingTOTPChallenge] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -104,119 +107,35 @@ function LoginView({ onLogin }: LoginViewProps) {
     setError("");
 
     try {
-      const apiBase = getApiBase();
-
       if (pendingTOTPEmail) {
-        const verifyTOTPRes = await fetch(
-          `${apiBase}/api/v1/auth/login/totp/verify`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: pendingTOTPEmail,
-              code: totpCode.trim(),
-            }),
-          },
-        );
-        if (!verifyTOTPRes.ok) {
-          const body = await verifyTOTPRes
-            .json()
-            .catch(() => ({ error: "TOTP verification failed" }));
-          throw new Error(body.error ?? "TOTP verification failed");
-        }
-        const verifyTOTPData = await verifyTOTPRes.json();
+        const session = await api.authApi.loginVerifyTOTP({
+          email: pendingTOTPEmail,
+          code: totpCode.trim(),
+          loginChallenge: pendingTOTPChallenge ?? "",
+        });
         await chrome.runtime.sendMessage({
           type: "SET_SESSION",
-          payload: { token: verifyTOTPData.sessionToken },
+          payload: { token: session.sessionToken },
         });
         onLogin();
         return;
       }
 
-      // Import crypto functions dynamically to keep initial load fast
-      const {
-        deriveKeys,
-        srpClientInit,
-        srpClientVerify,
-        srpVerifyServerProof,
-      } = await import("@authbox/crypto");
+      // Loaded on demand to keep the popup's first paint free of the crypto bundle.
+      const { srpLogin } = await import("@authbox/api-client/login");
+      const outcome = await srpLogin(api.authApi, email.trim(), password);
 
-      // 1. SRP client init
-      const clientState = await srpClientInit();
-
-      // 2. Send A to server
-      const initRes = await fetch(`${apiBase}/api/v1/auth/login/init`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          clientPublicA: toBase64(clientState.ephemeralPublic),
-        }),
-      });
-      if (!initRes.ok) {
-        const body = await initRes
-          .json()
-          .catch(() => ({ error: "Login failed" }));
-        throw new Error(body.error ?? "Login failed");
-      }
-      const initData = await initRes.json();
-
-      // 3. Derive keys from password + salt
-      const salt = fromBase64(initData.srpSalt);
-      const keys = await deriveKeys(password, salt);
-
-      // 4. SRP client verify
-      const serverPublicB = fromBase64(initData.serverPublicB);
-      const { clientProof, sessionKey } = await srpClientVerify(
-        clientState,
-        email.trim(),
-        password,
-        salt,
-        serverPublicB,
-      );
-
-      // 5. Send proof to server
-      const verifyRes = await fetch(`${apiBase}/api/v1/auth/login/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          clientPublicA: toBase64(clientState.ephemeralPublic),
-          clientProofM1: toBase64(clientProof),
-        }),
-      });
-      if (!verifyRes.ok) {
-        const body = await verifyRes
-          .json()
-          .catch(() => ({ error: "Verification failed" }));
-        throw new Error(body.error ?? "Verification failed");
-      }
-      const verifyData = await verifyRes.json();
-
-      if (!verifyData.serverProofM2) {
-        throw new Error("Login response missing SRP server proof");
-      }
-      if (
-        !srpVerifyServerProof(
-          clientState,
-          clientProof,
-          sessionKey,
-          fromBase64(verifyData.serverProofM2),
-        )
-      ) {
-        throw new Error("SRP server proof verification failed");
-      }
-
-      if (verifyData.totpRequired) {
+      if (outcome.kind === "totp_required") {
+        setPendingTOTPChallenge(outcome.loginChallenge);
         setPendingTOTPEmail(email.trim());
         setTotpCode("");
         return;
       }
 
-      // 6. Store session token in background service worker
+      // Store session token in background service worker
       await chrome.runtime.sendMessage({
         type: "SET_SESSION",
-        payload: { token: verifyData.sessionToken },
+        payload: { token: outcome.session.sessionToken },
       });
 
       onLogin();
@@ -328,8 +247,9 @@ function LockedView({ onUnlock, onLogout }: LockedViewProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = password.trim();
-    if (!trimmed) return;
+    // Send the password exactly as typed: login uses it untrimmed, so a
+    // trimmed copy would derive a different key and never unlock.
+    if (!password.trim()) return;
 
     setSubmitting(true);
     setError("");
@@ -337,7 +257,7 @@ function LockedView({ onUnlock, onLogout }: LockedViewProps) {
     try {
       const response: GenericResponse = await chrome.runtime.sendMessage({
         type: "UNLOCK_VAULT",
-        payload: { password: trimmed },
+        payload: { password },
       });
 
       if (response.ok) {
@@ -464,10 +384,15 @@ function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
   }, [query]);
 
   const handleItemClick = async (itemId: string) => {
-    await chrome.runtime.sendMessage({
+    const response: GenericResponse = await chrome.runtime.sendMessage({
       type: "AUTOFILL_REQUEST",
       payload: { itemId },
     });
+    if (!response?.ok) {
+      // e.g. the login is saved for a different site than the open tab
+      setSearchError(response?.error ?? "Autofill failed");
+      return;
+    }
     window.close();
   };
 
@@ -533,17 +458,4 @@ function UnlockedView({ onLock, onLogout }: UnlockedViewProps) {
   );
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
-function toBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-function fromBase64(b64: string): Uint8Array {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}

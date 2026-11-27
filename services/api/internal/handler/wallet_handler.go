@@ -1,15 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
-	"auth-box-api/internal/auth"
+	"auth-box-api/internal/httpx"
 	"auth-box-api/internal/service"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 type WalletHandler struct {
@@ -21,176 +17,159 @@ func NewWalletHandler(walletService *service.WalletService) *WalletHandler {
 }
 
 func (h *WalletHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
 	var req service.CreateWalletAccountRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
 	// Reject off-vocabulary enums with 400 (not 500), matching the shared/Zod
 	// vocabularies. Validation lives here so bad input never reaches the DB.
 	if !service.IsValidCoin(req.Coin) {
-		writeError(w, http.StatusBadRequest, "invalid coin", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid coin", httpx.CodeBadRequest)
 		return
 	}
 	if req.Network != "" && !service.IsValidNetwork(req.Network) {
-		writeError(w, http.StatusBadRequest, "invalid network", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid network", httpx.CodeBadRequest)
 		return
 	}
 	if req.Coin == "btc" && req.ScriptType != "" && !service.IsValidBtcScriptType(req.ScriptType) {
-		writeError(w, http.StatusBadRequest, "invalid scriptType", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid scriptType", httpx.CodeBadRequest)
 		return
 	}
 	if req.DerivationPath == "" || req.XPub == "" {
-		writeError(w, http.StatusBadRequest, "derivationPath and xpub are required", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "derivationPath and xpub are required", httpx.CodeBadRequest)
 		return
 	}
 	if len(req.XPub) > 256 || len(req.Label) > 255 {
-		writeError(w, http.StatusBadRequest, "field exceeds maximum length", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "field exceeds maximum length", httpx.CodeBadRequest)
 		return
 	}
 
 	resp, err := h.walletService.CreateAccount(r.Context(), userID, req)
 	if err != nil {
-		slog.Error("create wallet account failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to create wallet account", "INTERNAL_ERROR")
+		writeInternal(w, err, "create wallet account failed", "failed to create wallet account")
 		return
 	}
-	writeJSON(w, http.StatusCreated, resp)
+	httpx.WriteJSON(w, http.StatusCreated, resp)
 }
 
 func (h *WalletHandler) ListAccounts(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 	accounts, err := h.walletService.ListAccounts(r.Context(), userID)
 	if err != nil {
-		slog.Error("list wallet accounts failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to list wallet accounts", "INTERNAL_ERROR")
+		writeInternal(w, err, "list wallet accounts failed", "failed to list wallet accounts")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"accounts": accounts})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"accounts": accounts})
 }
 
 func (h *WalletHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid account id", "BAD_REQUEST")
+	id, ok := uuidParam(w, r, "id", "invalid account id")
+	if !ok {
 		return
 	}
 	if err := h.walletService.DeleteAccount(r.Context(), id, userID); err != nil {
 		if service.IsNotFound(err) {
-			writeError(w, http.StatusNotFound, "wallet account not found", "NOT_FOUND")
+			httpx.WriteError(w, http.StatusNotFound, "wallet account not found", httpx.CodeNotFound)
 			return
 		}
-		slog.Error("delete wallet account failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to delete wallet account", "INTERNAL_ERROR")
+		writeInternal(w, err, "delete wallet account failed", "failed to delete wallet account")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"deleted": true})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"deleted": true})
 }
 
 func (h *WalletHandler) AddAddress(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid account id", "BAD_REQUEST")
+	id, ok := uuidParam(w, r, "id", "invalid account id")
+	if !ok {
 		return
 	}
 
 	var req service.AddAddressRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	if req.Address == "" || req.PublicKey == "" || req.DerivationPath == "" {
-		writeError(w, http.StatusBadRequest, "address, publicKey and derivationPath are required", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "address, publicKey and derivationPath are required", httpx.CodeBadRequest)
 		return
 	}
 	if req.Change != 0 && req.Change != 1 {
-		writeError(w, http.StatusBadRequest, "change must be 0 or 1", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "change must be 0 or 1", httpx.CodeBadRequest)
 		return
 	}
 
 	resp, err := h.walletService.AddAddress(r.Context(), id, userID, req)
 	if err != nil {
 		if service.IsNotFound(err) {
-			writeError(w, http.StatusNotFound, "wallet account not found", "NOT_FOUND")
+			httpx.WriteError(w, http.StatusNotFound, "wallet account not found", httpx.CodeNotFound)
 			return
 		}
-		slog.Error("add wallet address failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to add wallet address", "INTERNAL_ERROR")
+		writeInternal(w, err, "add wallet address failed", "failed to add wallet address")
 		return
 	}
-	writeJSON(w, http.StatusCreated, resp)
+	httpx.WriteJSON(w, http.StatusCreated, resp)
 }
 
 func (h *WalletHandler) ListAddresses(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid account id", "BAD_REQUEST")
+	id, ok := uuidParam(w, r, "id", "invalid account id")
+	if !ok {
 		return
 	}
 	addrs, err := h.walletService.ListAddresses(r.Context(), id, userID)
 	if err != nil {
 		if service.IsNotFound(err) {
-			writeError(w, http.StatusNotFound, "wallet account not found", "NOT_FOUND")
+			httpx.WriteError(w, http.StatusNotFound, "wallet account not found", httpx.CodeNotFound)
 			return
 		}
-		slog.Error("list wallet addresses failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to list wallet addresses", "INTERNAL_ERROR")
+		writeInternal(w, err, "list wallet addresses failed", "failed to list wallet addresses")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"addresses": addrs})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"addresses": addrs})
 }
 
 func (h *WalletHandler) Broadcast(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
 	var req service.BroadcastRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
 	// Reject off-vocabulary / malformed input with 400 before any egress. The tx
 	// itself is built+signed client-side; the backend only relays a valid payload.
 	if !service.IsValidCoin(req.Coin) {
-		writeError(w, http.StatusBadRequest, "invalid coin", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid coin", httpx.CodeBadRequest)
 		return
 	}
 	if req.Network != "" && !service.IsValidNetwork(req.Network) {
-		writeError(w, http.StatusBadRequest, "invalid network", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid network", httpx.CodeBadRequest)
 		return
 	}
 	if !service.IsWellFormedRawTxHex(req.RawTxHex) {
-		writeError(w, http.StatusBadRequest, "rawTxHex must be even-length hex within size bounds", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "rawTxHex must be even-length hex within size bounds", httpx.CodeBadRequest)
 		return
 	}
 
@@ -199,10 +178,10 @@ func (h *WalletHandler) Broadcast(w http.ResponseWriter, r *http.Request) {
 		// A rejected/invalid transaction or an unreachable node both surface here;
 		// the upstream message is the actionable signal, mapped to 502 like Balance.
 		slog.Warn("wallet broadcast failed", "user", userID, "coin", req.Coin, "network", req.Network, "error", err)
-		writeError(w, http.StatusBadGateway, "broadcast rejected: "+err.Error(), "UPSTREAM_ERROR")
+		httpx.WriteError(w, http.StatusBadGateway, "broadcast rejected: "+err.Error(), httpx.CodeUpstream)
 		return
 	}
-	writeJSON(w, http.StatusOK, resp)
+	httpx.WriteJSON(w, http.StatusOK, resp)
 }
 
 // txPrepNetwork pulls + validates the optional network query param (default
@@ -210,15 +189,14 @@ func (h *WalletHandler) Broadcast(w http.ResponseWriter, r *http.Request) {
 func txPrepNetwork(w http.ResponseWriter, r *http.Request) (string, bool) {
 	network := r.URL.Query().Get("network")
 	if network != "" && !service.IsValidNetwork(network) {
-		writeError(w, http.StatusBadRequest, "invalid network", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid network", httpx.CodeBadRequest)
 		return "", false
 	}
 	return network, true
 }
 
 func (h *WalletHandler) BtcUTXOs(w http.ResponseWriter, r *http.Request) {
-	if _, ok := auth.UserIDFromContext(r.Context()); !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+	if _, ok := requireUser(w, r); !ok {
 		return
 	}
 	network, ok := txPrepNetwork(w, r)
@@ -227,21 +205,20 @@ func (h *WalletHandler) BtcUTXOs(w http.ResponseWriter, r *http.Request) {
 	}
 	address := r.URL.Query().Get("address")
 	if address == "" {
-		writeError(w, http.StatusBadRequest, "address is required", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "address is required", httpx.CodeBadRequest)
 		return
 	}
 	utxos, err := h.walletService.BtcUTXOs(r.Context(), network, address)
 	if err != nil {
 		slog.Warn("btc utxo lookup failed", "error", err)
-		writeError(w, http.StatusBadGateway, "failed to fetch utxos: "+err.Error(), "UPSTREAM_ERROR")
+		httpx.WriteError(w, http.StatusBadGateway, "failed to fetch utxos: "+err.Error(), httpx.CodeUpstream)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"utxos": utxos})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"utxos": utxos})
 }
 
 func (h *WalletHandler) BtcFees(w http.ResponseWriter, r *http.Request) {
-	if _, ok := auth.UserIDFromContext(r.Context()); !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+	if _, ok := requireUser(w, r); !ok {
 		return
 	}
 	network, ok := txPrepNetwork(w, r)
@@ -251,15 +228,14 @@ func (h *WalletHandler) BtcFees(w http.ResponseWriter, r *http.Request) {
 	fees, err := h.walletService.BtcFeeRates(r.Context(), network)
 	if err != nil {
 		slog.Warn("btc fee lookup failed", "error", err)
-		writeError(w, http.StatusBadGateway, "failed to fetch fee rates: "+err.Error(), "UPSTREAM_ERROR")
+		httpx.WriteError(w, http.StatusBadGateway, "failed to fetch fee rates: "+err.Error(), httpx.CodeUpstream)
 		return
 	}
-	writeJSON(w, http.StatusOK, fees)
+	httpx.WriteJSON(w, http.StatusOK, fees)
 }
 
 func (h *WalletHandler) EthNonce(w http.ResponseWriter, r *http.Request) {
-	if _, ok := auth.UserIDFromContext(r.Context()); !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+	if _, ok := requireUser(w, r); !ok {
 		return
 	}
 	network, ok := txPrepNetwork(w, r)
@@ -268,21 +244,20 @@ func (h *WalletHandler) EthNonce(w http.ResponseWriter, r *http.Request) {
 	}
 	address := r.URL.Query().Get("address")
 	if address == "" {
-		writeError(w, http.StatusBadRequest, "address is required", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "address is required", httpx.CodeBadRequest)
 		return
 	}
 	nonce, err := h.walletService.EthNonce(r.Context(), network, address)
 	if err != nil {
 		slog.Warn("eth nonce lookup failed", "error", err)
-		writeError(w, http.StatusBadGateway, "failed to fetch nonce: "+err.Error(), "UPSTREAM_ERROR")
+		httpx.WriteError(w, http.StatusBadGateway, "failed to fetch nonce: "+err.Error(), httpx.CodeUpstream)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"nonce": nonce})
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{"nonce": nonce})
 }
 
 func (h *WalletHandler) EthGas(w http.ResponseWriter, r *http.Request) {
-	if _, ok := auth.UserIDFromContext(r.Context()); !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+	if _, ok := requireUser(w, r); !ok {
 		return
 	}
 	network, ok := txPrepNetwork(w, r)
@@ -292,32 +267,30 @@ func (h *WalletHandler) EthGas(w http.ResponseWriter, r *http.Request) {
 	gas, err := h.walletService.EthGas(r.Context(), network)
 	if err != nil {
 		slog.Warn("eth gas lookup failed", "error", err)
-		writeError(w, http.StatusBadGateway, "failed to fetch gas: "+err.Error(), "UPSTREAM_ERROR")
+		httpx.WriteError(w, http.StatusBadGateway, "failed to fetch gas: "+err.Error(), httpx.CodeUpstream)
 		return
 	}
-	writeJSON(w, http.StatusOK, gas)
+	httpx.WriteJSON(w, http.StatusOK, gas)
 }
 
 func (h *WalletHandler) Balance(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid account id", "BAD_REQUEST")
+	id, ok := uuidParam(w, r, "id", "invalid account id")
+	if !ok {
 		return
 	}
 	bal, err := h.walletService.RefreshBalance(r.Context(), id, userID)
 	if err != nil {
 		if service.IsNotFound(err) {
-			writeError(w, http.StatusNotFound, "wallet account not found", "NOT_FOUND")
+			httpx.WriteError(w, http.StatusNotFound, "wallet account not found", httpx.CodeNotFound)
 			return
 		}
 		slog.Error("refresh wallet balance failed", "error", err)
-		writeError(w, http.StatusBadGateway, "failed to fetch balance from indexer", "UPSTREAM_ERROR")
+		httpx.WriteError(w, http.StatusBadGateway, "failed to fetch balance from indexer", httpx.CodeUpstream)
 		return
 	}
-	writeJSON(w, http.StatusOK, bal)
+	httpx.WriteJSON(w, http.StatusOK, bal)
 }

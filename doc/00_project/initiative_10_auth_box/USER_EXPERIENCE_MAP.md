@@ -81,7 +81,7 @@ SRP 协议实现双向认证：客户端验证服务端身份，服务端验证�
 | B4 | -- | 客户端计算共享密钥 K 和证明 M1 | Argon2id + SRP 计算 |
 | B5 | -- | 发送 Login Verify (M1) | POST `/api/v1/auth/login/verify` |
 | B6 | -- | 服务端验证 M1，返回 `(M2 + vault bundle)` 或 `totpRequired=true + M2` | SRP 完成后再决定是否 step-up |
-| B7 | 若启用 TOTP，输入 6 位验证码 | 客户端发送第二步校验 | POST `/api/v1/auth/login/totp/verify` |
+| B7 | 若启用 TOTP，输入 6 位验证码 | 客户端带上 SRP 步骤返回的 `loginChallenge` 发送第二步校验 | POST `/api/v1/auth/login/totp/verify` |
 | B8 | -- | 客户端验证 M2 / 获取 session token / 解包 Vault Key | SRP + TOTP 完整闭环 |
 | B9 | -- | 下载并解密所有 Vault Items | 批量解密到内存 |
 | B10 | 看到 Vault 主界面 | 展示解密后的凭据列表 | 跳转到 `/passwords` |

@@ -492,7 +492,7 @@ erDiagram
 | POST | `/api/v1/auth/register/seed` | v3+ 种子词注册（email, public_key, encrypted_vault_key） |
 | POST | `/api/v1/auth/login/init` | SRP 登录第一步（email, A） |
 | POST | `/api/v1/auth/login/verify` | SRP 登录第二步（M1） |
-| POST | `/api/v1/auth/login/totp/verify` | SRP 通过后的 TOTP 二次校验 |
+| POST | `/api/v1/auth/login/totp/verify` | SRP 通过后的 TOTP 二次校验；必须携带 `/login/verify` 返回的一次性 `loginChallenge`（每个 challenge 最多 5 次错误码，5 分钟过期，验证码单次有效） |
 | POST | `/api/v1/auth/login/sign` | v3+ Ed25519 签名登录（email, challenge_response） |
 | POST | `/api/v1/auth/logout` | 注销当前会话 |
 | GET | `/api/v1/auth/sessions` | 列出活跃会话 |

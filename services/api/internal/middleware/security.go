@@ -7,6 +7,8 @@ import (
 	"net/netip"
 	"strings"
 	"sync/atomic"
+
+	"auth-box-api/internal/httpx"
 )
 
 // PrivateNetworkAccess handles Chrome 130+ PNA preflight.
@@ -38,7 +40,9 @@ func SecurityHeaders(next http.Handler) http.Handler {
 			"default-src 'none'; connect-src 'self'; frame-ancestors 'none'")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		// "0" turns off the legacy XSS auditor, which could itself be abused to
+		// leak or block page content; the CSP above is the real XSS defence.
+		w.Header().Set("X-XSS-Protection", "0")
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Permitted-Cross-Domain-Policies", "none")
@@ -62,11 +66,11 @@ func RequireJSON(next http.Handler) http.Handler {
 		default:
 			ct := r.Header.Get("Content-Type")
 			if hasRequestBody(r) && ct == "" {
-				http.Error(w, `{"error":"Content-Type must be application/json","code":"INVALID_CONTENT_TYPE"}`, http.StatusUnsupportedMediaType)
+				httpx.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json", httpx.CodeInvalidContentType)
 				return
 			}
 			if ct != "" && !isJSONContentType(ct) {
-				http.Error(w, `{"error":"Content-Type must be application/json","code":"INVALID_CONTENT_TYPE"}`, http.StatusUnsupportedMediaType)
+				httpx.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json", httpx.CodeInvalidContentType)
 				return
 			}
 		}

@@ -28,7 +28,8 @@ export interface PendingApproval {
 }
 
 export class PolicyEngine {
-  private rateLimitCounters = new Map<string, { count: number; windowStart: number }>();
+  /** Keyed by `${policyId}\u0000${agentId}`: each rate_limit policy keeps its own window. */
+  private rateLimitCounters = new Map<string, { count: number; windowStart: number; windowMs: number }>();
   private pendingApprovals = new Map<string, PendingApproval>();
 
   /** Callback invoked when step-up approval is needed. Set by the MCP server. */
@@ -61,6 +62,23 @@ export class PolicyEngine {
     return { allowed: true, reason: 'All policies passed', appliedPolicies: applied };
   }
 
+  /**
+   * Narrow a list of item IDs to the ones every enabled item_scope policy lets
+   * the agent see: explicitly denied IDs are removed, and an allow-list keeps
+   * only its own entries. Used so list_available_services does not reveal
+   * services the agent is barred from.
+   */
+  visibleItems(policies: AgentPolicy[], itemIds: string[]): string[] {
+    const scopes = policies.filter((p) => p.enabled && p.policyType === 'item_scope');
+    return itemIds.filter((id) =>
+      scopes.every(
+        (p) =>
+          !p.rules.deniedItemIds?.includes(id) &&
+          (!p.rules.allowedItemIds || p.rules.allowedItemIds.includes(id)),
+      ),
+    );
+  }
+
   private evaluatePolicy(
     policy: AgentPolicy,
     request: AccessRequest,
@@ -73,7 +91,7 @@ export class PolicyEngine {
       case 'action_perm':
         return this.checkActionPermission(rules, request);
       case 'rate_limit':
-        return this.checkRateLimit(request.agentId, rules);
+        return this.checkRateLimit(policy.id, request.agentId, rules);
       case 'time_window':
         return this.checkTimeWindow(rules);
       case 'step_up':
@@ -141,6 +159,7 @@ export class PolicyEngine {
   }
 
   private checkRateLimit(
+    policyId: string,
     agentId: string,
     rules: PolicyRules,
   ): { allowed: boolean; reason: string } {
@@ -150,11 +169,11 @@ export class PolicyEngine {
 
     const now = Date.now();
     const windowMs = rules.windowSeconds * 1000;
-    const key = agentId;
+    const key = `${policyId}\u0000${agentId}`;
     const counter = this.rateLimitCounters.get(key);
 
-    if (!counter || now - counter.windowStart > windowMs) {
-      this.rateLimitCounters.set(key, { count: 1, windowStart: now });
+    if (!counter || now - counter.windowStart >= counter.windowMs || counter.windowMs !== windowMs) {
+      this.rateLimitCounters.set(key, { count: 1, windowStart: now, windowMs });
       return { allowed: true, reason: 'Rate limit check passed' };
     }
 
@@ -267,7 +286,16 @@ export class PolicyEngine {
     return Array.from(this.pendingApprovals.values());
   }
 
-  resetCounters(): void {
-    this.rateLimitCounters.clear();
+  /**
+   * Drop counters whose window has already ended. Only frees memory: a live
+   * window is never reset early, so a limit longer than the sweep interval
+   * still holds for its whole window.
+   */
+  pruneExpiredCounters(now: number = Date.now()): void {
+    for (const [key, counter] of this.rateLimitCounters) {
+      if (now - counter.windowStart >= counter.windowMs) {
+        this.rateLimitCounters.delete(key);
+      }
+    }
   }
 }

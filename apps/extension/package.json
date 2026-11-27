@@ -7,9 +7,11 @@
     "dev": "vite build --watch --mode development",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --no-warnings --test src/lib/*.test.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@authbox/api-client": "workspace:*",
     "@authbox/crypto": "workspace:*",
     "@authbox/shared": "workspace:*",
     "react": "^19.0.0",

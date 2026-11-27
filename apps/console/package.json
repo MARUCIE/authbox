@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "node --experimental-strip-types --no-warnings --test lib/*.test.ts"
   },
   "dependencies": {
-    "next": "15.5.18",
+    "next": "^15.5.29",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },

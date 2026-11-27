@@ -28,6 +28,25 @@ func (r *VaultRepository) CreateItem(ctx context.Context, item *domain.VaultItem
 	).Scan(&item.ID, &item.CreatedAt, &item.UpdatedAt)
 }
 
+// CreateItems inserts the batch in one transaction, so a failure part-way
+// (constraint, connection loss) leaves no partial sync behind.
+func (r *VaultRepository) CreateItems(ctx context.Context, items []*domain.VaultItem) error {
+	return pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		for _, item := range items {
+			err := tx.QueryRow(ctx,
+				`INSERT INTO vault_items (user_id, encrypted_data, nonce, tag, item_type, version)
+				 VALUES ($1, $2, $3, $4, $5, $6)
+				 RETURNING id, created_at, updated_at`,
+				item.UserID, item.EncryptedData, item.Nonce, item.Tag, item.ItemType, item.Version,
+			).Scan(&item.ID, &item.CreatedAt, &item.UpdatedAt)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (r *VaultRepository) GetItem(ctx context.Context, id, userID uuid.UUID) (*domain.VaultItem, error) {
 	item := &domain.VaultItem{}
 	err := r.pool.QueryRow(ctx,
@@ -45,7 +64,7 @@ func (r *VaultRepository) GetItem(ctx context.Context, id, userID uuid.UUID) (*d
 func (r *VaultRepository) ListItems(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.VaultItem, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, encrypted_data, nonce, tag, item_type, version, created_at, updated_at
-		 FROM vault_items WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+		 FROM vault_items WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3`,
 		userID, limit, offset,
 	)
 	if err != nil {
@@ -66,7 +85,7 @@ func (r *VaultRepository) ListItems(ctx context.Context, userID uuid.UUID, limit
 
 func (r *VaultRepository) UpdateItem(ctx context.Context, item *domain.VaultItem) error {
 	tag, err := r.pool.Exec(ctx,
-		`UPDATE vault_items SET encrypted_data = $1, nonce = $2, tag = $3, item_type = $4, version = version + 1, updated_at = NOW()
+		`UPDATE vault_items SET encrypted_data = $1, nonce = $2, tag = $3, item_type = COALESCE(NULLIF($4, ''), item_type), version = version + 1, updated_at = NOW()
 		 WHERE id = $5 AND user_id = $6`,
 		item.EncryptedData, item.Nonce, item.Tag, item.ItemType, item.ID, item.UserID,
 	)

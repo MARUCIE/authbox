@@ -9,6 +9,7 @@ import (
 	"auth-box-api/internal/domain"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 // Canonical wallet enum vocabularies. These MUST stay identical to the shared
@@ -217,6 +218,9 @@ func (s *WalletService) ListAddresses(ctx context.Context, id, userID uuid.UUID)
 	return out, nil
 }
 
+// balanceLookupConcurrency caps parallel upstream calls in RefreshBalance.
+const balanceLookupConcurrency = 8
+
 // RefreshBalance sums the watch-only balance across every stored address of an
 // account by querying public indexers, persists the confirmed total to the
 // account cache, and returns the live figures. No private keys are touched.
@@ -234,13 +238,29 @@ func (s *WalletService) RefreshBalance(ctx context.Context, id, userID uuid.UUID
 		return nil, err
 	}
 
+	// Look addresses up a few at a time: one upstream call per address, each
+	// with its own timeout, would otherwise run back to back for up to 1000
+	// addresses. The first failure cancels the rest.
+	balances := make([]Balance, len(addrs))
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(balanceLookupConcurrency)
+	for i := range addrs {
+		g.Go(func() error {
+			bal, err := s.balance.AddressBalance(gctx, account.Coin, account.Network, addrs[i].Address)
+			if err != nil {
+				return fmt.Errorf("balance lookup for %s failed: %w", addrs[i].Address, err)
+			}
+			balances[i] = bal
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
 	confirmed := new(big.Int)
 	unconfirmed := new(big.Int)
-	for i := range addrs {
-		bal, err := s.balance.AddressBalance(ctx, account.Coin, account.Network, addrs[i].Address)
-		if err != nil {
-			return nil, fmt.Errorf("balance lookup for %s failed: %w", addrs[i].Address, err)
-		}
+	for _, bal := range balances {
 		if v, ok := new(big.Int).SetString(bal.Confirmed, 10); ok {
 			confirmed.Add(confirmed, v)
 		}

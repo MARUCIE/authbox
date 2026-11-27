@@ -164,6 +164,11 @@ function col(row: string[], idx: number): string {
   return idx >= 0 ? row[idx]?.trim() ?? '' : '';
 }
 
+/** A cell exactly as exported: a password's leading or trailing spaces are part of it. */
+function rawCol(row: string[], idx: number): string {
+  return idx >= 0 ? row[idx] ?? '' : '';
+}
+
 // ─── Universal CSV Parser ─────────────────────────────────────────────────
 
 function parseUniversalCSV(text: string, opts?: { skipNonLogin?: boolean; typeColumn?: string; loginTypeValue?: string }): ImportResult {
@@ -199,7 +204,7 @@ function parseUniversalCSV(text: string, opts?: { skipNonLogin?: boolean; typeCo
       }
     }
 
-    const password = col(row, cols.password);
+    const password = rawCol(row, cols.password);
     const username = col(row, cols.username);
     if (!password && !username) {
       skipped++;

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 
 	"auth-box-api/internal/domain"
 
@@ -100,41 +101,66 @@ func IsValidItemType(t string) bool {
 	return validItemTypes[t]
 }
 
-func (s *VaultService) CreateItem(ctx context.Context, userID uuid.UUID, req ItemRequest) (*ItemResponse, error) {
+// ErrInvalidItem marks a vault item request the client must fix (bad
+// encoding, empty ciphertext fields or an unknown itemType). Handlers map it
+// to 400 so malformed input never surfaces as a 500.
+var ErrInvalidItem = errors.New("invalid vault item")
+
+func invalidItem(reason string) error {
+	return fmt.Errorf("%w: %s", ErrInvalidItem, reason)
+}
+
+// decodeItem validates and decodes the ciphertext fields of req. An empty
+// itemType is returned as "" so each caller decides its own default.
+func decodeItem(req ItemRequest) (*domain.VaultItem, error) {
+	if req.EncryptedData == "" || req.Nonce == "" || req.Tag == "" {
+		return nil, invalidItem("missing required fields")
+	}
 	data, err := base64.StdEncoding.DecodeString(req.EncryptedData)
 	if err != nil {
-		return nil, errors.New("invalid encryptedData encoding")
+		return nil, invalidItem("invalid encryptedData encoding")
 	}
 	nonce, err := base64.StdEncoding.DecodeString(req.Nonce)
 	if err != nil {
-		return nil, errors.New("invalid nonce encoding")
+		return nil, invalidItem("invalid nonce encoding")
 	}
 	tag, err := base64.StdEncoding.DecodeString(req.Tag)
 	if err != nil {
-		return nil, errors.New("invalid tag encoding")
+		return nil, invalidItem("invalid tag encoding")
 	}
-
-	itemType := req.ItemType
-	if itemType == "" {
-		itemType = "login"
+	if req.ItemType != "" && !validItemTypes[req.ItemType] {
+		return nil, invalidItem("invalid itemType")
 	}
-	if !validItemTypes[itemType] {
-		return nil, errors.New("invalid itemType")
-	}
-
-	item := &domain.VaultItem{
-		UserID:        userID,
+	return &domain.VaultItem{
 		EncryptedData: data,
 		Nonce:         nonce,
 		Tag:           tag,
-		ItemType:      itemType,
-		Version:       1,
-	}
+		ItemType:      req.ItemType,
+	}, nil
+}
 
+// decodeNewItem validates a create request; a missing itemType means "login".
+func decodeNewItem(userID uuid.UUID, req ItemRequest) (*domain.VaultItem, error) {
+	item, err := decodeItem(req)
+	if err != nil {
+		return nil, err
+	}
+	if item.ItemType == "" {
+		item.ItemType = "login"
+	}
+	item.UserID = userID
+	item.Version = 1
+	return item, nil
+}
+
+func (s *VaultService) CreateItem(ctx context.Context, userID uuid.UUID, req ItemRequest) (*ItemResponse, error) {
+	item, err := decodeNewItem(userID, req)
+	if err != nil {
+		return nil, err
+	}
 	if err := s.vaultRepo.CreateItem(ctx, item); err != nil {
 		return nil, err
 	}
-
 	resp := itemToResponse(item)
 	return &resp, nil
 }
@@ -145,7 +171,7 @@ func (s *VaultService) GetItem(ctx context.Context, id, userID uuid.UUID) (*Item
 		return nil, err
 	}
 	if item == nil {
-		return nil, nil
+		return nil, domain.ErrItemNotFound
 	}
 	resp := itemToResponse(item)
 	return &resp, nil
@@ -164,29 +190,16 @@ func (s *VaultService) ListItems(ctx context.Context, userID uuid.UUID, limit, o
 	return result, nil
 }
 
+// UpdateItem replaces an item's ciphertext. An empty itemType keeps the
+// stored type: clients that only re-encrypt (the web app's edit path) must not
+// wipe it.
 func (s *VaultService) UpdateItem(ctx context.Context, id, userID uuid.UUID, req ItemRequest) error {
-	data, err := base64.StdEncoding.DecodeString(req.EncryptedData)
+	item, err := decodeItem(req)
 	if err != nil {
-		return errors.New("invalid encryptedData encoding")
+		return err
 	}
-	nonce, err := base64.StdEncoding.DecodeString(req.Nonce)
-	if err != nil {
-		return errors.New("invalid nonce encoding")
-	}
-	tag, err := base64.StdEncoding.DecodeString(req.Tag)
-	if err != nil {
-		return errors.New("invalid tag encoding")
-	}
-
-	item := &domain.VaultItem{
-		ID:            id,
-		UserID:        userID,
-		EncryptedData: data,
-		Nonce:         nonce,
-		Tag:           tag,
-		ItemType:      req.ItemType,
-	}
-
+	item.ID = id
+	item.UserID = userID
 	return s.vaultRepo.UpdateItem(ctx, item)
 }
 
@@ -212,14 +225,23 @@ type SyncPushRequest struct {
 	Items []ItemRequest `json:"items"`
 }
 
+// SyncPush stores a batch of new items atomically: every item is validated
+// first, then all are inserted in one transaction.
 func (s *VaultService) SyncPush(ctx context.Context, userID uuid.UUID, req SyncPushRequest) ([]ItemResponse, error) {
-	results := make([]ItemResponse, 0, len(req.Items))
-	for _, itemReq := range req.Items {
-		resp, err := s.CreateItem(ctx, userID, itemReq)
+	items := make([]*domain.VaultItem, 0, len(req.Items))
+	for i, itemReq := range req.Items {
+		item, err := decodeNewItem(userID, itemReq)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("item %d: %w", i, err)
 		}
-		results = append(results, *resp)
+		items = append(items, item)
+	}
+	if err := s.vaultRepo.CreateItems(ctx, items); err != nil {
+		return nil, err
+	}
+	results := make([]ItemResponse, 0, len(items))
+	for _, item := range items {
+		results = append(results, itemToResponse(item))
 	}
 	return results, nil
 }

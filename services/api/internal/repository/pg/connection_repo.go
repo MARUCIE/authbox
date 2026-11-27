@@ -23,7 +23,7 @@ func NewConnectionRepository(pool *pgxpool.Pool) *ConnectionRepository {
 }
 
 func (r *ConnectionRepository) CreateConnection(ctx context.Context, conn *domain.AuthConnection) error {
-	return r.pool.QueryRow(ctx,
+	return mapUniqueViolation(r.pool.QueryRow(ctx,
 		`INSERT INTO auth_connections (user_id, provider, provider_account_id, display_name,
 		  access_token_enc, access_token_nonce, access_token_tag,
 		  refresh_token_enc, refresh_token_nonce, refresh_token_tag,
@@ -34,7 +34,7 @@ func (r *ConnectionRepository) CreateConnection(ctx context.Context, conn *domai
 		conn.AccessTokenEnc, conn.AccessTokenNonce, conn.AccessTokenTag,
 		conn.RefreshTokenEnc, conn.RefreshTokenNonce, conn.RefreshTokenTag,
 		conn.TokenExpiresAt, conn.Scopes, conn.Status, conn.Metadata,
-	).Scan(&conn.ID, &conn.CreatedAt, &conn.UpdatedAt)
+	).Scan(&conn.ID, &conn.CreatedAt, &conn.UpdatedAt))
 }
 
 func (r *ConnectionRepository) GetConnection(ctx context.Context, id, userID uuid.UUID) (*domain.AuthConnection, error) {
@@ -85,25 +85,42 @@ func (r *ConnectionRepository) ListConnections(ctx context.Context, userID uuid.
 	return conns, rows.Err()
 }
 
-func (r *ConnectionRepository) UpdateConnection(ctx context.Context, conn *domain.AuthConnection) error {
-	tag, err := r.pool.Exec(ctx,
-		`UPDATE auth_connections SET provider = $1, provider_account_id = $2, display_name = $3,
-		  access_token_enc = $4, access_token_nonce = $5, access_token_tag = $6,
-		  refresh_token_enc = $7, refresh_token_nonce = $8, refresh_token_tag = $9,
-		  token_expires_at = $10, scopes = $11, status = $12, metadata = $13, updated_at = NOW()
-		 WHERE id = $14 AND user_id = $15`,
-		conn.Provider, conn.ProviderAccountID, conn.DisplayName,
-		conn.AccessTokenEnc, conn.AccessTokenNonce, conn.AccessTokenTag,
-		conn.RefreshTokenEnc, conn.RefreshTokenNonce, conn.RefreshTokenTag,
-		conn.TokenExpiresAt, conn.Scopes, conn.Status, conn.Metadata, conn.ID, conn.UserID,
-	)
-	if err != nil {
-		return err
-	}
-	if tag.RowsAffected() == 0 {
-		return errConnectionNotFound
-	}
-	return nil
+func (r *ConnectionRepository) UpdateConnection(ctx context.Context, id, userID uuid.UUID, apply func(*domain.AuthConnection) error) error {
+	return pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		conn := &domain.AuthConnection{}
+		err := tx.QueryRow(ctx,
+			`SELECT id, user_id, provider, provider_account_id, display_name,
+			  access_token_enc, access_token_nonce, access_token_tag,
+			  refresh_token_enc, refresh_token_nonce, refresh_token_tag,
+			  token_expires_at, scopes, status, metadata, created_at, updated_at
+			 FROM auth_connections WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+			id, userID,
+		).Scan(&conn.ID, &conn.UserID, &conn.Provider, &conn.ProviderAccountID, &conn.DisplayName,
+			&conn.AccessTokenEnc, &conn.AccessTokenNonce, &conn.AccessTokenTag,
+			&conn.RefreshTokenEnc, &conn.RefreshTokenNonce, &conn.RefreshTokenTag,
+			&conn.TokenExpiresAt, &conn.Scopes, &conn.Status, &conn.Metadata, &conn.CreatedAt, &conn.UpdatedAt)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errConnectionNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if err := apply(conn); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx,
+			`UPDATE auth_connections SET provider = $1, provider_account_id = $2, display_name = $3,
+			  access_token_enc = $4, access_token_nonce = $5, access_token_tag = $6,
+			  refresh_token_enc = $7, refresh_token_nonce = $8, refresh_token_tag = $9,
+			  token_expires_at = $10, scopes = $11, status = $12, metadata = $13, updated_at = NOW()
+			 WHERE id = $14`,
+			conn.Provider, conn.ProviderAccountID, conn.DisplayName,
+			conn.AccessTokenEnc, conn.AccessTokenNonce, conn.AccessTokenTag,
+			conn.RefreshTokenEnc, conn.RefreshTokenNonce, conn.RefreshTokenTag,
+			conn.TokenExpiresAt, conn.Scopes, conn.Status, conn.Metadata, conn.ID,
+		)
+		return mapUniqueViolation(err)
+	})
 }
 
 func (r *ConnectionRepository) DeleteConnection(ctx context.Context, id, userID uuid.UUID) error {

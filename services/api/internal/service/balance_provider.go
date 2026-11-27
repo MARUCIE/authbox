@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -135,7 +134,7 @@ func (p *BalanceProvider) ethBalance(ctx context.Context, network, address strin
 			Message string `json:"message"`
 		} `json:"error"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
+	if err := decodeUpstreamJSON(resp.Body, &rpcResp); err != nil {
 		return Balance{}, err
 	}
 	if rpcResp.Error != nil {
@@ -162,5 +161,5 @@ func (p *BalanceProvider) getJSON(ctx context.Context, endpoint string, out inte
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("indexer status %d", resp.StatusCode)
 	}
-	return json.NewDecoder(resp.Body).Decode(out)
+	return decodeUpstreamJSON(resp.Body, out)
 }

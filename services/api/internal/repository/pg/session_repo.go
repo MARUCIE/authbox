@@ -89,7 +89,7 @@ func (r *SessionRepository) ListByUserID(ctx context.Context, userID uuid.UUID) 
 		}
 		sessions = append(sessions, s)
 	}
-	return sessions, nil
+	return sessions, rows.Err()
 }
 
 // DeleteByID deletes a specific session (for revoking).

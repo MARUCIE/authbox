@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"auth-box-api/internal/domain"
-	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -112,23 +113,87 @@ func connectionToResponse(c *domain.AuthConnection) ConnectionResponse {
 
 // --- Connection operations ---
 
+// ErrInvalidConnection marks a connection request the client must fix (bad
+// encoding, a partial token, metadata that is not JSON or an over-long field).
+// Handlers map it to 400 so malformed input never surfaces as a 500.
+var ErrInvalidConnection = errors.New("invalid connection")
+
+func invalidConnection(reason string) error {
+	return fmt.Errorf("%w: %s", ErrInvalidConnection, reason)
+}
+
+// Column limits from migrations/005_auth_connections.up.sql.
+const (
+	maxProviderLen          = 64 // tighter than the VARCHAR(100) column, matching the handler
+	maxProviderAccountIDLen = 255
+	maxDisplayNameLen       = 255
+	maxStatusLen            = 20
+)
+
+func checkLen(value, field string, max int) error {
+	if len(value) > max {
+		return invalidConnection(fmt.Sprintf("%s exceeds %d characters", field, max))
+	}
+	return nil
+}
+
+// decodeToken decodes one encrypted token. All three parts must be present
+// together: a ciphertext without its nonce or tag can never be decrypted.
+func decodeToken(enc, nonce, tag, name string) (e, n, t []byte, err error) {
+	if enc == "" || nonce == "" || tag == "" {
+		return nil, nil, nil, invalidConnection(name + " requires enc, nonce and tag together")
+	}
+	if e, err = decodeB64(enc, name+"Enc"); err != nil {
+		return nil, nil, nil, invalidConnection(err.Error())
+	}
+	if n, err = decodeB64(nonce, name+"Nonce"); err != nil {
+		return nil, nil, nil, invalidConnection(err.Error())
+	}
+	if t, err = decodeB64(tag, name+"Tag"); err != nil {
+		return nil, nil, nil, invalidConnection(err.Error())
+	}
+	return e, n, t, nil
+}
+
+func parseExpiry(v string) (*time.Time, error) {
+	t, err := time.Parse("2006-01-02T15:04:05Z", v)
+	if err != nil {
+		return nil, invalidConnection("invalid tokenExpiresAt format, expected RFC3339")
+	}
+	return &t, nil
+}
+
+// decodeMetadata decodes base64 metadata and requires it to be JSON, since it
+// is stored in a JSONB column.
+func decodeMetadata(v string) ([]byte, error) {
+	b, err := decodeB64(v, "metadata")
+	if err != nil {
+		return nil, invalidConnection(err.Error())
+	}
+	if !json.Valid(b) {
+		return nil, invalidConnection("metadata must be JSON")
+	}
+	return b, nil
+}
+
 func (s *ConnectionService) CreateConnection(ctx context.Context, userID uuid.UUID, req CreateConnectionRequest) (*ConnectionResponse, error) {
 	if req.Provider == "" {
-		return nil, errors.New("provider is required")
+		return nil, invalidConnection("provider is required")
 	}
-	if req.AccessTokenEnc == "" || req.AccessTokenNonce == "" || req.AccessTokenTag == "" {
-		return nil, errors.New("access token encryption fields are required")
+	for _, c := range []struct {
+		v, f string
+		max  int
+	}{
+		{req.Provider, "provider", maxProviderLen},
+		{req.ProviderAccountID, "providerAccountId", maxProviderAccountIDLen},
+		{req.DisplayName, "displayName", maxDisplayNameLen},
+	} {
+		if err := checkLen(c.v, c.f, c.max); err != nil {
+			return nil, err
+		}
 	}
 
-	accessEnc, err := decodeB64(req.AccessTokenEnc, "accessTokenEnc")
-	if err != nil {
-		return nil, err
-	}
-	accessNonce, err := decodeB64(req.AccessTokenNonce, "accessTokenNonce")
-	if err != nil {
-		return nil, err
-	}
-	accessTag, err := decodeB64(req.AccessTokenTag, "accessTokenTag")
+	accessEnc, accessNonce, accessTag, err := decodeToken(req.AccessTokenEnc, req.AccessTokenNonce, req.AccessTokenTag, "accessToken")
 	if err != nil {
 		return nil, err
 	}
@@ -145,28 +210,21 @@ func (s *ConnectionService) CreateConnection(ctx context.Context, userID uuid.UU
 		Status:            "active",
 	}
 
-	if req.RefreshTokenEnc != "" {
-		if conn.RefreshTokenEnc, err = decodeB64(req.RefreshTokenEnc, "refreshTokenEnc"); err != nil {
-			return nil, err
-		}
-		if conn.RefreshTokenNonce, err = decodeB64(req.RefreshTokenNonce, "refreshTokenNonce"); err != nil {
-			return nil, err
-		}
-		if conn.RefreshTokenTag, err = decodeB64(req.RefreshTokenTag, "refreshTokenTag"); err != nil {
+	if req.RefreshTokenEnc != "" || req.RefreshTokenNonce != "" || req.RefreshTokenTag != "" {
+		if conn.RefreshTokenEnc, conn.RefreshTokenNonce, conn.RefreshTokenTag, err =
+			decodeToken(req.RefreshTokenEnc, req.RefreshTokenNonce, req.RefreshTokenTag, "refreshToken"); err != nil {
 			return nil, err
 		}
 	}
 
 	if req.TokenExpiresAt != nil {
-		t, err := time.Parse("2006-01-02T15:04:05Z", *req.TokenExpiresAt)
-		if err != nil {
-			return nil, errors.New("invalid tokenExpiresAt format, expected RFC3339")
+		if conn.TokenExpiresAt, err = parseExpiry(*req.TokenExpiresAt); err != nil {
+			return nil, err
 		}
-		conn.TokenExpiresAt = &t
 	}
 
 	if req.Metadata != "" {
-		if conn.Metadata, err = decodeB64(req.Metadata, "metadata"); err != nil {
+		if conn.Metadata, err = decodeMetadata(req.Metadata); err != nil {
 			return nil, err
 		}
 	}
@@ -185,7 +243,7 @@ func (s *ConnectionService) GetConnection(ctx context.Context, id, userID uuid.U
 		return nil, err
 	}
 	if conn == nil {
-		return nil, nil
+		return nil, domain.ErrConnectionNotFound
 	}
 	resp := connectionToResponse(conn)
 	return &resp, nil
@@ -204,60 +262,66 @@ func (s *ConnectionService) ListConnections(ctx context.Context, userID uuid.UUI
 	return result, nil
 }
 
+// UpdateConnection applies a partial update: an empty string, a nil slice or
+// a nil expiry leaves the stored value unchanged, so a client that only renames
+// a connection cannot wipe its encrypted tokens. A token is replaced only when
+// its enc, nonce and tag are all sent.
 func (s *ConnectionService) UpdateConnection(ctx context.Context, id, userID uuid.UUID, req UpdateConnectionRequest) error {
-	accessEnc, err := decodeB64(req.AccessTokenEnc, "accessTokenEnc")
-	if err != nil {
-		return err
-	}
-	accessNonce, err := decodeB64(req.AccessTokenNonce, "accessTokenNonce")
-	if err != nil {
-		return err
-	}
-	accessTag, err := decodeB64(req.AccessTokenTag, "accessTokenTag")
-	if err != nil {
-		return err
-	}
-
-	conn := &domain.AuthConnection{
-		ID:                id,
-		UserID:            userID,
-		Provider:          req.Provider,
-		ProviderAccountID: req.ProviderAccountID,
-		DisplayName:       req.DisplayName,
-		AccessTokenEnc:    accessEnc,
-		AccessTokenNonce:  accessNonce,
-		AccessTokenTag:    accessTag,
-		Scopes:            req.Scopes,
-		Status:            req.Status,
-	}
-
-	if req.RefreshTokenEnc != "" {
-		if conn.RefreshTokenEnc, err = decodeB64(req.RefreshTokenEnc, "refreshTokenEnc"); err != nil {
-			return err
-		}
-		if conn.RefreshTokenNonce, err = decodeB64(req.RefreshTokenNonce, "refreshTokenNonce"); err != nil {
-			return err
-		}
-		if conn.RefreshTokenTag, err = decodeB64(req.RefreshTokenTag, "refreshTokenTag"); err != nil {
+	for _, c := range []struct {
+		v, f string
+		max  int
+	}{
+		{req.Provider, "provider", maxProviderLen},
+		{req.ProviderAccountID, "providerAccountId", maxProviderAccountIDLen},
+		{req.DisplayName, "displayName", maxDisplayNameLen},
+		{req.Status, "status", maxStatusLen},
+	} {
+		if err := checkLen(c.v, c.f, c.max); err != nil {
 			return err
 		}
 	}
 
-	if req.TokenExpiresAt != nil {
-		t, err := time.Parse("2006-01-02T15:04:05Z", *req.TokenExpiresAt)
-		if err != nil {
-			return errors.New("invalid tokenExpiresAt format, expected RFC3339")
+	return s.connRepo.UpdateConnection(ctx, id, userID, func(conn *domain.AuthConnection) error {
+		var err error
+		if req.Provider != "" {
+			conn.Provider = req.Provider
 		}
-		conn.TokenExpiresAt = &t
-	}
-
-	if req.Metadata != "" {
-		if conn.Metadata, err = decodeB64(req.Metadata, "metadata"); err != nil {
-			return err
+		if req.ProviderAccountID != "" {
+			conn.ProviderAccountID = req.ProviderAccountID
 		}
-	}
-
-	return s.connRepo.UpdateConnection(ctx, conn)
+		if req.DisplayName != "" {
+			conn.DisplayName = req.DisplayName
+		}
+		if req.Status != "" {
+			conn.Status = req.Status
+		}
+		if req.Scopes != nil {
+			conn.Scopes = req.Scopes
+		}
+		if req.AccessTokenEnc != "" || req.AccessTokenNonce != "" || req.AccessTokenTag != "" {
+			if conn.AccessTokenEnc, conn.AccessTokenNonce, conn.AccessTokenTag, err =
+				decodeToken(req.AccessTokenEnc, req.AccessTokenNonce, req.AccessTokenTag, "accessToken"); err != nil {
+				return err
+			}
+		}
+		if req.RefreshTokenEnc != "" || req.RefreshTokenNonce != "" || req.RefreshTokenTag != "" {
+			if conn.RefreshTokenEnc, conn.RefreshTokenNonce, conn.RefreshTokenTag, err =
+				decodeToken(req.RefreshTokenEnc, req.RefreshTokenNonce, req.RefreshTokenTag, "refreshToken"); err != nil {
+				return err
+			}
+		}
+		if req.TokenExpiresAt != nil {
+			if conn.TokenExpiresAt, err = parseExpiry(*req.TokenExpiresAt); err != nil {
+				return err
+			}
+		}
+		if req.Metadata != "" {
+			if conn.Metadata, err = decodeMetadata(req.Metadata); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *ConnectionService) DeleteConnection(ctx context.Context, id, userID uuid.UUID) error {

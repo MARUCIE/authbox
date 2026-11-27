@@ -135,10 +135,10 @@ func main() {
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService, cfg.AuthRateLimit)
-	totpHandler := handler.NewTOTPHandler(totpService)
+	totpHandler := handler.NewTOTPHandler(totpService, auditService)
 	vaultHandler := handler.NewVaultHandler(vaultService)
-	agentHandler := handler.NewAgentHandler(agentService)
-	connectionHandler := handler.NewConnectionHandler(connService)
+	agentHandler := handler.NewAgentHandler(agentService, auditService)
+	connectionHandler := handler.NewConnectionHandler(connService, auditService)
 	auditHandler := handler.NewAuditHandler(auditService)
 	walletHandler := handler.NewWalletHandler(walletService)
 	healthHandler := handler.NewHealthHandler(cfg)

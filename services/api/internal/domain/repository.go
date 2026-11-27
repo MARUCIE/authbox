@@ -31,6 +31,8 @@ type SessionRepository interface {
 // VaultRepository defines the contract for vault persistence.
 type VaultRepository interface {
 	CreateItem(ctx context.Context, item *VaultItem) error
+	// CreateItems inserts all items or none.
+	CreateItems(ctx context.Context, items []*VaultItem) error
 	GetItem(ctx context.Context, id, userID uuid.UUID) (*VaultItem, error)
 	ListItems(ctx context.Context, userID uuid.UUID, limit, offset int) ([]VaultItem, error)
 	UpdateItem(ctx context.Context, item *VaultItem) error
@@ -43,11 +45,13 @@ type AgentRepository interface {
 	CreateAgent(ctx context.Context, agent *Agent) error
 	GetAgent(ctx context.Context, id, userID uuid.UUID) (*Agent, error)
 	ListAgents(ctx context.Context, userID uuid.UUID) ([]Agent, error)
-	UpdateAgent(ctx context.Context, agent *Agent) error
+	// UpdateAgent locks the row, lets apply change it and writes it back in
+	// one transaction, so concurrent partial updates do not undo each other.
+	UpdateAgent(ctx context.Context, id, userID uuid.UUID, apply func(*Agent) error) error
 	DeleteAgent(ctx context.Context, id, userID uuid.UUID) error
 	CreatePolicy(ctx context.Context, policy *AgentPolicy) error
 	ListPolicies(ctx context.Context, agentID uuid.UUID) ([]AgentPolicy, error)
-	UpdatePolicy(ctx context.Context, policy *AgentPolicy) error
+	UpdatePolicy(ctx context.Context, agentID, policyID uuid.UUID, apply func(*AgentPolicy) error) error
 	DeletePolicy(ctx context.Context, id, agentID uuid.UUID) error
 }
 
@@ -56,14 +60,16 @@ type ConnectionRepository interface {
 	CreateConnection(ctx context.Context, conn *AuthConnection) error
 	GetConnection(ctx context.Context, id, userID uuid.UUID) (*AuthConnection, error)
 	ListConnections(ctx context.Context, userID uuid.UUID) ([]AuthConnection, error)
-	UpdateConnection(ctx context.Context, conn *AuthConnection) error
+	UpdateConnection(ctx context.Context, id, userID uuid.UUID, apply func(*AuthConnection) error) error
 	DeleteConnection(ctx context.Context, id, userID uuid.UUID) error
 }
 
 // AuditRepository defines the contract for audit event persistence.
 type AuditRepository interface {
-	GetLatestEvent(ctx context.Context, userID uuid.UUID) (*AuditEvent, error)
-	CreateEvent(ctx context.Context, event *AuditEvent) error
+	// AppendEvent links the event to the user's latest one and stores it. It
+	// sets PrevEventHash, CreatedAt, EventHash and ID; appends for one user are
+	// serialized so concurrent writers cannot fork the chain.
+	AppendEvent(ctx context.Context, event *AuditEvent) error
 	ListEvents(ctx context.Context, userID uuid.UUID, limit, offset int) ([]AuditEvent, error)
 	VerifyChain(ctx context.Context, userID uuid.UUID) (bool, int, error)
 }

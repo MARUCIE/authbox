@@ -1,4 +1,5 @@
 import { sha256 } from "@noble/hashes/sha256";
+import { toHex } from "./encoding.js";
 
 /**
  * SRP-6a client implementation using native BigInt.
@@ -45,11 +46,7 @@ function bigintToBytes(n: bigint, length: number): Uint8Array {
 }
 
 function bytesToBigint(bytes: Uint8Array): bigint {
-  let hex = "";
-  for (const b of bytes) {
-    hex += b.toString(16).padStart(2, "0");
-  }
-  return hex.length === 0 ? 0n : BigInt("0x" + hex);
+  return bytes.length === 0 ? 0n : BigInt("0x" + toHex(bytes));
 }
 
 /** Modular exponentiation: base^exp mod mod */

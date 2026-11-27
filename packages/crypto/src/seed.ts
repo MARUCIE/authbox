@@ -238,6 +238,9 @@ export interface DerivePasswordOptions {
   counter?: number;    // Default: 0 (increment to generate new password for same site)
 }
 
+/** Longest password derivePassword returns; the same limit applies on iOS. */
+export const MAX_DERIVED_PASSWORD_LENGTH = 128;
+
 /**
  * Deterministically derive a password for a specific site from the seed.
  *
@@ -265,6 +268,10 @@ export function derivePassword(
     counter = 0,
   } = options;
 
+  if (!Number.isInteger(length) || length < 1 || length > MAX_DERIVED_PASSWORD_LENGTH) {
+    throw new Error(`length must be a whole number from 1 to ${MAX_DERIVED_PASSWORD_LENGTH}`);
+  }
+
   // Build character set
   let charset = '';
   if (lowercase) charset += PASSWORD_CHARS.lower;
@@ -288,7 +295,9 @@ export function derivePassword(
   const normalizedSite = site.toLowerCase();
   const expanded = hmac(sha512, siteKey, encoder.encode('password:' + normalizedSite + ':' + counter));
 
-  // Convert to password characters (uniform distribution via rejection sampling)
+  // Map bytes to characters with `byte % charset.length` (a small modulo
+  // bias, kept so existing derived passwords do not change). Two 64-byte
+  // blocks give at most 128 characters, matching the iOS implementation.
   const password: string[] = [];
   let byteIdx = 0;
 

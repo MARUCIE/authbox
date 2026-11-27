@@ -3,7 +3,9 @@ package pg
 import (
 	"context"
 	"crypto/sha256"
-	"fmt"
+	"encoding/hex"
+	"errors"
+	"strconv"
 	"time"
 
 	"auth-box-api/internal/domain"
@@ -33,52 +35,83 @@ func NewAuditRepository(pool *pgxpool.Pool) *AuditRepository {
 	return &AuditRepository{pool: pool}
 }
 
-func (r *AuditRepository) GetLatestEvent(ctx context.Context, userID uuid.UUID) (*domain.AuditEvent, error) {
-	query := `SELECT id, user_id, actor_type, actor_id, action, resource_type, resource_id,
-		decision, metadata, event_hash, prev_event_hash, ip_address, user_agent, created_at
-		FROM audit_events WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`
-
-	var event domain.AuditEvent
-	err := r.pool.QueryRow(ctx, query, userID).Scan(
-		&event.ID, &event.UserID, &event.ActorType, &event.ActorID,
-		&event.Action, &event.ResourceType, &event.ResourceID,
-		&event.Decision, &event.Metadata, &event.EventHash, &event.PrevEventHash,
-		&event.IPAddress, &event.UserAgent, &event.CreatedAt,
-	)
-	if err == pgx.ErrNoRows {
-		return nil, nil
+// auditEventHash hashes the chained fields. Each field is length-prefixed so
+// no choice of values (for example a "|" inside a resource id) can make two
+// different events hash alike, and the timestamp is hashed at the precision
+// Postgres stores, so the stored row always re-verifies.
+func auditEventHash(userID uuid.UUID, row auditChainRow) string {
+	h := sha256.New()
+	for _, field := range []string{
+		"authbox-audit-v2",
+		userID.String(),
+		row.PrevEventHash,
+		row.ActorType,
+		row.ActorID,
+		row.Action,
+		row.ResourceType,
+		row.ResourceID,
+		row.Decision,
+		row.CreatedAt.UTC().Format(time.RFC3339Nano),
+	} {
+		h.Write([]byte(strconv.Itoa(len(field))))
+		h.Write([]byte{':'})
+		h.Write([]byte(field))
 	}
-	if err != nil {
-		return nil, err
-	}
-	return &event, nil
+	return hex.EncodeToString(h.Sum(nil))
 }
 
-func (r *AuditRepository) CreateEvent(ctx context.Context, event *domain.AuditEvent) error {
-	// Compute hash chain
-	hashInput := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s",
-		event.PrevEventHash, event.ActorType, event.ActorID.String(),
-		event.Action, event.ResourceType, event.ResourceID,
-		event.Decision, event.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"))
-	hash := sha256.Sum256([]byte(hashInput))
-	event.EventHash = fmt.Sprintf("%x", hash)
+func (r *AuditRepository) AppendEvent(ctx context.Context, event *domain.AuditEvent) error {
+	return pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		// One writer per user at a time: without this, two concurrent appends
+		// read the same latest hash and fork the chain.
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, "audit:"+event.UserID.String()); err != nil {
+			return err
+		}
 
-	query := `INSERT INTO audit_events (user_id, actor_type, actor_id, action, resource_type,
-		resource_id, decision, metadata, event_hash, prev_event_hash, ip_address, user_agent)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-		RETURNING id, created_at`
+		var prevHash string
+		var prevAt time.Time
+		err := tx.QueryRow(ctx, `SELECT event_hash, created_at FROM audit_events
+			WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1`, event.UserID).Scan(&prevHash, &prevAt)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
 
-	return r.pool.QueryRow(ctx, query,
-		event.UserID, event.ActorType, event.ActorID, event.Action,
-		event.ResourceType, event.ResourceID, event.Decision, event.Metadata,
-		event.EventHash, event.PrevEventHash, event.IPAddress, event.UserAgent,
-	).Scan(&event.ID, &event.CreatedAt)
+		// Postgres keeps microseconds. Keep timestamps strictly increasing per
+		// user so the verifier's ordering matches the append order even when
+		// API instances' clocks disagree.
+		createdAt := time.Now().UTC().Truncate(time.Microsecond)
+		if !prevAt.IsZero() && !createdAt.After(prevAt) {
+			createdAt = prevAt.UTC().Add(time.Microsecond)
+		}
+
+		event.PrevEventHash = prevHash
+		event.CreatedAt = createdAt
+		event.EventHash = auditEventHash(event.UserID, auditChainRow{
+			ActorType:     event.ActorType,
+			ActorID:       event.ActorID.String(),
+			Action:        event.Action,
+			ResourceType:  event.ResourceType,
+			ResourceID:    event.ResourceID,
+			Decision:      event.Decision,
+			PrevEventHash: prevHash,
+			CreatedAt:     createdAt,
+		})
+
+		return tx.QueryRow(ctx, `INSERT INTO audit_events (user_id, actor_type, actor_id, action, resource_type,
+			resource_id, decision, metadata, event_hash, prev_event_hash, ip_address, user_agent, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			RETURNING id`,
+			event.UserID, event.ActorType, event.ActorID, event.Action,
+			event.ResourceType, event.ResourceID, event.Decision, event.Metadata,
+			event.EventHash, event.PrevEventHash, event.IPAddress, event.UserAgent, createdAt,
+		).Scan(&event.ID)
+	})
 }
 
 func (r *AuditRepository) ListEvents(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.AuditEvent, error) {
-	query := `SELECT id, user_id, actor_type, actor_id, action, resource_type, resource_id,
-		decision, metadata, event_hash, prev_event_hash, ip_address, user_agent, created_at
-		FROM audit_events WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	query := `SELECT id, user_id, actor_type, actor_id, action, COALESCE(resource_type, ''), COALESCE(resource_id, ''),
+		decision, COALESCE(metadata, '{}'), event_hash, prev_event_hash, COALESCE(ip_address, ''), COALESCE(user_agent, ''), created_at
+		FROM audit_events WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3`
 
 	rows, err := r.pool.Query(ctx, query, userID, limit, offset)
 	if err != nil {
@@ -99,25 +132,24 @@ func (r *AuditRepository) ListEvents(ctx context.Context, userID uuid.UUID, limi
 		}
 		events = append(events, e)
 	}
-	return events, nil
+	return events, rows.Err()
 }
 
 func (r *AuditRepository) VerifyChain(ctx context.Context, userID uuid.UUID) (bool, int, error) {
 	// Limit to the most recent 10,000 events to prevent OOM on large audit trails,
 	// then restore chronological order for hash-chain verification.
 	query := `WITH recent AS (
-			SELECT actor_type, actor_id, action, resource_type, resource_id,
+			SELECT id, actor_type, actor_id::text AS actor_id, action,
+				COALESCE(resource_type, '') AS resource_type, COALESCE(resource_id, '') AS resource_id,
 				decision, event_hash, prev_event_hash, created_at
 			FROM audit_events
 			WHERE user_id = $1
-			ORDER BY created_at DESC
+			ORDER BY created_at DESC, id DESC
 			LIMIT 10000
 		)
-		SELECT actor_type, actor_id, action, resource_type, resource_id,
-			decision, event_hash, prev_event_hash, created_at
+		SELECT actor_type, actor_id, action, resource_type, resource_id, decision, event_hash, prev_event_hash, created_at
 		FROM recent
-		ORDER BY created_at ASC`
-
+		ORDER BY created_at ASC, id ASC`
 	rows, err := r.pool.Query(ctx, query, userID)
 	if err != nil {
 		return false, 0, err
@@ -125,7 +157,6 @@ func (r *AuditRepository) VerifyChain(ctx context.Context, userID uuid.UUID) (bo
 	defer rows.Close()
 
 	var chainRows []auditChainRow
-
 	for rows.Next() {
 		var row auditChainRow
 		if err := rows.Scan(&row.ActorType, &row.ActorID, &row.Action, &row.ResourceType, &row.ResourceID,
@@ -134,36 +165,27 @@ func (r *AuditRepository) VerifyChain(ctx context.Context, userID uuid.UUID) (bo
 		}
 		chainRows = append(chainRows, row)
 	}
+	if err := rows.Err(); err != nil {
+		return false, len(chainRows), err
+	}
 
-	valid, verified := verifyChainRows(chainRows)
+	valid, verified := verifyChainRows(userID, chainRows)
 	return valid, verified, nil
 }
 
-func verifyChainRows(rows []auditChainRow) (bool, int) {
+func verifyChainRows(userID uuid.UUID, rows []auditChainRow) (bool, int) {
 	if len(rows) == 0 {
 		return true, 0
 	}
 
 	prevHash := rows[0].PrevEventHash
 	verified := 0
-
 	for _, row := range rows {
-		if row.PrevEventHash != prevHash {
+		if row.PrevEventHash != prevHash || auditEventHash(userID, row) != row.EventHash {
 			return false, verified
 		}
-
-		hashInput := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s",
-			row.PrevEventHash, row.ActorType, row.ActorID, row.Action,
-			row.ResourceType, row.ResourceID, row.Decision,
-			row.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"))
-		computed := sha256.Sum256([]byte(hashInput))
-		if fmt.Sprintf("%x", computed) != row.EventHash {
-			return false, verified
-		}
-
 		prevHash = row.EventHash
 		verified++
 	}
-
 	return true, verified
 }

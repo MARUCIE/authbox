@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"time"
+	"unicode/utf8"
 
 	"auth-box-api/internal/domain"
 
@@ -50,54 +51,67 @@ type ChainVerifyResponse struct {
 	Verified int  `json:"verified"`
 }
 
-func (s *AuditService) LogEvent(ctx context.Context, userID uuid.UUID, req AuditEventRequest) (*AuditEventResponse, error) {
+// Field limits match the audit_events columns.
+const (
+	maxAuditIP        = 45
+	maxAuditUserAgent = 512
+)
+
+// RecordUserAction appends an event for an action the signed-in user took
+// through the API. Callers treat a failure as non-fatal: the action already
+// happened, so they log the error rather than fail the request.
+func (s *AuditService) RecordUserAction(ctx context.Context, userID uuid.UUID, action, resourceType, resourceID, ipAddress, userAgent string) error {
+	return s.LogEvent(ctx, userID, AuditEventRequest{
+		ActorType:    "user",
+		ActorID:      userID.String(),
+		Action:       action,
+		ResourceType: resourceType,
+		ResourceID:   resourceID,
+		Decision:     "allowed",
+		IPAddress:    ipAddress,
+		UserAgent:    userAgent,
+	})
+}
+
+func (s *AuditService) LogEvent(ctx context.Context, userID uuid.UUID, req AuditEventRequest) error {
 	actorID, err := uuid.Parse(req.ActorID)
 	if err != nil {
 		actorID = userID // fallback: user is the actor
 	}
 
-	// Get previous event hash for chain
-	prevHash := ""
-	latest, err := s.auditRepo.GetLatestEvent(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	if latest != nil {
-		prevHash = latest.EventHash
-	}
-
-	var metadata []byte
+	metadata := []byte("{}")
 	if req.Metadata != nil {
-		var err2 error
-		metadata, err2 = json.Marshal(req.Metadata)
-		if err2 != nil {
-			slog.Warn("failed to marshal audit metadata", "error", err2)
-			metadata = []byte("{}")
+		if b, err := json.Marshal(req.Metadata); err == nil {
+			metadata = b
+		} else {
+			slog.Warn("failed to marshal audit metadata", "error", err)
 		}
-	} else {
-		metadata = []byte("{}")
 	}
 
 	event := &domain.AuditEvent{
-		UserID:        userID,
-		ActorType:     req.ActorType,
-		ActorID:       actorID,
-		Action:        req.Action,
-		ResourceType:  req.ResourceType,
-		ResourceID:    req.ResourceID,
-		Decision:      req.Decision,
-		Metadata:      metadata,
-		PrevEventHash: prevHash,
-		IPAddress:     req.IPAddress,
-		UserAgent:     req.UserAgent,
-		CreatedAt:     time.Now().UTC(),
+		UserID:       userID,
+		ActorType:    req.ActorType,
+		ActorID:      actorID,
+		Action:       req.Action,
+		ResourceType: req.ResourceType,
+		ResourceID:   req.ResourceID,
+		Decision:     req.Decision,
+		Metadata:     metadata,
+		IPAddress:    truncate(req.IPAddress, maxAuditIP),
+		UserAgent:    truncate(req.UserAgent, maxAuditUserAgent),
 	}
+	return s.auditRepo.AppendEvent(ctx, event)
+}
 
-	if err := s.auditRepo.CreateEvent(ctx, event); err != nil {
-		return nil, err
+// truncate cuts s to at most n bytes without splitting a UTF-8 character.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
 	}
-
-	return eventToResponse(event), nil
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n]
 }
 
 func (s *AuditService) ListEvents(ctx context.Context, userID uuid.UUID, limit, offset int) ([]AuditEventResponse, error) {

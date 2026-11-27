@@ -9,8 +9,8 @@ import {
   derivePassword,
   setWordlist,
   KeyPurpose,
-} from '../seed';
-import { ENGLISH_WORDLIST } from '../wordlist-en';
+} from '../seed.js';
+import { ENGLISH_WORDLIST } from '../wordlist-en.js';
 
 beforeAll(() => {
   setWordlist(ENGLISH_WORDLIST);
@@ -188,5 +188,15 @@ describe('Deterministic Password Derivation', () => {
     const pw1 = derivePassword(seed, 'GitHub.com');
     const pw2 = derivePassword(seed, 'github.com');
     expect(pw1).toBe(pw2);
+  });
+
+  it('derivePassword keeps its output and refuses lengths it cannot fill', () => {
+    const fixed = new Uint8Array(64).map((_, i) => i);
+    // Golden output of the implementation shared with iOS.
+    const first128 = "[(,Jem,wI<(pD{qPL)E+hT14c5&NG*PDV%UN9Cqvlx{,4MjY3SdYsigvhX95GiI$lS4q(b57xK999LLo}}BE>DuXS:QQ5xXng+Tk[}533(dC=-*pXh+}bcP]|k5+I3;U";
+    expect(derivePassword(fixed, 'Example.com', { length: 128, counter: 3 })).toBe(first128);
+    for (const length of [0, 129, 200, 1.5, Number.POSITIVE_INFINITY]) {
+      expect(() => derivePassword(fixed, 'Example.com', { length })).toThrow(/length/);
+    }
   });
 });

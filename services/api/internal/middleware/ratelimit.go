@@ -2,9 +2,12 @@ package middleware
 
 import (
 	"net/http"
+	"net/netip"
 	"strconv"
 	"sync"
 	"time"
+
+	"auth-box-api/internal/httpx"
 )
 
 type visitor struct {
@@ -36,7 +39,7 @@ func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
 // Handler returns middleware that enforces the rate limit.
 func (rl *RateLimiter) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := ClientIP(r)
+		ip := rateLimitKey(ClientIP(r))
 
 		rl.mu.Lock()
 		v, exists := rl.visitors[ip]
@@ -44,6 +47,9 @@ func (rl *RateLimiter) Handler(next http.Handler) http.Handler {
 
 		// New visitor or window expired: start a fresh window
 		if !exists || now.Sub(v.windowStart) > rl.window {
+			if !exists {
+				rl.makeRoomLocked(now)
+			}
 			rl.visitors[ip] = &visitor{count: 1, windowStart: now}
 			rl.mu.Unlock()
 			next.ServeHTTP(w, r)
@@ -56,10 +62,8 @@ func (rl *RateLimiter) Handler(next http.Handler) http.Handler {
 			remaining := rl.window - now.Sub(v.windowStart)
 			retryAfter := int(remaining.Seconds()) + 1
 			rl.mu.Unlock()
-			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
-			w.WriteHeader(http.StatusTooManyRequests)
-			w.Write([]byte(`{"error":"rate limit exceeded","code":"RATE_LIMITED"}`))
+			httpx.WriteError(w, http.StatusTooManyRequests, "rate limit exceeded", httpx.CodeRateLimited)
 			return
 		}
 		rl.mu.Unlock()
@@ -67,33 +71,56 @@ func (rl *RateLimiter) Handler(next http.Handler) http.Handler {
 	})
 }
 
-// maxVisitors caps the number of tracked IPs to prevent unbounded memory growth
-// from IP rotation attacks.
+// maxVisitors caps the number of tracked clients to prevent unbounded memory
+// growth from address rotation.
 const maxVisitors = 10000
+
+// rateLimitKey maps a client address to its rate-limit bucket. An IPv6 client
+// is routinely handed a whole /64, so limiting per address would let it rotate
+// through 2^64 fresh budgets; the /64 is the smallest unit one client controls.
+// IPv4-mapped IPv6 addresses count as their IPv4 address.
+func rateLimitKey(ip string) string {
+	addr, err := netip.ParseAddr(ip)
+	if err != nil {
+		return ip
+	}
+	addr = addr.Unmap().WithZone("")
+	if addr.Is6() {
+		return netip.PrefixFrom(addr, 64).Masked().String()
+	}
+	return addr.String()
+}
+
+// makeRoomLocked keeps the map at or under maxVisitors before a new client is
+// added. Expired windows go first; if the map is still full, an arbitrary
+// entry is dropped, so memory stays bounded between cleanup ticks.
+// rl.mu must be held.
+func (rl *RateLimiter) makeRoomLocked(now time.Time) {
+	if len(rl.visitors) < maxVisitors {
+		return
+	}
+	for key, v := range rl.visitors {
+		if now.Sub(v.windowStart) > rl.window {
+			delete(rl.visitors, key)
+		}
+	}
+	for key := range rl.visitors {
+		if len(rl.visitors) < maxVisitors {
+			break
+		}
+		delete(rl.visitors, key)
+	}
+}
 
 func (rl *RateLimiter) cleanup() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for range ticker.C {
 		rl.mu.Lock()
-		// Evict expired visitors
-		for ip, v := range rl.visitors {
-			if time.Since(v.windowStart) > rl.window*2 {
-				delete(rl.visitors, ip)
-			}
-		}
-		// Hard cap: if still over limit, evict oldest entries
-		if len(rl.visitors) > maxVisitors {
-			oldest := time.Now()
-			var oldestIP string
-			for ip, v := range rl.visitors {
-				if v.windowStart.Before(oldest) {
-					oldest = v.windowStart
-					oldestIP = ip
-				}
-			}
-			if oldestIP != "" {
-				delete(rl.visitors, oldestIP)
+		now := time.Now()
+		for key, v := range rl.visitors {
+			if now.Sub(v.windowStart) > rl.window {
+				delete(rl.visitors, key)
 			}
 		}
 		rl.mu.Unlock()

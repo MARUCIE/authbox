@@ -53,16 +53,41 @@ export interface EnvImportResult {
 // ─── Parsers ──────────────────────────────────────────────────────────────
 
 /**
+ * The value part of one `KEY=value` line. A quoted value ends at its closing
+ * quote, so `"abc" # note` is `abc`; `\"` inside double quotes is a literal
+ * quote. An unquoted value ends at a ` #` comment.
+ */
+export function parseEnvValue(raw: string): string {
+  const quote = raw[0];
+  if (quote === '"' || quote === "'") {
+    let out = '';
+    for (let i = 1; i < raw.length; i++) {
+      const ch = raw[i];
+      if (ch === quote) return out;
+      if (quote === '"' && ch === '\\' && i + 1 < raw.length) {
+        const next = raw[++i];
+        out += next === 'n' ? '\n' : next;
+        continue;
+      }
+      out += ch;
+    }
+    return raw; // no closing quote: keep the line as written
+  }
+  const commentIdx = raw.search(/\s#/);
+  return (commentIdx === -1 ? raw : raw.slice(0, commentIdx)).trim();
+}
+
+/**
  * Parse .env file content into key-value pairs.
  * Handles: KEY=VALUE, KEY="VALUE", KEY='VALUE', # comments, empty lines,
- * export KEY=VALUE, multiline values with backslash continuation.
+ * export KEY=VALUE and CRLF line endings.
  */
 export function parseEnvFile(content: string): Map<string, string> {
   const vars = new Map<string, string>();
   const lines = content.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i].trim();
+    let line = lines[i].replace(/\r$/, '').trim();
 
     // Skip empty lines and comments
     if (!line || line.startsWith('#') || line.startsWith('//')) continue;
@@ -74,22 +99,7 @@ export function parseEnvFile(content: string): Map<string, string> {
     if (eqIdx === -1) continue;
 
     const key = line.slice(0, eqIdx).trim();
-    let value = line.slice(eqIdx + 1).trim();
-
-    // Remove surrounding quotes
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-
-    // Handle inline comments (only for unquoted values)
-    if (!line.slice(eqIdx + 1).trim().startsWith('"') &&
-        !line.slice(eqIdx + 1).trim().startsWith("'")) {
-      const commentIdx = value.indexOf(' #');
-      if (commentIdx !== -1) {
-        value = value.slice(0, commentIdx).trim();
-      }
-    }
+    const value = parseEnvValue(line.slice(eqIdx + 1).trim());
 
     if (key && value) {
       vars.set(key, value);

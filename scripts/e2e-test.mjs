@@ -117,7 +117,13 @@ try {
   const { status, data } = await apiCall('GET', '/health');
   assert(status === 200, `HTTP ${status}`);
   assert(data.status === 'ok', `status: ${data.status}`);
-  assert(data.version === '2.0.0', `version: ${data.version}`);
+  // The server reports whatever AUTH_BOX_VERSION the deployment sets; pin it
+  // only when the caller says which version is expected.
+  const expectedVersion = process.env.AUTH_BOX_E2E_EXPECT_VERSION;
+  assert(
+    expectedVersion ? data.version === expectedVersion : typeof data.version === 'string' && data.version.length > 0,
+    `version: ${data.version}`,
+  );
 } catch (err) {
   assert(false, `Health check failed: ${err.message}`);
 }
@@ -231,9 +237,9 @@ if (sessionToken) {
     assert(d1.encryptedVaultKey, 'Vault key returned');
 
     // Create item (ItemRequest: encryptedData, nonce, tag, itemType)
-    // Valid types: credential, note, card, identity, api_key
+    // Valid types (services/api validItemTypes): login, api_key, secure_note, identity, card
     const itemData = {
-      itemType: 'credential',
+      itemType: 'login',
       encryptedData: toBase64(generateRandomBytes(64)),
       nonce: toBase64(generateRandomBytes(12)),
       tag: toBase64(generateRandomBytes(16)),
@@ -256,6 +262,19 @@ if (sessionToken) {
     const updateData = { ...itemData, encryptedData: toBase64(generateRandomBytes(64)) };
     const { status: s5 } = await apiCall('PUT', `/api/v1/vault/items/${vaultItemId}`, updateData, sessionToken);
     assert(s5 === 200, `Update item → 200 (got ${s5})`);
+
+    // Re-encrypt without itemType (the web client's edit path) keeps the stored type
+    const { itemType: _omit, ...reencrypt } = updateData;
+    const { status: s5b } = await apiCall('PUT', `/api/v1/vault/items/${vaultItemId}`, reencrypt, sessionToken);
+    assert(s5b === 200, `Update item without itemType → 200 (got ${s5b})`);
+    const { data: d5b } = await apiCall('GET', `/api/v1/vault/items/${vaultItemId}`, null, sessionToken);
+    assert(d5b.itemType === 'login', `itemType kept after update (got ${d5b.itemType})`);
+
+    // Invalid input is a client error, not a 500
+    const { status: s5c } = await apiCall('PUT', `/api/v1/vault/items/${vaultItemId}`, { ...updateData, itemType: 'bogus' }, sessionToken);
+    assert(s5c === 400, `Update with unknown itemType → 400 (got ${s5c})`);
+    const { status: s5d } = await apiCall('POST', '/api/v1/vault/sync', { items: [itemData, { ...itemData, nonce: 'not base64!' }] }, sessionToken);
+    assert(s5d === 400, `Sync push with one malformed item → 400 (got ${s5d})`);
 
     // Delete item
     const { status: s6 } = await apiCall('DELETE', `/api/v1/vault/items/${vaultItemId}`, null, sessionToken);
@@ -399,11 +418,27 @@ if (sessionToken) {
     assert(verifyLoginStatus === 200, `TOTP login verify → 200 (got ${verifyLoginStatus})`);
     assert(verifyLoginData.totpRequired === true, `TOTP required on password phase: ${verifyLoginData.totpRequired}`);
     assert(Boolean(verifyLoginData.serverProofM2), 'Server proof M2 returned before TOTP step');
+    assert(Boolean(verifyLoginData.loginChallenge), 'Login challenge returned with totpRequired');
+    assert(!verifyLoginData.sessionToken, 'No session token before the TOTP step');
+
+    // Knowing the email is not enough: without the challenge the TOTP step fails.
+    const { status: noChallengeStatus } = await apiCall('POST', '/api/v1/auth/login/totp/verify', {
+      email: TEST_EMAIL,
+      code: generateTOTP(enrollData.secret),
+      loginChallenge: 'not-the-challenge',
+    });
+    assert(noChallengeStatus === 401, `TOTP step without the SRP challenge → 401 (got ${noChallengeStatus})`);
+
+    // Codes are single-use (RFC 6238 §5.2): the enable step consumed the current
+    // 30s step, so wait for the next one before logging in with TOTP.
+    const msIntoStep = Date.now() % 30000;
+    await sleep(30000 - msIntoStep + 1000);
 
     const loginCode = generateTOTP(enrollData.secret);
     const { status: completeStatus, data: completeData } = await apiCall('POST', '/api/v1/auth/login/totp/verify', {
       email: TEST_EMAIL,
       code: loginCode,
+      loginChallenge: verifyLoginData.loginChallenge,
     });
     assert(completeStatus === 200, `TOTP login complete → 200 (got ${completeStatus})`);
     assert(Boolean(completeData.sessionToken), 'Session token returned after TOTP login');
@@ -448,7 +483,20 @@ try {
   assert(h['x-content-type-options'] === 'nosniff', 'X-Content-Type-Options: nosniff');
   assert(h['x-frame-options'] === 'DENY', 'X-Frame-Options: DENY');
   assert(h['referrer-policy'] === 'no-referrer', 'Referrer-Policy: no-referrer');
-  assert(h['access-control-allow-private-network'] === 'true', 'PNA header');
+  // PNA is answered only on an explicit Chrome private-network preflight.
+  assert(!h['access-control-allow-private-network'], 'No PNA header on a plain GET');
+  const preflight = await fetch(`${API}/api/v1/auth/login/init`, {
+    method: 'OPTIONS',
+    headers: {
+      Origin: 'http://localhost:3010',
+      'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Private-Network': 'true',
+    },
+  });
+  assert(
+    preflight.headers.get('access-control-allow-private-network') === 'true',
+    'PNA header on private-network preflight',
+  );
 } catch (err) {
   assert(false, `Headers test failed: ${err.message}`);
 }

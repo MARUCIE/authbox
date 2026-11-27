@@ -261,7 +261,66 @@ func TestRateLimiter_ResponseBody(t *testing.T) {
 		t.Errorf("want Content-Type application/json, got %s", rr.Header().Get("Content-Type"))
 	}
 	body := rr.Body.String()
-	if body != `{"error":"rate limit exceeded","code":"RATE_LIMITED"}` {
+	if body != `{"error":"rate limit exceeded","code":"RATE_LIMITED"}`+"\n" {
 		t.Errorf("unexpected body: %s", body)
+	}
+}
+
+func TestRateLimiter_IPv6ClientsShareTheirSlash64(t *testing.T) {
+	rl := NewRateLimiter(2, 1*time.Minute)
+	handler := rl.Handler(okHandler())
+
+	// Rotating the interface identifier inside one /64 must not reset the budget.
+	addrs := []string{"[2001:db8:1:2::1]:1000", "[2001:db8:1:2::abcd]:1000", "[2001:db8:1:2:ffff::9]:1000"}
+	codes := make([]int, len(addrs))
+	for i, a := range addrs {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.RemoteAddr = a
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		codes[i] = rr.Code
+	}
+	if codes[2] != http.StatusTooManyRequests {
+		t.Fatalf("third request from the same /64 = %d, want 429 (codes %v)", codes[2], codes)
+	}
+
+	// A different /64 has its own budget.
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "[2001:db8:1:3::1]:1000"
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("other /64 = %d, want 200", rr.Code)
+	}
+}
+
+func TestRateLimitKey(t *testing.T) {
+	cases := map[string]string{
+		"10.0.0.1":        "10.0.0.1",
+		"::ffff:10.0.0.1": "10.0.0.1",
+		"2001:db8::1":     "2001:db8::/64",
+		"fe80::1%eth0":    "fe80::/64",
+		"not-an-ip":       "not-an-ip",
+	}
+	for in, want := range cases {
+		if got := rateLimitKey(in); got != want {
+			t.Errorf("rateLimitKey(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestRateLimiter_StaysWithinVisitorCap(t *testing.T) {
+	rl := NewRateLimiter(5, 1*time.Minute)
+	handler := rl.Handler(okHandler())
+	for i := 0; i < maxVisitors+50; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.RemoteAddr = "10." + strconv.Itoa(i>>16&255) + "." + strconv.Itoa(i>>8&255) + "." + strconv.Itoa(i&255) + ":1"
+		handler.ServeHTTP(httptest.NewRecorder(), req)
+	}
+	rl.mu.Lock()
+	n := len(rl.visitors)
+	rl.mu.Unlock()
+	if n > maxVisitors {
+		t.Fatalf("tracked %d clients, cap is %d", n, maxVisitors)
 	}
 }

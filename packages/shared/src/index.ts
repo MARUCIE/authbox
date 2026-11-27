@@ -1,10 +1,5 @@
 // Types
-export * from './types/vault';
-export * from './types/agent';
-export * from './types/auth';
-export * from './types/audit';
-export * from './types/credential-catalog';
-export * from './types/wallet';
+export * from './types/vault.js';
+export * from './types/agent.js';
+export * from './types/credential-catalog.js';
 
-// Validation schemas
-export * from './validation/index';

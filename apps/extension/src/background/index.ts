@@ -17,6 +17,7 @@ import type {
   InjectAutofillMessage,
 } from '@/lib/messages';
 import * as vault from '@/lib/vault-cache';
+import { uriMatchesPage } from '@/lib/item-format';
 
 // ── Auto-lock alarm ────────────────────────────────────────────────────────
 
@@ -69,10 +70,39 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
+/**
+ * True for messages from the extension's own pages (the popup). Content
+ * scripts run inside every web page, so a compromised renderer could forge
+ * any message type; only the popup may unlock, search, autofill or change
+ * the session.
+ */
+function fromExtensionPage(sender: chrome.runtime.MessageSender): boolean {
+  return (
+    sender.id === chrome.runtime.id &&
+    sender.tab === undefined &&
+    typeof sender.url === 'string' &&
+    sender.url.startsWith(chrome.runtime.getURL(''))
+  );
+}
+
 async function handleMessage(
   msg: ExtensionMessage,
   sender: chrome.runtime.MessageSender,
 ): Promise<GenericResponse | StatusResponse | SearchResponse> {
+  if (msg.type === 'FORM_DETECTED') {
+    // The only message a content script sends. Use the sending frame's real
+    // URL, not the one the page put in the payload. sender.url is set for
+    // content scripts without the "tabs" permission; sender.tab.url is not.
+    if (sender.id !== chrome.runtime.id || !sender.tab || sender.frameId !== 0 || !sender.url) {
+      return { ok: false, error: 'Not allowed' };
+    }
+    updateBadgeForUri(sender.url);
+    return { ok: true };
+  }
+  if (!fromExtensionPage(sender)) {
+    return { ok: false, error: 'Not allowed' };
+  }
+
   switch (msg.type) {
     case 'UNLOCK_VAULT': {
       const success = await vault.unlock(msg.payload.password);
@@ -103,28 +133,16 @@ async function handleMessage(
       const item = vault.getItem(msg.payload.itemId);
       if (!item) return { ok: false, error: 'Item not found' };
 
-      // Determine which tab to send the autofill to
-      const tabId = sender.tab?.id;
-      if (!tabId) {
-        // If request came from popup, get the active tab
-        const [activeTab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (!activeTab?.id) return { ok: false, error: 'No active tab' };
-
-        // Send username then password to the active tab
-        await sendAutofillToTab(activeTab.id, item.username, item.password);
-      } else {
-        await sendAutofillToTab(tabId, item.username, item.password);
+      // Only the popup reaches here (see fromExtensionPage), so fill the
+      // active tab, and only if the page belongs to one of the item's saved
+      // addresses: the popup list can be stale by the time the user clicks.
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!activeTab?.id || !activeTab.url) return { ok: false, error: 'No active tab' };
+      if (!item.uri.some((u) => uriMatchesPage(u, activeTab.url!))) {
+        return { ok: false, error: 'This login is not saved for this site' };
       }
 
-      return { ok: true };
-    }
-
-    case 'FORM_DETECTED': {
-      // Match detected form URI against vault items and update badge
-      updateBadgeForUri(msg.payload.uri);
+      await sendAutofillToTab(activeTab.id, item.username, item.password);
       return { ok: true };
     }
 
@@ -172,8 +190,10 @@ async function sendAutofillToTab(
     },
   };
 
-  await chrome.tabs.sendMessage(tabId, usernameMsg).catch(() => {});
-  await chrome.tabs.sendMessage(tabId, passwordMsg).catch(() => {});
+  // Top frame only: the content script runs there, and a cross-origin iframe
+  // must never receive credentials.
+  await chrome.tabs.sendMessage(tabId, usernameMsg, { frameId: 0 }).catch(() => {});
+  await chrome.tabs.sendMessage(tabId, passwordMsg, { frameId: 0 }).catch(() => {});
 }
 
 // ── Install / Update handler ───────────────────────────────────────────────

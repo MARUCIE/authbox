@@ -11,9 +11,11 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"auth-box-api/internal/domain"
@@ -24,6 +26,15 @@ import (
 type TOTPService struct {
 	userRepo     domain.UserRepository
 	secretCipher cipher.AEAD
+
+	// usedSteps records, per user, the newest time step a code was accepted
+	// for. RFC 6238 §5.2: a verifier must not accept the same OTP twice, so a
+	// code that was shoulder-surfed, phished or logged cannot be replayed
+	// inside its ~90s validity window. In-process state: correct for the
+	// single API instance this service runs as; a multi-replica deployment
+	// would need this in the database or Redis.
+	mu        sync.Mutex
+	usedSteps map[uuid.UUID]int64
 }
 
 func NewTOTPService(userRepo domain.UserRepository, secretKey []byte) *TOTPService {
@@ -35,7 +46,7 @@ func NewTOTPService(userRepo domain.UserRepository, secretKey []byte) *TOTPServi
 	if err != nil {
 		panic("invalid TOTP secret encryption cipher")
 	}
-	return &TOTPService{userRepo: userRepo, secretCipher: aead}
+	return &TOTPService{userRepo: userRepo, secretCipher: aead, usedSteps: make(map[uuid.UUID]int64)}
 }
 
 type TOTPEnrollResponse struct {
@@ -44,6 +55,16 @@ type TOTPEnrollResponse struct {
 }
 
 // IsEnabled returns whether TOTP is enabled for the user.
+// ErrTOTPInput marks a TOTP request the user can act on (wrong code, already
+// enabled, not enrolled). Handlers show its message with 400; every other error
+// (database, secret decryption) is logged and answered with a generic 500 so
+// internal details never reach the client.
+var ErrTOTPInput = errors.New("totp request rejected")
+
+func totpInputError(reason string) error {
+	return fmt.Errorf("%w: %s", ErrTOTPInput, reason)
+}
+
 func (s *TOTPService) IsEnabled(ctx context.Context, userID uuid.UUID) (bool, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -62,10 +83,10 @@ func (s *TOTPService) Enroll(ctx context.Context, userID uuid.UUID) (*TOTPEnroll
 		return nil, err
 	}
 	if user == nil {
-		return nil, fmt.Errorf("user not found")
+		return nil, totpInputError("user not found")
 	}
 	if user.TOTPEnabled {
-		return nil, fmt.Errorf("TOTP already enabled")
+		return nil, totpInputError("TOTP already enabled")
 	}
 
 	// Generate 20-byte secret
@@ -90,28 +111,34 @@ func (s *TOTPService) Enroll(ctx context.Context, userID uuid.UUID) (*TOTPEnroll
 }
 
 // Verify checks a TOTP code and enables TOTP if valid.
-func (s *TOTPService) Verify(ctx context.Context, userID uuid.UUID, code string) error {
+//
+// newlyEnabled reports whether this call turned TOTP on, as opposed to
+// re-checking a code for an account that already had it on.
+func (s *TOTPService) Verify(ctx context.Context, userID uuid.UUID, code string) (newlyEnabled bool, err error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if user == nil {
-		return fmt.Errorf("user not found")
+		return false, totpInputError("user not found")
 	}
 	if user.TOTPSecret == nil {
-		return fmt.Errorf("TOTP not enrolled")
+		return false, totpInputError("TOTP not enrolled")
 	}
 
 	secret, err := s.decryptSecret(user.TOTPSecret)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if !validateTOTP(secret, code, time.Now()) {
-		return fmt.Errorf("invalid TOTP code")
+	if !s.acceptCode(userID, secret, code, time.Now()) {
+		return false, totpInputError("invalid TOTP code")
 	}
 
-	return s.userRepo.EnableTOTP(ctx, userID)
+	if err := s.userRepo.EnableTOTP(ctx, userID); err != nil {
+		return false, err
+	}
+	return !user.TOTPEnabled, nil
 }
 
 // Disable disables TOTP after verifying the current code.
@@ -121,10 +148,10 @@ func (s *TOTPService) Disable(ctx context.Context, userID uuid.UUID, code string
 		return err
 	}
 	if user == nil {
-		return fmt.Errorf("user not found")
+		return totpInputError("user not found")
 	}
 	if !user.TOTPEnabled {
-		return fmt.Errorf("TOTP not enabled")
+		return totpInputError("TOTP not enabled")
 	}
 
 	secret, err := s.decryptSecret(user.TOTPSecret)
@@ -132,8 +159,8 @@ func (s *TOTPService) Disable(ctx context.Context, userID uuid.UUID, code string
 		return err
 	}
 
-	if !validateTOTP(secret, code, time.Now()) {
-		return fmt.Errorf("invalid TOTP code")
+	if !s.acceptCode(userID, secret, code, time.Now()) {
+		return totpInputError("invalid TOTP code")
 	}
 
 	return s.userRepo.DisableTOTP(ctx, userID)
@@ -152,7 +179,32 @@ func (s *TOTPService) Check(ctx context.Context, userID uuid.UUID, code string) 
 	if err != nil {
 		return false, err
 	}
-	return validateTOTP(secret, code, time.Now()), nil
+	return s.acceptCode(userID, secret, code, time.Now()), nil
+}
+
+// acceptCode validates code and, if it matches, consumes its time step so the
+// same code (or an older one) is rejected on any later call for this user.
+func (s *TOTPService) acceptCode(userID uuid.UUID, secret []byte, code string, now time.Time) bool {
+	step, ok := matchTOTPStep(secret, code, now)
+	if !ok {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if last, seen := s.usedSteps[userID]; seen && step <= last {
+		return false
+	}
+	s.usedSteps[userID] = step
+	if len(s.usedSteps) > 4096 {
+		// Entries older than the validity window can never block a code again.
+		horizon := now.Unix()/30 - 2
+		for id, last := range s.usedSteps {
+			if last < horizon {
+				delete(s.usedSteps, id)
+			}
+		}
+	}
+	return true
 }
 
 const totpSecretEnvelopePrefix = "authbox-totp-v1:"
@@ -199,16 +251,21 @@ func (s *TOTPService) decryptSecret(envelope []byte) ([]byte, error) {
 	return secret, nil
 }
 
-func validateTOTP(secret []byte, code string, now time.Time) bool {
-	// Allow 1 step window (30s before, current, 30s after).
-	// Uses constant-time comparison to prevent timing attacks.
+// matchTOTPStep checks code against the current step and one step either side
+// (clock skew) and returns the step it matched. Every candidate is compared in
+// constant time so timing does not reveal which step, if any, matched.
+func matchTOTPStep(secret []byte, code string, now time.Time) (int64, bool) {
 	counter := now.Unix() / 30
-	match := 0
+	var matched int64
+	found := 0
 	for i := int64(-1); i <= 1; i++ {
-		expected := generateTOTP(secret, counter+i)
-		match |= subtle.ConstantTimeCompare([]byte(expected), []byte(code))
+		eq := subtle.ConstantTimeCompare([]byte(generateTOTP(secret, counter+i)), []byte(code))
+		if eq == 1 {
+			matched = counter + i
+		}
+		found |= eq
 	}
-	return match == 1
+	return matched, found == 1
 }
 
 func generateTOTP(secret []byte, counter int64) string {

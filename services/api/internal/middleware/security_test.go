@@ -17,7 +17,7 @@ func TestSecurityHeaders(t *testing.T) {
 	checks := map[string]string{
 		"X-Content-Type-Options":            "nosniff",
 		"X-Frame-Options":                   "DENY",
-		"X-XSS-Protection":                  "1; mode=block",
+		"X-XSS-Protection":                  "0",
 		"Referrer-Policy":                   "no-referrer",
 		"X-Permitted-Cross-Domain-Policies": "none",
 	}
@@ -68,6 +68,9 @@ func TestRequireJSON_RejectsBodyWithoutContentType(t *testing.T) {
 
 	if rr.Code != http.StatusUnsupportedMediaType {
 		t.Errorf("POST body without Content-Type: want 415, got %d", rr.Code)
+	}
+	if ct := rr.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("415 content type: want application/json, got %q", ct)
 	}
 }
 

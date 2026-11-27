@@ -102,10 +102,12 @@ func (r *WalletRepository) CreateAddress(ctx context.Context, addr *domain.Walle
 		   (account_id, address, derivation_path, change, address_index, public_key)
 		 VALUES ($1, $2, $3, $4, $5, $6)
 		 ON CONFLICT (account_id, change, address_index)
-		   DO UPDATE SET address = EXCLUDED.address, public_key = EXCLUDED.public_key
-		 RETURNING id, cached_balance::text, created_at`,
+		   DO UPDATE SET address = EXCLUDED.address,
+		                 derivation_path = EXCLUDED.derivation_path,
+		                 public_key = EXCLUDED.public_key
+		 RETURNING id, derivation_path, cached_balance::text, created_at`,
 		addr.AccountID, addr.Address, addr.DerivationPath, addr.Change, addr.AddressIndex, addr.PublicKey,
-	).Scan(&addr.ID, &addr.CachedBalance, &addr.CreatedAt)
+	).Scan(&addr.ID, &addr.DerivationPath, &addr.CachedBalance, &addr.CreatedAt)
 }
 
 func (r *WalletRepository) ListAddresses(ctx context.Context, accountID uuid.UUID) ([]domain.WalletAddress, error) {

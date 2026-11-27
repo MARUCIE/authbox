@@ -100,16 +100,18 @@ func TestLoginVerifyWithTOTPAllowsFollowUpVerification(t *testing.T) {
 		t.Fatal("expected server proof to be returned before TOTP step")
 	}
 
-	pending, ok := service.pending[email]
-	if !ok {
-		t.Fatal("pending login state was cleared before TOTP verification")
+	if verifyResp.LoginChallenge == "" {
+		t.Fatal("expected a loginChallenge with totpRequired")
 	}
-	if !pending.srpVerified {
-		t.Fatal("pending login was not marked as SRP-verified")
+	if verifyResp.SessionToken != "" {
+		t.Fatal("no session may be issued before the TOTP step")
+	}
+	if len(service.pendingSRP) != 0 {
+		t.Fatal("SRP handshake must be consumed by LoginVerify")
 	}
 
 	code := generateTOTP(user.TOTPSecret, time.Now().Unix()/30)
-	finalResp, err := service.LoginVerifyTOTP(ctx, email, code, "127.0.0.1", "test-agent")
+	finalResp, err := service.LoginVerifyTOTP(ctx, email, verifyResp.LoginChallenge, code, "127.0.0.1", "test-agent")
 	if err != nil {
 		t.Fatalf("LoginVerifyTOTP: %v", err)
 	}
@@ -119,8 +121,8 @@ func TestLoginVerifyWithTOTPAllowsFollowUpVerification(t *testing.T) {
 	if len(sessionRepo.created) != 1 {
 		t.Fatalf("expected 1 session to be created, got %d", len(sessionRepo.created))
 	}
-	if _, ok := service.pending[email]; ok {
-		t.Fatal("pending login state was not cleared after successful TOTP verification")
+	if len(service.pendingMFA) != 0 {
+		t.Fatal("TOTP challenge was not cleared after successful verification")
 	}
 }
 
@@ -155,10 +157,11 @@ func TestLoginVerifyRefreshesUserStateBeforeTOTPDecision(t *testing.T) {
 		t.Fatalf("newTestSRPClientState: %v", err)
 	}
 
-	if _, err := service.LoginInit(ctx, LoginInitRequest{
+	initResp, err := service.LoginInit(ctx, LoginInitRequest{
 		Email:         email,
 		ClientPublicA: base64.StdEncoding.EncodeToString(clientState.publicA),
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatalf("LoginInit: %v", err)
 	}
 
@@ -174,15 +177,10 @@ func TestLoginVerifyRefreshesUserStateBeforeTOTPDecision(t *testing.T) {
 		t.Fatalf("EnableTOTP: %v", err)
 	}
 
-	pendingBefore := service.pending[email]
-	if pendingBefore == nil {
-		t.Fatal("expected pending login state after LoginInit")
+	serverPublicB, err := base64.StdEncoding.DecodeString(initResp.ServerPublicB)
+	if err != nil {
+		t.Fatalf("DecodeString(ServerPublicB): %v", err)
 	}
-	if pendingBefore.user.TOTPEnabled {
-		t.Fatal("expected pending login snapshot to predate TOTP enablement")
-	}
-
-	serverPublicB := pendingBefore.srp.PublicB()
 	clientProof := clientState.computeProof(t, email, password, salt, serverPublicB)
 
 	verifyResp, err := service.LoginVerify(ctx, email, clientState.publicA, clientProof, "127.0.0.1", "test-agent")
@@ -194,7 +192,7 @@ func TestLoginVerifyRefreshesUserStateBeforeTOTPDecision(t *testing.T) {
 	}
 
 	code := generateTOTP(secret, time.Now().Unix()/30)
-	finalResp, err := service.LoginVerifyTOTP(ctx, email, code, "127.0.0.1", "test-agent")
+	finalResp, err := service.LoginVerifyTOTP(ctx, email, verifyResp.LoginChallenge, code, "127.0.0.1", "test-agent")
 	if err != nil {
 		t.Fatalf("LoginVerifyTOTP: %v", err)
 	}

@@ -7,41 +7,45 @@
  * Flow: User action -> encrypt with vaultKey -> API call -> update store
  * Flow: Sync pull -> receive encrypted blobs -> decrypt with vaultKey -> populate store
  */
-import { encryptVaultItem, decryptVaultItem } from '@authbox/crypto';
+import { encryptVaultItem, decryptVaultItem, toBase64, fromBase64 } from '@authbox/crypto';
 import type { VaultItem, ItemType } from '@authbox/shared';
 import { vaultApi, ApiError } from './api';
 import { useVaultStore, type DecryptedVaultItem } from './vault-store';
-
-function toBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-function fromBase64(b64: string): Uint8Array {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
+import { collectPages } from '@authbox/api-client';
 
 function getStoreState() {
   return useVaultStore.getState();
 }
 
+/** Items per request when loading the vault (the API allows up to 500). */
+const ITEM_PAGE_SIZE = 500;
+
 /**
- * Pull all encrypted items from the server, decrypt them, and populate the store.
+ * Bumped by every sync start and every local create/update/delete. A sync
+ * applies its result only if nothing else started or changed since, so a
+ * slower, older sync cannot overwrite a newer one or wipe a just-added item.
+ */
+let vaultGeneration = 0;
+
+/**
+ * Load every encrypted item from the server, decrypt it, and replace the
+ * store's items. A full reload also drops items deleted on another device.
  */
 export async function syncVault(): Promise<void> {
-  const { sessionToken, vaultKey, lastSync } = getStoreState();
+  const { sessionToken, vaultKey } = getStoreState();
   if (!sessionToken || !vaultKey) {
     throw new Error('Vault is locked');
   }
 
-  const response = await vaultApi.syncPull(sessionToken, lastSync ?? undefined);
-  const decryptedItems = new Map(getStoreState().items);
+  const generation = ++vaultGeneration;
+  const previous = getStoreState().items;
+  const encrypted = await collectPages(
+    async (limit, offset) => (await vaultApi.listItems(sessionToken, limit, offset)).items,
+    ITEM_PAGE_SIZE,
+  );
+  const decryptedItems = new Map<string, DecryptedVaultItem>();
 
-  for (const item of response.items) {
+  for (const item of encrypted) {
     try {
       const plaintext = await decryptVaultItem(vaultKey, {
         ciphertext: fromBase64(item.encryptedData),
@@ -56,9 +60,9 @@ export async function syncVault(): Promise<void> {
 
       decryptedItems.set(item.id, {
         id: item.id,
-        vaultId: item.vaultId,
+        vaultId: '',
         itemType: item.itemType,
-        revision: item.revision,
+        revision: item.version,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         name: parsed.name ?? 'Untitled',
@@ -67,14 +71,19 @@ export async function syncVault(): Promise<void> {
         folderId: parsed.folderId,
       });
     } catch (err) {
-      // Skip items that fail to decrypt (corrupted or wrong key)
+      // Keep the copy we already had rather than dropping the item.
       console.error(`Failed to decrypt item ${item.id}:`, err);
+      const kept = previous.get(item.id);
+      if (kept) decryptedItems.set(item.id, kept);
     }
   }
 
+  // The vault may have been locked, or a newer sync or local edit may have
+  // landed, while the pages were loading.
+  if (getStoreState().vaultKey !== vaultKey || generation !== vaultGeneration) return;
   useVaultStore.setState({
     items: decryptedItems,
-    lastSync: response.syncToken,
+    lastSync: new Date().toISOString(),
   });
 }
 
@@ -122,6 +131,7 @@ export async function createVaultItem(
     updatedAt: new Date().toISOString(),
   };
 
+  vaultGeneration++;
   useVaultStore.getState().addItem(newItem);
   return response.id;
 }
@@ -160,6 +170,7 @@ export async function updateVaultItem(
     tag: toBase64(encrypted.tag),
   });
 
+  vaultGeneration++;
   useVaultStore.getState().updateItem(itemId, {
     ...existing,
     name,
@@ -181,6 +192,7 @@ export async function deleteVaultItem(itemId: string): Promise<void> {
   }
 
   await vaultApi.deleteItem(sessionToken, itemId);
+  vaultGeneration++;
   useVaultStore.getState().removeItem(itemId);
 }
 
