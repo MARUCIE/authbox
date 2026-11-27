@@ -1,17 +1,12 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 
-	"auth-box-api/internal/auth"
 	"auth-box-api/internal/domain"
+	"auth-box-api/internal/httpx"
 	"auth-box-api/internal/service"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 // writeConnectionError maps connection-service errors: client mistakes become
@@ -19,14 +14,13 @@ import (
 func writeConnectionError(w http.ResponseWriter, err error, op string) {
 	switch {
 	case errors.Is(err, service.ErrInvalidConnection):
-		writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, err.Error(), httpx.CodeBadRequest)
 	case errors.Is(err, domain.ErrConflict):
-		writeError(w, http.StatusConflict, "this provider account is already connected", "CONFLICT")
+		httpx.WriteError(w, http.StatusConflict, "this provider account is already connected", httpx.CodeConflict)
 	case errors.Is(err, domain.ErrConnectionNotFound):
-		writeError(w, http.StatusNotFound, "connection not found", "NOT_FOUND")
+		httpx.WriteError(w, http.StatusNotFound, "connection not found", httpx.CodeNotFound)
 	default:
-		slog.Error(op+" failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to "+op, "INTERNAL_ERROR")
+		writeInternal(w, err, op+" failed", "failed to "+op)
 	}
 }
 
@@ -40,15 +34,13 @@ func NewConnectionHandler(connService *service.ConnectionService, audit auditRec
 }
 
 func (h *ConnectionHandler) CreateConnection(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
 	var req service.CreateConnectionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -59,71 +51,59 @@ func (h *ConnectionHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 	}
 
 	recordAudit(h.audit, r, userID, "connection.create", "connection", resp.ID)
-	writeJSON(w, http.StatusCreated, resp)
+	httpx.WriteJSON(w, http.StatusCreated, resp)
 }
 
 func (h *ConnectionHandler) ListConnections(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
 	conns, err := h.connService.ListConnections(r.Context(), userID)
 	if err != nil {
-		slog.Error("list connections failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to list connections", "INTERNAL_ERROR")
+		writeInternal(w, err, "list connections failed", "failed to list connections")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"connections": conns,
 	})
 }
 
 func (h *ConnectionHandler) GetConnection(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
-	connID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid connection id", "BAD_REQUEST")
+	connID, ok := uuidParam(w, r, "id", "invalid connection id")
+	if !ok {
 		return
 	}
 
 	resp, err := h.connService.GetConnection(r.Context(), connID, userID)
 	if err != nil {
-		slog.Error("get connection failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to get connection", "INTERNAL_ERROR")
-		return
-	}
-	if resp == nil {
-		writeError(w, http.StatusNotFound, "connection not found", "NOT_FOUND")
+		writeConnectionError(w, err, "get connection")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	httpx.WriteJSON(w, http.StatusOK, resp)
 }
 
 func (h *ConnectionHandler) UpdateConnection(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
-	connID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid connection id", "BAD_REQUEST")
+	connID, ok := uuidParam(w, r, "id", "invalid connection id")
+	if !ok {
 		return
 	}
 
 	var req service.UpdateConnectionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -133,29 +113,26 @@ func (h *ConnectionHandler) UpdateConnection(w http.ResponseWriter, r *http.Requ
 	}
 	recordAudit(h.audit, r, userID, "connection.update", "connection", connID.String())
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
 
 func (h *ConnectionHandler) DeleteConnection(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
-	connID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid connection id", "BAD_REQUEST")
+	connID, ok := uuidParam(w, r, "id", "invalid connection id")
+	if !ok {
 		return
 	}
 
 	if err := h.connService.DeleteConnection(r.Context(), connID, userID); err != nil {
 		if errors.Is(err, domain.ErrConnectionNotFound) {
-			writeError(w, http.StatusNotFound, "connection not found", "NOT_FOUND")
+			httpx.WriteError(w, http.StatusNotFound, "connection not found", httpx.CodeNotFound)
 			return
 		}
-		slog.Error("delete connection failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to delete connection", "INTERNAL_ERROR")
+		writeInternal(w, err, "delete connection failed", "failed to delete connection")
 		return
 	}
 	recordAudit(h.audit, r, userID, "connection.delete", "connection", connID.String())

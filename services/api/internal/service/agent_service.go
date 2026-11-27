@@ -233,7 +233,7 @@ func (s *AgentService) GetAgent(ctx context.Context, id, userID uuid.UUID) (*Age
 		return nil, err
 	}
 	if agent == nil {
-		return nil, nil
+		return nil, domain.ErrAgentNotFound
 	}
 	resp := agentToResponse(agent)
 	return &resp, nil

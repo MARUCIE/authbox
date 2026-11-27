@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { mnemonicToSeed } from '../seed';
-import { deriveAddress, derivePrivateKey } from '../wallet';
-import { buildBtcTransaction, buildEthTransaction, MAX_BTC_FEE_RATE_SAT_PER_VB } from '../wallet-tx';
+import { mnemonicToSeed } from '../seed.js';
+import { deriveAddress, derivePrivateKey } from '../wallet.js';
+import { buildBtcTransaction, buildEthTransaction, MAX_BTC_FEE_RATE_SAT_PER_VB } from '../wallet-tx.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { Transaction as EthTransaction } from 'micro-eth-signer';
 

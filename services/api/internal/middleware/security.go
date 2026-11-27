@@ -7,6 +7,8 @@ import (
 	"net/netip"
 	"strings"
 	"sync/atomic"
+
+	"auth-box-api/internal/httpx"
 )
 
 // PrivateNetworkAccess handles Chrome 130+ PNA preflight.
@@ -64,11 +66,11 @@ func RequireJSON(next http.Handler) http.Handler {
 		default:
 			ct := r.Header.Get("Content-Type")
 			if hasRequestBody(r) && ct == "" {
-				http.Error(w, `{"error":"Content-Type must be application/json","code":"INVALID_CONTENT_TYPE"}`, http.StatusUnsupportedMediaType)
+				httpx.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json", httpx.CodeInvalidContentType)
 				return
 			}
 			if ct != "" && !isJSONContentType(ct) {
-				http.Error(w, `{"error":"Content-Type must be application/json","code":"INVALID_CONTENT_TYPE"}`, http.StatusUnsupportedMediaType)
+				httpx.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json", httpx.CodeInvalidContentType)
 				return
 			}
 		}

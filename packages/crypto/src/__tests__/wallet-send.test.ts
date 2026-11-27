@@ -5,7 +5,7 @@ import {
   deriveEthFeeParams,
   ethChainId,
   type BtcFeeTiers,
-} from '../wallet-send';
+} from '../wallet-send.js';
 
 describe('parseAmount — decimal string to base-unit BigInt', () => {
   // BTC has 8 decimals (satoshis), ETH 18 (wei). These are the exact vectors a

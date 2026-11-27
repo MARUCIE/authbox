@@ -9,8 +9,8 @@ import {
   derivePassword,
   setWordlist,
   KeyPurpose,
-} from '../seed';
-import { ENGLISH_WORDLIST } from '../wordlist-en';
+} from '../seed.js';
+import { ENGLISH_WORDLIST } from '../wordlist-en.js';
 
 beforeAll(() => {
   setWordlist(ENGLISH_WORDLIST);

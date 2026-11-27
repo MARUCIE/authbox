@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeProxyRequest } from "./proxy-security";
+import { sanitizeProxyRequest } from "./proxy-security.js";
 
 const publicLookup = async () => ["93.184.216.34"];
 

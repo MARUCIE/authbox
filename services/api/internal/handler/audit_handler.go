@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"auth-box-api/internal/auth"
+	"auth-box-api/internal/httpx"
 	"auth-box-api/internal/service"
 )
 
@@ -17,9 +17,8 @@ func NewAuditHandler(service *service.AuditService) *AuditHandler {
 }
 
 func (h *AuditHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "not authenticated", "UNAUTHORIZED")
 		return
 	}
 
@@ -50,11 +49,11 @@ func (h *AuditHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
 
 	events, err := h.service.ListEvents(r.Context(), userID, limit, offset)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list events", "INTERNAL_ERROR")
+		writeInternal(w, err, "failed to list events", "failed to list events")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"events": events,
 		"limit":  limit,
 		"offset": offset,
@@ -62,17 +61,16 @@ func (h *AuditHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuditHandler) VerifyChain(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "not authenticated", "UNAUTHORIZED")
 		return
 	}
 
 	result, err := h.service.VerifyChain(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to verify chain", "INTERNAL_ERROR")
+		writeInternal(w, err, "failed to verify chain", "failed to verify chain")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, result)
+	httpx.WriteJSON(w, http.StatusOK, result)
 }

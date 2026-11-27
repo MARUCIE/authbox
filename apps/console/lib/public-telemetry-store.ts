@@ -208,18 +208,6 @@ export function recordPublicEvent(input: {
   return eventRecord;
 }
 
-export function getPublicTelemetrySnapshot() {
-  ensureLoadedFromDisk();
-
-  return {
-    counters: { ...counters },
-    routeCounters: { ...routeCounters },
-    sourceCounters: { ...sourceCounters },
-    tenantCounters: { ...tenantCounters },
-    recentEvents: [...events]
-  };
-}
-
 export function getDualFunnelMetrics() {
   ensureLoadedFromDisk();
   return buildDualFunnelMetrics(counters);

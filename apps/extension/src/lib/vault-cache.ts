@@ -8,21 +8,11 @@
  * AES-256-GCM vault key decryption, and per-item decryption.
  */
 
-import { deriveKeys, decryptVaultKey, decryptVaultItem } from '@authbox/crypto';
-import type { LoginItem, VaultItem, EncryptedVaultItem, ItemType } from '@authbox/shared';
-import { getApiBase } from './config';
+import { deriveKeys, decryptVaultKey, decryptVaultItem, fromBase64 } from '@authbox/crypto';
+import { collectPages } from '@authbox/api-client';
+import type { LoginItem, VaultItem, ItemType } from '@authbox/shared';
+import { api } from './api';
 import { parseStoredItem, uriMatchesPage } from './item-format';
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-function fromBase64(b64: string): Uint8Array {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
 
 // ── State ───────────────────────────────────────────────────────────────────
 
@@ -40,61 +30,10 @@ let state: VaultCacheState = {
   sessionToken: null,
 };
 
-// ── API calls (extension talks directly to the Go API) ──────────────────────
+// ── Unlock ──────────────────────────────────────────────────────────────────
 
-interface VaultKeyData {
-  encryptedVaultKey: string;
-  vaultKeyNonce: string;
-  vaultKeyTag: string;
-  srpSalt: string;
-  kdfParams: {
-    algorithm: string;
-    memory: number;
-    iterations: number;
-    parallelism: number;
-    keyLength: number;
-  };
-}
-
-async function fetchVaultKey(token: string): Promise<VaultKeyData> {
-  const res = await fetch(`${getApiBase()}/api/v1/vault/key`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Failed to fetch vault key: ${res.status}`);
-  return res.json();
-}
-
+/** The API returns at most 500 items per page. */
 const ITEM_PAGE_SIZE = 500;
-const MAX_ITEMS = 100_000;
-
-/** Every item, page by page (the API returns at most 500 per request). */
-async function fetchVaultItems(token: string): Promise<EncryptedVaultItem[]> {
-  const all: EncryptedVaultItem[] = [];
-  for (let offset = 0; offset < MAX_ITEMS; offset += ITEM_PAGE_SIZE) {
-    const res = await fetch(`${getApiBase()}/api/v1/vault/items?limit=${ITEM_PAGE_SIZE}&offset=${offset}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`Failed to fetch vault items: ${res.status}`);
-    const page: EncryptedVaultItem[] = (await res.json()).items ?? [];
-    all.push(...page);
-    if (page.length < ITEM_PAGE_SIZE) return all;
-  }
-  throw new Error(`More than ${MAX_ITEMS} vault items`);
-}
-
-// ── SRP Login (extension needs its own session) ─────────────────────────────
-
-interface LoginInitResponse {
-  srpSalt: string;
-  serverPublicB: string;
-}
-
-interface LoginVerifyResponse {
-  sessionToken: string;
-  encryptedVaultKey: string;
-  vaultKeyNonce: string;
-  vaultKeyTag: string;
-}
 
 /**
  * Attempt to unlock the vault with the master password.
@@ -127,8 +66,11 @@ export async function unlock(password: string): Promise<boolean> {
 
     // Fetch vault key + items in parallel (items don't depend on key data)
     const [vaultKeyData, encryptedItems] = await Promise.all([
-      fetchVaultKey(token),
-      fetchVaultItems(token),
+      api.vaultApi.getVaultKey(token),
+      collectPages(
+        async (limit, offset) => (await api.vaultApi.listItems(token, limit, offset)).items,
+        ITEM_PAGE_SIZE,
+      ),
     ]);
 
     // Derive keys from password + salt
@@ -155,7 +97,7 @@ export async function unlock(password: string): Promise<boolean> {
           parseStoredItem(plaintext, {
             id: item.id,
             itemType: item.itemType,
-            revision: item.revision,
+            revision: item.version,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt,
           }),

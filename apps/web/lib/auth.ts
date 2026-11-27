@@ -9,26 +9,22 @@
  *   5. Send (email, salt, verifier, encryptedVaultKey, kdfParams) to server
  *
  * Login:
- *   1. SRP client init (generate ephemeral A)
- *   2. Send (email, A) to server, receive (salt, B)
- *   3. Derive keys from password + salt
- *   4. SRP client verify (compute proof M1)
- *   5. Send M1, receive (sessionToken, M2, encryptedVaultKey, kdfParams)
- *   6. Verify server proof M2
+ *   1-6. SRP handshake incl. server-proof check: srpLogin in
+ *        @authbox/api-client/login (shared with the extension)
  *   7. Decrypt vault key with enc key
  *   8. Vault is now unlocked
  */
 import {
   deriveKeys,
   srpGenerateVerifier,
-  srpClientInit,
-  srpClientVerify,
-  srpVerifyServerProof,
   generateVaultKey,
   encryptVaultKey,
   decryptVaultKey,
   generateRandomBytes,
+  toBase64,
+  fromBase64,
 } from "@authbox/crypto";
+import { srpLogin } from "@authbox/api-client/login";
 import { authApi } from "./api";
 
 const DEFAULT_KDF_PARAMS = {
@@ -38,19 +34,6 @@ const DEFAULT_KDF_PARAMS = {
   parallelism: 4,
   keyLength: 32,
 };
-
-function toBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-function fromBase64(b64: string): Uint8Array {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
 
 export interface RegisterResult {
   userId: string;
@@ -105,81 +88,26 @@ export async function login(
   email: string,
   password: string,
 ): Promise<LoginResult | PendingTOTPLogin> {
-  // 1. SRP client init
-  const clientState = await srpClientInit();
+  const outcome = await srpLogin(authApi, email, password);
 
-  // 2. Send A to server
-  const initResponse = await authApi.loginInit({
-    email,
-    clientPublicA: toBase64(clientState.ephemeralPublic),
-  });
-
-  // 3. Derive keys with the salt from server
-  const salt = fromBase64(initResponse.srpSalt);
-  const keys = await deriveKeys(password, salt);
-
-  // 4. SRP client verify
-  const serverPublicB = fromBase64(initResponse.serverPublicB);
-  const { clientProof, sessionKey } = await srpClientVerify(
-    clientState,
-    email,
-    password,
-    salt,
-    serverPublicB,
-  );
-
-  // 5. Send proof to server
-  const verifyResponse = await authApi.loginVerify({
-    email,
-    clientPublicA: toBase64(clientState.ephemeralPublic),
-    clientProofM1: toBase64(clientProof),
-  });
-
-  if (!verifyResponse.serverProofM2) {
-    throw new Error("Login response missing SRP server proof");
-  }
-  if (
-    !srpVerifyServerProof(
-      clientState,
-      clientProof,
-      sessionKey,
-      fromBase64(verifyResponse.serverProofM2),
-    )
-  ) {
-    throw new Error("SRP server proof verification failed");
-  }
-
-  if (verifyResponse.totpRequired) {
-    if (!verifyResponse.loginChallenge) {
-      throw new Error("Login response missing TOTP challenge");
-    }
+  if (outcome.kind === "totp_required") {
     return {
       kind: "totp_required",
       email,
-      encKey: keys.encKey,
-      loginChallenge: verifyResponse.loginChallenge,
+      encKey: outcome.encKey,
+      loginChallenge: outcome.loginChallenge,
     };
   }
 
-  if (
-    !verifyResponse.sessionToken ||
-    !verifyResponse.encryptedVaultKey ||
-    !verifyResponse.vaultKeyNonce ||
-    !verifyResponse.vaultKeyTag
-  ) {
-    throw new Error("Login response missing vault credentials");
-  }
-
-  // 6. Decrypt vault key
-  const vaultKey = await decryptVaultKey(keys.encKey, {
-    encryptedVaultKey: fromBase64(verifyResponse.encryptedVaultKey),
-    nonce: fromBase64(verifyResponse.vaultKeyNonce),
-    tag: fromBase64(verifyResponse.vaultKeyTag),
+  const vaultKey = await decryptVaultKey(outcome.encKey, {
+    encryptedVaultKey: fromBase64(outcome.session.encryptedVaultKey),
+    nonce: fromBase64(outcome.session.vaultKeyNonce),
+    tag: fromBase64(outcome.session.vaultKeyTag),
   });
 
   return {
     kind: "complete",
-    sessionToken: verifyResponse.sessionToken,
+    sessionToken: outcome.session.sessionToken,
     vaultKey,
   };
 }

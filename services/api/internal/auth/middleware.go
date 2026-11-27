@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"auth-box-api/internal/httpx"
+
 	"github.com/google/uuid"
 )
 
@@ -44,25 +46,25 @@ func Middleware(validator SessionValidator) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			header := r.Header.Get("Authorization")
 			if header == "" {
-				http.Error(w, `{"error":"missing authorization header","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
+				httpx.WriteError(w, http.StatusUnauthorized, "missing authorization header", httpx.CodeUnauthorized)
 				return
 			}
 
 			token, ok := strings.CutPrefix(header, "Bearer ")
 			if !ok || token == "" {
-				http.Error(w, `{"error":"invalid authorization format","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
+				httpx.WriteError(w, http.StatusUnauthorized, "invalid authorization format", httpx.CodeUnauthorized)
 				return
 			}
 
 			tokenHash, err := HashToken(token)
 			if err != nil {
-				http.Error(w, `{"error":"invalid token","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
+				httpx.WriteError(w, http.StatusUnauthorized, "invalid token", httpx.CodeUnauthorized)
 				return
 			}
 
 			userID, err := validator.ValidateSession(r.Context(), tokenHash)
 			if err != nil {
-				http.Error(w, `{"error":"invalid or expired session","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
+				httpx.WriteError(w, http.StatusUnauthorized, "invalid or expired session", httpx.CodeUnauthorized)
 				return
 			}
 

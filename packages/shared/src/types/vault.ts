@@ -75,25 +75,3 @@ export type VaultItem =
   | SecureNoteItem
   | IdentityItem
   | CardItem;
-
-export interface EncryptedVaultItem {
-  id: string;
-  vaultId: string;
-  itemType: ItemType;
-  encryptedData: string;
-  nonce: string;
-  tag: string;
-  uriHash?: string;
-  revision: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Vault {
-  id: string;
-  userId: string;
-  name: string;
-  vaultType: 'personal' | 'shared';
-  createdAt: string;
-  updatedAt: string;
-}

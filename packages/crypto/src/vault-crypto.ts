@@ -3,7 +3,7 @@ import {
   decryptAES256GCM,
   generateRandomBytes,
   type EncryptedPayload,
-} from './aes-gcm';
+} from './aes-gcm.js';
 
 export type { EncryptedPayload };
 
