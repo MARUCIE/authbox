@@ -171,7 +171,7 @@ func (s *VaultService) GetItem(ctx context.Context, id, userID uuid.UUID) (*Item
 		return nil, err
 	}
 	if item == nil {
-		return nil, nil
+		return nil, domain.ErrItemNotFound
 	}
 	resp := itemToResponse(item)
 	return &resp, nil

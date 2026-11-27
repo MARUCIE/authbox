@@ -243,7 +243,7 @@ func (s *ConnectionService) GetConnection(ctx context.Context, id, userID uuid.U
 		return nil, err
 	}
 	if conn == nil {
-		return nil, nil
+		return nil, domain.ErrConnectionNotFound
 	}
 	resp := connectionToResponse(conn)
 	return &resp, nil

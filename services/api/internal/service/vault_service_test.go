@@ -112,3 +112,13 @@ func TestSyncPushDefaultsItemTypeToLogin(t *testing.T) {
 		t.Fatalf("unexpected result %+v", out)
 	}
 }
+
+// A missing row is reported as the domain sentinel, never as (nil, nil), so
+// the handler maps not-found through the same path as every other error.
+func TestGetItemMissingIsNotFoundSentinel(t *testing.T) {
+	svc := NewVaultService(nil, &recordingVaultRepo{})
+	resp, err := svc.GetItem(context.Background(), uuid.New(), uuid.New())
+	if resp != nil || !errors.Is(err, domain.ErrItemNotFound) {
+		t.Fatalf("GetItem(missing) = %v, %v; want nil, ErrItemNotFound", resp, err)
+	}
+}

@@ -261,7 +261,7 @@ func TestRateLimiter_ResponseBody(t *testing.T) {
 		t.Errorf("want Content-Type application/json, got %s", rr.Header().Get("Content-Type"))
 	}
 	body := rr.Body.String()
-	if body != `{"error":"rate limit exceeded","code":"RATE_LIMITED"}` {
+	if body != `{"error":"rate limit exceeded","code":"RATE_LIMITED"}`+"\n" {
 		t.Errorf("unexpected body: %s", body)
 	}
 }

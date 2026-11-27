@@ -11,9 +11,9 @@ the replaced code before it is committed.
 | T-03 | Delete stale compiled artifacts in packages/shared/src (D-06) | med | low | done (batch 2) |
 | T-04 | Delete unused zod validation module and its dependency (D-09); drop other unused dependencies and dead exports | med | low | done (batch 2) |
 | T-05 | One base64 / hex codec in @authbox/crypto, chunk-safe; migrate every copy (D-01, D-02) | high | low | done (batch 3) |
-| T-06 | Go: one HTTP response package (envelope, codes, content type) used by handler, auth middleware, rate limiter, security middleware (D-07) | high | low | todo |
-| T-07 | Go: one request-boundary helper set (authenticated user, id params, body decode) | high | low | todo |
-| T-08 | Go: one service-error → HTTP mapping; not-found always a sentinel error, never `nil, nil` | high | med | todo |
+| T-06 | Go: one HTTP response package (envelope, codes, content type) used by handler, auth middleware, rate limiter, security middleware (D-07) | high | low | done (batch 4) |
+| T-07 | Go: one request-boundary helper set (authenticated user, id params, body decode) | high | low | done (batch 4) |
+| T-08 | Go: one service-error → HTTP mapping; not-found always a sentinel error, never `nil, nil` | high | med | done (batch 4) |
 | T-09 | Extension uses the same typed API client and pagination as web (D-04, D-05) | high | med | todo |
 | T-10 | Executable architecture rules: Go layer-direction test; TS boundary check (no app→app, no package→app imports, no build output in src, no local codec copies) | high | low | todo |
 | T-11 | CI workflow that builds, typechecks and tests every workspace + Go + architecture rules on every PR | high | low | todo |

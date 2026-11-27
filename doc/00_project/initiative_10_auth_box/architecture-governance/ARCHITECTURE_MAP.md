@@ -48,12 +48,10 @@ Ownership:
 
 | Concern | Owner | Notes |
 | --- | --- | --- |
-| Wire error envelope `{error, code}` | handler/response.go | Re-implemented by hand-written JSON strings in auth/middleware.go, middleware/ratelimit.go, middleware/security.go (text/plain content type) |
-| Bad-request / not-found / conflict mapping | 3 per-handler helpers + ~150 inline branches | `writeAgentError`, `writeConnectionError`, `writeTOTPError`; not-found signalled two ways (nil result vs sentinel error) |
-| Authenticated user id | auth.UserIDFromContext | 43 copies of the same 4-line guard, with 3 different messages |
-| URL id parsing | handler | 19 copies of `uuid.Parse(chi.URLParam(...))` |
-| Body decoding | handler | 18 copies of `json.NewDecoder(r.Body).Decode` |
-| Error codes | string literals | `INTERNAL` and `INTERNAL_ERROR` both used for 500 |
+| Wire error envelope `{error, code}`, content type, error codes | internal/httpx | Since batch 4 the only writer; auth, rate-limit and security middleware use it (all errors are `application/json`) |
+| Bad-request / not-found / conflict mapping | one mapper per domain in handler | `writeAgentError`, `writeConnectionError`, `writeVaultError`, `writeTOTPError`; every unexpected error goes through `writeInternal` (logged, generic 500, `INTERNAL_ERROR`) |
+| Not-found | domain sentinels | Repositories return `nil, nil` for a missing row; services turn that into `domain.Err*NotFound` before it reaches a handler |
+| Authenticated user id / URL ids / body decoding | handler/request.go | `requireUser`, `uuidParam`, `decodeJSON` |
 
 ## 3. TypeScript package graph
 

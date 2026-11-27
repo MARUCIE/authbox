@@ -96,3 +96,27 @@ Related:
 - 正向：大 blob 不再崩溃；包在所有运行时解析到同一份产物；改编解码只改一处。
 - 负向：直接跑单个应用的 dev/typecheck 前需先构建 packages（turbo 自动完成）。
 - 守门：`scripts/check-architecture.mjs` 禁止新增本地编解码和指向 src 的 paths（第 6 批落地）。
+
+---
+
+## ADR-005: API 响应格式由 internal/httpx 唯一拥有
+- Status: Accepted
+- Date: 2026-11-27
+
+### Context
+- 错误信封 `{error, code}` 有 4 个写法：handler 的 writeError，以及 auth 中间件、限流器、安全中间件里手写的 JSON 字符串。后两者用 `http.Error`，响应头是 `text/plain`。
+- 500 的错误码同时存在 `INTERNAL` 和 `INTERNAL_ERROR`；未授权提示有 3 种写法；未找到既用 `nil, nil` 又用哨兵错误表示。
+
+### Decision
+- 新建无内部依赖的 `internal/httpx`：`WriteJSON`、`WriteError`、错误码常量。所有层只经它写响应。
+- handler 的请求边界收敛到 `request.go`：`requireUser`、`uuidParam`、`decodeJSON`、`writeInternal`。
+- 服务层 `Get*` 把仓储的 `nil, nil` 转为 `domain.Err*NotFound`；每个领域一个错误映射函数，保留原有的 400/404/409 文案。
+
+### 对外契约的变化（均为收敛，已核对无客户端依赖）
+- auth/安全中间件的 401/415 响应头从 `text/plain` 改为 `application/json`，响应体字节不变。
+- 4 个端点（会话列表、撤销会话、撤销全部会话、TOTP 状态）的 500 错误码由 `INTERNAL` 改为 `INTERNAL_ERROR`，与其余端点一致。web、扩展、iOS、macOS 均不读取 `code`。
+- 鉴权失败兜底文案统一为 `unauthorized`（该分支在 auth 中间件之后不可达）。
+
+### Consequences
+- 正向：改错误格式只改一处；客户端可以按 `Content-Type` 一致地解析所有错误。
+- 守门：`internal/archtest` 检查 httpx 不依赖其他内部包、只有 httpx 编码响应（第 6 批落地）。

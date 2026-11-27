@@ -69,6 +69,9 @@ func TestRequireJSON_RejectsBodyWithoutContentType(t *testing.T) {
 	if rr.Code != http.StatusUnsupportedMediaType {
 		t.Errorf("POST body without Content-Type: want 415, got %d", rr.Code)
 	}
+	if ct := rr.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("415 content type: want application/json, got %q", ct)
+	}
 }
 
 func TestRequireJSON_RejectsNonJSON(t *testing.T) {

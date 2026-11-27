@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"auth-box-api/internal/httpx"
 )
 
 type visitor struct {
@@ -60,10 +62,8 @@ func (rl *RateLimiter) Handler(next http.Handler) http.Handler {
 			remaining := rl.window - now.Sub(v.windowStart)
 			retryAfter := int(remaining.Seconds()) + 1
 			rl.mu.Unlock()
-			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
-			w.WriteHeader(http.StatusTooManyRequests)
-			w.Write([]byte(`{"error":"rate limit exceeded","code":"RATE_LIMITED"}`))
+			httpx.WriteError(w, http.StatusTooManyRequests, "rate limit exceeded", httpx.CodeRateLimited)
 			return
 		}
 		rl.mu.Unlock()

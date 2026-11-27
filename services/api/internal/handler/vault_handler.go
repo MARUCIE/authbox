@@ -1,19 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
-	"log/slog"
+	"errors"
 	"net/http"
 	"strconv"
 
-	"errors"
-
-	"auth-box-api/internal/auth"
 	"auth-box-api/internal/domain"
+	"auth-box-api/internal/httpx"
 	"auth-box-api/internal/service"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 // parsePaginationParam reads an integer query parameter and clamps it to [0, max].
@@ -33,6 +27,19 @@ func parsePaginationParam(r *http.Request, key string, defaultVal, max int) int 
 	return v
 }
 
+// writeVaultError maps vault-service errors: invalid input 400 with the
+// service's message, a missing item 404, anything else a logged 500.
+func writeVaultError(w http.ResponseWriter, err error, logMsg, clientMsg string) {
+	switch {
+	case errors.Is(err, service.ErrInvalidItem):
+		httpx.WriteError(w, http.StatusBadRequest, err.Error(), httpx.CodeBadRequest)
+	case errors.Is(err, domain.ErrItemNotFound):
+		httpx.WriteError(w, http.StatusNotFound, "item not found", httpx.CodeNotFound)
+	default:
+		writeInternal(w, err, logMsg, clientMsg)
+	}
+}
+
 type VaultHandler struct {
 	vaultService *service.VaultService
 }
@@ -42,26 +49,23 @@ func NewVaultHandler(vaultService *service.VaultService) *VaultHandler {
 }
 
 func (h *VaultHandler) GetVaultKey(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
 	resp, err := h.vaultService.GetVaultKey(r.Context(), userID)
 	if err != nil {
-		slog.Error("get vault key failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to get vault key", "INTERNAL_ERROR")
+		writeInternal(w, err, "get vault key failed", "failed to get vault key")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	httpx.WriteJSON(w, http.StatusOK, resp)
 }
 
 func (h *VaultHandler) SyncPull(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
@@ -69,7 +73,7 @@ func (h *VaultHandler) SyncPull(w http.ResponseWriter, r *http.Request) {
 	if v := r.URL.Query().Get("sinceVersion"); v != "" {
 		parsed, err := strconv.Atoi(v)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "sinceVersion must be an integer", "BAD_REQUEST")
+			httpx.WriteError(w, http.StatusBadRequest, "sinceVersion must be an integer", httpx.CodeBadRequest)
 			return
 		}
 		if parsed < 0 {
@@ -82,58 +86,49 @@ func (h *VaultHandler) SyncPull(w http.ResponseWriter, r *http.Request) {
 
 	items, err := h.vaultService.SyncPull(r.Context(), userID, sinceVersion, limit)
 	if err != nil {
-		slog.Error("sync pull failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "sync pull failed", "INTERNAL_ERROR")
+		writeInternal(w, err, "sync pull failed", "sync pull failed")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"items":   items,
 		"hasMore": len(items) == limit,
 	})
 }
 
 func (h *VaultHandler) SyncPush(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
 	var req service.SyncPushRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	if len(req.Items) == 0 {
-		writeError(w, http.StatusBadRequest, "items array is empty", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "items array is empty", httpx.CodeBadRequest)
 		return
 	}
 	if len(req.Items) > 500 {
-		writeError(w, http.StatusBadRequest, "too many items (max 500 per sync)", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "too many items (max 500 per sync)", httpx.CodeBadRequest)
 		return
 	}
 
 	results, err := h.vaultService.SyncPush(r.Context(), userID, req)
-	if errors.Is(err, service.ErrInvalidItem) {
-		writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
-		return
-	}
 	if err != nil {
-		slog.Error("sync push failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "sync push failed", "INTERNAL_ERROR")
+		writeVaultError(w, err, "sync push failed", "sync push failed")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"items": results,
 	})
 }
 
 func (h *VaultHandler) ListItems(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
@@ -142,12 +137,11 @@ func (h *VaultHandler) ListItems(w http.ResponseWriter, r *http.Request) {
 
 	items, err := h.vaultService.ListItems(r.Context(), userID, limit, offset)
 	if err != nil {
-		slog.Error("list items failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to list items", "INTERNAL_ERROR")
+		writeInternal(w, err, "list items failed", "failed to list items")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	httpx.WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"items":  items,
 		"limit":  limit,
 		"offset": offset,
@@ -155,125 +149,92 @@ func (h *VaultHandler) ListItems(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *VaultHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
 	var req service.ItemRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
 	if req.EncryptedData == "" || req.Nonce == "" || req.Tag == "" {
-		writeError(w, http.StatusBadRequest, "missing required fields", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "missing required fields", httpx.CodeBadRequest)
 		return
 	}
 
 	if req.ItemType != "" && !service.IsValidItemType(req.ItemType) {
-		writeError(w, http.StatusBadRequest, "invalid itemType", "BAD_REQUEST")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid itemType", httpx.CodeBadRequest)
 		return
 	}
 
 	resp, err := h.vaultService.CreateItem(r.Context(), userID, req)
-	if errors.Is(err, service.ErrInvalidItem) {
-		writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
-		return
-	}
 	if err != nil {
-		slog.Error("create item failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to create item", "INTERNAL_ERROR")
+		writeVaultError(w, err, "create item failed", "failed to create item")
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, resp)
+	httpx.WriteJSON(w, http.StatusCreated, resp)
 }
 
 func (h *VaultHandler) GetItem(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
-	itemID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid item id", "BAD_REQUEST")
+	itemID, ok := uuidParam(w, r, "id", "invalid item id")
+	if !ok {
 		return
 	}
 
 	resp, err := h.vaultService.GetItem(r.Context(), itemID, userID)
 	if err != nil {
-		slog.Error("get item failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to get item", "INTERNAL_ERROR")
-		return
-	}
-	if resp == nil {
-		writeError(w, http.StatusNotFound, "item not found", "NOT_FOUND")
+		writeVaultError(w, err, "get item failed", "failed to get item")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	httpx.WriteJSON(w, http.StatusOK, resp)
 }
 
 func (h *VaultHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
-	itemID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid item id", "BAD_REQUEST")
+	itemID, ok := uuidParam(w, r, "id", "invalid item id")
+	if !ok {
 		return
 	}
 
 	var req service.ItemRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body", "BAD_REQUEST")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
 	if err := h.vaultService.UpdateItem(r.Context(), itemID, userID, req); err != nil {
-		if errors.Is(err, service.ErrInvalidItem) {
-			writeError(w, http.StatusBadRequest, err.Error(), "BAD_REQUEST")
-			return
-		}
-		if errors.Is(err, domain.ErrItemNotFound) {
-			writeError(w, http.StatusNotFound, "item not found", "NOT_FOUND")
-			return
-		}
-		slog.Error("update item failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to update item", "INTERNAL_ERROR")
+		writeVaultError(w, err, "update item failed", "failed to update item")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
 
 func (h *VaultHandler) DeleteItem(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserIDFromContext(r.Context())
+	userID, ok := requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
 		return
 	}
 
-	itemID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid item id", "BAD_REQUEST")
+	itemID, ok := uuidParam(w, r, "id", "invalid item id")
+	if !ok {
 		return
 	}
 
 	if err := h.vaultService.DeleteItem(r.Context(), itemID, userID); err != nil {
-		if errors.Is(err, domain.ErrItemNotFound) {
-			writeError(w, http.StatusNotFound, "item not found", "NOT_FOUND")
-			return
-		}
-		slog.Error("delete item failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to delete item", "INTERNAL_ERROR")
+		writeVaultError(w, err, "delete item failed", "failed to delete item")
 		return
 	}
 
