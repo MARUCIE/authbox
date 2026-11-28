@@ -38,7 +38,7 @@ Branch: `claude/project-thread-xqvs06`. Delivery: one draft PR, never merged to 
 - [x] T3: Decision pack: AI-Fleet key broker integration (P6 broker client + key migration) | files: doc/00_project/initiative_10_auth_box/decisions/DP-02-ai-fleet-broker.md | verify: test -s doc/00_project/initiative_10_auth_box/decisions/DP-02-ai-fleet-broker.md
 - [x] T4: Owner runbook: macOS signing, Touch ID vault provisioning, Developer ID notarization | files: doc/00_project/initiative_10_auth_box/decisions/DP-03-macos-signing-runbook.md | verify: test -s doc/00_project/initiative_10_auth_box/decisions/DP-03-macos-signing-runbook.md
 - [x] T5: Decision pack: Sparkle auto-update (adopt, defer, or drop) | files: doc/00_project/initiative_10_auth_box/decisions/DP-04-sparkle-auto-update.md | verify: test -s doc/00_project/initiative_10_auth_box/decisions/DP-04-sparkle-auto-update.md
-- [ ] T6: Final independent verifier grades R1-R7 over T1-T5 and the draft PR | files: doc/00_project/initiative_10_auth_box/goal/GOAL_LOOP_PLAN.md | verify: grep -q 'Final verdict: PASS' doc/00_project/initiative_10_auth_box/goal/GOAL_LOOP_PLAN.md
+- [x] T6: Final independent verifier grades R1-R7 over T1-T5 and the draft PR | files: doc/00_project/initiative_10_auth_box/goal/GOAL_LOOP_PLAN.md | verify: grep -q 'Final verdict: PASS' doc/00_project/initiative_10_auth_box/goal/GOAL_LOOP_PLAN.md
 
 ## Needs the owner's decision
 
@@ -64,3 +64,19 @@ Run `wf_3da5142c-138` (2026-11-28): one author agent per row, then three audit-a
 | T5 | macOS release engineer + PM | security engineer (9) | release engineer (4) | decision quality (5) |
 
 Carried as unverified in the packs (no Go module cache, no node_modules, no Xcode in this environment): Go and crypto test pass counts, on-chain status of the recorded testnet txids, Sparkle-specific facts, Apple tool output strings.
+
+## Final verification (T6)
+
+Independent read-only verifier, 2026-11-28, on head `1b7f122` against `main` `186f009`: about 150 code claims opened across
+T1-T5, every `task_plan.md` line cite checked against `main`. R2, R3, R4, R5, R6, R7 and the no-secrets check passed. R1 found
+one stale cite (DP-01, WALLET_ARCHITECTURE.md §5 line number) plus two optional wording nits; all three were applied verbatim
+from the verifier's replacement text in `7890f69`, which the verifier stated is the only change needed for R1 to pass. T3 was
+ticked on this verifier's DP-02 grade (R1 and R4 pass; DP-02 unchanged since).
+
+Earlier per-row verifiers: T1 PASS (30 claims), T2 PASS, T4 PASS, T5 PASS. T3 failed twice (the MCP server row; owner step 3's
+fallback claim) and was fixed both times before this pass. The fix for the class of error found on the way: `task_plan.md`
+line numbers in every pack are now pinned to `main` `186f009`, because this branch's link lines shift later rows.
+
+CI on `7890f69`: go, typescript, architecture, e2e, release-gate and agent-design-check all success.
+
+Final verdict: PASS
