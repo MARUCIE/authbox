@@ -14,6 +14,16 @@ Branch: `claude/project-thread-xqvs06`. Delivery: one draft PR, never merged to 
 - Out of scope on this branch: changes to auth, SRP, session, crypto, wallet signing, broker, or proxy code;
   data migrations; public API changes; new dependencies. Any such need is written into the decision list.
 - Allowed scope: `doc/00_project/initiative_10_auth_box/**` only.
+- Valid evidence: an independent verifier's grade against the rubric below (opened paths, `git diff` against `main`), and
+  GitHub check runs on the PR head. A writer's own claim never counts.
+- Preserved constraints: the owner-only boundary and out-of-scope list above; no merge to `main` without the owner's yes;
+  no secret values in any file.
+- Allowed boundary: edits under `doc/00_project/initiative_10_auth_box/**` on branch `claude/project-thread-xqvs06`, one
+  draft PR; read-only access to code and to the AI-Fleet repo for evidence.
+- Next-action policy: take the first unchecked queue row; on a verifier FAIL, apply its fixes and re-verify the same row
+  before moving on.
+- Stop/blocker report: stop when the Stop line below holds, or report a blocker (a row that needs the owner, red CI that a
+  doc change cannot fix) with what was tried.
 - Loop: one queue row at a time. Each row runs a role-agent Workflow, then three audit rounds by
   agents that did not write it (each round fixes what it confirms), then an independent verifier grades
   the row against the rubric below. Only a passing grade flips the row here and, for doc rows, in the source.
