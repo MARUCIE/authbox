@@ -22,8 +22,8 @@ Related done rows: line 411 (root cause of `keyCreationFailed(-34018)`: persiste
 correction: `L37Q42H4SZ` is the orphan keychain cert's team; the real team is `35HKS5847W`), line 413 (Surge fake-DNS maps
 `*.apple.com` to `198.18.x` and breaks TLS), line 415 (-34018 mapped to signing guidance), line 833 (orphan-team footgun
 repeated on the iPad build).
-Why step 1 must be redone: line 412 records the signing check passing once (2026-06-01), but line 833 records that on
-2026-06-17 Xcode had no account signed in. Lines 833-835 provisioned the iPad with an App Store Connect API key instead;
+Why step 1 must be redone: line 412 records the signing check passing once (2026-06-01), but line 832 (section dated
+2026-06-17, line 831) records that Xcode had no account signed in. Lines 832-835 provisioned the iPad with an App Store Connect API key instead;
 `verify-se-signing.sh:36-38` passes no authentication-key flags, so that route would need a script change and is not used here.
 
 What the code shows today:
@@ -93,7 +93,7 @@ DIRECT in Surge or turn the proxy off; restore it afterwards. Check: `dscacheuti
 must not return a `198.18.x.x` address.
 
 Team (pitfall, lines 412 and 833): always use `35HKS5847W`. Never pick `L37Q42H4SZ`, the orphan cert's team, even if a
-keychain "Apple Development" cert offers it. Check, after step 1 (it is empty while no account is signed in, line 833):
+keychain "Apple Development" cert offers it. Check, after step 1 (it is empty while no account is signed in, line 832):
 `defaults read com.apple.dt.Xcode IDEProvisioningTeams` lists `35HKS5847W`.
 
 Security guardrails (line 416 and the entitlements file):
@@ -177,7 +177,7 @@ Rollback:
 Verified by opening the files: `apps/macos/project.yml`, `apps/macos/AuthBoxMac/Resources/AuthBoxMac.entitlements`,
 `scripts/verify-se-signing.sh`, `scripts/package-dmg.sh`, `apps/macos/AuthBoxMac/Core/Keychain/SecureEnclaveKeyStore.swift`,
 `apps/macos/AuthBoxMac/Core/Vault/VaultSession.swift`, `apps/macos/AuthBoxMac/Features/Onboarding/OnboardingView.swift`,
-`apps/macos/AuthBoxMacTests/KeychainErrorTests.swift:13`, `HANDOFF.md:53,116-124`, `task_plan.md` lines 411-416, 453-454, 833-835.
+`apps/macos/AuthBoxMacTests/KeychainErrorTests.swift:13`, `HANDOFF.md:53,116-124`, `task_plan.md` lines 411-416, 453-454, 831-835.
 
 Unverified: commits `6901d0d` and `1f3e802` cited at lines 411 and 415 (not in this shallow clone); whether team
 `35HKS5847W` is paid (gap 4); whether the RELEASE tier really drops entitlements and fails SE at runtime (gap 1, inference);

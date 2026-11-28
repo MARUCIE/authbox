@@ -28,7 +28,7 @@ Broker side (this repo, `apps/macos/AuthBoxMac/`):
 | `proxy` action exists in the vocabulary, but no proxying code exists | `DelegationModel.swift:50-52`; only use is the grant toggle at `AuthorizationsView.swift:453,467`. |
 | Any value release needs an unlocked vault; it auto-locks after 300 s idle and on sleep | `Core/Vault/VaultSession.swift:4`, `:58` (`idleTimeout = 300`). The broker's `decide` path itself never touches the vault. |
 | The app's only egress is a user-initiated health probe that sends a credential to its own provider | `Domain/Providers/CredentialHealth.swift:1-8`, `:37-60` (`URLSessionHealthTransport`, SSRF redirect guard); a `cloudflare` token-verify probe exists at `:271-272`. Nothing sends one credential to a different service. |
-| A separate TS MCP server defines `get_credential` / `proxy_authenticated_request` and defaults to the same port 19876, but nothing in this repo wires it | `packages/mcp-protocol/src/tools.ts:9,31`; `server.ts:104-108`; grep for `@authbox/mcp-protocol` finds only its own `package.json`. Useful as a value-release design reference, not as a running service. |
+| A separate TS MCP server defines `get_credential` / `proxy_authenticated_request` and defaults to the same port 19876, but nothing in this repo starts that server | `packages/mcp-protocol/src/tools.ts:9,31`; `server.ts:104-108` (`AuthBoxMCPServer`, WebSocket, default port 19876) is constructed only in `server.test.ts`. The one runnable entry is the Dockerfile ENTRYPOINT `packages/mcp-protocol/dist/stdio-server.js` (`Dockerfile:24`; the package's `authbox-mcp` bin points at the same file), a stdio discovery stub whose tools answer "Vault bridge not configured" (`stdio-server.ts:37`). Useful as a value-release design reference, not as a running value-release service. |
 | Agent tokens have no in-place rotation: only revoke, then a new grant | `AuthorizationsView.swift:209-212` (`revoke`), `:143-147` (new token per grant). The agent id is built from `capabilities.count` (`:115`), and the broker's map uses `Dictionary(uniqueKeysWithValues:)` (`:38`), which traps on a duplicate id; a revoke followed by a regrant under a name a surviving grant already uses can collide. Code defect for a later task; not fixed here. |
 | Tests | `apps/macos/AuthBoxMacTests/BrokerTests.swift` has 9 tests (allow, unknown agent, wrong token, step-up, loopback round trip). Not run for this pack. |
 
@@ -135,8 +135,11 @@ Steps marked OWNER can only be done by Maurice. Run AI-Fleet commands from the A
 2. OWNER: choose the new store. Either put each value in `~/.ai-fleet/device-secrets.json` and `chmod 600` it (plaintext, what
    the readers support natively), or keep it in the Keychain and export it as an env var for `api_key_env` (rule 20).
 3. Do this before typing any rotated value into the tools. In the local `gemini-api-config.json`, for each `sources.<name>`
-   delete `api_key` and add `api_key_secret` (dotted path into the secrets file) or `api_key_env`. Leaving `api_key` in place
-   keeps a fallback (`gemini-manager.js:74-82`), and the tool's "update key" menu writes inline for such a source (`:479-484`).
+   delete `api_key` and add `api_key_secret` (dotted path into the secrets file) or `api_key_env`. Delete `api_key` even after
+   adding an indirection: for an `api_key_env` source whose variable is unset the readers fall back to it
+   (`gemini-manager.js:74-82`), and in every case the old value stays in the file in plaintext. The "update key" menu writes a
+   typed value inline only for a source with no `api_key_secret`/`api_key_env` (`:479-484`; it refuses otherwise, `:473-478`),
+   which is why this step comes before typing any rotated value.
    Check: run `node gemini-manager.js` (interactive), pick menu 6, then each source; the `当前密钥` line must read
    `<configured via ...>`, not `<configured in config>` or `<missing ...>` (`:93-104`, `:472`); press Enter to leave without typing.
 4. Confirm containment: `git ls-files gemini-api-config.json` prints nothing; `git check-ignore -v gemini-api-config.json` names

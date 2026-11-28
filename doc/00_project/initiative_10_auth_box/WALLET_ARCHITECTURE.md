@@ -267,7 +267,8 @@ user-supplied host:
   over-estimate for a valueless testnet send — commit `8f5193f`), `EthNonce`
   (`eth_getTransactionCount … "pending"` → decimal), `EthGas` (`eth_gasPrice` +
   `eth_maxPriorityFeePerGas`, falling back to 1.5 gwei). Addresses are format-checked
-  with `btcAddrRe` / `ethAddrRe` and path-escaped.
+  with `btcAddrRe` / `ethAddrRe`; the BTC address is path-escaped into the UTXO URL and the
+  ETH address goes in the JSON-RPC body.
 - `broadcast_provider.go` (`BroadcastProvider`) — BTC: `POST {base}/tx` with bare hex,
   expects a 64-hex txid; ETH: `eth_sendRawTransaction`, expects a `0x` 32-byte hash.
   `IsWellFormedRawTxHex` bounds the payload (optional `0x`, even-length hex,
@@ -343,7 +344,7 @@ What the code and git history show (opened on this branch):
   fee taken from the mainnet fallback. The proof ran through
   `scripts/live-testnet-send.ts`, which uses the same `@authbox/crypto` signer as the
   dialog but POSTs the signed hex **directly** to `https://mempool.space/testnet/api/tx`
-  (script L79), not through `POST /wallet/broadcast`. So the Go relay is proven by its
+  (script L80), not through `POST /wallet/broadcast`. So the Go relay is proven by its
   unit tests, and a live broadcast through the relay itself is unverified in the repo.
   The on-chain status of the txid was not re-checked for this document.
 - **Live testnet broadcast (iOS path)** — recorded in `task_plan.md` §WALLET-SEND R3-c
