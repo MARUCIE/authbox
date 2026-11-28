@@ -10,6 +10,9 @@ Status: open, owner decision. Source checkbox stays `[ ]`. No code, entitlement,
 
 ## 1. Context
 
+Line numbers cited for `task_plan.md` refer to `main` at `186f009`. This branch adds decision-pack link lines to that
+file, which moves later rows down by a few lines.
+
 Source row: `doc/00_project/initiative_10_auth_box/task_plan.md` line 455, `- [ ] optional later: Sparkle auto-update`, under
 "P5 — Security review (attacker gate) + Distribution". The row directly above it (line 454) is the open owner-only row
 "codesign (Developer ID) + notarize + staple". The same item appears as "Optional later: Sparkle auto-update." in `HANDOFF.md`
@@ -88,7 +91,7 @@ in this session; check them against the release pinned at adoption time.
   step, and the sandbox carries the two exceptions above. Main risk specific to this app: vault keys are bound to the team
   prefix in the keychain access group (entitlements lines 25-28). If the Developer ID release is signed under a different team than `35HKS5847W`, an auto-update would silently deliver a
   build that cannot reach the existing Secure Enclave keys. The first Sparkle-enabled build must already be on the final team.
-  (`project.yml` calls `35HKS5847W` a free Personal Team, while `task_plan.md` line 836 says "paid team"; which is true is
+  (`project.yml` calls `35HKS5847W` a free Personal Team, while `task_plan.md` line 833 calls it "paid"; which is true is
   unverified and is DP-03's question (its gap 4). Developer ID certificates require a paid Apple Developer Program membership.)
 - Can it be undone? Mostly. The dependency and keys can be removed in a later release, but every install that already has
   Sparkle will keep polling the feed until it updates, so the appcast URL must stay served (or point to a final "manual
@@ -161,7 +164,7 @@ Steps marked [OWNER] can only be done by Maurice. Unmarked steps are code work a
 
 Verified by opening the file in this session:
 
-- `doc/00_project/initiative_10_auth_box/task_plan.md` lines 453-455 and 836.
+- `doc/00_project/initiative_10_auth_box/task_plan.md` lines 453-455 and 833.
 - `apps/macos/project.yml` (packages, deps, Info.plist generation, version, team, Hardened Runtime).
 - `apps/macos/AuthBoxMac/Resources/AuthBoxMac.entitlements` (sandbox, network, keychain group).
 - `apps/ios/AuthBoxCrypto/Package.swift` (dependency list).
@@ -178,6 +181,6 @@ Unverified:
   check, key rotation, signed-appcast support, version-based downgrade refusal) are from Sparkle's public docs as recalled,
   not re-read in this session; check against the pinned release.
 - How XcodeGen merges custom Info.plist keys with `GENERATE_INFOPLIST_FILE: YES`.
-- Whether team `35HKS5847W` is a free or paid team (conflicting statements in `project.yml` and `task_plan.md` line 836).
+- Whether team `35HKS5847W` is a free or paid team (conflicting statements in `project.yml` and `task_plan.md` line 833).
 - Whether the DMG in `dist/` was ever built under the RELEASE tier (no notarized artifact is recorded; `dist/` is gitignored).
 - No build or test was run for this pack.

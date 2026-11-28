@@ -10,6 +10,9 @@ Status: open, owner-only work. Source checkboxes stay `[ ]`. No build was run an
 
 ## 1. Context
 
+Line numbers cited for `task_plan.md` refer to `main` at `186f009`. This branch adds decision-pack link lines to that
+file, which moves later rows down by a few lines.
+
 Source rows in `doc/00_project/initiative_10_auth_box/task_plan.md`:
 
 - Line 414: `[ ] FINAL (user physical step): launch the signed app, tap Touch ID on "Finish setup" to provision the vault.`

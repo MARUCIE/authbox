@@ -10,6 +10,9 @@ Status: open, owner decision plus owner-only steps. Both source checkboxes stay 
 
 ## 1. Context
 
+Line numbers cited for `task_plan.md` refer to `main` at `186f009`. This branch adds decision-pack link lines to that
+file, which moves later rows down by a few lines.
+
 Source rows: `doc/00_project/initiative_10_auth_box/task_plan.md` line 458 ("Broker client so gemini-proxy et al. request keys
 from broker instead of gemini-api-config.json") and line 459 ("Migrate AI-Fleet provider keys → broker; remove from git-tracked
 config (HITL: touches live proxy)"), under the heading at line 457 ("P6 — AI-Fleet integration (bonus, fixes the 2026-06-01

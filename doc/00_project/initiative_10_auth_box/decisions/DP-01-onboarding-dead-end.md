@@ -10,6 +10,9 @@ Status: open, owner decision. Source checkbox stays `[ ]`. No code was changed f
 
 ## 1. Context
 
+Line numbers cited for `task_plan.md` refer to `main` at `186f009`. This branch adds decision-pack link lines to that
+file, which moves later rows down by a few lines.
+
 Source row: `doc/00_project/initiative_10_auth_box/task_plan.md` line 532, under the heading at line 531
 ("卡点 discovered by the UX-map walkthrough (2026-06-17) — needs Maurice's PRODUCT decision"). The row says:
 "Get Started Free" goes to `/create`, which only sets the in-memory `vaultKey` and never a server `sessionToken`;
