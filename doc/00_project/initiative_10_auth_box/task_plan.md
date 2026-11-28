@@ -461,7 +461,7 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
 ### P6 — AI-Fleet integration (bonus, fixes the 2026-06-01 git-key-leak class)
 - [ ] Broker client so gemini-proxy et al. request keys from broker instead of gemini-api-config.json
 - [ ] Migrate AI-Fleet provider keys → broker; remove from git-tracked config (HITL: touches live proxy)
-  - Decision pack (2026-11-28, still needs the owner): `decisions/DP-02-ai-fleet-broker.md (covers both P6 rows)`
+  - Decision pack (2026-11-28, still needs the owner; covers both P6 rows): `decisions/DP-02-ai-fleet-broker.md`
 
 Gate per phase: pnpm typecheck && pnpm test (TS) + xcodebuild build/test (Swift) + UX-map manual evidence in notes.md.
 

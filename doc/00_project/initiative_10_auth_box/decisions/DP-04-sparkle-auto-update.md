@@ -24,7 +24,7 @@ How the Mac app ships today:
 |---|---|
 | Target is defined by XcodeGen; the `.xcodeproj` is a derived, gitignored cache. | `apps/macos/project.yml` lines 1-3. |
 | Only package dependency of the app is the local `AuthBoxCrypto` package; no Sparkle or other updater. | `apps/macos/project.yml` lines 17-20 and 29-31; `apps/ios/AuthBoxCrypto/Package.swift` (deps: BigInt, swift-secp256k1 only). |
-| No `SUFeedURL`, `SUPublicEDKey`, appcast, or "Sparkle" string anywhere in code. | `grep -rni "sparkle\|SUFeedURL\|appcast\|SUPublicEDKey"` over the repo hits only the three doc lines above, `doc/10_features/macos-native-app/ARCHITECTURE.html`, `GOAL_LOOP_PLAN.md`, and this pack. |
+| No `SUFeedURL`, `SUPublicEDKey`, appcast, or "Sparkle" string anywhere in code. | `grep -rni "sparkle\|SUFeedURL\|appcast\|SUPublicEDKey"` over the repo hits only the three doc lines above, the decision-pack link line in task_plan.md, `doc/10_features/macos-native-app/ARCHITECTURE.html`, `GOAL_LOOP_PLAN.md`, and this pack. |
 | Info.plist is generated (`GENERATE_INFOPLIST_FILE: YES`); there is no Info.plist file in the target. | `apps/macos/project.yml` line 37. |
 | Version: `MARKETING_VERSION "2.0.0"`, `CURRENT_PROJECT_VERSION "1"`; `/VERSION` reads `2.0.0`. | `apps/macos/project.yml` lines 35-36; `VERSION`. |
 | App Sandbox on, user-selected file read-write, network client and server, Hardened Runtime on. | `apps/macos/AuthBoxMac/Resources/AuthBoxMac.entitlements` lines 6-16; `project.yml` line 51. |

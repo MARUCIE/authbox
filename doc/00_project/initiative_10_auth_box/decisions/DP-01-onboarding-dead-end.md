@@ -54,7 +54,7 @@ local-first vault (build a server-less vault area), and in the meantime whether 
 
 - Gets: first-run users land in the flow that already works end to end (`/register` then `/login` then `/passwords`).
   Web matches the wallet's watch-only-server model (`doc/00_project/initiative_10_auth_box/WALLET_ARCHITECTURE.md`
-  §5 "Security model — self-custodial + watch-only server"; line 50 at HEAD, moving while row T1 edits that file).
+  §5 "Security model — self-custodial + watch-only server"; line 53 at branch head 1b7f122, line 50 on `main` 186f009).
 - Files that would change: `apps/web/app/page.tsx` (CTA hrefs at 118 and 319; copy at 40-43, 48-49, 53-54, 57-58,
   113-114, and possibly 267); `apps/web/app/(auth)/create/page.tsx` and `apps/web/app/(auth)/restore/page.tsx` (retire, redirect to
   `/register`, or relabel as "offline key tool" with no `/passwords` hand-off); `README.md:20,26,51` (same promises).
