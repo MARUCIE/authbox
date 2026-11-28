@@ -42,8 +42,25 @@ Branch: `claude/project-thread-xqvs06`. Delivery: one draft PR, never merged to 
 
 ## Needs the owner's decision
 
-Filled as the queue runs; each entry links its pack.
+Each entry links its pack. None of these is done or decided on this branch.
+
+- DP-01 onboarding dead-end: product positioning, server-backed account (A) vs local-first vault (B), or interim CTA fix (C). `decisions/DP-01-onboarding-dead-end.md`
+- DP-02 AI-Fleet key broker: sync to Worker secrets (A), loopback-only local consumers (B), or rotate-only (C, recommended first); key rotation and live proxy cutover are owner-only. `decisions/DP-02-ai-fleet-broker.md`
+- DP-03 macOS signing: Apple ID sign-in, Touch ID "Finish setup", Developer ID cert and notarytool profile are owner-only; order of development signing vs Developer ID; a later code row to fix the RELEASE tier re-sign that drops entitlements. `decisions/DP-03-macos-signing-runbook.md`
+- DP-04 Sparkle: adopt, defer (after DP-03), or drop; new dependency and new EdDSA update key are owner decisions. `decisions/DP-04-sparkle-auto-update.md`
+- From T1 (wallet): first mainnet send; whether the mainnet gate should also be enforced in the handler or relay (today it is only the Confirm button's disabled state); whether to prove `POST /wallet/broadcast` end to end with a live testnet send through the web dialog (the recorded proof bypassed the relay).
+- Code defects found while auditing, left for a code row (out of scope here): broker agent-id collision in `AuthorizationsView.swift` (DP-02); RELEASE tier `codesign --force --deep` without `--entitlements` in `scripts/package-dmg.sh` (DP-03); web onboarding key-swap hazard (DP-01).
 
 ## Audit log
 
-Filled as the queue runs.
+Run `wf_3da5142c-138` (2026-11-28): one author agent per row, then three audit-and-fix rounds, each by a different agent with a different lens. No auditor wrote the row it audited. All rounds reported `scope_ok`.
+
+| Row | Author role | Round 1 lens (issues fixed) | Round 2 lens (issues fixed) | Round 3 lens (issues fixed) |
+|---|---|---|---|---|
+| T1 | wallet/crypto engineer + writer | code truth (8) | Chinese companion parity (6) | security architect (7) |
+| T2 | PM + security architect | UX journey (8) | security engineer (3) | decision quality (3) |
+| T3 | secrets security architect | platform/infra (9) | security engineer (8) | decision quality (5) |
+| T4 | Apple release engineer | release engineer #2 (7) | security engineer (8) | owner usability (7) |
+| T5 | macOS release engineer + PM | security engineer (9) | release engineer (4) | decision quality (5) |
+
+Carried as unverified in the packs (no Go module cache, no node_modules, no Xcode in this environment): Go and crypto test pass counts, on-chain status of the recorded testnet txids, Sparkle-specific facts, Apple tool output strings.
