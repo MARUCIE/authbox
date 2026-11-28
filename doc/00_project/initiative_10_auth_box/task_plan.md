@@ -412,8 +412,10 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
 - [x] (2026-06-01) Team correction: initial team L37Q42H4SZ was the orphan keychain-cert's team; the signed-in Apple ID's actual team is `35HKS5847W` ("maoyuan wen Personal Team", from `defaults read com.apple.dt.Xcode IDEProvisioningTeams`). project.yml DEVELOPMENT_TEAM → 35HKS5847W. VERIFIED via verify-se-signing.sh: build SUCCEEDED, embedded profile present, signed entitlements carry keychain-access-groups = 35HKS5847W.com.authbox.mac.
 - [x] (2026-06-01) Network gotcha: Apple ID sign-in + dev-portal provisioning need direct network — Surge fake-DNS maps *.apple.com to 198.18.x and breaks TLS. Route apple.com DIRECT (or disable proxy) during sign-in/provisioning.
 - [ ] FINAL (user physical step): launch the signed app, tap Touch ID on "Finish setup" to provision the vault. The only step that cannot run headless.
+  - Decision pack (2026-11-28, still needs the owner): `decisions/DP-03-macos-signing-runbook.md`
 - [x] (2026-06-01) Harden SE failure UX: KeychainError: LocalizedError maps -34018 → signing guidance; OnboardingView uses localizedDescription; KeychainErrorTests pins 4 cases. Suite 46→50 green (commit 1f3e802).
 - [ ] HITL (sudo-type credential): add Apple ID `maoyuan.wen@proton.me` in Xcode › Settings › Accounts → `bash scripts/verify-se-signing.sh` → launch app + Touch ID tap on "Finish setup". The only step that cannot be done headless. NOT to be replaced by a software key (security retreat).
+  - Decision pack (2026-11-28, still needs the owner): `decisions/DP-03-macos-signing-runbook.md`
 
 ### P2 — Vault
 - [x] Domain/Vault: reuse seed-phrase HD derivation + item model from AuthBoxCrypto/iOS — VaultService.swift (VaultSecret/VaultItem, encrypt via VaultCrypto.encryptVaultItem); VaultSession.provisionAndUnlock(mnemonic:) reuses Seed.mnemonicToSeed → deriveAllKeys.vaultKey
@@ -452,11 +454,14 @@ broker, gated by Touch ID, reusing AuthBoxCrypto. Architecture: doc/10_features/
   - [x] SEC-009 (Low): withVaultKey re-arms auto-lock timer → activity-based idle.
 - [x] DMG packaging (local tier) — `scripts/package-dmg.sh` builds Release ad-hoc .app → hdiutil drag-install .dmg. Verified: dist/AuthBox-0.1.0.dmg (1.7M) mounts with AuthBoxMac.app + /Applications symlink. dist/ gitignored.
 - [ ] codesign (Developer ID) + notarize + staple — HITL: wired as the script's RELEASE tier (activates on AUTHBOX_DEV_ID + AUTHBOX_NOTARY_PROFILE env); needs Maurice's Apple Developer ID cert + notarytool profile + DEVELOPMENT_TEAM in project.yml
+  - Decision pack (2026-11-28, still needs the owner): `decisions/DP-03-macos-signing-runbook.md`
 - [ ] optional later: Sparkle auto-update
+  - Decision pack (2026-11-28, still needs the owner): `decisions/DP-04-sparkle-auto-update.md`
 
 ### P6 — AI-Fleet integration (bonus, fixes the 2026-06-01 git-key-leak class)
 - [ ] Broker client so gemini-proxy et al. request keys from broker instead of gemini-api-config.json
 - [ ] Migrate AI-Fleet provider keys → broker; remove from git-tracked config (HITL: touches live proxy)
+  - Decision pack (2026-11-28, still needs the owner; covers both P6 rows): `decisions/DP-02-ai-fleet-broker.md`
 
 Gate per phase: pnpm typecheck && pnpm test (TS) + xcodebuild build/test (Swift) + UX-map manual evidence in notes.md.
 
@@ -530,9 +535,11 @@ first), reusing the existing BIP-39 seed. Architecture: WALLET_ARCHITECTURE.md.
 
 ##### 卡点 discovered by the UX-map walkthrough (2026-06-17) — needs Maurice's PRODUCT decision, NOT an autonomous auth-code guess
 - [ ] **Onboarding dead-end**: landing "Get Started Free" → `/create`, which is the explicit LOCAL-only path ("No email. No account. No server dependency.") — it sets only the in-memory `vaultKey` via `unlockVault`, NEVER a server `sessionToken`. But the `(vault)` layout guard (`app/(vault)/layout.tsx:34`) does `if (!sessionToken) router.push('/login')`, and every vault page calls server APIs. So a first-run user via "Get Started Free" lands in a guaranteed `/create → /passwords → guard → /login` dead-end (`/login` needs an email the no-email flow never collected). The WORKING onboarding is `/register` (email + SRP). Root contradiction: `/create` promises local-first, but the vault area (incl. the wallet's "watch-only on the server" model) is server-backed. **Two mutually-exclusive fixes, high rework, product-positioning call**: (A) server-backed — repoint "Get Started Free" → `/register`, deprecate/rework `/create` copy (low code, contradicts the "no server" privacy promise); (B) true local-first — make `/create` establish a local session + the vault area support a server-less mode (large rework). Recommend A (consistent with the server-backed wallet), but flagged for Maurice — did NOT touch SRP/session/auth-guard code autonomously (sensitive domain).
+  - Decision pack (2026-11-28, still needs the owner): `decisions/DP-01-onboarding-dead-end.md`
 
 ### Deferred companion
-- [ ] WALLET_ARCHITECTURE.html (2份制 Chinese companion via html-style-router, Claude Warm Academic) — produce at a doc milestone
+- [x] WALLET_ARCHITECTURE.html (2份制 Chinese companion via html-style-router, Claude Warm Academic) — produce at a doc milestone
+  - (2026-11-28, goal loop T1) `WALLET_ARCHITECTURE.md` synced to the shipped broadcast relay, tx-prep reads and Send UI; the Chinese companion `.html` mirrors all 13 sections. Independent verifier PASS (30 claims sampled). Draft PR MARUCIE/authbox#5.
 
 ## 2026-06-03 · iOS wallet parity — sync the wallet to apps/ios + 打通 + 3-round visual verify
 

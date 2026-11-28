@@ -292,12 +292,12 @@ footer{
   <div class="frame">
     <span class="badge">Auth Box · 钱包架构</span>
     <h1>自托管多币种加密钱包</h1>
-    <p class="subtitle">在不削弱零知识金库（zero-knowledge vault，零知识保险库）安全模型的前提下，把 Auth Box 升级为同时也是一个自托管（self-custodial，私钥自持）的比特币 / 以太坊钱包。Web 与 iOS 从同一助记词派生出完全一致的地址，服务端始终 watch-only（只读观察）。</p>
+    <p class="subtitle">在不削弱零知识金库（zero-knowledge vault，零知识保险库）安全模型的前提下，把 Auth Box 升级为同时也是一个自托管（self-custodial，私钥自持）的比特币 / 以太坊钱包。Web 与 iOS 从同一助记词派生出完全一致的地址；签名永远在设备上完成，服务端只做只读观察（watch-only）和已签名交易的转发。收款、余额、发送三条链路均已上线；<code>task_plan.md</code> 记录了测试网实链广播，尚无主网发送记录。</p>
     <div class="herostats">
       <div class="stat"><div class="num">1</div><div class="lab">一个种子，两棵独立 HD 树</div></div>
       <div class="stat"><div class="num">Web + iOS</div><div class="lab">跨平台逐字节一致</div></div>
-      <div class="stat"><div class="num">80 + 13</div><div class="lab">加密测试全绿（web + iOS）</div></div>
-      <div class="stat"><div class="num">3 轮</div><div class="lab">iOS 真机像素视觉验证</div></div>
+      <div class="stat"><div class="num">119 + 96</div><div class="lab">加密测试通过数（web + iOS，据 task_plan 记录）</div></div>
+      <div class="stat"><div class="num">3 轮</div><div class="lab">iOS 模拟器像素视觉验证</div></div>
     </div>
   </div>
 </section>
@@ -307,7 +307,7 @@ footer{
   <section>
     <div class="secnum">01 — 目标</div>
     <h2>钱包是种子的新派生分支，而非外挂的密钥</h2>
-    <p class="lead">把 Auth Box 从「零知识金库 + AI 密钥中枢（agent broker，代理密钥代办）」升级为<strong>同时也是一个自托管多币种加密钱包</strong>，先支持比特币与以太坊 / EVM（Ethereum Virtual Machine，以太坊虚拟机）。核心约束：不引入任何新的托管风险，不改变既有的零知识安全姿态。</p>
+    <p class="lead">把 Auth Box 从「零知识金库 + AI 代理密钥中枢（agent broker）」升级为<strong>同时也是一个自托管多币种加密钱包</strong>，先支持比特币与以太坊 / EVM（Ethereum Virtual Machine，以太坊虚拟机）。核心约束：不引入任何新的托管风险，不改变既有的零知识安全姿态。</p>
   </section>
 
   <section>
@@ -351,9 +351,18 @@ footer{
     <div class="card-grid card-grid-3" style="margin-bottom:20px">
       <div class="card"><h3>私钥永不离开设备</h3><p class="muted" style="margin:0;font-size:0.94rem">私钥在客户端从种子派生，签名在本地完成，服务端从不接触密钥材料。</p></div>
       <div class="card"><h3>服务器只读观察</h3><p class="muted" style="margin:0;font-size:0.94rem">服务端只持久化账户级 <strong>xpub</strong>（扩展公钥）与派生地址 —— 够扫描余额与历史，永远不够花费。</p></div>
-      <div class="card"><h3>服务器无法动资金</h3><p class="muted" style="margin:0;font-size:0.94rem">与金库同一信任边界：服务端被完全攻陷只泄露公开地址与余额（隐私损失），而非托管权。</p></div>
+      <div class="card"><h3>服务器无法自行动用资金</h3><p class="muted" style="margin:0;font-size:0.94rem">与金库同一信任边界：服务端被完全攻陷只泄露公开地址与余额（隐私损失），而非托管权。但它仍能让用户批准的那笔发送变差，见下文。</p></div>
     </div>
-    <blockquote><strong>威胁模型说明：</strong>从保护金库的同一颗种子派生钱包密钥，意味着种子一旦泄露，金库与资金同失。这是「单种子」模型的固有性质（与每一个硬件钱包完全相同），并未改变既有姿态 —— 种子本就是皇冠上的宝石，因为它早已派生出金库密钥。</blockquote>
+    <p><strong>服务端只转发，不签名。</strong>自 Phase 5b 起，web 端把已经签好的原始交易交给 <code>POST /api/v1/wallet/broadcast</code>，由它原样转发到固定的公共节点（见 <code>services/api/internal/service/broadcast_provider.go</code> 中 <code>BroadcastProvider</code> 的注释）。即使中继被攻陷，它最多能扣下或拖延一笔广播，却改不了金额、收款方或手续费 —— 任何改动都会让签名失效。中继本身不区分主网与测试网，主网的那道闸门放在客户端（<code>services/api/cmd/api/main.go</code> 路由上方注释，L250-252）。</p>
+    <p><strong>服务器被攻陷后仍能做什么。</strong>它签不了名，但在 web 端，客户端签名所依据的数据是它给的，签好的结果也经它转发：</p>
+    <ul class="clean">
+      <li><em>抬高手续费。</em>BTC 费率档位来自 <code>GET /wallet/btc/fees</code>；<code>buildBtcTransaction</code> 会拒绝高于 <code>MAX_BTC_FEE_RATE_SAT_PER_VB</code>（5000 sat/vB，<code>packages/crypto/src/wallet-tx.ts</code>）的费率，所以损失有上限，但不是零。ETH 的 gas 来自 <code>GET /wallet/eth/gas</code>，<code>wallet-send.ts</code> 和 <code>wallet-tx.ts</code> 都没有设上限（<code>micro-eth-signer</code> 自己有没有限制，本文未核实）。真正的把关是复核页在确认之前列出的手续费与合计（§8.3）。</li>
+      <li><em>给出错误的 UTXO 或 nonce。</em>P2WPKH 签名会把每个输入的金额签进去，金额造假只会得到一笔被节点拒收的交易；ETH nonce 错了，交易会被拒或卡住。这属于拒绝服务，而不是盗币。</li>
+      <li><em>扣下广播，或报一个假 txid。</em>对话框显示的是中继返回的 txid，照单全收。</li>
+      <li><em>读取 xpub。</em>它能推出该账户的全部地址，包括还没用过的。</li>
+    </ul>
+    <p>在 web 端，助记词是敲进网页代码里的，而这份代码由 web 主机下发。界面上那句「your seed never leaves the browser」（<code>apps/web/app/(vault)/wallet/page.tsx</code> L1230）对当前发布的代码成立；可一旦 web 主机或构建流程被攻陷，就可能换上一份截取助记词的代码 —— 凡是浏览器里运行的钱包都有这个问题。iOS 没有这道代码下发的环节，但它直接信任 mempool.space / publicnode 提供的同类交易准备数据（§10）。</p>
+    <blockquote><strong>威胁模型说明：</strong>从保护金库的同一颗种子派生钱包密钥，意味着种子一旦泄露，金库与资金同失。这是「单种子」模型的固有性质（与每一个硬件钱包完全相同），并未改变既有姿态 —— 种子本来就是最要紧的资产，因为金库密钥早已由它派生。</blockquote>
   </section>
 
   <section>
@@ -376,17 +385,17 @@ footer{
       <tbody>
         <tr><td>secp256k1</td><td><code>swift-secp256k1</code> 0.21（<code>libsecp256k1</code> C 产物）</td><td>同一个 libsecp256k1 参考 C 库；Swift 侧无曲线运算</td></tr>
         <tr><td>SHA-256/512、HMAC</td><td>CryptoKit</td><td>系统一方库、硬件加速</td></tr>
-        <tr><td>keccak256 / RIPEMD-160 / bech32 / base58check</td><td>自带实现（各自对齐公开向量）</td><td>CryptoKit 缺 Keccak 与 RIPEMD-160</td></tr>
+        <tr><td>keccak256 / RIPEMD-160 / bech32 / base58check</td><td>仓库内自带实现（<code>Keccak256</code> / <code>RIPEMD160</code> / <code>Bech32</code> / <code>Base58Check</code>）</td><td>CryptoKit 缺 Keccak 与 RIPEMD-160；每一项都对齐公开测试向量</td></tr>
       </tbody>
     </table>
-    <p style="margin-top:18px">手搓 secp256k1 的子密钥派生正是钱包染上 CVE 的地方（常量时间标量加、<code>IL ≥ n</code> 重试）。两个平台都把曲线运算委托给已审计的 libsecp256k1 血统；只有 BIP-39 短语逻辑与哈希/编码原语（纯位运算）是手写的，并对齐向量。</p>
+    <p style="margin-top:18px">手搓 secp256k1 的子密钥派生正是钱包染上 CVE 的地方（常量时间标量加、<code>IL ≥ n</code> 重试）。两个平台都把曲线运算交给已审计的 libsecp256k1 这一系；只有 BIP-39 短语逻辑与哈希/编码原语（纯位运算）是手写的，并对齐向量。</p>
     <blockquote style="margin-top:18px"><strong>iOS 值得记录的坑：</strong>libsecp256k1 的<strong>静态</strong> context 缺少 <code>ecmult_gen</code> 表，导致 <code>pubkey_create</code> 直接 abort —— 封装必须用 <code>secp256k1_context_create(SECP256K1_CONTEXT_NONE)</code> 创建 context；静态单例标注 <code>nonisolated(unsafe)</code> 以满足 Swift 6 并发。</blockquote>
   </section>
 
   <section>
     <div class="secnum">07 — 跨平台一致性</div>
     <h2>打通契约：同一种子 → 同一地址</h2>
-    <p>Web 与 iOS 从同一颗种子派生，<strong>必须</strong>产出完全相同的地址。Swift 栈（<code>Wallet.swift</code>）逐步镜像 TypeScript 栈（<code>wallet.ts</code>）：「Bitcoin seed」主密钥 → 硬化 + 非硬化 CKDpriv（<code>childPriv = (IL + parentPriv) mod n</code>，其中 <code>IL = HMAC-SHA512(chainCode, 压缩父公钥 ‖ index)</code>）→ BIP-84 P2WPKH / BIP-44 P2PKH / ETH EIP-55 → 账户 xpub。</p>
+    <p>Web 与 iOS 从同一颗种子派生，<strong>必须</strong>产出完全相同的地址。Swift 栈（<code>apps/ios/AuthBoxCrypto/Sources/AuthBoxCrypto/Wallet.swift</code>）逐步镜像 TypeScript 栈（<code>packages/crypto/src/wallet.ts</code>）：「Bitcoin seed」主密钥 → 硬化 + 非硬化 CKDpriv（<code>childPriv = (IL + parentPriv) mod n</code>，其中 <code>IL = HMAC-SHA512(chainCode, 压缩父公钥 ‖ index)</code>）→ BIP-84 P2WPKH / BIP-44 P2PKH / ETH EIP-55 → 账户 xpub。</p>
     <p>一致性以公开的 all-zeros 助记词（<code>abandon … about</code>）的<strong>共享外部锚点</strong>来证明，两个平台逐字节产出：</p>
     <table>
       <thead><tr><th>币种</th><th>路径</th><th>地址</th></tr></thead>
@@ -400,32 +409,62 @@ footer{
   </section>
 
   <section>
-    <div class="secnum">08 — 交易签名（Phase 5a · web · 无资金风险）</div>
-    <h2>本地构建 + 签名，刻意不广播</h2>
-    <p><code>packages/crypto/src/wallet-tx.ts</code> 加入了客户端构建 + 签名（不广播）：</p>
+    <div class="secnum">08 — 交易签名与发送流程（Phase 5a + 5c · web）</div>
+    <h2>本地签名，确认后才广播</h2>
+    <h3 style="margin-bottom:12px">8.1 签名层（<code>packages/crypto/src/wallet-tx.ts</code>）</h3>
+    <p>在客户端完成构建与签名，这个模块本身从不联网：</p>
     <ul class="clean">
-      <li><code>buildBtcTransaction</code> —— 用 <code>@scure/btc-signer</code> 的 <code>selectUTXO</code> 选币 + 找零，P2WPKH 用 <code>witnessUtxo</code> / P2PKH 用 <code>nonWitnessUtxo</code>，逐输入「派生 → 签名 → 在 <code>finally</code> 中 <code>fill(0)</code> 清零私钥」。返回 <code>{ hex, txid, fee, vsize }</code>；<code>txid</code> 为大端展示序。</li>
-      <li><code>buildEthTransaction</code> —— 用 <code>micro-eth-signer</code> 的 <code>Transaction.prepare({type:'eip1559'}).signBy(priv)</code>。恢复出的 <code>sender</code> 被断言等于独立派生的地址（不匹配则抛错，而非交回一笔花费了意外密钥的交易）；私钥在 <code>finally</code> 中清零。</li>
+      <li><code>buildBtcTransaction</code> —— 用 <code>@scure/btc-signer</code> 的 <code>selectUTXO</code> 选币 + 找零，P2WPKH 用 <code>witnessUtxo</code> / P2PKH 用 <code>nonWitnessUtxo</code>。它先为每一个候选 UTXO 都派生好密钥，但只给 <code>selectUTXO</code> 真正选中的输入逐个签名（<code>signIdx</code>）；无论是否被选中，所有派生出的密钥都会在 <code>finally</code> 中 <code>fill(0)</code> 清零。返回 <code>{ hex, txid, fee, vsize }</code>；<code>txid</code> 为大端展示序。费率低于 1 或高于 <code>MAX_BTC_FEE_RATE_SAT_PER_VB</code>（5000 sat/vB）会被拒绝。传统 P2PKH 输入单凭 outpoint 签不了：调用方必须提供前一笔交易（<code>prevTxHex</code> → <code>nonWitnessUtxo</code>），否则函数直接报错。</li>
+      <li><code>buildEthTransaction</code> —— 用 <code>micro-eth-signer</code> 的 <code>Transaction.prepare({type:'eip1559'}).signBy(priv)</code>。<code>chainId</code> 与密钥所属网络对不上（主网 ⇔ chain 1）时直接拒绝，测试网路径的密钥签不了主网交易，反之亦然。恢复出的 <code>sender</code> 必须等于独立派生的地址（不一致就直接报错，绝不交回一笔动用了意外密钥的交易）；私钥在 <code>finally</code> 中清零。</li>
     </ul>
-    <blockquote style="margin-top:18px"><strong>记录的发现：</strong><code>micro-eth-signer</code> 的 ECDSA 是<strong>对冲式（hedged）</strong>的（在 RFC6979 nonce 上加额外熵 → 非确定但有效、且恢复出同一 sender），而 <code>@scure/btc-signer</code> 是确定性签名。测试因此按币种断言正确的不变量 —— ETH 断言「有效 + sender 可恢复」，BTC 断言「确定性」。密钥本地派生、用一次、清零；这里全程不触网。<strong>广播被刻意不实现</strong> —— 那是 Phase 5b，须经 HITL（Human-In-The-Loop，人工在环）。</blockquote>
+    <blockquote style="margin-top:18px;margin-bottom:28px"><strong>记录的发现：</strong><code>micro-eth-signer</code> 的 ECDSA 是<strong>对冲式（hedged）</strong>签名（在 RFC6979 nonce 上额外加熵 → 每次签名不同，但都有效、都能恢复出同一个 sender），而 <code>@scure/btc-signer</code> 是确定性签名。所以测试按币种断言各自该守的不变量：ETH 看「有效 + sender 可恢复」，BTC 看「确定性」。密钥本地派生、只用一次、用完清零。</blockquote>
+
+    <h3 style="margin-bottom:12px">8.2 资金关键的发送辅助函数（<code>packages/crypto/src/wallet-send.ts</code>）</h3>
+    <p>全部是纯函数（不联网、不读时钟、不用随机数），并从 <code>packages/crypto/src/index.ts</code> 导出。这样钱包里代价最高的两类错误 —— 小数位算错、手续费设错 —— 可以脱离 React 单独用测试钉死：</p>
+    <ul class="clean" style="margin-bottom:28px">
+      <li><code>parseAmount(input, decimals)</code> —— 十进制字符串直接转成最小单位的 <code>bigint</code>，全程不经过浮点数；遇到超出精度的小数位、科学计数法、负数或零一律报错，而不是悄悄截断。</li>
+      <li><code>selectBtcFeeRate(fees, tier)</code> —— 按档位取 sat/vB 费率，下限不低于 <code>minimumFee</code>，也不低于 1。</li>
+      <li><code>deriveEthFeeParams(gasPrice, priority)</code> —— EIP-1559 的费用上限取 <code>gasPrice + priority</code>，保证 <code>maxFeePerGas ≥ maxPriorityFeePerGas</code> 恒成立。</li>
+      <li><code>ethChainId(network)</code> —— 主网 <code>1</code>，测试网（Sepolia）<code>11155111</code>。</li>
+    </ul>
+
+    <h3 style="margin-bottom:12px">8.3 发送对话框（<code>apps/web/app/(vault)/wallet/page.tsx</code>）</h3>
+    <p>分两步走，第二步是整个流程里唯一真正改变链上状态的动作：</p>
+    <ul class="clean">
+      <li><strong>复核（<code>handleSendReview</code>）</strong>—— 校验助记词，调用 <code>parseAmount</code>，再用 <code>assertSeedMatchesAccount</code> 确认这串助记词派生出的 xpub 与所选账户一致，不一致就拒绝。BTC：取费率档位，列出账户的全部地址，逐个地址查 UTXO，并给每个 UTXO 打上该地址的 <code>change</code>/<code>index</code> 标签（UTXO 本身不带派生路径），再派生一个新的找零地址（序号取已登记的 <code>change:1</code> 地址中最大序号再加一），然后签名。ETH：并行取 nonce 和 gas，算出费用参数，从账户的 <code>change:0/index:0</code> 地址签一笔 21000 gas 的普通转账。对话框在发出任何东西之前就把手续费与合计摆出来（之所以先签后看，是因为 BTC 的手续费取决于签名后才知道的 vsize）：BTC 显示的是签好交易的准确手续费；ETH 显示的是上限 <code>21000 × maxFeePerGas</code>，实际支付不会超过这个数。助记词在 <code>finally</code> 中从 React 状态里清掉，但这只是丢掉引用：JS 字符串本身和处理函数里派生出的 64 字节种子都没有被清零，抹除只能算尽力而为，交给垃圾回收。对话框从不传 <code>prevTxHex</code>，UTXO 接口也不返回它，所以从传统（P2PKH）BTC 账户发送 —— 添加账户表单里提供这个选项（L927）—— 会在签名时报错：web 发送只适用于原生隔离见证 BTC 和 ETH（据代码推断，未实际运行）。</li>
+      <li><strong>确认（<code>handleSendConfirm</code>）</strong>—— 先把 BTC 找零地址登记到 API（这样找零仍算进应用内余额；万一随后广播失败，多登记一个未用地址也无害），再调用 <code>walletApi.broadcast</code>，显示 txid 和区块浏览器链接（<code>explorerTxUrl</code>：按网络指向 mempool.space 或 Etherscan），最后刷新地址与余额。</li>
+    </ul>
+    <blockquote style="margin-top:18px"><strong>主网人工闸门（HITL）：</strong>主网交易在复核页会出现一个红色勾选框（「This is a mainnet transaction moving real funds. It is irreversible. I have verified the recipient and amount.」），不勾选，「Confirm &amp; send」按钮就保持 <code>disabled</code>；测试网没有这个勾选框，只在发送表单的标签行里写着「Safe testnet -- no real value」。需要说明的是：这道闸门只靠按钮的禁用状态把守，<code>handleSendConfirm</code> 和服务端中继都不会再查一遍（见 §12「待决事项」）。</blockquote>
+    <p style="margin-top:18px">找零地址登记和「助记词必须属于该账户」这两项检查，比对话框本身晚落地：对话框随提交 <code>be6ede8</code>（2026-06-17）上线，这两项来自提交 <code>01583fb</code>（2026-11-27）。</p>
   </section>
 
   <section>
     <div class="secnum">09 — 服务端</div>
-    <h2>Go API（watch-only）</h2>
-    <p><code>services/api</code> 在 <code>/wallet/accounts</code> 下暴露只读观察的账户接口（chi 路由、pgx 仓储）。它存 xpub + 地址 + 缓存余额；不持有任何密钥材料，无法签名。</p>
+    <h2>Go API：只读观察、交易准备读取、广播中继</h2>
+    <p>所有钱包路由都挂在 <code>/api/v1</code> 下，位于套用了 <code>auth.Middleware(authService)</code> 和受保护限流器的那个路由组里（<code>services/api/cmd/api/main.go</code> L184-197，钱包路由 L253-270）。处理器在 <code>services/api/internal/handler/wallet_handler.go</code>，服务在 <code>services/api/internal/service/</code>。API 只存 xpub、地址和缓存余额；不持有任何密钥材料，也无法签名。</p>
     <table>
-      <thead><tr><th>方法</th><th>路由</th><th>处理器</th></tr></thead>
+      <thead><tr><th>方法</th><th>路由（前缀 <code>/api/v1</code>）</th><th>处理器</th><th>作用</th></tr></thead>
       <tbody>
-        <tr><td><code>POST</code></td><td><code>/wallet/accounts</code></td><td><code>CreateAccount</code>（按 xpub + 元数据登记账户）</td></tr>
-        <tr><td><code>GET</code></td><td><code>/wallet/accounts</code></td><td><code>ListAccounts</code></td></tr>
-        <tr><td><code>DELETE</code></td><td><code>/wallet/accounts/{id}</code></td><td><code>DeleteAccount</code></td></tr>
-        <tr><td><code>GET</code></td><td><code>/wallet/accounts/{id}/balance</code></td><td><code>Balance</code>（经公共索引器）</td></tr>
-        <tr><td><code>POST</code></td><td><code>/wallet/accounts/{id}/addresses</code></td><td><code>AddAddress</code></td></tr>
-        <tr><td><code>GET</code></td><td><code>/wallet/accounts/{id}/addresses</code></td><td><code>ListAddresses</code></td></tr>
+        <tr><td><code>POST</code></td><td><code>/wallet/accounts</code></td><td><code>CreateAccount</code></td><td>按 xpub + 元数据登记账户</td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/accounts</code></td><td><code>ListAccounts</code></td><td>只读</td></tr>
+        <tr><td><code>DELETE</code></td><td><code>/wallet/accounts/{id}</code></td><td><code>DeleteAccount</code></td><td>删除观察账户</td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/accounts/{id}/balance</code></td><td><code>Balance</code></td><td>经公共索引器查余额</td></tr>
+        <tr><td><code>POST</code></td><td><code>/wallet/accounts/{id}/addresses</code></td><td><code>AddAddress</code></td><td>登记派生地址（含找零地址）</td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/accounts/{id}/addresses</code></td><td><code>ListAddresses</code></td><td>只读</td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/btc/utxos?address=&amp;network=</code></td><td><code>BtcUTXOs</code></td><td>交易准备：可花费 UTXO</td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/btc/fees?network=</code></td><td><code>BtcFees</code></td><td>交易准备：sat/vB 费率档位</td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/eth/nonce?address=&amp;network=</code></td><td><code>EthNonce</code></td><td>交易准备：pending nonce</td></tr>
+        <tr><td><code>GET</code></td><td><code>/wallet/eth/gas?network=</code></td><td><code>EthGas</code></td><td>交易准备：gas 价格 + 小费</td></tr>
+        <tr><td><code>POST</code></td><td><code>/wallet/broadcast</code></td><td><code>Broadcast</code></td><td>转发客户端已签名的原始交易</td></tr>
       </tbody>
     </table>
-    <p style="margin-top:18px">余额来自 <code>balance_provider.go</code> → mempool.space（BTC）/ publicnode RPC（ETH）。服务端是便利索引器，从不是托管方。</p>
+    <p style="margin-top:18px">三个 provider 共用 <code>balance_provider.go</code> 里同一组按 <code>(coin, network)</code> 固定的端点表 <code>btcExplorerBase</code> / <code>ethRPCBase</code>（mempool.space 主网 + 测试网；publicnode 以太坊主网 + Sepolia），因此任何请求都无法被引向用户指定的主机：</p>
+    <ul class="clean">
+      <li><code>balance_provider.go</code> —— 查余额。</li>
+      <li><code>txprep_provider.go</code>（<code>TxPrepProvider</code>）—— <code>BtcUTXOs</code>（mempool <code>/address/{a}/utxo</code>，金额以十进制字符串返回）；<code>BtcFeeRates</code>（<code>/v1/fees/recommended</code>，非主网请求失败时改查主网 —— 主网费率对没有实际价值的测试网交易来说是安全的高估，见提交 <code>8f5193f</code>）；<code>EthNonce</code>（<code>eth_getTransactionCount … "pending"</code> 转十进制）；<code>EthGas</code>（<code>eth_gasPrice</code> + <code>eth_maxPriorityFeePerGas</code>，后者不可用时退回 1.5 gwei）。地址先过 <code>btcAddrRe</code> / <code>ethAddrRe</code> 格式检查；BTC 地址经路径转义拼进 UTXO URL，ETH 地址放在 JSON-RPC 请求体里。</li>
+      <li><code>broadcast_provider.go</code>（<code>BroadcastProvider</code>）—— BTC：以纯 hex 文本 <code>POST {base}/tx</code>，要求返回 64 位 hex 的 txid；ETH：调用 <code>eth_sendRawTransaction</code>，要求返回带 <code>0x</code> 的 32 字节哈希。<code>IsWellFormedRawTxHex</code> 限定载荷形态（可带 <code>0x</code>、偶数长度 hex、20 至 200 000 个 hex 字符），provider 内部还会再校验一遍。</li>
+    </ul>
+    <p style="margin-top:12px">校验与错误：不在词表内的 <code>coin</code>/<code>network</code>、格式不对的 <code>rawTxHex</code>，在任何外发请求之前就返回 400；交易准备接口缺 <code>address</code> 也返回 400，但如果带了地址而格式不对，会在 provider 的格式检查处失败，和其他交易准备的上游失败一样返回 502。广播失败返回 502，正文是 provider 的错误信息：节点给了拒绝原因就是那条原因，否则是网络或状态码错误（<code>wallet_handler.go</code> 的 <code>Broadcast</code>）。广播请求不带 <code>network</code> 时会发往<strong>主网</strong>（<code>broadcast_provider.go</code> 的 <code>Broadcast</code>，L88-89）；web 客户端每次都会带上它。广播不会写入审计链：处理函数只在失败时记一条 <code>slog.Warn</code>（含用户、币种、网络和错误）。web 端调用这些接口的客户端是 <code>packages/api-client/src/client.ts</code> 中的 <code>walletApi</code>，由 <code>apps/web/lib/api.ts</code> 实例化。</p>
   </section>
 
   <section>
@@ -433,26 +472,41 @@ footer{
     <h2>local-first，无服务端往返</h2>
     <p>iOS app 是 <strong>local-first（本地优先）</strong> 的，不使用 Go 钱包 API。<code>APIClient</code> 在 iOS 上是死代码（未接入登录流；金库本就是 Keychain seed + SwiftData，完全在设备上）。仅为取一个余额而重建一套缺席的认证流是净负收益，因此 iOS 钱包客户端派生，并<strong>直连同一组公共索引器</strong>（<code>WalletBalanceService</code>：mempool.space / publicnode）。这比 web 路径的零知识更强 —— 地址列表从不离开设备到自家服务器 —— 且与 local-first 金库一致。</p>
     <p>持久化（<code>WalletAccountStore</code>，UserDefaults）只存<strong>公开账户描述符</strong>（币种 / 网络 / 脚本类型 / 索引 / 标签）—— 无密钥、无地址。收款地址在金库解锁时由内存中的种子实时重新派生，于是静态落盘的足迹不含任何敏感物。</p>
+    <p><strong>iOS 的发送</strong>同样坚持本地优先。<code>WalletTxPrepService.swift</code> 直接向 Go provider 所用的同一组固定主机查询 UTXO、费率档位、nonce 和 gas，并自己完成广播（<code>broadcastBtc</code> → mempool.space <code>POST /tx</code>，<code>broadcastEth</code> → publicnode JSON-RPC），不经过 Go 中继。签名在 <code>apps/ios/AuthBoxCrypto/Sources/AuthBoxCrypto/WalletTx.swift</code> 中原生完成（<code>buildBtcTransaction</code>：P2WPKH / BIP-143；<code>buildEthTransaction</code>：EIP-1559，配合 <code>RLP.swift</code>），另有 <code>WalletTx.isValidRecipient</code> 负责输入时的收款地址校验。原生签名器不设手续费上限：BTC 只要求不低于 1 sat/vB（没有对应 web 端 <code>MAX_BTC_FEE_RATE_SAT_PER_VB</code> 的限制），ETH 则照单使用传入的 gas 参数，所以复核页上的「Network fee」一行就是防范错误费率数据的那道关。<code>SendWalletView.swift</code> 是「复核 → 确认」两步的弹出面板；主网下，必须先打开「I confirm sending real … on mainnet.」开关，确认按钮才可用。DEBUG 视觉验收入口 <code>--send-demo-broadcast</code>（在 <code>App/ContentView.swift</code> 读取）可以自动确认，但 <code>SendWalletView</code> 只在 <code>isTestnet</code> 为真时才会触发它。</p>
   </section>
 
   <section>
     <div class="secnum">11 — 验证</div>
-    <h2>测试 + 真机像素三轮</h2>
-    <div class="card-grid card-grid-3">
+    <h2>测试、实链广播与模拟器三轮</h2>
+    <p class="lead">下面区分两类证据：本文写作时在本分支上实际打开核对过的代码与提交，以及只记录在 <code>task_plan.md</code> 里、这次没有重跑的结果。</p>
+    <div class="card-grid card-grid-2" style="margin-bottom:20px">
       <div class="card">
-        <h3>Web 加密</h3>
-        <p class="muted" style="font-size:0.94rem;margin:0">派生 + 签名测试全绿，加密套件 <strong>80/80</strong>。三个 iancoleman.io/bip39 外部锚点证明可导入标准钱包；签名测试锚定同一助记词（ETH 签名恢复 <code>0x9858…Eda94</code>，BTC 输入归属 <code>bc1qcr8te4…306fyu</code>）。</p>
+        <h3>Web 加密测试</h3>
+        <p class="muted" style="font-size:0.94rem;margin:0"><code>packages/crypto/src/__tests__/</code> 下：<code>wallet.test.ts</code>（派生，14 个用例）、<code>wallet-tx.test.ts</code>（签名，18 个）、<code>wallet-send.test.ts</code>（发送辅助函数，13 个）。三个 iancoleman.io/bip39 外部锚点证明可被标准钱包导入；签名测试锚定同一助记词（ETH 签名恢复出 <code>0x9858…Eda94</code>，BTC 输入归属 <code>bc1qcr8te4…306fyu</code>）。<code>task_plan.md</code>（5c）记录 <code>wallet-send.ts</code> 落地后整套加密测试 119 个通过；本文未重跑。</p>
       </div>
       <div class="card">
-        <h3>iOS 加密</h3>
-        <p class="muted" style="font-size:0.94rem;margin:0"><code>WalletTests</code> <strong>13/13</strong>；iOS 派生出完全相同的标准地址（锚定 iancoleman 向量 + TS 参考）—— 这就是跨平台「打通」的证据。</p>
+        <h3>Go 测试</h3>
+        <p class="muted" style="font-size:0.94rem;margin:0"><code>broadcast_provider_test.go</code>（BTC + ETH 的 <code>httptest</code> 往返、上游拒绝、畸形 hex、未知网络、<code>IsWellFormedRawTxHex</code>）与 <code>txprep_provider_test.go</code>（UTXO、坏地址、费率档位含测试网→主网回退且不自我循环、nonce、有无小费两种 gas、未知网络）。<code>txprep_live_integration_test.go</code> 需显式开启（<code>//go:build integration</code>），会打到真实节点。本次未重跑：当前环境的本地 Go 模块缓存里没有这些依赖，离线（<code>GOPROXY=off</code>）执行 <code>go test ./internal/service/</code> 会停在模块查找这一步。</p>
       </div>
       <div class="card">
-        <h3>iOS 视觉验证（3 轮）</h3>
-        <p class="muted" style="font-size:0.94rem;margin:0"><code>WalletFlowUITests</code>（xcodebuild test PASSED）在 iPhone 17 模拟器跑真机像素。DEBUG 专用 <code>--wallet-demo-seed</code> 从公开测试助记词直接进入已解锁金库，渲染标准且链上真实的地址。7 张已逐图核对的 PNG。</p>
+        <h3>测试网实链广播（web 路径）</h3>
+        <p class="muted" style="font-size:0.94rem;margin:0">记录于 <code>task_plan.md</code> §5c 与提交 <code>c3235d9</code>：txid <code>10622ca67545a9cd955ab7e7ac231fa5d95e1110e36da449936a556d76a6f9a1</code>，1 个 3618 sat 的输入 → 2000 sat 自转 + 1336 sat 找零，手续费 282 sat / vsize 140，费率取自主网回退。这次证明跑的是 <code>scripts/live-testnet-send.ts</code>：它与对话框用的是同一个 <code>@authbox/crypto</code> 签名器，但签好的 hex 是<strong>直接</strong> POST 到 <code>https://mempool.space/testnet/api/tx</code>（脚本 L80），并没有经过 <code>POST /wallet/broadcast</code>。所以 Go 中继目前只有单元测试背书，「经中继的实链广播」在仓库里尚无证据。txid 的链上状态本文未复查。</p>
+      </div>
+      <div class="card">
+        <h3>测试网实链广播（iOS 路径）</h3>
+        <p class="muted" style="font-size:0.94rem;margin:0">记录于 <code>task_plan.md</code> §WALLET-SEND R3-c 与提交 <code>95d2a3a</code>：txid <code>12a19a5b844e7eef…f5e4d6b4</code>，手续费 141 sat，记录为已在测试网确认。本文未复查。</p>
+      </div>
+      <div class="card">
+        <h3>Web 发送对话框渲染</h3>
+        <p class="muted" style="font-size:0.94rem;margin:0"><code>task_plan.md</code> §5c 记录了一次全栈运行（本地 Postgres + Go API + web dev），对话框完整渲染、控制台零报错；截图放在被 git 忽略的 <code>design/visual-acceptance/</code> 下，本文没有打开核对。</p>
+      </div>
+      <div class="card">
+        <h3>iOS 加密测试</h3>
+        <p class="muted" style="font-size:0.94rem;margin:0"><code>apps/ios/AuthBoxCrypto/Tests/AuthBoxCryptoTests/</code> 下的 <code>WalletTests</code>（13 个用例）、<code>WalletTxTests</code>、<code>WalletTxBtcTests</code>、<code>RLPTests</code>；<code>task_plan.md</code> 记录加入发送功能后 AuthBoxCrypto 共 96/96 通过。iOS 派生出与 web 完全相同的标准地址，这就是跨平台「打通」的证据。</p>
       </div>
     </div>
-    <table style="margin-top:20px">
+    <p><strong>iOS 视觉验证（3 轮，iPhone 17 模拟器）：</strong><code>AuthBoxUITests/WalletFlowUITests</code>（据 <code>task_plan.md</code>，xcodebuild test PASSED）。DEBUG 专用 <code>--wallet-demo-seed</code> 从公开测试助记词直接进入已解锁金库。<code>task_plan.md</code> 列出了 7 张 PNG，放在 Maurice 的 AI-Fleet 工作区 <code>state/screenshots/authbox-ios-uxmap/</code> 下（不在本仓库里，本文未打开核对），其中关键几张如下：</p>
+    <table style="margin-top:8px">
       <thead><tr><th>轮次</th><th>截图</th><th>核验点</th></tr></thead>
       <tbody>
         <tr><td>R1</td><td><code>wallet-r1-empty.png</code></td><td>Wallet 标签页可达 + 真实空状态</td></tr>
@@ -460,21 +514,34 @@ footer{
         <tr><td>R3</td><td><code>wallet-r3-eth-detail.png</code> / <code>wallet-r3-multicoin-list.png</code></td><td><code>0x9858…Eda94</code>（EIP-55）@ <code>m/44'/60'/0'/0/0</code> + 多币种并列</td></tr>
       </tbody>
     </table>
+    <p style="margin-top:18px">发送面板的三轮打磨见 <code>task_plan.md</code> §WALLET-SEND。</p>
   </section>
 
   <section>
     <div class="secnum">12 — 分阶段交付</div>
     <h2>真实状态</h2>
-    <div class="card">
+    <div class="card" style="margin-bottom:24px">
       <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 0 — 架构</div><div class="d">本文档。</div></div></div>
       <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 1 — 加密基础</div><div class="d"><code>wallet.ts</code> + 测试。</div></div></div>
-      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 2 — Schema + 共享类型</div><div class="d"><code>Wallet*</code> 类型 + Zod，watch-only 元数据。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 2 — Schema + 共享类型</div><div class="d"><code>Wallet*</code> 类型 + Zod，watch-only 元数据。此后没人引用的 Zod schema 已被删除（提交 <code>29ad87f</code>，2026-11-27），钱包 DTO 现在放在共享 API 客户端里（<code>packages/api-client/src/client.ts</code> 中的 <code>WalletAccountDTO</code>，提交 <code>4089e59</code>）；以 Go API 作为校验的唯一依据。</div></div></div>
       <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 3 — API（读）</div><div class="d">账户 CRUD + 经公共索引器查余额。</div></div></div>
       <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 4 — Web UI</div><div class="d">账户、收款地址、余额。</div></div></div>
-      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 5a — 签名（web）</div><div class="d">客户端构建/签名，不广播（无资金风险）。</div></div></div>
-      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">iOS 5a/5b/5c — 原生一致性 + local-first UI + 3 轮视觉验证</div><div class="d">同一种子 → 同一地址，真机像素核对。</div></div></div>
-      <div class="phase"><span class="pill pill-hitl">HITL</span><div class="body"><div class="t">Phase 5b — 广播中继</div><div class="d">Go 把已签字节转发至固定可信端点（自身从不签名）；测试网优先的实链证明。排队中。</div></div></div>
-      <div class="phase"><span class="pill pill-hitl">HITL</span><div class="body"><div class="t">Phase 5c — 发送 UI</div><div class="d">金额/手续费/确认；<strong>主网资金移动须经 HITL 门</strong>。排队中。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 5a — 签名（web）</div><div class="d"><code>wallet-tx.ts</code> 客户端构建与签名。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 5b — 广播中继</div><div class="d"><code>POST /wallet/broadcast</code>：Go 把已签名字节转发到固定端点，自身从不签名（<code>broadcast_provider.go</code>，提交 <code>30cf115</code>）。据 <code>task_plan.md</code>，2026-06-17 完成。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 5b2 — 交易准备读取</div><div class="d"><code>GET /wallet/btc/utxos</code>、<code>/wallet/btc/fees</code>、<code>/wallet/eth/nonce</code>、<code>/wallet/eth/gas</code>（<code>txprep_provider.go</code>，提交 <code>ab16449</code>）。据 <code>task_plan.md</code>，2026-06-17 完成。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">Phase 5c — 发送 UI</div><div class="d"><code>wallet-send.ts</code>（提交 <code>a13ffd1</code>）+ 两步发送对话框（提交 <code>be6ede8</code>），带主网二次确认闸门；找零追踪与「助记词须属于该账户」检查来自 <code>01583fb</code>。据 <code>task_plan.md</code> 完成（小节标题仍写「WIRED」，但其下的测试网实链证明与渲染检查均已勾选）。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">iOS 5a/5b/5c — 原生一致性 + local-first UI + 3 轮视觉验证</div><div class="d">同一种子 → 同一地址，模拟器像素核对。</div></div></div>
+      <div class="phase"><span class="pill pill-done">DONE</span><div class="body"><div class="t">iOS 发送（§WALLET-SEND）</div><div class="d">原生 BTC + ETH 签名器、本地优先的交易准备与广播、带主网开关的发送面板（提交 <code>e3e7bc1</code>、<code>ec38078</code>、<code>5ea950b</code>、<code>95d2a3a</code>）。据 <code>task_plan.md</code>，2026-06-18 完成。</div></div></div>
+    </div>
+    <h3 style="margin-bottom:12px">待决事项（留给 Maurice，本文未改动任何代码）</h3>
+    <div class="card">
+      <div class="phase"><span class="pill pill-hitl">OWNER</span><div class="body"><div class="t">主网发送尚未实际跑过</div><div class="d">所有已记录的广播都在测试网。第一笔主网发送会动用真实资金，只能由本人操作。</div></div></div>
+      <div class="phase"><span class="pill pill-hitl">OWNER</span><div class="body"><div class="t">主网闸门放在哪里</div><div class="d">web 端只靠「确认」按钮的禁用状态把守；任何已登录会话发来的主网字节，中继都会接收。要不要在处理函数或服务端再加一道检查，是产品与安全层面的决定。</div></div></div>
+      <div class="phase"><span class="pill pill-hitl">OWNER</span><div class="body"><div class="t">中继尚无实链证明</div><div class="d">web 端的实链证明绕开了 <code>POST /wallet/broadcast</code>（见 §11）。通过运行中的对话框完成一笔测试网发送，即可补上这一段。</div></div></div>
+      <div class="phase"><span class="pill pill-hitl">OWNER</span><div class="body"><div class="t">手续费上限</div><div class="d">web 端 BTC 把费率限制在 5000 sat/vB；web 端 ETH 以及 iOS 原生的 BTC/ETH，仓库代码里都没有上限（§5、§10）。要不要加，是安全层面的决定。</div></div></div>
+      <div class="phase"><span class="pill pill-hitl">OWNER</span><div class="body"><div class="t">web 端传统 BTC 账户无法发送</div><div class="d">web 表单可以创建传统（P2PKH）账户，发送对话框却签不了这类账户（§8.3）。要么补上 <code>prevTxHex</code>，要么对这类账户不再提供发送。</div></div></div>
+      <div class="phase"><span class="pill pill-hitl">OWNER</span><div class="body"><div class="t">广播没有审计记录</div><div class="d">中继成功转发一笔交易，审计链上不会留下任何条目（§9）。</div></div></div>
+      <div class="phase"><span class="pill pill-hitl">OWNER</span><div class="body"><div class="t">Web 新用户入口</div><div class="d"><code>task_plan.md</code>（5c，「Onboarding dead-end」）记录：<code>/create</code> 路径拿不到服务端会话，所以依赖服务端的钱包只有走 <code>/register</code> 才进得去。这是另一项单独的产品决定，在那里跟踪。</div></div></div>
     </div>
   </section>
 
@@ -494,7 +561,7 @@ footer{
 <footer>
   <p>Auth Box · 加密钱包架构</p>
   <p>Maurice | maurice_wen@proton.me</p>
-  <p style="font-size:12px;margin-top:8px;">2026-06-03 生成 · 数据来源：auth-box 仓库代码与测试（git 已核对）</p>
+  <p style="font-size:12px;margin-top:8px;">2026-06-03 生成 · 2026-11-28 更新 · 数据来源：auth-box 仓库代码与测试（git 已核对）</p>
 </footer>
 
 </body>
